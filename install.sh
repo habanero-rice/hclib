@@ -4,6 +4,25 @@
 # Defining some variables
 #
 
+BASE=`pwd`
+
+echo "##### BUILDING OCR ############"
+
+cd ${OCR_BASE}
+./clobber.sh
+./install.sh
+
+echo "##### BUILDING HCLIB ##########"
+
+cd ${HCLIB_BASE}
+./clobber.sh
+HCLIB_CONFIGURE_FLAGS="--enable-cpp11=yes " ./install.sh
+
+echo "##### BUILDING HCPP ##########"
+
+cd ${BASE}
+./clobber.sh
+
 PROJECT_NAME=hcpp
 
 check_error()

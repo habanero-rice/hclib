@@ -2,9 +2,9 @@
 
 export CXX=g++
 
-export HCLIB_ROOT=  < ? >
-export OCR_ROOT=    < ? >
-export OCR_INSTALL= < ? >
+# absolute path to the directories checked-out from github
+export HCLIB_BASE=  < ? >
+export OCR_BASE= < ? >
 
 ################################################
 #
@@ -17,7 +17,9 @@ cd ..
 BASE=`pwd`
 cd -
 
-export HCPP_INSTALL=${BASE}/hcpp-install
+export HCLIB_ROOT=${HCLIB_BASE}/hclib-install
+export OCR_ROOT=${OCR_BASE}/ocr-install
+export HCPP_ROOT=${BASE}/hcpp-install
 export OCR_CONFIG=${BASE}/machine-configs/mach-hcpp-1w.cfg
-export LD_LIBRARY_PATH=${OCR_ROOT}/lib:${HCLIB_ROOT}/lib:${HCPP_INSTALL}/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${OCR_ROOT}/lib:${HCLIB_ROOT}/lib:${HCPP_ROOT}/lib:$LD_LIBRARY_PATH
 

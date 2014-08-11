@@ -1,6 +1,6 @@
 HCPPONLY = 1
 
-include $(HCPP_INSTALL)/include/hcpp.mak
+include $(HCPP_ROOT)/include/hcpp.mak
 
 EXE=fib asyncAwait0 nqueens fib-ddt
 

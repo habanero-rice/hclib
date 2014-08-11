@@ -1,0 +1,44 @@
+=============================================
+HABANERO-C++ LIBRARY INSTALLATION PROCEDURE
+=============================================
+
+1) Checkout hclib repository:
+
+git clone https://github.com/habanero-rice/hclib.git
+
+2) Checkout ocr repository:
+
+git clone https://github.com/01org/ocr.git
+
+3) Set the paths correctly in ./scripts/setMeFirst.sh (bash) or ./scripts/setMeFirst.csh (cshell)
+
+4) cd scripts
+
+5) source ./setMeFirst.sh (or source ./setMeFirst.csh)
+
+6) cd ..
+
+7) ./install.sh
+
+=============================================
+BUILDING TESTCASES
+=============================================
+
+1) Tests are inside "./test" 
+
+2) Each testcase has its own Makefile. Simply use "make" to build testcases
+
+=============================================
+EXECUTING TESTCASES
+=============================================
+
+1) Directory "machine-configs" contains various OCR worker configuration files
+
+2) For using "10" work-stealing worker threads, do:
+export OCR_CONFIG=<ABSOLUTE PATH TO THE CONFIGURATION FILE>/mach-hcpp-10w.cfg
+              OR
+setenv OCR_CONFIG <ABSOLUTE PATH TO THE CONFIGURATION FILE>/mach-hcpp-10w.cfg
+
+3) Execute the testcase like normal c++ executable: ./a.out
+
+

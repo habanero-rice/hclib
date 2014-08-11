@@ -49,6 +49,8 @@ namespace hcpp
     loop->stride = 1;
     loop->tile =  (int)highBound/numWorkers();
     std::function<void(int)> * copy_of_lambda = new std::function<void(int)> (lambda);
+    //forasync_hcupc_t fasync = {(void*)&forasync_cpp_wrapper, (void *)copy_of_lambda, NULL, NULL, NULL, 1, loop, FORASYNC_MODE_FLAT};
+    //forasync_hcupc(&fasync);
     ::forasync((void*)&forasync_cpp_wrapper, (void *)copy_of_lambda, NULL, NULL, NULL, 1, loop, FORASYNC_MODE_FLAT);
    
     // BUG: Currently hclib internally wraps forasync inside
