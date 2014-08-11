@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Habanero-C++: a Compiler-free Work-Stealing Library " />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Habanero-C++</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/habanero-rice/hcpp ">View on GitHub</a>
+
+          <h1 id="project_title">Habanero-C++</h1>
+          <h2 id="project_tagline">A Compiler-free Work-Stealing Library </h2>
+
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+
+<h1>Writing Habanero-C++ programs</h1>
+
+<p>Habanero-C++ defines a C++11-based interface in the <code>hcpp.h</code> header file.
+Just use the include directive in your program to import the interfaces and import the Habanero-C++ namespace</p>
+
+<pre><code>#include "hcpp.h"
+using namespace hcpp;</code></pre>
+
+<h1>Compiling Habanero-C++ program </h1>
+
+<p>
+First set the environment variables as mentioned in the <code>README</code> file. A sample Makefile for compiling a Habanero-C++ file <code>test.cpp</code> is as shown below:
+</p>
+<p><PRE>
+<code>include $(HCPP_INSTALL)/include/hcpp.mak
+all: test
+
+test: test.o
+        $(CXX) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+
+test.o: test.cpp
+        $(CXX) $(PROJECT_CXXFLAGS) -o $@ -c $<</code></PRE>
+</p>
+
+<h1>Executing Habanero-C++ program </h1>
+
+<p>
+First set the work-stealing configuration file, which declares the total number of worker threads. The directory <code>machine-configs</code> contains the templates for different number of worker threads. For using 10 worker threads at each Habanero-C++ execution place, the environment variable is set as:
+</p>
+
+<p>
+<PRE><code>export OCR_CONFIG=<absolute path>/hcpp/machine-configs/mach-hcpp-10w.cfg</code></PRE>
+</p>
+
+<p>
+The executable <code>test</code> can then be run as a normal C++ executable:
+</p>
+
+<p>
+<PRE><code>./test < Command line input to test ></code></PRE>
+</p>
+
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p><a href="mailto:vivek.kumar@rice.edu?Subject=Habanero-C++%20Question">Contact</a> for information or issues on Habanero-C++</p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-39164844-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
