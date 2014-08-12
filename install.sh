@@ -9,6 +9,7 @@ BASE=`pwd`
 echo "##### BUILDING OCR ############"
 
 cd ${OCR_BASE}
+git checkout ocr-hclib
 ./clobber.sh
 ./install.sh
 
