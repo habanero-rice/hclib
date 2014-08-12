@@ -6,6 +6,13 @@ then
   exit
 fi
 
+BASE=`pwd`
+cd $OCR_BASE
+./clobber.sh
+cd $HCLIB_BASE
+./clobber.sh
+cd $BASE
+
 #
 # Cleanup the project 
 #

@@ -4,6 +4,12 @@
 # Defining some variables
 #
 
+if [ `env | grep OCR_ROOT | wc -l` -ne 1 ]
+then
+  echo "Please source setMeFirst.sh first"
+  exit
+fi
+
 BASE=`pwd`
 
 echo "##### BUILDING OCR ############"
