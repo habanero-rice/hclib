@@ -2,9 +2,12 @@ HCPPONLY = 1
 
 include $(HCPP_ROOT)/include/hcpp.mak
 
-EXE=fib asyncAwait0 nqueens fib-ddt
+EXE=fib asyncAwait0 nqueens fib-ddt qsort
 
 all: clean $(EXE) clean-obj
+
+qsort: qsort.cpp
+	$(CXX) $(PROJECT_LDFLAGS) $(PROJECT_CXXFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 fib: fib.cpp
 	$(CXX) $(PROJECT_LDFLAGS) $(PROJECT_CXXFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
