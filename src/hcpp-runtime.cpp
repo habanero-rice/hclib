@@ -1,10 +1,20 @@
 #include "hcpp-utils.h"
+#include<pthread.h>
+#include<assert.h>
 
 namespace hcpp
 {
   using namespace std;
+  static pthread_mutex_t  _lock = PTHREAD_MUTEX_INITIALIZER;
 
-  
+  void hcpp_lock() {
+    pthread_mutex_lock(&_lock);
+  }
+
+  void hcpp_unlock() {
+    pthread_mutex_unlock(&_lock);
+  }
+
   void async_cpp_wrapper(void *args)
   {
     std::function<void()> *lambda = (std::function<void()> *)args;

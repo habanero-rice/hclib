@@ -38,6 +38,8 @@ namespace hcpp {
   void DROP(PHASER_t* ph);
   void NEXT();
 #endif
+  void hcpp_lock();
+  void hcpp_unlock();
 }
 
 #include "hcpp-asyncAwait.h"
