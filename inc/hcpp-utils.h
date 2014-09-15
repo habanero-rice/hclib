@@ -28,7 +28,7 @@ namespace hcpp {
   void async(std::function<void()> &&lambda);
   void asyncComm(std::function<void()> &&lambda);
   int numWorkers();
-  void forasync(int lowBound, int highBound, std::function<void(int)> lambda);
+  void forasync(int lowBound, int highBound, std::function<void(int)> lambda, int tile=0);
   DDF_t** DDF_LIST(int total_ddfs);
   DDF_t* DDF_CREATE();
   void DDF_PUT(DDF_t* ddf, void* value);

@@ -51,13 +51,13 @@ namespace hcpp
     return get_nb_workers();
   }
 
-  void forasync(int lowBound, int highBound, std::function<void(int)> lambda) 
+  void forasync(int lowBound, int highBound, std::function<void(int)> lambda, int tile) 
   {
     loop_domain_t *loop = new loop_domain_t; 
     loop->low = lowBound;
     loop->high =  highBound;
     loop->stride = 1;
-    loop->tile =  (int)highBound/numWorkers();
+    loop->tile = tile==0 ? ((int)highBound/numWorkers()) : tile;
     std::function<void(int)> * copy_of_lambda = new std::function<void(int)> (lambda);
     //forasync_hcupc_t fasync = {(void*)&forasync_cpp_wrapper, (void *)copy_of_lambda, NULL, NULL, NULL, 1, loop, FORASYNC_MODE_FLAT};
     //forasync_hcupc(&fasync);
