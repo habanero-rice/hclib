@@ -5,6 +5,8 @@ export CXX=g++
 # absolute path to the directories checked-out from github
 export HCLIB_BASE=  < ? >
 export OCR_BASE= < ? >
+export TBB_MALLOC= <PATH TO DIRECTORY CONTAINING libtbbmalloc_proxy.so>
+
 
 ################################################
 #
@@ -22,4 +24,6 @@ export OCR_ROOT=${OCR_BASE}/ocr-install
 export HCPP_ROOT=${BASE}/hcpp-install
 export OCR_CONFIG=${BASE}/machine-configs/mach-hcpp-1w.cfg
 export LD_LIBRARY_PATH=${OCR_ROOT}/lib:${HCLIB_ROOT}/lib:${HCPP_ROOT}/lib:$LD_LIBRARY_PATH
-
+if [ ! -z "${TBB_MALLOC}" ]; then
+   export LD_LIBRARY_PATH=${TBB_MALLOC}:$LD_LIBRARY_PATH
+fi
