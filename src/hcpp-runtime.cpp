@@ -535,7 +535,7 @@ void finish(std::function<void()> lambda) {
 	end_finish();
 }
 
-#ifdef HUPCPP
+#ifdef DIST_WS
 /*
  * snapshot of total asyncAny tasks currently available with all computation workers
  */
@@ -546,7 +546,9 @@ int totalAsyncAnyAvailable() {
 	}
 	return total_asyncany;
 }
+#endif
 
+#ifdef HUPCPP
 int totalPendingLocalAsyncs() {
 	/*
 	 * snapshot of all pending tasks at all workers

@@ -241,7 +241,7 @@ void spawn_asyncAnyTask(task_t * task);
 template <typename T>
 inline void asyncAny(T lambda) {
 	task_t* task = _allocate_async<T>(lambda, false);
-	task.mark_as_asyncAnyTask();
+	task->mark_as_asyncAnyTask();
 	spawn_asyncAnyTask(task);
 }
 #endif	/* HUPCPP */
