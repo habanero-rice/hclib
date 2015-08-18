@@ -644,7 +644,7 @@ void hc_hpt_cleanup_1(hc_context * context) {
 
 void hc_hpt_cleanup_2(hc_context * context) {
 	/* clean up the HPT, places and workers */
-	if (getenv("CRT_HPT_FILE")) {
+	if (getenv("HCPP_HPT_FILE")) {
 		freeHPT(context->hpt);
 	} else {
 		for(int i=0; i<context->nproc; i++) {
@@ -1078,7 +1078,7 @@ void setupWorkerHptPath(hc_workerState * worker, place_t * pl) {
 }
 
 place_t* readhpt(place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk) {
-	const char *filename = getenv("CRT_HPT_FILE");
+	const char *filename = getenv("HCPP_HPT_FILE");
 	HASSERT(filename);
 
 	/* create a parser context */

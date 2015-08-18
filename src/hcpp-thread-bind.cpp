@@ -90,14 +90,14 @@ void bind_thread_rr(int worker_id) {
 	/*bind worker_id to cpu_id round-robin fashion*/
 	int nbCPU = get_nb_cpus();
 	int mask = worker_id % nbCPU;
-	//printf("CRT: INFO -- Binding worker %d to cpu_id %d\n", worker_id, mask);
+	//printf("HCPP: INFO -- Binding worker %d to cpu_id %d\n", worker_id, mask);
 	bind_thread_with_mask(&mask, 1);
 }
 
 /* Bind threads according to bind map */
 void bind_thread_map(int worker_id, int *bind_map, int bind_map_size) {
 	int mask = bind_map[worker_id % bind_map_size];
-	//printf("CRT: INFO -- Binding worker %d to cpu_id %d\n", worker_id, mask);
+	//printf("HCPP: INFO -- Binding worker %d to cpu_id %d\n", worker_id, mask);
 	bind_thread_with_mask(&mask, 1);
 }
 

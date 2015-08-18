@@ -46,7 +46,7 @@ namespace hcpp {
  * the heap allocated lambda. Due to this 16 bytes is sufficient
  * for our lambda based approach.
  */
-#define MAX_CRT_ASYNC_ARG_SIZE 16
+#define MAX_HCPP_ASYNC_ARG_SIZE 16
 
 template <typename Function, typename T1>
 struct async_arguments1 {
@@ -66,13 +66,13 @@ void wrapper1(void *args) {
 }
 
 struct hcpp_async_task  {
-	char _args[MAX_CRT_ASYNC_ARG_SIZE];
+	char _args[MAX_HCPP_ASYNC_ARG_SIZE];
 	struct finish_t* current_finish;
 	generic_framePtr _fp;
 	bool is_asyncAnyType;
 	ddf_t ** ddf_list; // Null terminated list
 	inline void init_hcpp_async_task(generic_framePtr fp, size_t arg_sz, void *async_args) {
-		HASSERT(arg_sz <= MAX_CRT_ASYNC_ARG_SIZE);
+		HASSERT(arg_sz <= MAX_HCPP_ASYNC_ARG_SIZE);
 		this->_fp = fp;
 		this->is_asyncAnyType = false;
 		this->ddf_list = NULL;
