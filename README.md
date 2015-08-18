@@ -26,7 +26,13 @@ EXECUTING TESTCASES
 
 1) Set total number of workers
 
-export HCPP_WORKERS=<N>
+a) export HCPP_WORKERS=N
+
+OR 
+
+b) use an HPT xml file. Some sample files in directory ./hpt
+
+export HCPP_HPT_FILE=/absolute/path/hcpp/hpt/hpt-testing.xml
 
 2) See runtime statistics
 
