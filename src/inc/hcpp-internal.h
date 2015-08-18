@@ -152,6 +152,10 @@ void log_(const char * file, int line, hc_workerState * ws, const char * format,
 // thread binding
 void bind_thread(int worker_id, int *bind_map, int bind_map_size);
 
+//ddf
+int iterate_ddt_frontier(ddt_t * ddt);
+ddt_t * rt_async_task_to_ddt(task_t * async_task);
+void try_schedule_async(task_t * async_task, int comm_task);
 }
 
 #ifdef __USE_HC_MM__

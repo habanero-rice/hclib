@@ -58,8 +58,10 @@ static finish_t*	root_finish;
 hc_context* 		crt_context;
 hc_options* 		crt_options;
 
+#ifdef DIST_WS
 asyncAnyInfo*  asyncAnyInfo_forWorker;
 commWorkerAsyncAny_infoStruct_t *commWorkerAsyncAny_infoStruct;
+#endif
 
 void log_(const char * file, int line, hc_workerState * ws, const char * format, ...) {
 	va_list l;
@@ -172,6 +174,7 @@ void crt_global_init(bool HPT) {
 	semiConcDequeInit(comm_worker_out_deque, NULL);
 #endif
 
+#ifdef DIST_WS
 	asyncAnyInfo_forWorker = (asyncAnyInfo*) malloc(sizeof(asyncAnyInfo) * crt_context->nworkers);
 	for(int i=0; i<crt_context->nworkers; i++) {
 		asyncAnyInfo_forWorker[i].asyncAny_pushed = 0;
@@ -180,6 +183,7 @@ void crt_global_init(bool HPT) {
 	commWorkerAsyncAny_infoStruct = new commWorkerAsyncAny_infoStruct_t;
 	commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny = NULL;
 	commWorkerAsyncAny_infoStruct->initiatePackingOfAsyncAny = false;
+#endif
 }
 
 void crt_createWorkerThreads(int nb_workers) {
@@ -284,7 +288,9 @@ void crt_cleanup() {
 	free(crt_options);
 	free(total_steals);
 	free(total_push_ind);
+#ifdef DIST_WS
 	free(asyncAnyInfo_forWorker);
+#endif
 }
 
 inline void check_in_finish(finish_t * finish) {
@@ -321,6 +327,15 @@ inline void rt_schedule_async(task_t* async_task, int comm_task) {
 	}
 }
 
+inline int is_eligible_to_schedule(task_t * async_task) {
+    if (async_task->ddf_list != NULL) {
+    	struct ddt_st * ddt = (ddt_t *) rt_async_task_to_ddt(async_task);
+        return iterate_ddt_frontier(ddt);
+    } else {
+        return 1;
+    }
+}
+
 void try_schedule_async(task_t * async_task, int comm_task) {
     if (is_eligible_to_schedule(async_task)) {
         rt_schedule_async(async_task, comm_task);
@@ -340,6 +355,22 @@ void spawn(task_t * task) {
 
 }
 
+void spawn_await(task_t * task, ddf_t** ddf_list) {
+	// get current worker
+	hc_workerState* ws = current_ws();
+	check_in_finish(ws->current_finish);
+	task->set_current_finish(ws->current_finish);
+	task->set_ddf_list(ddf_list);
+	hcpp_task_t *t = (hcpp_task_t*) task;
+	ddt_init(&(t->ddt), ddf_list);
+	try_schedule_async(task, 0);
+#ifdef HC_COMM_WORKER_STATS
+	const int wid = get_current_worker();
+	increment_async_counter(wid);
+#endif
+
+}
+
 void spawn_commTask(task_t * task) {
 #ifdef CRT_COMM_WORKER
 	hc_workerState* ws = current_ws();
@@ -351,6 +382,7 @@ void spawn_commTask(task_t * task) {
 #endif
 }
 
+#ifdef DIST_WS
 void spawn_asyncAnyTask(task_t* task) {
 	// get current worker
 	hc_workerState* ws = current_ws();
@@ -363,6 +395,7 @@ void spawn_asyncAnyTask(task_t* task) {
 	increment_async_counter(wid);
 #endif
 }
+#endif
 
 inline void slave_worker_finishHelper_routine(finish_t* finish) {
 	hc_workerState* ws = current_ws();
@@ -502,6 +535,7 @@ void finish(std::function<void()> lambda) {
 	end_finish();
 }
 
+#ifdef HUPCPP
 /*
  * snapshot of total asyncAny tasks currently available with all computation workers
  */
@@ -540,6 +574,7 @@ int totalPendingLocalAsyncs() {
 	return pending_tasks;
 #endif
 }
+#endif
 
 int numWorkers() {
 	return crt_context->nworkers;

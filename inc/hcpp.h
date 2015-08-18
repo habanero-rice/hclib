@@ -103,7 +103,6 @@ typedef void (*generic_framePtr)(void*);
 
 namespace hcpp {
 
-#define	 DDT_t	ddt_t
 void finish(std::function<void()> lambda);
 int numWorkers();
 void init(int * argc, char ** argv);

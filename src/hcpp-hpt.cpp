@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hcpp {
 
-#ifdef HUPCPP
+#ifdef DIST_WS
 extern asyncAnyInfo* asyncAnyInfo_forWorker;
 extern commWorkerAsyncAny_infoStruct_t *commWorkerAsyncAny_infoStruct;
 
@@ -96,8 +96,10 @@ void inform_HCUPC_myStatus(int wid, bool status) {
  */
 task_t* hpt_steal_task(hc_workerState* ws) {
 	place_t * pl = ws->pl;
+#ifdef DIST_WS
 	asyncAnyInfo_forWorker[ws->id].asyncAny_pushed = 0;
 	asyncAnyInfo_forWorker[ws->id].asyncAny_stolen = 0;
+#endif
 	while (pl != NULL) {
 		hc_deque_t * deqs = pl->deques;
 		int nb_deq = pl->ndeques;
@@ -110,16 +112,20 @@ task_t* hpt_steal_task(hc_workerState* ws) {
 			task_t* buff = dequeSteal(&(d->deque));
 			if (buff) { /* steal succeeded */
 				ws->current = get_deque_place(ws, pl);
+#ifdef DIST_WS
 				if(buff->is_asyncAnyTask()) {
 					hc_atomic_inc(&(asyncAnyInfo_forWorker[victim].asyncAny_stolen));
 				}
 				// If I am here then local steal has passed
 				inform_HCUPC_myStatus(ws->id, WORKER_IS_BUSY);
+#endif
 				return buff;
 			}
 		}
+#ifdef DIST_WS
 		// If I am here then local steal has failed
 		inform_HCUPC_myStatus(ws->id, WORKER_IS_FREE);
+#endif
 #if TODO
 		/* We also steal from places that represents the device (GPU),
 		 * those continuations that are pushed onto the deque by the
@@ -142,6 +148,8 @@ task_t* hpt_steal_task(hc_workerState* ws) {
 	}
 	return NULL;
 }
+
+#ifdef DIST_WS
 
 #ifdef HPT_VERSION
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
@@ -215,7 +223,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	}
 	return false;
 }
-#else
+#else	// HPT_VERSION
 /*
  * in this version comm_worker simply try to steal by choosing victims in sequential order
  */
@@ -264,7 +272,8 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	}
 	return false;
 }
-#endif
+#endif	// HPT_VERSION
+#endif // DIST_WS
 
 /**
  * HPT: Pop items from a worker deque
@@ -280,7 +289,9 @@ task_t* hpt_pop_task(hc_workerState * ws) {
 		task_t* buff = dequePop(&current->deque);
 		if (buff) {
 			ws->current = current;
+#ifdef DIST_WS
 			if(buff->is_asyncAnyTask()) asyncAnyInfo_forWorker[ws->id].asyncAny_pushed--;
+#endif
 			return buff;
 		}
 		if (downward) {

@@ -82,6 +82,8 @@ typedef struct ddf_st {
     struct ddt_st * headDDTWaitList;
 } ddf_t;
 
+#define DDF_t	ddf_t
+
 /**
  * @brief Allocate and initialize a DDF.
  * @return A DDF.

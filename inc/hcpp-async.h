@@ -209,7 +209,7 @@ inline void execute_lambda(T* lambda) {
 template <typename T>
 inline task_t* _allocate_async(T lambda, bool await) {
 	const size_t hcpp_task_size = !await ? sizeof(task_t) : sizeof(hcpp_task_t);
-	task_t* task = (task_t*) HC_MALLOC(sizeof(hcpp_task_size));
+	task_t* task = (task_t*) HC_MALLOC(hcpp_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);
@@ -227,8 +227,6 @@ inline void async(T lambda) {
 template <typename T>
 inline void _asyncAwait(ddf_t ** ddf_list, T lambda) {
 	task_t* task = _allocate_async<T>(lambda, true);
-	//cb.set_ddf_list(ddf_list);
-	//ddt_init(&(t->ddt), ddf_list);
 	spawn_await(task, ddf_list);
 }
 
