@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #export TBB_MALLOC=/Users/vivek/rice_work/projects/tbb/mac
-export HCPP_FLAGS="--enable-asserts --enable-commStats"
+#export HCPP_FLAGS="--enable-production"
 export LIBXML2=/usr/local/Cellar/libxml2/2.9.2
 
 ################################################
