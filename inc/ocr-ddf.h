@@ -30,39 +30,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * ocr-rt.h
- *
+ * hcpp-ddf.h
+ *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-extern "C" {
-  #include "hclib.h"
-//  #ifdef _PHASER_LIB_
-//  #include "phased.h"
-//  #endif
-}
+#ifndef OCR_DDF_H_
+#define OCR_DDF_H_
 
 namespace hcpp {
 
-typedef void (*generic_framePtr)(void*);
-#define HC_MALLOC(msize)	malloc(msize)
-#define HC_FREE(p)			free(p)
+typedef struct ddf_st DDF_t;
 
-int get_hc_wid();
-#define HASSERT(cond) 		if(!(cond)){ printf("W%d: assertion failure\n", hcpp::get_hc_wid()); assert(cond); }
+/**
+ * @brief Allocate and initialize a DDF.
+ * @return A DDF.
+ */
+DDF_t * ddf_create();
+
+/**
+ * @brief Allocate and initialize an array of DDFs.
+ * @param[in] nb_ddfs 				Size of the DDF array
+ * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
+ * @return A contiguous array of DDFs
+ */
+DDF_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
+
+/**
+ * @brief Destruct a DDF.
+ * @param[in] ddf 				The DDF to destruct
+ */
+void ddf_free(DDF_t * ddf);
+
+/**
+ * @brief Get the value of a DDF.
+ * @param[in] ddf 				The DDF to get a value from
+ */
+void * ddf_get(DDF_t * ddf);
+
+/**
+ * @brief Put a value in a DDF.
+ * @param[in] ddf 				The DDF to get a value from
+ * @param[in] datum 			The datum to be put in the DDF
+ */
+void ddf_put(DDF_t * ddf, void * datum);
+
 }
 
-#include "ocr-ddf.h"
-#include "ocr-async.h"
-#include "hcpp-asyncAwait.h"
-#include "hcpp-forasync.h"
-
-namespace hcpp {
-void finish(std::function<void()> lambda);
-int numWorkers();
-void init(int * argc, char ** argv);
-void finalize();
-void start_finish();
-void end_finish();
-}
+#endif /* OCR_DDF_H_ */

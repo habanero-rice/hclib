@@ -57,7 +57,7 @@ void spawnComm(task_t * task) {
 	::async(&execute_task, (void *) task, NO_DDF, NO_PHASER, ASYNC_COMM);
 }
 
-void spawn_await(task_t * task, ddf_t** ddf_list) {
+void spawn_await(task_t * task, DDF_t ** ddf_list) {
 	::async(&execute_task, (void *) task, (struct ddf_st**) ddf_list, NO_PHASER, NO_PROP);
 }
 
@@ -93,6 +93,45 @@ int numWorkers() {
 	//return get_nb_workers();
 	HASSERT("hclib::get_nb_workers not yet visible" && 0);
 	return 0;
+}
+
+DDF_t * ddf_create() {
+	return ::ddf_create();
+}
+
+/**
+ * @brief Allocate and initialize an array of DDFs.
+ * @param[in] nb_ddfs                           Size of the DDF array
+ * @param[in] null_terminated           If true, create nb_ddfs-1 and set the last element to NULL.
+ * @return A contiguous array of DDFs
+ */
+DDF_t ** ddf_create_n(size_t nb_ddfs, int null_terminated) {
+	return ::ddf_create_n(nb_ddfs, null_terminated);
+}
+
+/**
+ * @brief Destruct a DDF.
+ * @param[in] ddf                               The DDF to destruct
+ */
+void ddf_free(DDF_t * ddf) {
+	::ddf_free(ddf);
+}
+
+/**
+ * @brief Get the value of a DDF.
+ * @param[in] ddf                               The DDF to get a value from
+ */
+void * ddf_get(DDF_t * ddf) {
+	return ::ddf_get(ddf);
+}
+
+/**
+ * @brief Put a value in a DDF.
+ * @param[in] ddf                               The DDF to get a value from
+ * @param[in] datum                     The datum to be put in the DDF
+ */
+void ddf_put(DDF_t * ddf, void * datum) {
+	::ddf_put(ddf, datum);
 }
 
 }

@@ -2,7 +2,7 @@
 
 int main(int argc, char ** argv) {
     hcpp::init(&argc, argv);
-    hcpp::ddf_t* ddf1 = hcpp::ddf_create();
+    hcpp::DDF_t * ddf1 = hcpp::ddf_create();
     int * val = new int;
     *val = 100;
 

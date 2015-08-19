@@ -87,7 +87,7 @@ struct hcpp_async_task  {
 
 void spawn(task_t * task);
 void spawnComm(task_t * task);
-void spawn_await(task_t * task, ddf_t** ddf_list);
+void spawn_await(task_t * task, DDF_t** ddf_list);
 
 template <typename T>
 inline void execute_lambda(T* lambda) {
@@ -120,7 +120,7 @@ inline void asyncComm(T lambda) {
 }
 
 template <typename T>
-inline void _asyncAwait(ddf_t ** ddf_list, T lambda) {
+inline void _asyncAwait(DDF_t ** ddf_list, T lambda) {
 	task_t* task = _allocate_async<T>(lambda);
 	spawn_await(task, ddf_list);
 }
