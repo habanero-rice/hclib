@@ -30,27 +30,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp.h
+ * ocr-runtime.cpp
  *
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#ifndef HCPP_H_
-#define HCPP_H_
+#include "hcpp.h"
+#include <sys/time.h>
 
-#include <iostream>
-// Required for lambda as std::function
-#include <list>
-#include <functional>
-#include <stdlib.h>
-#include <cstring>
-#include <assert.h>
+namespace hcpp {
+using namespace std;
+#define ASYNC_COMM ((int) 0x2)
 
-#ifdef WITH_OCR
-#include "ocr-rt.h"
-#else
-#include "hcpp-rt.h"
-#endif
+void execute_task(void* t) {
+	task_t* task = (task_t*) t;
+	(task->_fp)(task->_args);
+	HC_FREE((void*) task);
+}
 
-#endif /* HCPP_H_ */
+void spawn(task_t * task) {
+	::async(&execute_task, (void *) task, NO_DDF, NO_PHASER, NO_PROP);
+}
+
+void spawnComm(task_t * task) {
+	::async(&execute_task, (void *) task, NO_DDF, NO_PHASER, ASYNC_COMM);
+}
+
+void spawn_await(task_t * task, ddf_t** ddf_list) {
+	::async(&execute_task, (void *) task, ddf_list, NO_PHASER, NO_PROP);
+}
+
+void init(int * argc, char ** argv) {
+	hclib_init(argc, argv);
+}
+
+void finalize() {
+	hclib_finalize();
+}
+
+void start_finish() {
+	::start_finish();
+}
+
+void end_finish() {
+	::end_finish();
+}
+
+void finish(std::function<void()> lambda) {
+	start_finish();
+	lambda();
+	end_finish();
+}
+
+int get_hc_wid() {
+	return get_worker_id_hc();
+}
+
+int numWorkers() {
+	return get_nb_workers();
+}
+
+}

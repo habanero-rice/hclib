@@ -11,7 +11,11 @@ AUX_DIST = \
 
 library_includedir=$(includedir)
 
+if WITH_OCR
+library_include_HEADERS = inc/hcpp.h inc/hcpp.mak inc/hcpp-async.h inc/hcpp-forasync.h inc/hcpp-asyncAwait.h
+else
 library_include_HEADERS = inc/hcpp.h inc/hcpp.mak inc/hcpp-async.h inc/hcpp-hpt.h inc/hcpp-mm.h inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h
+endif
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \

@@ -25,7 +25,6 @@ else
 PRODUCTION_SETTINGS_FLAGS = -DHC_ASSERTION_CHECK -DHC_COMM_WORKER_STATS
 endif
 
-AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2)/include/libxml2
 
 # build the hcpp library
 lib_LTLIBRARIES = libhcpp.la
@@ -34,8 +33,15 @@ lib_LTLIBRARIES = libhcpp.la
 noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
-# build hcpp
+if WITH_OCR
+AM_CXXFLAGS = -DWITH_OCR
+libhcpp_la_SOURCES = ocr-runtime.cpp
+else
+AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2)/include/libxml2
 libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-mm.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp
+endif
+
+# build hcpp
 libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
 
 MAINTAINERCLEANFILES = Makefile.in
