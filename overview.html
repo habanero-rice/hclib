@@ -36,19 +36,19 @@ The different types of supported intra-node <a href="https://wiki.rice.edu/confl
 
 <p>
 <PRE><code>
-(i) Asynchronous parallel task
+(1) Asynchronous parallel task
 
 async([capture_list]() {
   S1;
 });
 
-(ii) Asynchronous parallel task depending on data driven futures (DDFs)
+(2) Asynchronous parallel task depending on data driven futures (DDFs)
 
 asyncAwait(ddf_1, ddf_2, ...., [capture_list]() {
   S2;
 });
 
-(iii) Asynchronous parallel for-loop iterations
+(3) Asynchronous parallel for-loop iterations
 
 // parallel for loop
 // loop properties
@@ -95,6 +95,15 @@ These asynchronous tasks can be joined by using a finish:
 });</code></PRE>
 </p>
 
+<p>
+Light-weight standalone runtime of Habanero-C++ also supports three extra runtime features:
+</p>
+
+<p>
+(1) Hierarchical Place Trees (<a href="http://www.cs.rice.edu/~vs3/PDF/hpt.pdf">HPTs</a>).<br>
+(2) Memory management tool from Habanero-C. <br>
+(3) Binding worker threads to cores (Linux only).
+</p>
       </section>
     </div>
 
