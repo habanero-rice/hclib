@@ -58,7 +58,7 @@ void spawnComm(task_t * task) {
 }
 
 void spawn_await(task_t * task, ddf_t** ddf_list) {
-	::async(&execute_task, (void *) task, ddf_list, NO_PHASER, NO_PROP);
+	::async(&execute_task, (void *) task, (struct ddf_st**) ddf_list, NO_PHASER, NO_PROP);
 }
 
 void init(int * argc, char ** argv) {
@@ -84,11 +84,15 @@ void finish(std::function<void()> lambda) {
 }
 
 int get_hc_wid() {
-	return get_worker_id_hc();
+	//return get_worker_id(); 
+	HASSERT("hclib::get_worker_id not yet visible" && 0);
+	return 0;
 }
 
 int numWorkers() {
-	return get_nb_workers();
+	//return get_nb_workers();
+	HASSERT("hclib::get_nb_workers not yet visible" && 0);
+	return 0;
 }
 
 }

@@ -45,6 +45,8 @@ extern "C" {
 
 namespace hcpp {
 
+typedef void (*generic_framePtr)(void*);
+typedef struct ddf_t ddf_t;
 #define DDF_t ddf_t
 #define HC_MALLOC(msize)	malloc(msize)
 #define HC_FREE(p)			free(p)
