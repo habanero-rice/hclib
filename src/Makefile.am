@@ -34,7 +34,7 @@ noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
 if WITH_OCR
-AM_CXXFLAGS = -DWITH_OCR
+AM_CXXFLAGS = -DWITH_OCR -I$(HCLIB_ROOT)/include
 libhcpp_la_SOURCES = ocr-runtime.cpp
 else
 AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2)/include/libxml2
