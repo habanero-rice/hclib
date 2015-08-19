@@ -39,7 +39,7 @@ using namespace hcpp;</code></pre>
 <h1>Compiling Habanero-C++ program </h1>
 
 <p>
-First set the environment variables as mentioned in the <code>README</code> file. A sample Makefile for compiling a Habanero-C++ file <code>test.cpp</code> is as shown below:
+First set the environment variables as mentioned in the <code>README.md</code> file. A sample Makefile for compiling a Habanero-C++ file <code>test.cpp</code> is as shown below:
 </p>
 <p><PRE>
 <code>include $(HCPP_INSTALL)/include/hcpp.mak
@@ -55,19 +55,7 @@ test.o: test.cpp
 <h1>Executing Habanero-C++ program </h1>
 
 <p>
-First set the work-stealing configuration file, which declares the total number of worker threads. The directory <code>machine-configs</code> contains the templates for different number of worker threads. For using 10 worker threads at each Habanero-C++ execution place, the environment variable is set as:
-</p>
-
-<p>
-<PRE><code>export OCR_CONFIG=<absolute path>/hcpp/machine-configs/mach-hcpp-10w.cfg</code></PRE>
-</p>
-
-<p>
-The executable <code>test</code> can then be run as a normal C++ executable:
-</p>
-
-<p>
-<PRE><code>./test < Command line input to test ></code></PRE>
+Please see the file <code>README.md</code>.
 </p>
 
       </section>
