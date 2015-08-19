@@ -44,16 +44,30 @@ asyncAwait(ddf_1, ddf_2, ...., [capture_list]() {
   S2;
 });
 
-// async with Phasers
-asyncPhased(ph_1, mode_1, ph_2, mode_2, ...., [capture_list]() {
-  S3;
-});
-
 // parallel for loop
-forasync(dim, style, ind1, ind2, ..., siz1, siz2, ..., 
-			     seq1, seq2, ..., [capture_list]() {
-  S4;
-});</code> </PRE>
+// loop properties
+loop_domain_t loop0 = {loopLowBound, loopHighBound, loopStride, tileSize};
+// Loop iterations are recursively partitioned until the size of a block size specified by the "tile_size" is reached. This is similar to the TBB style.
+int schedule_type = FORASYNC_MODE_RECURSIVE; 
+// Loop iterations are chunked into blocks of lengths specified by the "tile_size".
+schedule_type = FORASYNC_MODE_FLAT;
+
+// 1-Dimension for-loop
+forasync1D(&loop0, [capture_list]() {
+  S3;
+}, schedule_type);
+
+// 2-Dimension for-loop
+loop_domain_t loop[2] = {loop0, loop1};
+forasync2D(loop, [capture_list]() {
+  S3;
+}, schedule_type);
+
+// 3-Dimension for-loop
+loop_domain_t loop[3] = {loop0, loop1, loop2};
+forasync3D(loop, [capture_list]() {
+  S3;
+}, schedule_type);</code> </PRE>
 </p>
 
 <p>
@@ -64,8 +78,9 @@ These asynchronous tasks can be joined by using a finish:
 <PRE><code>finish([capture_list]() {
   async(....);
   asyncAwait(...);
-  asyncPhased(...);
-  forasync(...);
+  forasync1D(...);
+  forasync2D(...);
+  forasync3D(...);
 });</code></PRE>
 </p>
 
