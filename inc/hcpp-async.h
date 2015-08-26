@@ -123,7 +123,7 @@ void spawn(task_t * task);
 void spawn_await(task_t * task, ddf_t** ddf_list);
 void spawn_commTask(task_t * task);
 
-#ifdef HUPCPP
+#ifdef DIST_WS
 #define MAX_REMOTE_ASYNCANY_ARG_SIZE 384
 
 struct remoteAsyncAny_task  {
@@ -198,7 +198,7 @@ inline void execute_lambda(T* lambda) {
 	HC_FREE((void*)lambda);
 }
 
-#else	 /* ! HUPCPP */
+#else	 /* ! DIST_WS */
 template <typename T>
 inline void execute_lambda(T* lambda) {
 	(*lambda)();
@@ -236,7 +236,7 @@ inline void asyncComm(T lambda) {
 	spawn_commTask(task);
 }
 
-#ifdef HUPCPP
+#ifdef DIST_WS
 void spawn_asyncAnyTask(task_t * task);
 template <typename T>
 inline void asyncAny(T lambda) {
@@ -244,7 +244,7 @@ inline void asyncAny(T lambda) {
 	task->mark_as_asyncAnyTask();
 	spawn_asyncAnyTask(task);
 }
-#endif	/* HUPCPP */
+#endif	/* DIST_WS */
 
 }
 

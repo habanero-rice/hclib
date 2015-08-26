@@ -98,11 +98,13 @@ void end_finish();
 #ifdef HUPCPP
 void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
 int totalPendingLocalAsyncs();
-int totalAsyncAnyAvailable();
 void display_runtime();
 volatile int* start_finish_special();
-void registerHCUPC_callback(volatile int*);
+#endif
+#ifdef DIST_WS
+int totalAsyncAnyAvailable();
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff);
+void registerHCUPC_callback(volatile int*);
 #endif
 
 }
