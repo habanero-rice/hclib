@@ -43,11 +43,6 @@ namespace hcpp {
 
 //#define __USE_HC_MM__
 
-/*
- * Use this flag to create one dedicated communication worker
- */
-#define HCPP_COMM_WORKER
-
 // END <-------------------- SOME BUILD TIME CONTROL FLAGS ------------------------ //
 
 // forward declaration
