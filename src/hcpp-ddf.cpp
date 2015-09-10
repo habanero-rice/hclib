@@ -91,6 +91,22 @@ ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated) {
 }
 
 /**
+ * @brief Destruct a DDF.
+ * @param[in] nb_ddfs                           Size of the DDF array
+ * @param[in] null_terminated           If true, create nb_ddfs-1 and set the last element to NULL.
+ * @param[in] ddf                               The DDF to destruct
+ */
+void ddf_free_n(ddf_t ** ddfs, size_t nb_ddfs, int null_terminated) {
+	int i = 0;
+	int lg = (null_terminated) ? nb_ddfs-1 : nb_ddfs;
+	while(i < lg) {
+		ddf_free(ddfs[i]);
+		i++;
+	}
+	free(ddfs);
+}
+
+/**
  * Deallocate a ddf pointer
  */
 void ddf_free(ddf_t * ddf) {

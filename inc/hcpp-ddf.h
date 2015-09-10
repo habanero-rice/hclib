@@ -100,6 +100,14 @@ ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
 
 /**
  * @brief Destruct a DDF.
+ * @param[in] nb_ddfs 				Size of the DDF array
+ * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
+ * @param[in] ddf 				The DDF to destruct
+ */
+void ddf_free_n(ddf_t ** ddf,  size_t nb_ddfs, int null_terminated);
+
+/**
+ * @brief Destruct a DDF.
  * @param[in] ddf 				The DDF to destruct
  */
 void ddf_free(ddf_t * ddf);
