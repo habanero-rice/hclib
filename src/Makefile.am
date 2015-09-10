@@ -37,7 +37,7 @@ if WITH_OCR
 AM_CXXFLAGS = -DWITH_OCR -I$(HCLIB_ROOT)/include
 libhcpp_la_SOURCES = ocr-runtime.cpp
 else
-AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2)/include/libxml2
+AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
 libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-mm.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp
 endif
 
