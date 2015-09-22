@@ -1,0 +1,23 @@
+<!-- ******************************************************************** -->
+<!-- Hierarchical place Tree (HPT) DTD                                    -->
+<!-- Version 0.1                                                          -->
+<!-- ******************************************************************** -->
+
+<!ELEMENT HPT (place+)>
+<!ATTLIST HPT 
+          version (0.1|99.99) "0.1"
+          info CDATA #IMPLIED>
+<!ATTLIST place
+          num CDATA #IMPLIED
+	  did CDATA #IMPLIED
+          type (mem | cache | nvgpu | amgpu | fpga | pgas) "cache"
+          size CDATA #IMPLIED
+          unitSize CDATA #IMPLIED>
+
+<!ELEMENT place (place*, worker*)>
+<!ELEMENT worker EMPTY>
+
+<!ATTLIST worker
+          num CDATA #IMPLIED
+	  did CDATA #IMPLIED
+          type (cpu|gpu) "cpu">

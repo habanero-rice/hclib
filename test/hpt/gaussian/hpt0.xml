@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE HPT SYSTEM "hpt.dtd">
+
+<HPT version="0.1" info="HPT test">
+    <place num="1" type="mem">
+        <place num="4" type="cache"> <!-- 2 places with common L3 in each -->
+            <worker num="1"/> 
+        </place>
+    </place>
+</HPT>

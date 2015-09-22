@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 
 
         int numcaches = hcpp::hc_get_num_places(hcpp::CACHE_PLACE);
-        //printf("numplaces: %d\n", numcaches);
+        printf("numplaces: %d\n", numcaches);
         cache_pls = (hcpp::place_t**)malloc(sizeof(hcpp::place_t*)*numcaches);
         hcpp::hc_get_places(cache_pls, hcpp::CACHE_PLACE);
 
