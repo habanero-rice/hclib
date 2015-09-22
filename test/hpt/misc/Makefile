@@ -4,7 +4,7 @@ EXE=hpt
 
 all: clean $(EXE) clean-obj
 
-hpt: gaussian_with_places.cpp
+hpt: asyncAtPlace0.cpp
 	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean-obj:
