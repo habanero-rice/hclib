@@ -94,23 +94,6 @@ typedef struct hc_context {
 	volatile int done;
 } hc_context;
 
-typedef struct place_t {
-	struct place_t * parent;
-	struct place_t * child; /* the first child */
-	struct place_t * nnext; /* the sibling link of the HPT */
-	struct place_t ** children;
-	struct hc_workerState * workers; /* directly attached cpu workers */
-	hc_deque_t * deques;
-	int ndeques; /* only for deques */
-	int id;
-	int did; /* the mapping device id */
-	int unitSize;
-	int psize;
-	int level; /* Level in the HPT tree. Logical root is level 0. */
-	int nChildren;
-	short type;
-} place_t ;
-
 typedef struct finish_t {
 	struct finish_t* parent;
 	volatile int counter;

@@ -417,7 +417,7 @@ hc_deque_t * get_deque_hpt(hc_workerState * ws, place_t * pl) {
 
 }
 
-inline bool deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
+bool deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
 	if (is_device_place(pl)) {
 #ifdef TODO
 		hcqueue_enqueue(ws, pl->hcque, ele); // TODO

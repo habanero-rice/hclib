@@ -84,6 +84,7 @@ typedef void (*generic_framePtr)(void*);
 #include "hcpp-async.h"
 #include "hcpp-asyncAwait.h"
 #include "hcpp-forasync.h"
+#include "hcpp-place.h"
 #include "hcpp-hpt.h"
 
 namespace hcpp {

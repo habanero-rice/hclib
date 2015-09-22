@@ -14,7 +14,7 @@ library_includedir=$(includedir)
 if WITH_OCR
 library_include_HEADERS = inc/ocr-rt.h inc/hcpp.h inc/ocr-async.h inc/ocr-mak/hcpp.mak inc/ocr-ddf.h inc/hcpp-forasync.h inc/hcpp-asyncAwait.h
 else
-library_include_HEADERS = inc/hcpp-rt.h inc/hcpp.h inc/hcpp-mak/hcpp.mak inc/hcpp-async.h inc/hcpp-hpt.h inc/hcpp-mm.h inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h src/inc/hcpp-atomics.h
+library_include_HEADERS = inc/hcpp-rt.h inc/hcpp.h inc/hcpp-mak/hcpp.mak inc/hcpp-async.h inc/hcpp-hpt.h inc/hcpp-mm.h inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h src/inc/hcpp-atomics.h inc/hcpp-place.h
 endif
 
 MAINTAINERCLEANFILES = Makefile.in \

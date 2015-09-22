@@ -120,6 +120,7 @@ typedef struct hcpp_task_t {
 } hcpp_task_t;
 
 void spawn(task_t * task);
+void spawn(place_t* pl, task_t * task);
 void spawn_await(task_t * task, ddf_t** ddf_list);
 void spawn_commTask(task_t * task);
 
@@ -217,6 +218,14 @@ inline task_t* _allocate_async(T lambda, bool await) {
 	memcpy(task, &t, sizeof(task_t));
 	return task;
 }
+
+#ifndef HUPCPP
+template <typename T>
+inline void asyncAt(place_t* pl, T lambda) {
+	task_t* task = _allocate_async<T>(lambda, false);
+	spawn(pl, task);
+}
+#endif
 
 template <typename T>
 inline void async(T lambda) {

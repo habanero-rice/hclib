@@ -42,16 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hcpp {
 
-typedef enum place_type {
-    CACHE_PLACE,
-    MEM_PLACE,
-    NVGPU_PLACE, /* for Nvidia GPU */
-    AMGPU_PLACE, /* for AMD GPU */
-    FPGA_PLACE,  /* for FPGA */
-    PGAS_PLACE,
-    NUM_OF_TYPES,
-} place_type_t;
-
 place_t * readhpt(place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk);
 void freeHPT(place_t * hpt);
 void hc_hpt_init(hc_context * context);
@@ -62,6 +52,7 @@ void hc_hpt_dev_cleanup(hc_context * context);
 hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
 task_t* hpt_pop_task(hc_workerState * ws);
 task_t* hpt_steal_task(hc_workerState* ws);
+bool deque_push_place(hc_workerState *ws, place_t * pl, void * ele);
 
 }
 

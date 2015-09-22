@@ -342,6 +342,20 @@ void try_schedule_async(task_t * async_task, int comm_task) {
     }
 }
 
+void spawn(place_t* pl, task_t * task) {
+#ifndef HUPCPP
+	// get current worker
+	hc_workerState* ws = current_ws();
+	check_in_finish(ws->current_finish);
+	task->set_current_finish(ws->current_finish);
+	deque_push_place(ws, pl, task);
+#ifdef HC_COMM_WORKER_STATS
+	const int wid = get_current_worker();
+	increment_async_counter(wid);
+#endif
+#endif
+}
+
 void spawn(task_t * task) {
 	// get current worker
 	hc_workerState* ws = current_ws();
