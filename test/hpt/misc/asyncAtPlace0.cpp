@@ -6,13 +6,13 @@
 
 int main(int argc, char ** argv) {	
 	hcpp::init(&argc, argv);
-	int numPlaces = hc_get_num_places(CACHE_PLACE);
+	int numPlaces = hcpp::hc_get_num_places(hcpp::CACHE_PLACE);
 	assert(numPlaces == 2);
-	place_t ** cachePlaces = (place_t**) malloc(sizeof(place_t*) * numPlaces);
-	hc_get_places(cachePlaces, CACHE_PLACE);
+	hcpp::place_t ** cachePlaces = (hcpp::place_t**) malloc(sizeof(place_t*) * numPlaces);
+	hcpp::hc_get_places(cachePlaces, hcpp::CACHE_PLACE);
 
-	place_t * p1 = cachePlaces[0];
-	place_t * p2 = cachePlaces[1];
+	hcpp::place_t * p1 = cachePlaces[0];
+	hcpp::place_t * p2 = cachePlaces[1];
 
 	hcpp::finish([=]() {
 		hcpp::asyncAt(p1, [=]() {
