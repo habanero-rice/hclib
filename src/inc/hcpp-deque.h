@@ -47,7 +47,7 @@ namespace hcpp {
 
 #define INIT_DEQUE_CAPACITY 8096
 
-typedef struct {
+typedef struct deque_t {
     volatile int head;
     volatile int tail;
     volatile task_t* data[INIT_DEQUE_CAPACITY];

@@ -56,7 +56,7 @@ namespace hcpp {
 
 #define WHEREARG __FILE__,__LINE__
 
-#define LOG_(level, ...) if (level<=LOG_LEVEL) log_(WHEREARG, current_ws(), __VA_ARGS__);
+#define LOG_(level, ...) if (level<=LOG_LEVEL) log_(WHEREARG, current_ws_internal(), __VA_ARGS__);
 
 /* We more or less mimic log4c without the ERROR level */
 #define LOG_FATAL(...)  LOG_(LOG_LEVEL_FATAL, __VA_ARGS__)
@@ -98,23 +98,6 @@ typedef struct finish_t {
 	struct finish_t* parent;
 	volatile int counter;
 } finish_t;
-
-typedef struct hc_workerState {
-#ifdef __USE_HC_MM__
-	hc_mm_bucket buckets [HC_MM_BUCKETS];
-#endif
-	pthread_t t; /* the pthread associated */
-	finish_t*  current_finish;
-	deque_t*	deq;
-	struct place_t * pl; /* the directly attached place */
-	struct place_t ** hpt_path; /* Path from root to worker's leaf place. Array of places. */
-	struct hc_context * context;
-	struct hc_workerState * nnext; /* the link of other ws in the same place */
-	struct hc_deque_t * current; /* the current deque/place worker is on */
-	struct hc_deque_t * deques;
-	int id; /* The id, identify a worker */
-	int did; /* the mapping device id */
-} hc_workerState;
 
 typedef struct asyncAnyInfo {
 	int asyncAny_pushed;

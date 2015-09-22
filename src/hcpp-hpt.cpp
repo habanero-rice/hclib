@@ -59,7 +59,7 @@ static bool* worker_state;
 #define WORKER_IS_BUSY	true
 void registerHCUPC_callback(volatile int* idle_wrkrs) {
 	idle_workers = idle_wrkrs;
-	int workers = current_ws()->context->nworkers;
+	int workers = current_ws_internal()->context->nworkers;
 	worker_state = new bool[workers];
 	for(int i=0;i<workers; i++) worker_state[i] = WORKER_IS_BUSY;
 	hcupc_callback_registered = true;
@@ -154,7 +154,7 @@ task_t* hpt_steal_task(hc_workerState* ws) {
 #ifdef HPT_VERSION
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	task_t buff;
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	place_t * pl = ws->pl;
 	while (pl != NULL) {
 		hc_deque_t * deqs = pl->deques;
@@ -229,7 +229,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
  */
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	task_t buff;
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	const hc_context* context = ws->context;
 	const int nworkers = context->nworkers;
 	for(int i=1; i<nworkers; i++) {
@@ -322,13 +322,13 @@ inline short is_nvgpu_place(place_t * pl) {
 }
 
 place_t* hc_get_current_place() {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	HASSERT(ws->current->pl != NULL);
 	return ws->current->pl;
 }
 
 int hc_get_num_places(short type) {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	place_t ** all_places = ws->context->places;
 	int np = ws->context->nplaces;
 	int i;
@@ -339,7 +339,7 @@ int hc_get_num_places(short type) {
 }
 
 void hc_get_places(place_t ** pls, short type) {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	place_t ** all_places = ws->context->places;
 	int np = ws->context->nplaces;
 	int i;
@@ -350,7 +350,7 @@ void hc_get_places(place_t ** pls, short type) {
 }
 
 place_t * hc_get_place(short type) {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	place_t ** all_places = ws->context->places;
 	int np = ws->context->nplaces;
 	int i;
@@ -360,7 +360,7 @@ place_t * hc_get_place(short type) {
 }
 
 place_t * hc_get_root_place() {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	place_t ** all_places = ws->context->places;
 	return all_places[0];
 }
@@ -372,7 +372,7 @@ inline place_t * get_ancestor_place(hc_workerState * ws) {
 }
 
 place_t * hc_get_child_place() {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	place_t * pl = ws->current->pl;
 	HASSERT(pl != NULL);
 	if (ws->hpt_path == NULL) return pl;
@@ -380,7 +380,7 @@ place_t * hc_get_child_place() {
 }
 
 place_t * hc_get_parent_place() {
-	hc_workerState * ws = current_ws();
+	hc_workerState * ws = current_ws_internal();
 	place_t * pl = ws->current->pl;
 	HASSERT(pl != NULL);
 	if (ws->hpt_path == NULL) return pl;

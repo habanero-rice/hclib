@@ -51,16 +51,35 @@ struct hc_context;
 struct hc_options;
 struct hc_workerState;
 struct place_t;
+struct deque_t;
 struct hc_deque_t;
 struct finish_t;
+
+typedef struct hc_workerState {
+#ifdef __USE_HC_MM__
+        hc_mm_bucket buckets [HC_MM_BUCKETS];
+#endif
+        pthread_t t; /* the pthread associated */
+        finish_t*  current_finish;
+        deque_t*        deq;
+        struct place_t * pl; /* the directly attached place */
+        struct place_t ** hpt_path; /* Path from root to worker's leaf place. Array of places. */
+        struct hc_context * context;
+        struct hc_workerState * nnext; /* the link of other ws in the same place */
+        struct hc_deque_t * current; /* the current deque/place worker is on */
+        struct hc_deque_t * deques;
+        int id; /* The id, identify a worker */
+        int did; /* the mapping device id */
+} hc_workerState;
 
 #ifndef HC_ASSERTION_CHECK
 #define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", hcpp::get_hc_wid()); assert(cond); }
 #else
 #define HASSERT(cond)       //Do Nothing
 #endif
-#define current_ws() ((hc_workerState *) pthread_getspecific(wskey))
+#define current_ws_internal() ((hc_workerState *) pthread_getspecific(wskey))
 int get_hc_wid();
+hc_workerState* current_ws();
 }
 
 #ifdef __USE_HC_MM__
@@ -69,8 +88,8 @@ int get_hc_wid();
 
 namespace hcpp {
 #ifdef __USE_HC_MM__
-#define HC_MALLOC(msize) hc_mm_malloc(current_ws(), msize)
-#define HC_FREE(p) hc_mm_free(current_ws(), p)
+#define HC_MALLOC(msize) hc_mm_malloc(current_ws_internal(), msize)
+#define HC_FREE(p) hc_mm_free(current_ws_internal(), p)
 void *hc_mm_malloc(struct hc_workerState * const ws, size_t msize);
 void hc_mm_free(struct hc_workerState * const ws, void *ptr);
 #else

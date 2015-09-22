@@ -16,11 +16,11 @@ int main(int argc, char ** argv) {
 
 	hcpp::finish([=]() {
 		hcpp::asyncAt(p1, [=]() {
-			assert(current_ws()->pl == p1);			
+			assert(hcpp::current_ws()->pl == p1);			
 		});
 
 		hcpp::asyncAt(p2, [=]() {
-			assert(current_ws()->pl == p2);
+			assert(hcpp::current_ws()->pl == p2);
 		});
 	});
 	hcpp::finalize();

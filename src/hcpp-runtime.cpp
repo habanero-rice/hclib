@@ -111,6 +111,10 @@ inline int get_current_worker() {
 	return ((hc_workerState*)pthread_getspecific(wskey))->id;
 }
 
+hc_workerState* current_ws() {
+	return current_ws_internal();
+}
+
 //FWD declaration for pthread_create
 void * worker_routine(void * args);
 
@@ -263,7 +267,7 @@ void hcpp_entrypoint(bool HPT) {
 
 	// allocate root finish
 	root_finish = new finish_t;
-	current_ws()->current_finish = root_finish;
+	current_ws_internal()->current_finish = root_finish;
 	start_finish();
 }
 
@@ -303,7 +307,7 @@ inline void check_out_finish(finish_t * finish) {
 
 inline void execute_task(task_t* task) {
 	finish_t* current_finish = task->get_current_finish();
-	current_ws()->current_finish = current_finish;
+	current_ws_internal()->current_finish = current_finish;
 
 	(task->_fp)(task->_args);
 	check_out_finish(current_finish);
@@ -345,7 +349,7 @@ void try_schedule_async(task_t * async_task, int comm_task) {
 void spawn(place_t* pl, task_t * task) {
 #ifndef HUPCPP
 	// get current worker
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
 	task->set_current_finish(ws->current_finish);
 	deque_push_place(ws, pl, task);
@@ -358,7 +362,7 @@ void spawn(place_t* pl, task_t * task) {
 
 void spawn(task_t * task) {
 	// get current worker
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
 	task->set_current_finish(ws->current_finish);
 	try_schedule_async(task, 0);
@@ -371,7 +375,7 @@ void spawn(task_t * task) {
 
 void spawn_await(task_t * task, ddf_t** ddf_list) {
 	// get current worker
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
 	task->set_current_finish(ws->current_finish);
 	task->set_ddf_list(ddf_list);
@@ -387,7 +391,7 @@ void spawn_await(task_t * task, ddf_t** ddf_list) {
 
 void spawn_commTask(task_t * task) {
 #ifdef HCPP_COMM_WORKER
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
 	task->set_current_finish(ws->current_finish);
 	try_schedule_async(task, 1);
@@ -399,7 +403,7 @@ void spawn_commTask(task_t * task) {
 #ifdef DIST_WS
 void spawn_asyncAnyTask(task_t* task) {
 	// get current worker
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	const int wid = get_current_worker();
 	check_in_finish(ws->current_finish);
 	task->set_current_finish(ws->current_finish);
@@ -412,7 +416,7 @@ void spawn_asyncAnyTask(task_t* task) {
 #endif
 
 inline void slave_worker_finishHelper_routine(finish_t* finish) {
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	int wid = ws->id;
 
 	while(finish->counter > 0) {
@@ -457,7 +461,7 @@ void* worker_routine(void * args) {
 	int wid = *((int *) args);
 	set_current_worker(wid);
 
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 
 	while(hcpp_context->done) {
 		task_t* task = hpt_pop_task(ws);
@@ -488,7 +492,7 @@ void teardown() {
 
 inline void help_finish(finish_t * finish) {
 #ifdef HCPP_COMM_WORKER
-	if(current_ws()->id == 0) {
+	if(current_ws_internal()->id == 0) {
 		master_worker_routine(finish);
 	}
 	else {
@@ -504,7 +508,7 @@ inline void help_finish(finish_t * finish) {
  */
 
 volatile int* start_finish_special() {
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
 	finish->counter = 0;
 	finish->parent = ws->current_finish;
@@ -516,7 +520,7 @@ volatile int* start_finish_special() {
 }
 
 void start_finish() {
-	hc_workerState* ws = current_ws();
+	hc_workerState* ws = current_ws_internal();
 	finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
 	finish->counter = 0;
 	finish->parent = ws->current_finish;
@@ -527,7 +531,7 @@ void start_finish() {
 }
 
 void end_finish() {
-	hc_workerState* ws =current_ws();
+	hc_workerState* ws =current_ws_internal();
 	finish_t* current_finish = ws->current_finish;
 
 	if (current_finish->counter > 0) {
@@ -568,7 +572,7 @@ int totalPendingLocalAsyncs() {
 	 * snapshot of all pending tasks at all workers
 	 */
 #if 1
-	return current_ws()->current_finish->counter;
+	return current_ws_internal()->current_finish->counter;
 #else
 	int pending_tasks = 0;
 	for(int i=0; i<hcpp_context->nworkers; i++) {
