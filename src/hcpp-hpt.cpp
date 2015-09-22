@@ -321,13 +321,13 @@ inline short is_nvgpu_place(place_t * pl) {
 	return (pl->type == NVGPU_PLACE);
 }
 
-inline place_t* hc_get_current_place() {
+place_t* hc_get_current_place() {
 	hc_workerState * ws = current_ws();
 	HASSERT(ws->current->pl != NULL);
 	return ws->current->pl;
 }
 
-inline int hc_get_num_places(short type) {
+int hc_get_num_places(short type) {
 	hc_workerState * ws = current_ws();
 	place_t ** all_places = ws->context->places;
 	int np = ws->context->nplaces;
@@ -338,7 +338,7 @@ inline int hc_get_num_places(short type) {
 	return num;
 }
 
-inline void hc_get_places(place_t ** pls, short type) {
+void hc_get_places(place_t ** pls, short type) {
 	hc_workerState * ws = current_ws();
 	place_t ** all_places = ws->context->places;
 	int np = ws->context->nplaces;
@@ -349,7 +349,7 @@ inline void hc_get_places(place_t ** pls, short type) {
 	return;
 }
 
-inline place_t * hc_get_place(short type) {
+place_t * hc_get_place(short type) {
 	hc_workerState * ws = current_ws();
 	place_t ** all_places = ws->context->places;
 	int np = ws->context->nplaces;
@@ -359,7 +359,7 @@ inline place_t * hc_get_place(short type) {
 	return NULL;
 }
 
-inline place_t * hc_get_root_place() {
+place_t * hc_get_root_place() {
 	hc_workerState * ws = current_ws();
 	place_t ** all_places = ws->context->places;
 	return all_places[0];
@@ -371,7 +371,7 @@ inline place_t * get_ancestor_place(hc_workerState * ws) {
 	return parent;
 }
 
-inline place_t * hc_get_child_place() {
+place_t * hc_get_child_place() {
 	hc_workerState * ws = current_ws();
 	place_t * pl = ws->current->pl;
 	HASSERT(pl != NULL);
@@ -379,7 +379,7 @@ inline place_t * hc_get_child_place() {
 	return ws->hpt_path[pl->level + 1];
 }
 
-inline place_t * hc_get_parent_place() {
+place_t * hc_get_parent_place() {
 	hc_workerState * ws = current_ws();
 	place_t * pl = ws->current->pl;
 	HASSERT(pl != NULL);
@@ -387,13 +387,13 @@ inline place_t * hc_get_parent_place() {
 	return ws->hpt_path[pl->level - 1];
 }
 
-inline place_t ** hc_get_children_places(int * numChildren) {
+place_t ** hc_get_children_places(int * numChildren) {
 	place_t * pl = hc_get_current_place();
 	*numChildren = pl->nChildren;
 	return pl->children;
 }
 
-inline place_t ** hc_get_children_of_place(place_t * pl, int * numChildren) {
+place_t ** hc_get_children_of_place(place_t * pl, int * numChildren) {
 	*numChildren = pl->nChildren;
 	return pl->children;
 }

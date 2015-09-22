@@ -5,7 +5,7 @@ EXE=hpt
 all: clean $(EXE) clean-obj
 
 hpt: gaussian_with_places.cpp
-	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	gcc $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean-obj:
 	rm -rf *.o *.dSYM
