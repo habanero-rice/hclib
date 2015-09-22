@@ -122,20 +122,20 @@ double** gaussian(double** orig, int n, int numthreads)
         maxindex = (int*)malloc(INTPAD*numthreads * sizeof(int));
         maxval = (double*)malloc(DOUBLEPAD*numthreads * sizeof(double));
 
-	hcpp::finish([&]() {
+	hcpp::finish([=]() {
 		for (int p = 0; p < numthreads; p++) {
-			hcpp::asyncAt (cache_pls[p+2], [&]() {
+			hcpp::asyncAt (cache_pls[p+2], [=]() {
 				for (int i = n-1-p; i >= 0; i -= numthreads)
 					A[i] = (double*)malloc((n+1) * sizeof(double));
 			});
 		}
 	});
 
-	hcpp::finish([&]() {
+	hcpp::finish([=]() {
 		for (int p = 0; p < numthreads; p++) {
 			struct drand48_data drand_buffer;
 			seed_rand(p, &drand_buffer);
-			hcpp::asyncAt (cache_pls[p+2], [&]() {
+			hcpp::asyncAt (cache_pls[p+2], [=,&drand_buffer]() {
 				for (int i = n-1-p; i >= 0; i -= numthreads)
 					for (int j = 0; j < n+1; j++) {
 						drand48_r(&drand_buffer, &A[i][j]);
@@ -152,8 +152,8 @@ double** gaussian(double** orig, int n, int numthreads)
 	
         for (int j = 0; j < n-1; j++) {
 		for (int p = 0; p < numthreads; p++) {
-			hcpp::finish([&]() {
-                		hcpp::asyncAt (cache_pls[p+2], [&]() { 
+			hcpp::finish([=]() {
+                		hcpp::asyncAt (cache_pls[p+2], [=]() { 
 					find_max_thread(A, n , j, numthreads, p);
 				});
 			});
@@ -161,9 +161,9 @@ double** gaussian(double** orig, int n, int numthreads)
                 int ksave = maxloc(numthreads);
                 swap_rows(A, n, ksave, j);
 
-		hcpp::finish([&]() {
+		hcpp::finish([=]() {
 			for (int p = 0; p < numthreads; p++) {
-				hcpp::asyncAt (cache_pls[p+2], [&]() {
+				hcpp::asyncAt (cache_pls[p+2], [=]() {
                 			for (int k = n - 1 - p; k >= j+1; k -= numthreads) {
                         			double m = A[k][j] / A[j][j];
                         			for (int i = j; i <= n; i++)

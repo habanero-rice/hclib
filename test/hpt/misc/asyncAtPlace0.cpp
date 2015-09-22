@@ -8,7 +8,7 @@ int main(int argc, char ** argv) {
 	hcpp::init(&argc, argv);
 	int numPlaces = hcpp::hc_get_num_places(hcpp::CACHE_PLACE);
 	assert(numPlaces == 2);
-	hcpp::place_t ** cachePlaces = (hcpp::place_t**) malloc(sizeof(place_t*) * numPlaces);
+	hcpp::place_t ** cachePlaces = (hcpp::place_t**) malloc(sizeof(hcpp::place_t*) * numPlaces);
 	hcpp::hc_get_places(cachePlaces, hcpp::CACHE_PLACE);
 
 	hcpp::place_t * p1 = cachePlaces[0];
