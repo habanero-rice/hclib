@@ -3,26 +3,25 @@
 
 using namespace std;
 
+static int threshold = 2;
+
+int fib_serial(int n) {
+    if (n <= 2) return 1;
+    return fib_serial(n-1) + fib_serial(n-2);
+}
+
 void fib(int n, int* res)
 {
-    if (n <= 2) {
-        *res = 1;
+    if (n <= threshold) {
+        *res = fib_serial(n);
     }
     else {
-	int* x = new int, *y = new int;
-    	if(n<=10) {
-	  fib(n-1, x);
-          fib(n-2, y);
-	}
-	else {
-	  hcpp::start_finish();
-  	  hcpp::async([=](){fib(n-1, x);});
-  	  hcpp::async([=](){fib(n-2, y);});
-	  hcpp::end_finish();
-	}
-	*res = *x + *y;
-	free(x);
-	free(y);
+	int x, y;
+	hcpp::finish([n, &x, &y]( ) {
+  	    hcpp::async([n, &x]( ){fib(n-1, &x);});
+  	    fib(n-2, &y);
+	});
+	*res = x + y;
     }
 }
 
@@ -36,16 +35,16 @@ long get_usecs (void)
 int main (int argc, char ** argv) {
   hcpp::init(&argc, argv);
   int n = 30;
-  int* res = new int;
+  int res;
   if(argc > 1) n = atoi(argv[1]);
+  if(argc > 2) threshold = atoi(argv[2]);
 
   printf("Starting Fib(%d)..\n",n);
   long start = get_usecs();
-  fib(n, res);
+  fib(n, &res);
   long end = get_usecs();
   double dur = ((double)(end-start))/1000000;
-  printf("Fib(%d) = %d. Time = %f\n",n,*res,dur);
-  free(res);
+  printf("Fib(%d) = %d. Time = %f\n",n,res,dur);
   hcpp::finalize();
   return 0;
 }
