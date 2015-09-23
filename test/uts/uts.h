@@ -100,7 +100,7 @@ int    uts_paramsToStr(char *strBuf, int ind);
 void   uts_printParams();
 void   uts_helpMessage();
 
-void   uts_showStats(int nPes, double walltime, counter_t nNodes, counter_t nLeaves, counter_t maxDepth);
+void   uts_showStats(int nPes, int chunkSize, double walltime, counter_t nNodes, counter_t nLeaves, counter_t maxDepth);
 double uts_wctime();
 
 double rng_toProb(int n);
