@@ -3,7 +3,7 @@
 
 using namespace std;
 
-static int threshold = 2;
+static int threshold = 10;
 
 int fib_serial(int n) {
     if (n <= 2) return 1;
@@ -34,7 +34,7 @@ long get_usecs (void)
 
 int main (int argc, char ** argv) {
   hcpp::init(&argc, argv);
-  int n = 30;
+  int n = 40;
   int res;
   if(argc > 1) n = atoi(argv[1]);
   if(argc > 2) threshold = atoi(argv[2]);

@@ -43,6 +43,8 @@ namespace hcpp {
 using namespace std;
 #define ASYNC_COMM ((int) 0x2)
 
+static double benchmark_start_time_stats = 0;
+
 void execute_task(void* t) {
 	task_t* task = (task_t*) t;
 	(task->_fp)(task->_args);
@@ -61,11 +63,56 @@ void spawn_await(task_t * task, DDF_t ** ddf_list) {
 	::async(&execute_task, (void *) task, (struct ddf_st**) ddf_list, NO_PHASER, NO_PROP);
 }
 
+double mysecond() {
+        struct timeval tv;
+        gettimeofday(&tv, 0);
+        return tv.tv_sec + ((double) tv.tv_usec / 1000000);
+}
+
+void display_runtime() {
+        cout << "---------HCPP_OCR_RUNTIME_INFO-----------" << endl;
+        printf(">>> HCPP_WORKERS\t\t= %s\n",getenv("OCR_CONFIG"));
+        printf(">>> HCPP_STATS\t\t= %s\n",getenv("HCPP_STATS"));
+        cout << "----------------------------------------" << endl;
+}
+
+void showStatsHeader() {
+        cout << endl;
+        cout << "-----" << endl;
+        cout << "mkdir timedrun fake" << endl;
+        cout << endl;
+        cout << "-----" << endl;
+        benchmark_start_time_stats = mysecond();
+}
+
+void runtime_statistics(double duration) {
+        printf("============================ MMTk Statistics Totals ============================\n");
+        printf("time.mu\ttotalPushOutDeq\ttotalPushInDeq\ttotalStealsInDeq\n");
+        printf("%.3f\t0\t0\t0\n",duration);
+        printf("Total time: %.3f ms\n",duration);
+        printf("------------------------------ End MMTk Statistics -----------------------------\n");
+        printf("===== TEST PASSED in %.3f msec =====\n",duration);
+}
+
+void showStatsFooter() {
+        double end = mysecond();
+        HASSERT(benchmark_start_time_stats != 0);
+        double dur = (end-benchmark_start_time_stats)*1000;
+        runtime_statistics(dur);
+}
+
 void init(int * argc, char ** argv) {
+        if(getenv("HCPP_STATS")) {
+                showStatsHeader();
+                display_runtime();
+        }
 	hclib_init(argc, argv);
 }
 
 void finalize() {
+        if(getenv("HCPP_STATS")) {
+                showStatsFooter();
+        }
 	hclib_finalize();
 }
 
@@ -84,14 +131,12 @@ void finish(std::function<void()> lambda) {
 }
 
 int get_hc_wid() {
-	//return get_worker_id(); 
-	HASSERT("hclib::get_worker_id not yet visible" && 0);
+	return get_worker_id(); 
 	return 0;
 }
 
 int numWorkers() {
-	//return get_nb_workers();
-	HASSERT("hclib::get_nb_workers not yet visible" && 0);
+	return get_nb_workers();
 	return 0;
 }
 

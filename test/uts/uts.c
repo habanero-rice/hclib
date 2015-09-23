@@ -352,6 +352,16 @@ void uts_printParams() {
 }
 
 void uts_parseParams(int argc, char *argv[]){
+  /*
+   * Set Tree T1 as default problem size
+   * T1 = -t 1 -a 3 -d 10 -b 4 -r 19
+   */
+  type = (tree_t) 1;
+  shape_fn = (geoshape_t) 3;
+  gen_mx = 10;
+  b_0 = 4;
+  rootId = 19;
+ 
   int i = 1; 
   int err = -1;
   while (i < argc && err == -1) {
