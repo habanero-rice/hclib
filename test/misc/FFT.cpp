@@ -3207,7 +3207,7 @@ int main(int argc, char *argv[])
 {
      hcpp::init(&argc, argv);
      int correctness=0;
-     int n = 1024;
+     int n = 2048;
      
      if(argc > 1) n = atoi(argv[1]);
      
