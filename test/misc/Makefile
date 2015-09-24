@@ -1,8 +1,11 @@
 include $(HCPP_ROOT)/include/hcpp.mak
 
-EXE=fib nqueens qsort fib-ddt asyncAwait0 Cilksort
+EXE=FFT fib nqueens qsort fib-ddt asyncAwait0 Cilksort
 
 all: clean $(EXE) clean-obj
+
+FFT: FFT.cpp
+	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 Cilksort: Cilksort.cpp
 	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#export TBB_MALLOC=/Users/vivek/rice_work/projects/tbb/mac
+export TBB_MALLOC=/home/kumar/tbb
 #export HCPP_FLAGS="--enable-production"
 export LIBXML2_INCLUDE=/usr/include/libxml2
 export LIBXML2_LIBS=/usr/lib/x86_64-linux-gnu
