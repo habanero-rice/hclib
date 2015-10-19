@@ -99,6 +99,7 @@ void hc_mm_free(struct hc_workerState * const ws, void *ptr);
 typedef void (*generic_framePtr)(void*);
 }
 
+#include "hcpp-timer.h"
 #include "hcpp-ddf.h"
 #include "hcpp-async.h"
 #include "hcpp-asyncAwait.h"

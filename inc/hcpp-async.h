@@ -164,7 +164,9 @@ inline void execute_lambda(T* lambda) {
 	const int wid = get_hc_wid();
 	if(wid != 0) {
 		// only computation workers can enter
+		MARK_BUSY(wid);
 		(*lambda)();
+		MARK_OVH(wid);
 	}
 	else {
 		// only communication worker can enter
@@ -202,8 +204,11 @@ inline void execute_lambda(T* lambda) {
 #else	 /* ! DIST_WS */
 template <typename T>
 inline void execute_lambda(T* lambda) {
+	const int wid = current_ws()->id;
+	MARK_BUSY(wid);
 	(*lambda)();
 	HC_FREE((void*) lambda);
+	MARK_OVH(wid);
 }
 #endif	/* HUPCPP */
 
@@ -222,6 +227,7 @@ inline task_t* _allocate_async(T lambda, bool await) {
 #ifndef HUPCPP
 template <typename T>
 inline void asyncAt(place_t* pl, T lambda) {
+	MARK_OVH(current_ws()->id);
 	task_t* task = _allocate_async<T>(lambda, false);
 	spawn(pl, task);
 }
@@ -229,12 +235,14 @@ inline void asyncAt(place_t* pl, T lambda) {
 
 template <typename T>
 inline void async(T lambda) {
+	MARK_OVH(current_ws()->id);
 	task_t* task = _allocate_async<T>(lambda, false);
 	spawn(task);
 }
 
 template <typename T>
 inline void _asyncAwait(ddf_t ** ddf_list, T lambda) {
+	MARK_OVH(current_ws()->id);
 	task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await(task, ddf_list);
 }
@@ -249,6 +257,7 @@ inline void asyncComm(T lambda) {
 void spawn_asyncAnyTask(task_t * task);
 template <typename T>
 inline void asyncAny(T lambda) {
+	MARK_OVH(current_ws()->id);
 	task_t* task = _allocate_async<T>(lambda, false);
 	task->mark_as_asyncAnyTask();
 	spawn_asyncAnyTask(task);

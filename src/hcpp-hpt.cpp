@@ -95,6 +95,7 @@ void inform_HCUPC_myStatus(int wid, bool status) {
  *    place all to the hpt top.
  */
 task_t* hpt_steal_task(hc_workerState* ws) {
+	MARK_SEARCH(ws->id);
 	place_t * pl = ws->pl;
 #ifdef DIST_WS
 	asyncAnyInfo_forWorker[ws->id].asyncAny_pushed = 0;

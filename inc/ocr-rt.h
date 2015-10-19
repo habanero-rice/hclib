@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C" {
   #include "hclib.h"
-  #include "hclib-rtii.h"
 //  #ifdef _PHASER_LIB_
 //  #include "phased.h"
 //  #endif

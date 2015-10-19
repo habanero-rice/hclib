@@ -254,6 +254,14 @@ void hcpp_entrypoint(bool HPT) {
 #if TODO
 	hc_hpt_dev_init(hcpp_context);
 #endif
+
+	// init timer stats
+#ifdef HCPP_COMM_WORKER
+	hcpp_initStats(hcpp_context->nworkers, true);
+#else
+	hcpp_initStats(hcpp_context->nworkers, false);
+#endif
+
 	/* Create key to store per thread worker_state */
 	if (pthread_key_create(&wskey, NULL) != 0) {
 		log_die("Cannot create wskey for worker-specific data");
@@ -628,9 +636,12 @@ void runtime_statistics(double duration) {
 		steals += total_steals[i];
 	}
 
+	double tWork, tOvh, tSearch;
+	hcpp_getAvgTime (&tWork, &tOvh, &tSearch);
+
 	printf("============================ MMTk Statistics Totals ============================\n");
-	printf("time.mu\ttotalPushOutDeq\ttotalPushInDeq\ttotalStealsInDeq\n");
-	printf("%.3f\t%d\t%d\t%d\n",duration,asyncCommPush,asyncPush,steals);
+	printf("time.mu\ttotalPushOutDeq\ttotalPushInDeq\ttotalStealsInDeq\ttWork\ttOverhead\ttSearch\n");
+	printf("%.3f\t%d\t%d\t%d\t%.4f\t%.4f\t%.5f\n",duration,asyncCommPush,asyncPush,steals,tWork,tOvh,tSearch);
 	printf("Total time: %.3f ms\n",duration);
 	printf("------------------------------ End MMTk Statistics -----------------------------\n");
 	printf("===== TEST PASSED in %.3f msec =====\n",duration);
