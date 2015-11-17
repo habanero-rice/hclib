@@ -57,6 +57,13 @@ namespace hcpp {
  */
 struct ddf_st;
 
+typedef enum DDF_Kind {
+	DDF_KIND_UNKNOWN=0,
+	DDF_KIND_SHARED,
+	DDF_KIND_DISTRIBUTED_OWNER,
+	DDF_KIND_DISTRIBUTED_REMOTE,
+} DDF_Kind_t;
+
 //================= DDF Support ==================    //
 // Copied from https://github.com/habanero-rice/hclib //
 //================================================    //
@@ -78,8 +85,9 @@ typedef struct ddt_st {
 // struct ddf_st is the opaque we expose.
 // We define a typedef in this unit for convenience
 typedef struct ddf_st {
-    void * datum;
-    struct ddt_st * headDDTWaitList;
+	int kind;
+    volatile void * datum;
+    volatile struct ddt_st * headDDTWaitList;
 } ddf_t;
 
 #define DDF_t	ddf_t
@@ -89,6 +97,11 @@ typedef struct ddf_st {
  * @return A DDF.
  */
 ddf_t * ddf_create();
+
+/**
+ * Initialize a pre-Allocated DDF.
+ */
+void ddf_create_preinit(ddf_t* ddf);
 
 /**
  * @brief Allocate and initialize an array of DDFs.

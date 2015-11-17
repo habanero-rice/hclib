@@ -68,9 +68,19 @@ void ddt_init(ddt_t * ddt, ddf_t ** ddf_list) {
  */
 ddf_t * ddf_create() {
 	ddf_t * ddf = (ddf_t *) malloc(sizeof(ddf_t));
+	ddf-> kind = DDF_KIND_SHARED;
 	ddf->datum = NULL;
 	ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
 	return ddf;
+}
+
+/**
+ * Initialize a pre-Allocated DDF.
+ */
+void ddf_create_preinit(DDF_t* ddf) {
+	ddf-> kind = DDF_KIND_SHARED;
+	ddf->datum = NULL;
+	ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
 }
 
 /**

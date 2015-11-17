@@ -381,7 +381,15 @@ void spawn(task_t * task) {
 
 }
 
+#ifdef HUPCPP
+void (*dddf_register_callback)(ddf_t** ddf_list) = NULL;
+#endif
+
 void spawn_await(task_t * task, ddf_t** ddf_list) {
+#ifdef HUPCPP
+	// check if this is DDDf_t (remote or owner) and do callnack to HabaneroUPC++ for implementation
+	dddf_register_callback(ddf_list);
+#endif
 	// get current worker
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
@@ -663,6 +671,18 @@ void showStatsFooter() {
 	runtime_statistics(dur);
 }
 
+#ifdef HUPCPP
+void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**)) {
+	if(getenv("HCPP_STATS")) {
+		showStatsHeader();
+	}
+	assert(_dddf_register_callback);
+	dddf_register_callback = _dddf_register_callback;
+	// get the total number of workers from the env
+	const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
+	hcpp_entrypoint(HPT);
+}
+#else
 void init(int * argc, char ** argv) {
 	if(getenv("HCPP_STATS")) {
 		showStatsHeader();
@@ -671,6 +691,7 @@ void init(int * argc, char ** argv) {
 	const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
 	hcpp_entrypoint(HPT);
 }
+#endif
 
 void finalize() {
 	end_finish();

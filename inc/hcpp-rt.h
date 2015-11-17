@@ -72,7 +72,7 @@ typedef struct hc_workerState {
         int did; /* the mapping device id */
 } hc_workerState;
 
-#ifndef HC_ASSERTION_CHECK
+#ifdef HC_ASSERTION_CHECK
 #define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", hcpp::get_hc_wid()); assert(cond); }
 #else
 #define HASSERT(cond)       //Do Nothing
@@ -121,6 +121,7 @@ void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
 int totalPendingLocalAsyncs();
 void display_runtime();
 volatile int* start_finish_special();
+void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**));
 #endif
 #ifdef DIST_WS
 int totalAsyncAnyAvailable();
