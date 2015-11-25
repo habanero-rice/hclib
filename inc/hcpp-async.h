@@ -66,7 +66,7 @@ inline task_t* _allocate_async_hcpp(T lambda, bool await) {
 }
 
 #if defined(HUPCPP) && defined(DIST_WS)	// i.e. if we are supporting distributed work-stealing in HabaneroUPC++
-#define _allocate_async _allocate_async_hupcpp
+#define _allocate_async _allocate_async_hcupc
 #else
 #define _allocate_async _allocate_async_hcpp
 #endif

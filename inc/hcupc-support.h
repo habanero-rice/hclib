@@ -84,7 +84,7 @@ inline void execute_remoteAsyncAny_task(T lambda) {
 }
 
 template <typename T>
-inline void execute_hupcpp_lambda(T* lambda) {
+inline void execute_hcupc_lambda(T* lambda) {
 	const int wid = get_hc_wid();
 	if(wid != 0) {
 		// only computation workers can enter
@@ -126,13 +126,13 @@ inline void execute_hupcpp_lambda(T* lambda) {
 }
 
 template <typename T>
-inline task_t* _allocate_async_hupcpp(T lambda, bool await) {
+inline task_t* _allocate_async_hcupc(T lambda, bool await) {
 	const size_t hcpp_task_size = !await ? sizeof(task_t) : sizeof(hcpp_task_t);
 	task_t* task = (task_t*) HC_MALLOC(hcpp_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);
-	task_t t = task_t(execute_hupcpp_lambda<T>, lambda_onHeap);
+	task_t t = task_t(execute_hcupc_lambda<T>, lambda_onHeap);
 	memcpy(task, &t, sizeof(task_t));
 	return task;
 }
@@ -142,7 +142,7 @@ void spawn_asyncAnyTask(task_t * task);
 template <typename T>
 inline void asyncAny(T lambda) {
 	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async_hupcpp<T>(lambda, false);
+	task_t* task = _allocate_async_hcupc<T>(lambda, false);
 	spawn_asyncAnyTask(task);
 }
 #endif	/* defined(HUPCPP) && defined(DIST_WS) */
