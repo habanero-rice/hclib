@@ -115,19 +115,7 @@ void init(int * argc, char ** argv);
 void finalize();
 void start_finish();
 void end_finish();
-
-#ifdef HUPCPP
-void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
-int totalPendingLocalAsyncs();
-void display_runtime();
-volatile int* start_finish_special();
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**));
-#endif
-#ifdef DIST_WS
-int totalAsyncAnyAvailable();
-bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff);
-void registerHCUPC_callback(volatile int*);
-#endif
+void user_harness_timer(double dur);
 
 }
 

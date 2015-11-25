@@ -44,48 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hcpp {
 
-#ifdef DIST_WS
-extern asyncAnyInfo* asyncAnyInfo_forWorker;
-extern commWorkerAsyncAny_infoStruct_t *commWorkerAsyncAny_infoStruct;
-
-/*
- * HPT implementation specific code starts here
- */
-
-static bool hcupc_callback_registered = false;
-volatile int* idle_workers;
-static bool* worker_state;
-#define WORKER_IS_FREE	false
-#define WORKER_IS_BUSY	true
-void registerHCUPC_callback(volatile int* idle_wrkrs) {
-	idle_workers = idle_wrkrs;
-	int workers = current_ws_internal()->context->nworkers;
-	worker_state = new bool[workers];
-	for(int i=0;i<workers; i++) worker_state[i] = WORKER_IS_BUSY;
-	hcupc_callback_registered = true;
-}
-
-void inform_HCUPC_myStatus(int wid, bool status) {
-	if(wid == 0) return;	// communication worker
-
-	if(hcupc_callback_registered) {
-		if(status == WORKER_IS_BUSY) {
-			if(worker_state[wid] == WORKER_IS_FREE) {
-				worker_state[wid] = WORKER_IS_BUSY;
-				hc_atomic_dec(idle_workers);
-			}
-		}
-		else {	// WORKER_IS_FREE
-			if(worker_state[wid] == WORKER_IS_BUSY) {
-				worker_state[wid] = WORKER_IS_FREE;
-				hc_atomic_inc(idle_workers);
-			}
-		}
-	}
-}
-
-#endif
-
 /**
  * HPT: Try to steal a frame from another worker.
  * 1) First look for work in current place worker deques
@@ -97,10 +55,7 @@ void inform_HCUPC_myStatus(int wid, bool status) {
 task_t* hpt_steal_task(hc_workerState* ws) {
 	MARK_SEARCH(ws->id);
 	place_t * pl = ws->pl;
-#ifdef DIST_WS
-	asyncAnyInfo_forWorker[ws->id].asyncAny_pushed = 0;
-	asyncAnyInfo_forWorker[ws->id].asyncAny_stolen = 0;
-#endif
+	hcupc_reset_asyncAnyInfo(ws->id);
 	while (pl != NULL) {
 		hc_deque_t * deqs = pl->deques;
 		int nb_deq = pl->ndeques;
@@ -113,20 +68,11 @@ task_t* hpt_steal_task(hc_workerState* ws) {
 			task_t* buff = dequeSteal(&(d->deque));
 			if (buff) { /* steal succeeded */
 				ws->current = get_deque_place(ws, pl);
-#ifdef DIST_WS
-				if(buff->is_asyncAnyTask()) {
-					hc_atomic_inc(&(asyncAnyInfo_forWorker[victim].asyncAny_stolen));
-				}
-				// If I am here then local steal has passed
-				inform_HCUPC_myStatus(ws->id, WORKER_IS_BUSY);
-#endif
+				hcupc_check_if_asyncAny_stolen(buff, victim, ws->id);
 				return buff;
 			}
 		}
-#ifdef DIST_WS
-		// If I am here then local steal has failed
-		inform_HCUPC_myStatus(ws->id, WORKER_IS_FREE);
-#endif
+		hcupc_inform_failedSteal(ws->id);
 #if TODO
 		/* We also steal from places that represents the device (GPU),
 		 * those continuations that are pushed onto the deque by the
@@ -150,132 +96,6 @@ task_t* hpt_steal_task(hc_workerState* ws) {
 	return NULL;
 }
 
-#ifdef DIST_WS
-
-#ifdef HPT_VERSION
-bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
-	task_t buff;
-	hc_workerState* ws = current_ws_internal();
-	place_t * pl = ws->pl;
-	while (pl != NULL) {
-		hc_deque_t * deqs = pl->deques;
-		int nb_deq = pl->ndeques;
-		/* Try to steal from right neighbour */
-
-		/* Try to steal once from every other worker first */
-		for (int i=1; i<nb_deq; i++) {
-			int victim = ((ws->id+i)%nb_deq);
-			if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
-			hc_deque_t* d = &deqs[victim];
-			task_t* t = dequeSteal(&(d->deque));
-			if (t) { /* steal succeeded */
-				HASSERT(t->ddf_list == NULL); //TODO DDF not supported inside asyncAny
-				memcpy(&buff, t, sizeof(task_t));
-				/*
-				 * decrement the finish counter associated with this task
-				 * as this task is going to complete at remote place
-				 * and hence local finish counter will never be decremented
-				 * after this.
-				 *
-				 * TODO: the nesting of finish will not work in this case.
-				 * Nesting means the current finish scope of comm worker
-				 * will not be same as that of the finish associated with
-				 * this task
-				 */
-				HASSERT(ws->current_finish == buff.current_finish);	//TODO
-				hc_atomic_dec(&(buff.current_finish->counter));
-
-				ws->current = get_deque_place(ws, pl);
-				if(buff.is_asyncAnyTask()) {
-					hc_atomic_inc(&(asyncAnyInfo_forWorker[victim].asyncAny_stolen));
-				}
-				/*
-				 * copy the lambda into the remoteAsyncAny_task
-				 */
-				commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny = remAsyncAnybuff;
-				commWorkerAsyncAny_infoStruct->initiatePackingOfAsyncAny = true;
-				// Executing this lambda does not means we are executing the task,
-				// rather we are forcing the lambda to be copied into the remoteAsyncAny_task struct
-				(*buff._fp)(buff._args);
-				commWorkerAsyncAny_infoStruct->initiatePackingOfAsyncAny = false;
-				commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny = NULL;
-				return true;
-			}
-		}
-#if TODO
-		/* We also steal from places that represents the device (GPU),
-		 * those continuations that are pushed onto the deque by the
-		 * device workers
-		 */
-		place_t *child = pl->child;
-		while (child != NULL) {
-			if (is_device_place(child)) {
-				frame = hc_deque_steal(ws, child->deques);
-				if (frame != NULL) {
-					ws->current = get_deque_place(ws, pl);
-					return true;
-				}
-			}
-			child = child->nnext;
-		}
-#endif
-		/* Nothing found in this place, go to the parent */
-		pl = pl->parent;
-	}
-	return false;
-}
-#else	// HPT_VERSION
-/*
- * in this version comm_worker simply try to steal by choosing victims in sequential order
- */
-bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
-	task_t buff;
-	hc_workerState* ws = current_ws_internal();
-	const hc_context* context = ws->context;
-	const int nworkers = context->nworkers;
-	for(int i=1; i<nworkers; i++) {
-		hc_workerState* ws_i = context->workers[i];
-		int victim = ws_i->id;
-		if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
-		task_t* t = dequeSteal(&(ws_i->current->deque));
-		if (t) { /* steal succeeded */
-			HASSERT(t->ddf_list == NULL); //TODO DDF not supported inside asyncAny
-			memcpy(&buff, t, sizeof(task_t));
-			/*
-			 * decrement the finish counter associated with this task
-			 * as this task is going to complete at remote place
-			 * and hence local finish counter will never be decremented
-			 * after this.
-			 *
-			 * TODO: the nesting of finish will not work in this case.
-			 * Nesting means the current finish scope of comm worker
-			 * will not be same as that of the finish associated with
-			 * this task
-			 */
-			HASSERT(ws->current_finish == buff.current_finish);	//TODO
-			hc_atomic_dec(&(buff.current_finish->counter));
-
-			if(buff.is_asyncAnyTask()) {
-				hc_atomic_inc(&(asyncAnyInfo_forWorker[victim].asyncAny_stolen));
-			}
-			/*
-			 * copy the lambda into the remoteAsyncAny_task
-			 */
-			commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny = remAsyncAnybuff;
-			commWorkerAsyncAny_infoStruct->initiatePackingOfAsyncAny = true;
-			// Executing this lambda does not means we are executing the task,
-			// rather we are forcing the lambda to be copied into the remoteAsyncAny_task struct
-			(*buff._fp)(buff._args);
-			commWorkerAsyncAny_infoStruct->initiatePackingOfAsyncAny = false;
-			commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny = NULL;
-			return true;
-		}
-	}
-	return false;
-}
-#endif	// HPT_VERSION
-#endif // DIST_WS
-
 /**
  * HPT: Pop items from a worker deque
  * 1) Try to pop from current queue (Q)
@@ -290,9 +110,7 @@ task_t* hpt_pop_task(hc_workerState * ws) {
 		task_t* buff = dequePop(&current->deque);
 		if (buff) {
 			ws->current = current;
-#ifdef DIST_WS
-			if(buff->is_asyncAnyTask()) asyncAnyInfo_forWorker[ws->id].asyncAny_pushed--;
-#endif
+			hcupc_check_if_asyncAny_pop(buff, ws->id);
 			return buff;
 		}
 		if (downward) {

@@ -99,11 +99,6 @@ typedef struct finish_t {
 	volatile int counter;
 } finish_t;
 
-typedef struct asyncAnyInfo {
-	int asyncAny_pushed;
-	volatile int asyncAny_stolen;
-} asyncAnyInfo;
-
 typedef struct hc_deque_t {
 	/* The actual deque, WARNING: do not move declaration !
 	 * Other parts of the runtime rely on it being the first one. */
@@ -117,6 +112,8 @@ typedef struct hc_deque_t {
 void log_(const char * file, int line, hc_workerState * ws, const char * format, ...);
 // thread binding
 void bind_thread(int worker_id, int *bind_map, int bind_map_size);
+
+int get_current_worker();
 
 //ddf
 int iterate_ddt_frontier(ddt_t * ddt);

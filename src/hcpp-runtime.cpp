@@ -46,6 +46,7 @@ namespace hcpp {
 using namespace std;
 
 static double benchmark_start_time_stats = 0;
+static double user_specified_timer = 0;
 pthread_key_t wskey;
 pthread_once_t selfKeyInitialized = PTHREAD_ONCE_INIT;
 
@@ -57,11 +58,6 @@ static finish_t*	root_finish;
 
 hc_context* 		hcpp_context;
 hc_options* 		hcpp_options;
-
-#ifdef DIST_WS
-asyncAnyInfo*  asyncAnyInfo_forWorker;
-commWorkerAsyncAny_infoStruct_t *commWorkerAsyncAny_infoStruct;
-#endif
 
 void log_(const char * file, int line, hc_workerState * ws, const char * format, ...) {
 	va_list l;
@@ -107,7 +103,7 @@ void set_current_worker(int wid) {
 	}
 }
 
-inline int get_current_worker() {
+int get_current_worker() {
 	return ((hc_workerState*)pthread_getspecific(wskey))->id;
 }
 
@@ -178,16 +174,7 @@ void hcpp_global_init(bool HPT) {
 	semiConcDequeInit(comm_worker_out_deque, NULL);
 #endif
 
-#ifdef DIST_WS
-	asyncAnyInfo_forWorker = (asyncAnyInfo*) malloc(sizeof(asyncAnyInfo) * hcpp_context->nworkers);
-	for(int i=0; i<hcpp_context->nworkers; i++) {
-		asyncAnyInfo_forWorker[i].asyncAny_pushed = 0;
-		asyncAnyInfo_forWorker[i].asyncAny_stolen = 0;
-	}
-	commWorkerAsyncAny_infoStruct = new commWorkerAsyncAny_infoStruct_t;
-	commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny = NULL;
-	commWorkerAsyncAny_infoStruct->initiatePackingOfAsyncAny = false;
-#endif
+	init_hcupc_related_datastructures(hcpp_context->nworkers);
 }
 
 void hcpp_createWorkerThreads(int nb_workers) {
@@ -300,9 +287,7 @@ void hcpp_cleanup() {
 	free(hcpp_options);
 	free(total_steals);
 	free(total_push_ind);
-#ifdef DIST_WS
-	free(asyncAnyInfo_forWorker);
-#endif
+	free_hcupc_related_datastructures();
 }
 
 inline void check_in_finish(finish_t * finish) {
@@ -354,8 +339,7 @@ void try_schedule_async(task_t * async_task, int comm_task) {
     }
 }
 
-void spawn(place_t* pl, task_t * task) {
-#ifndef HUPCPP
+void spawn_at_hpt(place_t* pl, task_t * task) {
 	// get current worker
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
@@ -364,7 +348,6 @@ void spawn(place_t* pl, task_t * task) {
 #ifdef HC_COMM_WORKER_STATS
 	const int wid = get_current_worker();
 	increment_async_counter(wid);
-#endif
 #endif
 }
 
@@ -381,15 +364,9 @@ void spawn(task_t * task) {
 
 }
 
-#ifdef HUPCPP
-void (*dddf_register_callback)(ddf_t** ddf_list) = NULL;
-#endif
-
 void spawn_await(task_t * task, ddf_t** ddf_list) {
-#ifdef HUPCPP
-	// check if this is DDDf_t (remote or owner) and do callnack to HabaneroUPC++ for implementation
-	dddf_register_callback(ddf_list);
-#endif
+	// check if this is DDDf_t (remote or owner) and do callback to HabaneroUPC++ for implementation
+	check_if_hcupc_dddf(ddf_list);
 	// get current worker
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
@@ -415,21 +392,6 @@ void spawn_commTask(task_t * task) {
 	assert(false);
 #endif
 }
-
-#ifdef DIST_WS
-void spawn_asyncAnyTask(task_t* task) {
-	// get current worker
-	hc_workerState* ws = current_ws_internal();
-	const int wid = get_current_worker();
-	check_in_finish(ws->current_finish);
-	task->set_current_finish(ws->current_finish);
-	try_schedule_async(task, 0);
-	asyncAnyInfo_forWorker[wid].asyncAny_pushed++;
-#ifdef HC_COMM_WORKER_STATS
-	increment_async_counter(wid);
-#endif
-}
-#endif
 
 inline void slave_worker_finishHelper_routine(finish_t* finish) {
 	hc_workerState* ws = current_ws_internal();
@@ -523,18 +485,6 @@ inline void help_finish(finish_t * finish) {
  * =================== INTERFACE TO USER FUNCTIONS ==========================
  */
 
-volatile int* start_finish_special() {
-	hc_workerState* ws = current_ws_internal();
-	finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
-	finish->counter = 0;
-	finish->parent = ws->current_finish;
-	if(finish->parent) {
-		check_in_finish(finish->parent);
-	}
-	ws->current_finish = finish;
-	return &(finish->counter);
-}
-
 void start_finish() {
 	hc_workerState* ws = current_ws_internal();
 	finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
@@ -568,49 +518,6 @@ void finish(std::function<void()> lambda) {
 	lambda();
 	end_finish();
 }
-
-#ifdef DIST_WS
-/*
- * snapshot of total asyncAny tasks currently available with all computation workers
- */
-int totalAsyncAnyAvailable() {
-	int total_asyncany = 0;
-	for(int i=1; i<hcpp_context->nworkers; i++) {
-		total_asyncany += (asyncAnyInfo_forWorker[i].asyncAny_pushed - asyncAnyInfo_forWorker[i].asyncAny_stolen);
-	}
-	return total_asyncany;
-}
-#endif
-
-#ifdef HUPCPP
-int totalPendingLocalAsyncs() {
-	/*
-	 * snapshot of all pending tasks at all workers
-	 */
-#if 1
-	return current_ws_internal()->current_finish->counter;
-#else
-	int pending_tasks = 0;
-	for(int i=0; i<hcpp_context->nworkers; i++) {
-		hc_workerState* ws = hcpp_context->workers[i];
-		const finish_t* ws_curr_f_i = ws->current_finish;
-		if(ws_curr_f_i) {
-			bool found = false;
-			for(int j=0; j<i; j++) {
-				const finish_t* ws_curr_f_j = hcpp_context->workers[j]->current_finish;
-				if(ws_curr_f_j && ws_curr_f_j == ws_curr_f_i) {
-					found = true;
-					break;
-				}
-			}
-			if(!found) pending_tasks += ws_curr_f_i->counter;
-		}
-	}
-
-	return pending_tasks;
-#endif
-}
-#endif
 
 int numWorkers() {
 	return hcpp_context->nworkers;
@@ -647,10 +554,11 @@ void runtime_statistics(double duration) {
 	double tWork, tOvh, tSearch;
 	hcpp_getAvgTime (&tWork, &tOvh, &tSearch);
 
+	double total_duration = user_specified_timer>0 ? user_specified_timer : duration;
 	printf("============================ MMTk Statistics Totals ============================\n");
 	printf("time.mu\ttotalPushOutDeq\ttotalPushInDeq\ttotalStealsInDeq\ttWork\ttOverhead\ttSearch\n");
-	printf("%.3f\t%d\t%d\t%d\t%.4f\t%.4f\t%.5f\n",duration,asyncCommPush,asyncPush,steals,tWork,tOvh,tSearch);
-	printf("Total time: %.3f ms\n",duration);
+	printf("%.3f\t%d\t%d\t%d\t%.4f\t%.4f\t%.5f\n",total_duration,asyncCommPush,asyncPush,steals,tWork,tOvh,tSearch);
+	printf("Total time: %.3f ms\n",total_duration);
 	printf("------------------------------ End MMTk Statistics -----------------------------\n");
 	printf("===== TEST PASSED in %.3f msec =====\n",duration);
 }
@@ -664,6 +572,10 @@ void showStatsHeader() {
 	benchmark_start_time_stats = mysecond();
 }
 
+void user_harness_timer(double dur) {
+	user_specified_timer = dur;
+}
+
 void showStatsFooter() {
 	double end = mysecond();
 	HASSERT(benchmark_start_time_stats != 0);
@@ -671,18 +583,6 @@ void showStatsFooter() {
 	runtime_statistics(dur);
 }
 
-#ifdef HUPCPP
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**)) {
-	if(getenv("HCPP_STATS")) {
-		showStatsHeader();
-	}
-	assert(_dddf_register_callback);
-	dddf_register_callback = _dddf_register_callback;
-	// get the total number of workers from the env
-	const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
-	hcpp_entrypoint(HPT);
-}
-#else
 void init(int * argc, char ** argv) {
 	if(getenv("HCPP_STATS")) {
 		showStatsHeader();
@@ -691,7 +591,6 @@ void init(int * argc, char ** argv) {
 	const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
 	hcpp_entrypoint(HPT);
 }
-#endif
 
 void finalize() {
 	end_finish();
