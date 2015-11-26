@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * hcpp-asyncAwait.h
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
- *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
 /*

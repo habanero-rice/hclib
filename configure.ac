@@ -28,6 +28,20 @@ CPPFLAGS=$CPPFLAGS_BACKUP
 
 # Conditional flag to build for the hcpp/hcupc++ library
 
+### INTERFACE HCPP WITH PHASER LIBRARY
+AC_ARG_ENABLE(phaser,
+    AS_HELP_STRING([--enable-phaser],
+    [enable interface with Phaser (Default is false)]),
+    [with_phaser=$enableval],
+    [with_phaser=no;])
+
+AS_IF([test "x$with_phaser" != xno],
+      [ AC_MSG_NOTICE([Enabled Phaser support]) ],
+      [ AC_MSG_NOTICE([Disabled Phaser support]) ])
+
+AM_CONDITIONAL(_PHASERS_, test "x$with_phaser" != xno)
+### End OCR
+
 ### INTERFACE HCPP WITH OCR
 AC_ARG_ENABLE(ocr,
     AS_HELP_STRING([--enable-ocr],
