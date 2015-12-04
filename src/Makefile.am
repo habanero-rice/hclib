@@ -34,7 +34,7 @@ noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
 AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-mm.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp
+libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp
 
 # build hcpp
 libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)

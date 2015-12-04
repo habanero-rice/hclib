@@ -59,18 +59,23 @@ static finish_t*	root_finish;
 hc_context* 		hcpp_context;
 hc_options* 		hcpp_options;
 
-void log_(const char * file, int line, hc_workerState * ws, const char * format, ...) {
-	va_list l;
-	FILE * f = stderr;
-	if (ws != NULL) {
-		fprintf(f, "[worker: %d (%s:%d)] ", ws->id, file, line);
-	} else {
-		fprintf(f, "[%s:%d] ", file, line);
-	}
-	va_start(l, format);
-	vfprintf(f, format, l);
-	fflush(f);
-	va_end(l);
+static const char *hcpp_stats = getenv("HCPP_STATS");
+static const bool bind_threads = (getenv("HCPP_BIND_THREADS") != NULL);
+
+
+void log_(const char * file, int line, hc_workerState * ws, const char * format,
+        ...) {
+    va_list l;
+    FILE * f = stderr;
+    if (ws != NULL) {
+        fprintf(f, "[worker: %d (%s:%d)] ", ws->id, file, line);
+    } else {
+        fprintf(f, "[%s:%d] ", file, line);
+    }
+    va_start(l, format);
+    vfprintf(f, format, l);
+    fflush(f);
+    va_end(l);
 }
 
 // Statistics
@@ -79,131 +84,137 @@ int* total_push_ind;
 int* total_steals;
 
 inline void increment_async_counter(int wid) {
-	total_push_ind[wid]++;
+    total_push_ind[wid]++;
 }
 
 inline void increment_steals_counter(int wid) {
-	total_steals[wid]++;
+    total_steals[wid]++;
 }
 
 inline void increment_asyncComm_counter() {
-	total_push_outd++;
+    total_push_outd++;
 }
 
-// One global finish scope
-
 static void initializeKey() {
-	pthread_key_create(&wskey, NULL);
+    pthread_key_create(&wskey, NULL);
 }
 
 void set_current_worker(int wid) {
-	pthread_setspecific(wskey, hcpp_context->workers[wid]);
-	if(getenv("HCPP_BIND_THREADS")) {
-		bind_thread(wid, NULL, 0);
-	}
+    pthread_setspecific(wskey, hcpp_context->workers[wid]);
+    if (bind_threads) {
+        bind_thread(wid, NULL, 0);
+    }
 }
 
 int get_current_worker() {
-	return ((hc_workerState*)pthread_getspecific(wskey))->id;
+    return ((hc_workerState*)pthread_getspecific(wskey))->id;
 }
 
 hc_workerState* current_ws() {
-	return current_ws_internal();
+    return current_ws_internal();
 }
 
-//FWD declaration for pthread_create
-void * worker_routine(void * args);
+// FWD declaration for pthread_create
+void* worker_routine(void * args);
 
+/*
+ * Main initialization function for the hcpp_context object.
+ */
 void hcpp_global_init(bool HPT) {
-	// Build queues
-	hcpp_context->done = 1;
-	if(!HPT) {
-		hcpp_context->nproc = hcpp_options->nproc;
-		hcpp_context->nworkers = hcpp_options->nworkers;
-		hcpp_context->options = hcpp_options;
+    // Build queues
+    hcpp_context->done = 1;
+    if (!HPT) {
+        hcpp_context->nproc = hcpp_options->nproc;
+        hcpp_context->nworkers = hcpp_options->nworkers;
 
-		place_t * root = (place_t*) malloc(sizeof(place_t));
-		root->id = 0;
-		root->nnext = NULL;
-		root->child = NULL;
-		root->parent = NULL;
-		root->type = MEM_PLACE;
-		root->ndeques = hcpp_context->nworkers;
-		hcpp_context->hpt = root;
-		hcpp_context->places = &hcpp_context->hpt;
-		hcpp_context->nplaces = 1;
-		hcpp_context->workers = (hc_workerState**) malloc(sizeof(hc_workerState*) * hcpp_options->nworkers);
-		HASSERT(hcpp_context->workers);
-		hc_workerState * cur_ws = NULL;
-		for(int i=0; i<hcpp_options->nworkers; i++) {
-			hcpp_context->workers[i] = new hc_workerState;
-			HASSERT(hcpp_context->workers[i]);
-			hcpp_context->workers[i]->context = hcpp_context;
-			hcpp_context->workers[i]->id = i;
-			hcpp_context->workers[i]->pl = root;
-			hcpp_context->workers[i]->hpt_path = NULL;
-			hcpp_context->workers[i]->nnext = NULL;
-			if (i == 0) {
-				cur_ws = hcpp_context->workers[i];
-			} else {
-				cur_ws->nnext = hcpp_context->workers[i];
-				cur_ws = hcpp_context->workers[i];
-			}
-		}
-		root->workers = hcpp_context->workers[0];
-	}
-	else {
-		hcpp_context->hpt = readhpt(&hcpp_context->places, &hcpp_context->nplaces, &hcpp_context->nproc, &hcpp_context->workers, &hcpp_context->nworkers);
-		for (int i=0; i<hcpp_context->nworkers; i++) {
-			hc_workerState * ws = hcpp_context->workers[i];
-			ws->context = hcpp_context;
-		}
-	}
+        place_t * root = (place_t*) malloc(sizeof(place_t));
+        root->id = 0;
+        root->nnext = NULL;
+        root->child = NULL;
+        root->parent = NULL;
+        root->type = MEM_PLACE;
+        root->ndeques = hcpp_context->nworkers;
+        hcpp_context->hpt = root;
+        hcpp_context->places = &hcpp_context->hpt;
+        hcpp_context->nplaces = 1;
+        hcpp_context->workers = (hc_workerState**) malloc(
+                sizeof(hc_workerState*) * hcpp_options->nworkers);
+        HASSERT(hcpp_context->workers);
+        hc_workerState * cur_ws = NULL;
+        for(int i=0; i<hcpp_options->nworkers; i++) {
+            hcpp_context->workers[i] = new hc_workerState;
+            HASSERT(hcpp_context->workers[i]);
+            hcpp_context->workers[i]->context = hcpp_context;
+            hcpp_context->workers[i]->id = i;
+            hcpp_context->workers[i]->pl = root;
+            hcpp_context->workers[i]->hpt_path = NULL;
+            hcpp_context->workers[i]->nnext = NULL;
+            if (i == 0) {
+                cur_ws = hcpp_context->workers[i];
+            } else {
+                cur_ws->nnext = hcpp_context->workers[i];
+                cur_ws = hcpp_context->workers[i];
+            }
+        }
+        root->workers = hcpp_context->workers[0];
+    } else {
+        hcpp_context->hpt = readhpt(&hcpp_context->places,
+                &hcpp_context->nplaces, &hcpp_context->nproc,
+                &hcpp_context->workers, &hcpp_context->nworkers);
+        for (int i = 0; i < hcpp_context->nworkers; i++) {
+            hc_workerState * ws = hcpp_context->workers[i];
+            ws->context = hcpp_context;
+        }
+    }
 
-	total_push_outd = 0;
-	total_steals = new int[hcpp_context->nworkers];
-	total_push_ind = new int[hcpp_context->nworkers];
-	for(int i=0; i<hcpp_context->nworkers; i++) {
-		total_steals[i] = 0;
-		total_push_ind[i] = 0;
-	}
+    total_push_outd = 0;
+    total_steals = new int[hcpp_context->nworkers];
+    total_push_ind = new int[hcpp_context->nworkers];
+    for(int i=0; i<hcpp_context->nworkers; i++) {
+        total_steals[i] = 0;
+        total_push_ind[i] = 0;
+    }
 
 #ifdef HCPP_COMM_WORKER
-	comm_worker_out_deque = new semiConcDeque_t;
-	HASSERT(comm_worker_out_deque);
-	semiConcDequeInit(comm_worker_out_deque, NULL);
+    comm_worker_out_deque = new semiConcDeque_t;
+    HASSERT(comm_worker_out_deque);
+    semiConcDequeInit(comm_worker_out_deque, NULL);
 #endif
 
-	init_hcupc_related_datastructures(hcpp_context->nworkers);
+    init_hcupc_related_datastructures(hcpp_context->nworkers);
 }
 
 void hcpp_createWorkerThreads(int nb_workers) {
-	/* setting current thread as worker 0 */
-	// Launch the worker threads
-	pthread_once(&selfKeyInitialized, initializeKey);
-	// Start workers
-	for(int i=1;i<nb_workers;i++) {
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine, &hcpp_context->workers[i]->id);
-	}
-	set_current_worker(0);
+    /* setting current thread as worker 0 */
+    // Launch the worker threads
+    pthread_once(&selfKeyInitialized, initializeKey);
+
+    // Start workers
+    for(int i=1;i<nb_workers;i++) {
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine,
+                &hcpp_context->workers[i]->id);
+    }
+    set_current_worker(0);
 }
 
-void display_runtime() {
+static void display_runtime() {
 	cout << "---------HCPP_RUNTIME_INFO-----------" << endl;
-	printf(">>> HCPP_WORKERS\t\t= %s\n",getenv("HCPP_WORKERS"));
-	printf(">>> HCPP_HPT_FILE\t= %s\n",getenv("HCPP_HPT_FILE"));
-	printf(">>> HCPP_BIND_THREADS\t= %s\n",getenv("HCPP_BIND_THREADS"));
-	if(getenv("HCPP_WORKERS") && getenv("HCPP_BIND_THREADS")) {
-		printf("WARNING: HCPP_BIND_THREADS assign cores in round robin. E.g., setting HCPP_WORKERS=12 on 2-socket node, each with 12 cores, will assign both HCUPC++ places on same socket\n");
+	printf(">>> HCPP_WORKERS\t\t= %s\n", getenv("HCPP_WORKERS"));
+	printf(">>> HCPP_HPT_FILE\t= %s\n", getenv("HCPP_HPT_FILE"));
+	printf(">>> HCPP_BIND_THREADS\t= %s\n", bind_threads ? "true" : "false");
+	if (getenv("HCPP_WORKERS") && bind_threads) {
+		printf("WARNING: HCPP_BIND_THREADS assign cores in round robin. E.g., "
+                "setting HCPP_WORKERS=12 on 2-socket node, each with 12 cores, "
+                "will assign both HCUPC++ places on same socket\n");
 	}
-	printf(">>> HCPP_STATS\t\t= %s\n",getenv("HCPP_STATS"));
+	printf(">>> HCPP_STATS\t\t= %s\n", hcpp_stats);
 	cout << "----------------------------------------" << endl;
 }
 
 void hcpp_entrypoint(bool HPT) {
-	if(getenv("HCPP_STATS")) {
+	if (hcpp_stats) {
 		display_runtime();
 	}
 
@@ -214,13 +225,17 @@ void hcpp_entrypoint(bool HPT) {
 	hcpp_context = new hc_context;
 	HASSERT(hcpp_context);
 
-	if(!HPT) {
-		char* workers_env = getenv("HCPP_WORKERS");
+    /*
+     * If places are not enabled, we just create a flat set of worker threads
+     * for this application.
+     */
+	if (!HPT) {
+		const char* workers_env = getenv("HCPP_WORKERS");
 		int workers = 1;
-		if(!workers_env) {
-			std::cout << "HCPP: WARNING -- Number of workers not set. Please set using env HCPP_WORKERS" << std::endl;
-		}
-		else {
+		if (!workers_env) {
+			std::cout << "HCPP: WARNING -- Number of workers not set. " <<
+                "Please set using env HCPP_WORKERS" << std::endl;
+		} else {
 			workers = atoi(workers_env);
 		}
 		HASSERT(workers > 0);
@@ -229,13 +244,6 @@ void hcpp_entrypoint(bool HPT) {
 	}
 
 	hcpp_global_init(HPT);
-
-#ifdef __USE_HC_MM__
-	const char* mm_alloc_batch_size = getenv("HCPP_MM_ALLOCBATCHSIZE");
-	const int mm_alloc_batch_size_int = mm_alloc_batch_size ? atoi(mm_alloc_batch_size) : HC_MM_ALLOC_BATCH_SIZE;
-	hcpp_options->alloc_batch_size = mm_alloc_batch_size_int;
-	hc_mm_init(hcpp_context);
-#endif
 
 	hc_hpt_init(hcpp_context);
 #if TODO
@@ -277,9 +285,6 @@ void hcpp_join_workers(int nb_workers) {
 void hcpp_cleanup() {
 	hc_hpt_dev_cleanup(hcpp_context);
 	hc_hpt_cleanup_1(hcpp_context); /* cleanup deques (allocated by hc mm) */
-#ifdef USE_HC_MM
-	hc_mm_cleanup(hcpp_context);
-#endif
 	hc_hpt_cleanup_2(hcpp_context); /* cleanup the HPT, places, and workers (allocated by malloc) */
 	pthread_key_delete(wskey);
 
@@ -563,7 +568,7 @@ void runtime_statistics(double duration) {
 	printf("===== TEST PASSED in %.3f msec =====\n",duration);
 }
 
-void showStatsHeader() {
+static void show_stats_header() {
 	cout << endl;
 	cout << "-----" << endl;
 	cout << "mkdir timedrun fake" << endl;
@@ -583,20 +588,24 @@ void showStatsFooter() {
 	runtime_statistics(dur);
 }
 
+/*
+ * Main entrypoint for runtime initialization, this function must be called by
+ * the user program before any HC actions are performed.
+ */
 void init(int * argc, char ** argv) {
-	if(getenv("HCPP_STATS")) {
-		showStatsHeader();
-	}
-	// get the total number of workers from the env
-	const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
-	hcpp_entrypoint(HPT);
+    if (hcpp_stats) {
+        show_stats_header();
+    }
+
+    const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
+    hcpp_entrypoint(HPT);
 }
 
 void finalize() {
 	end_finish();
 	free(root_finish);
 
-	if(getenv("HCPP_STATS")) {
+	if(hcpp_stats) {
 		showStatsFooter();
 	}
 

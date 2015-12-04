@@ -512,10 +512,13 @@ place_t * parsePlaceElement(xmlNode * plNode) {
 	/*
 	printf("Place(%x): num: %s, type: %s, size: %s, unitSize: %s\n", pl, numStr, typeStr, sizeStr, unitSize);
 	 */
-	if (numStr != NULL)
+	if (numStr != NULL) {
 		num = atoi((char*)numStr);
+    }
 
-	if (didStr != NULL) did = atoi((char*)didStr);
+	if (didStr != NULL) {
+        did = atoi((char*)didStr);
+    }
 
 	short type = CACHE_PLACE;
 	if (typeStr != NULL) {
@@ -535,9 +538,12 @@ place_t * parsePlaceElement(xmlNode * plNode) {
 			/* warnning, unknown type specified */
 		}
 	} else {
-		type = CACHE_PLACE;
 		/* default to be cache type */
+		type = CACHE_PLACE;
 	}
+
+    // Not supported yet
+    HC_ASSERT(type != AMGPU_PLACE && type != FPGA_PLACE);
 
 	xmlFree(numStr);
 	xmlFree(didStr);
@@ -559,13 +565,6 @@ place_t * parsePlaceElement(xmlNode * plNode) {
 	pl->ndeques = 0;
 
 	xmlNode *child = plNode->xmlChildrenNode;
-	if (type == NVGPU_PLACE && child != NULL) {
-		// fprintf(stderr, "HPT subtree for NVGPU place is not supported, so subtree ignored! %s \n", xmlGetProp(child, xmlCharStrdup("type")));
-		return pl;
-	} else if (type == AMGPU_PLACE || type == FPGA_PLACE) {
-		fprintf(stderr, "HPT does not support AMGPU or FPGA place yet!\n");
-		return pl;
-	}
 
 	place_t * pllast = NULL;
 	hc_workerState * wslast = NULL;
@@ -589,6 +588,19 @@ place_t * parsePlaceElement(xmlNode * plNode) {
 	return pl;
 }
 
+/*
+ * Generates an in-memory representation of an HPT, and returns the first element in the top layer.
+ *
+ * In memory, an HPT is stored as something like:
+ *
+ *      + -> + -> +
+ *      |         |
+ *      |         |
+ *      + -> +    + -> +
+ *
+ * with each layer consisting of a linked list of memory spaces/processing
+ * units, and each of those nodes pointing down to the layer below it.
+ */
 place_t * parseHPTDoc(xmlNode * hptNode) {
 	xmlChar * version = xmlGetProp(hptNode, xmlCharStrdup("version"));
 	xmlChar * info = xmlGetProp(hptNode, xmlCharStrdup("info"));
@@ -600,6 +612,7 @@ place_t * parseHPTDoc(xmlNode * hptNode) {
 	place_t * hpt = NULL;
 	place_t * pllast = NULL;
 
+    // Iterative over top-level place nodes in the XML file
 	while (child != NULL) {
 		if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
 			place_t * tmp = parsePlaceElement(child);
@@ -896,41 +909,77 @@ void setupWorkerHptPath(hc_workerState * worker, place_t * pl) {
 	worker->hpt_path[0] = worker->hpt_path[1];
 }
 
-place_t* readhpt(place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk) {
-	const char *filename = getenv("HCPP_HPT_FILE");
-	HASSERT(filename);
+/*
+ * The hierarchical place tree for a shared memory system is specified as an XML
+ * file containing the hierarchy of memory spaces it contains. In general, this
+ * hierarchy is multi-layered and may include a separate layer for system
+ * memory, L3 caches, L2 caches, L1 caches, etc.
+ *
+ * Each layer is described by two properties: a type and a count/num. For
+ * example, the type may be "mem" whose contents are explicitly managed by the
+ * programmer, or a "cache" whose contents are automatically managed. The count
+ * refers to the fan-out at a given level. For example, a machine with main
+ * memory feeding to two sockets each with their own L3 cache would have a count
+ * of 2 for the L3 layer.
+ *
+ * An example HPT specification is below. This specification describes a machine
+ * with a single system memory, two L3 caches, each of which fans out to 6 L1/L2
+ * caches.
+ *
+ * <HPT version="0.1" info="2 hex core2 Intel Westmere processors">
+ *   <place num="1" type="mem">
+ *     <place num="2" type="cache"> <!-- 2 sockets with common L3 in each -->
+ *       <place num="6" type="cache"> <!-- 6 L2/L1 cache per socket -->
+ *         <worker num="1"/> 
+ *       </place>
+ *     </place>
+ *   </place>
+ * </HPT>
+ *
+ * While homogeneous systems will usually have this singly-nested structure, a
+ * machine with multiple types of memory sitting below system memory may have
+ * multiple elements at the same nesting level, e.g. both L3 and GPU device
+ * memory at the same level in the hierarchy.
+ *
+ * readhpt parses one of these XML files and produces the equivalent place
+ * hierarchy, returning the root of that hierarchy.
+ */
+place_t* readhpt(place_t *** all_places, int * num_pl, int * nproc,
+        hc_workerState *** all_workers, int * num_wk) {
+    const char *filename = getenv("HCPP_HPT_FILE");
+    HASSERT(filename);
 
-	/* create a parser context */
-	xmlParserCtxt* ctxt = xmlNewParserCtxt();
-	if (ctxt == NULL) {
-		fprintf(stderr, "Failed to allocate parser context\n");
-		return NULL;
-	}
-	/* parse the file, activating the DTD validation option */
-	xmlDoc* doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
-	/* check if parsing suceeded */
-	if (doc == NULL) {
-		fprintf(stderr, "Failed to parse %s\n", filename);
-		return NULL;
-	}
+    /* create a parser context */
+    xmlParserCtxt* ctxt = xmlNewParserCtxt();
+    if (ctxt == NULL) {
+        fprintf(stderr, "Failed to allocate parser context\n");
+        return NULL;
+    }
+    /* parse the file, activating the DTD validation option */
+    xmlDoc* doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
+    /* check if parsing succeeded */
+    if (doc == NULL) {
+        fprintf(stderr, "Failed to parse %s\n", filename);
+        return NULL;
+    }
 
-	/* check if validation suceeded */
-	if (ctxt->valid == 0) {
-		fprintf(stderr, "Failed to validate %s\n", filename);
-		return NULL;
-	}
+    /* check if validation suceeded */
+    if (ctxt->valid == 0) {
+        fprintf(stderr, "Failed to validate %s\n", filename);
+        return NULL;
+    }
 
-	xmlNode *root_element = xmlDocGetRootElement(doc);
+    xmlNode *root_element = xmlDocGetRootElement(doc);
 
-	place_t *hpt = parseHPTDoc(root_element);
-	unrollHPT(hpt, all_places, num_pl, nproc, all_workers, num_wk);
+    place_t *hpt = parseHPTDoc(root_element);
+    unrollHPT(hpt, all_places, num_pl, nproc, all_workers, num_wk);
 
-	/*free the document */
-	xmlFreeDoc(doc);
+    /*free the document */
+    xmlFreeDoc(doc);
 
-	/* free up the parser context */
-	xmlFreeParserCtxt(ctxt);
-	return hpt;
+    /* free up the parser context */
+    xmlFreeParserCtxt(ctxt);
+    return hpt;
 }
 
 void freeHPT(place_t * hpt) {

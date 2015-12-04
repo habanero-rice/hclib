@@ -39,12 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hcpp {
 
-// -------------------- SOME BUILD TIME CONTROL FLAGS ------------------------> START //
-
-//#define __USE_HC_MM__
-
-// END <-------------------- SOME BUILD TIME CONTROL FLAGS ------------------------ //
-
 // forward declaration
 extern pthread_key_t wskey;
 struct hc_context;
@@ -56,12 +50,9 @@ struct hc_deque_t;
 struct finish_t;
 
 typedef struct hc_workerState {
-#ifdef __USE_HC_MM__
-        hc_mm_bucket buckets [HC_MM_BUCKETS];
-#endif
         pthread_t t; /* the pthread associated */
-        finish_t*  current_finish;
-        deque_t*        deq;
+        finish_t* current_finish;
+        deque_t* deq;
         struct place_t * pl; /* the directly attached place */
         struct place_t ** hpt_path; /* Path from root to worker's leaf place. Array of places. */
         struct hc_context * context;
@@ -82,20 +73,9 @@ int get_hc_wid();
 hc_workerState* current_ws();
 }
 
-#ifdef __USE_HC_MM__
-#include "mm.h"
-#endif
-
 namespace hcpp {
-#ifdef __USE_HC_MM__
-#define HC_MALLOC(msize) hc_mm_malloc(current_ws_internal(), msize)
-#define HC_FREE(p) hc_mm_free(current_ws_internal(), p)
-void *hc_mm_malloc(struct hc_workerState * const ws, size_t msize);
-void hc_mm_free(struct hc_workerState * const ws, void *ptr);
-#else
 #define HC_MALLOC(msize)	malloc(msize)
 #define HC_FREE(p)			free(p)
-#endif
 typedef void (*generic_framePtr)(void*);
 }
 

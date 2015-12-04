@@ -11,7 +11,7 @@ AUX_DIST = \
 
 library_includedir=$(includedir)
 
-library_include_HEADERS = inc/hcpp-timer.h inc/hcpp-rt.h inc/hcpp.h inc/hcpp-mak/hcpp.mak inc/hcpp-async.h inc/hcpp-hpt.h inc/hcpp-mm.h inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h src/inc/hcpp-atomics.h inc/hcpp-place.h inc/hcupc-support.h inc/hcpp-asyncStruct.h
+library_include_HEADERS = inc/hcpp-timer.h inc/hcpp-rt.h inc/hcpp.h inc/hcpp-mak/hcpp.mak inc/hcpp-async.h inc/hcpp-hpt.h inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h src/inc/hcpp-atomics.h inc/hcpp-place.h inc/hcupc-support.h inc/hcpp-asyncStruct.h
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \
