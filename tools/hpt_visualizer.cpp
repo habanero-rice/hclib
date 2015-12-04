@@ -54,9 +54,9 @@ static void print_hwloc_obj(hwloc_obj_t obj, int indent) {
     for (int i = 0; i < indent; i++) {
         printf("|  ");
     }
-    printf("obj %lu (type=%s , depth=%d, %d child/children, parent=%lu)\n",
+    printf("obj %u (type=%s , depth=%d, %d child/children, parent=%u, name=%s)\n",
             obj->os_index, str_for_type(obj->type), obj->depth, obj->arity,
-            obj->parent ? obj->parent->os_index : 0);
+            obj->parent ? obj->parent->os_index : 0, obj->name ? obj->name : "");
 
     for (int i = 0; i < obj->arity; i++) {
         print_hwloc_obj(obj->children[i], indent + 1);

@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <assert.h>
 
 namespace hcpp {
 
@@ -543,7 +544,7 @@ place_t * parsePlaceElement(xmlNode * plNode) {
 	}
 
     // Not supported yet
-    HC_ASSERT(type != AMGPU_PLACE && type != FPGA_PLACE);
+    assert(type != AMGPU_PLACE && type != FPGA_PLACE);
 
 	xmlFree(numStr);
 	xmlFree(didStr);
