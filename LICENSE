@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+Copyright (c) 2015, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -26,43 +26,3 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
- */
-
-/*
- * ocr-rt.h
- *
- *      Author: Vivek Kumar (vivekk@rice.edu)
- *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
- */
-
-extern "C" {
-  #include "hclib.h"
-//  #ifdef _PHASER_LIB_
-//  #include "phased.h"
-//  #endif
-}
-
-namespace hcpp {
-
-typedef void (*generic_framePtr)(void*);
-#define HC_MALLOC(msize)	malloc(msize)
-#define HC_FREE(p)			free(p)
-
-int get_hc_wid();
-#define HASSERT(cond) 		if(!(cond)){ printf("W%d: assertion failure\n", hcpp::get_hc_wid()); assert(cond); }
-}
-
-#include "ocr-ddf.h"
-#include "ocr-async.h"
-#include "hcpp-asyncAwait.h"
-#include "hcpp-forasync.h"
-
-namespace hcpp {
-void finish(std::function<void()> lambda);
-int numWorkers();
-void init(int * argc, char ** argv);
-void finalize();
-void start_finish();
-void end_finish();
-}

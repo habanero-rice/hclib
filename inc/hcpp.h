@@ -47,10 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <assert.h>
 
-#ifdef WITH_OCR
-#include "ocr-rt.h"
-#else
 #include "hcpp-rt.h"
-#endif
 
 #endif /* HCPP_H_ */

@@ -40,21 +40,7 @@ AS_IF([test "x$with_phaser" != xno],
       [ AC_MSG_NOTICE([Disabled Phaser support]) ])
 
 AM_CONDITIONAL(_PHASERS_, test "x$with_phaser" != xno)
-### End OCR
-
-### INTERFACE HCPP WITH OCR
-AC_ARG_ENABLE(ocr,
-    AS_HELP_STRING([--enable-ocr],
-    [enable interface with OCR (Default is false)]),
-    [with_ocr=$enableval],
-    [with_ocr=no;])
-
-AS_IF([test "x$with_ocr" != xno],
-      [ AC_MSG_NOTICE([Enabled OCR support]) ],
-      [ AC_MSG_NOTICE([Disabled OCR support]) ])
-
-AM_CONDITIONAL(WITH_OCR, test "x$with_ocr" != xno)
-### End OCR
+### End Phaser
 
 ### ENABLE DISTRIBUTED WORK_STEALING SUPPORT FOR HabaneroUPC++
 AC_ARG_ENABLE(distWS,
