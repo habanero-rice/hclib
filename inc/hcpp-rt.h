@@ -68,7 +68,9 @@ typedef struct hc_workerState {
 #else
 #define HASSERT(cond)       //Do Nothing
 #endif
+
 #define current_ws_internal() ((hc_workerState *) pthread_getspecific(wskey))
+
 int get_hc_wid();
 hc_workerState* current_ws();
 }

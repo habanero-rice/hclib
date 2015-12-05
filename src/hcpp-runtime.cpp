@@ -100,7 +100,10 @@ static void initializeKey() {
 }
 
 void set_current_worker(int wid) {
-    pthread_setspecific(wskey, hcpp_context->workers[wid]);
+    if (pthread_setspecific(wskey, hcpp_context->workers[wid]) != 0) {
+		log_die("Cannot set thread-local worker state");
+    }
+
     if (bind_threads) {
         bind_thread(wid, NULL, 0);
     }
@@ -390,10 +393,10 @@ void* worker_routine(void * args) {
 
 	hc_workerState* ws = current_ws_internal();
 
-	while(hcpp_context->done) {
+	while (hcpp_context->done) {
 		task_t* task = hpt_pop_task(ws);
 		if (!task) {
-			while(hcpp_context->done) {
+			while (hcpp_context->done) {
 				// try to steal
 				task = hpt_steal_task(ws);
 				if (task) {
@@ -405,7 +408,7 @@ void* worker_routine(void * args) {
 			}
 		}
 
-		if(task) {
+		if (task) {
 			execute_task(task);
 		}
 	}
@@ -556,7 +559,7 @@ void finalize() {
 	end_finish();
 	free(root_finish);
 
-	if(hcpp_stats) {
+	if (hcpp_stats) {
 		showStatsFooter();
 	}
 

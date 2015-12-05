@@ -56,17 +56,17 @@ namespace hcpp {
  *    place all to the hpt top.
  */
 task_t* hpt_steal_task(hc_workerState* ws) {
-    MARK_SEARCH(ws->id);
+    MARK_SEARCH(ws->id); // Set the state of this worker for timing
+
     place_t * pl = ws->pl;
     hcupc_reset_asyncAnyInfo(ws->id);
     while (pl != NULL) {
         hc_deque_t * deqs = pl->deques;
         int nb_deq = pl->ndeques;
-        /* Try to steal from right neighbour */
 
         /* Try to steal once from every other worker first */
         for (int i=1; i<nb_deq; i++) {
-            int victim = ((ws->id+i)%nb_deq);
+            int victim = ((ws->id + i) % nb_deq);
             hc_deque_t* d = &deqs[victim];
             task_t* buff = dequeSteal(&(d->deque));
             if (buff) { /* steal succeeded */
@@ -76,23 +76,7 @@ task_t* hpt_steal_task(hc_workerState* ws) {
             }
         }
         hcupc_inform_failedSteal(ws->id);
-#if TODO
-        /* We also steal from places that represents the device (GPU),
-         * those continuations that are pushed onto the deque by the
-         * device workers
-         */
-        place_t *child = pl->child;
-        while (child != NULL) {
-            if (is_device_place(child)) {
-                frame = hc_deque_steal(ws, child->deques);
-                if (frame != NULL) {
-                    ws->current = get_deque_place(ws, pl);
-                    return buff;
-                }
-            }
-            child = child->nnext;
-        }
-#endif
+
         /* Nothing found in this place, go to the parent */
         pl = pl->parent;
     }
@@ -106,9 +90,11 @@ task_t* hpt_steal_task(hc_workerState* ws) {
  * 3) If nothing found down to the bottom, look upward starting from Q.
  */
 task_t* hpt_pop_task(hc_workerState * ws) {
-    hc_deque_t * current = ws->current; /* go HPT downward and then upward of my own deques */
+    // go HPT downward and then upward of my own deques
+    hc_deque_t * current = ws->current;
     hc_deque_t * pivot = current;
     short downward = 1;
+
     while (current != NULL) {
         task_t* buff = dequePop(&current->deque);
         if (buff) {
@@ -119,8 +105,10 @@ task_t* hpt_pop_task(hc_workerState * ws) {
         if (downward) {
             if (current->nnext == NULL) {
                 current = pivot->prev;
-                downward = 0; /* next, we go upward from pivot */
-            } else current = current->nnext;
+                downward = 0; // next, we go upward from pivot
+            } else {
+                current = current->nnext;
+            }
         } else {
             current = current->prev;
         }
@@ -133,6 +121,7 @@ inline short is_cpu_place(place_t * pl) {
     return (pl->type == MEM_PLACE || pl->type == CACHE_PLACE);
 }
 
+#ifdef TODO
 inline short is_device_place(place_t * pl) {
     HASSERT(pl);
     return (pl->type == NVGPU_PLACE || pl->type == AMGPU_PLACE || pl->type == FPGA_PLACE );
@@ -142,6 +131,7 @@ inline short is_nvgpu_place(place_t * pl) {
     HASSERT(pl);
     return (pl->type == NVGPU_PLACE);
 }
+#endif
 
 place_t* hc_get_current_place() {
     hc_workerState * ws = current_ws_internal();
