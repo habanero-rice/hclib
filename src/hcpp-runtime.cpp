@@ -154,7 +154,7 @@ void hcpp_createWorkerThreads(int nb_workers) {
     pthread_once(&selfKeyInitialized, initializeKey);
 
     // Start workers
-    for(int i=1;i<nb_workers;i++) {
+    for(int i = 1; i < nb_workers; i++) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine,
@@ -194,21 +194,24 @@ void hcpp_entrypoint() {
 	hc_hpt_init(hcpp_context);
 
 	// init timer stats
+    bool have_comm_worker = false;
 #ifdef HCPP_COMM_WORKER
-	hcpp_initStats(hcpp_context->nworkers, true);
-#else
-	hcpp_initStats(hcpp_context->nworkers, false);
+    have_comm_worker = true;
 #endif
+	hcpp_initStats(hcpp_context->nworkers, have_comm_worker);
 
 	/* Create key to store per thread worker_state */
 	if (pthread_key_create(&wskey, NULL) != 0) {
 		log_die("Cannot create wskey for worker-specific data");
 	}
 
-	/* set pthread's concurrency. Doesn't seem to do much on Linux */
+	/*
+     * set pthread's concurrency. Doesn't seem to do much on Linux, only
+     * relevant when there are more pthreads than hardware cores to schedule
+     * them on. */
 	pthread_setconcurrency(hcpp_context->nworkers);
 
-	/* Create all worker threads  */
+	/* Create all worker threads, running worker_routine */
 	hcpp_createWorkerThreads(hcpp_context->nworkers);
 
 	// allocate root finish

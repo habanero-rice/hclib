@@ -279,8 +279,17 @@ void init_deq_buffer(hc_workerState * ws, deque_t * deq, int capacity) {
 
 /* init the hpt and place deques */
 void hc_hpt_init(hc_context * context) {
+    if (sizeof(hc_deque_t) < 128) {
+        fprintf(stderr, "WARNING: deque size is less than 128 bytes, and may "
+                "lead to frequent false sharing of cache lines.\n");
+    }
+
     int i, j;
-#ifdef HPT_DESCENTWORKER_PERPLACE /* each place has a deque for each of its descent workers */
+#ifdef HPT_DESCENTWORKER_PERPLACE
+    /*
+     * each place has a deque for all workers beneath it (transitively) in the
+     * HPT.
+     */
     for (i = 0; i < context->nplaces; i++) {
         place_t * pl = context->places[i];
         int nworkers = pl->ndeques;
@@ -290,7 +299,7 @@ void hc_hpt_init(hc_context * context) {
             init_hc_deque_t(deq, pl);
         }
     }
-#else /* HPT_ALLWORKER_PERPLACE each place has a deque for each worker */
+#else // HPT_ALLWORKER_PERPLACE each place has a deque for each worker
     for (i = 0; i < context->nplaces; i++) {
         place_t * pl = context->places[i];
         int ndeques = context->nworkers;
@@ -338,24 +347,28 @@ void hc_hpt_init(hc_context * context) {
     }
 #endif
 
-    //int deq_capacity = context->options->deqsize;
-    /* link the deques for each cpu workers. the deque index is the same as ws->id to simplify the search.
-    */
+    /*
+     * link the deques for each cpu workers. the deque index is the same as
+     * ws->id to simplify the search. For every worker, iterate over all places
+     * and store a pointer from the place's deque for that worker to the worker
+     * state for that worker.
+     *
+     * This builds a tree of deques from the worker, to its parent's deque for
+     * it, to its grandparent's deque for it, up to the root. It would seem that
+     * the majority of deques are therefore unused (i.e. even though we allocate
+     * a dequeue for every worker in a platform in every place, only the deques
+     * for workers that are beneath that place in the HPT are used). However,
+     * this does make lookups of the deque in a place for a given worker
+     * constant time based on offset in place->deques.
+     */
     for (i = 0; i < context->nworkers; i++) {
         hc_workerState * ws = context->workers[i];
         int id = ws->id;
         for (j=0; j<context->nplaces; j++) {
             place_t * pl = context->places[j];
-            hc_deque_t * hc_deq;
             if (is_cpu_place(pl)) {
-                hc_deq = &(pl->deques[id]);
+                hc_deque_t *hc_deq = &(pl->deques[id]);
                 hc_deq->ws = ws;
-                /* We dont have deq buffers
-                   init_deq_buffer(ws, ((deque_t *) hc_deq), deq_capacity);
-                   } else if (is_device_place(pl) && pl->deques->deque.buffer == NULL) {
-                   hc_deq = pl->deques;
-                   init_deq_buffer(ws, ((deque_t *) hc_deq), deq_capacity);
-                   */
             } else {
                 /* unhandled or ignored situation */
             }
