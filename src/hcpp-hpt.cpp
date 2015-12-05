@@ -509,6 +509,7 @@ place_t * parsePlaceElement(xmlNode * plNode) {
     xmlChar * typeStr = xmlGetProp(plNode, xmlCharStrdup("type"));
     xmlChar * sizeStr = xmlGetProp(plNode, xmlCharStrdup("size"));
     xmlChar * unitSize = xmlGetProp(plNode, xmlCharStrdup("unitSize"));
+    xmlChar * info = xmlGetProp(plNode, xmlCharStrdup("info"));
 
     /*
        printf("Place(%x): num: %s, type: %s, size: %s, unitSize: %s\n", pl, numStr, typeStr, sizeStr, unitSize);
@@ -551,6 +552,7 @@ place_t * parsePlaceElement(xmlNode * plNode) {
     xmlFree(typeStr);
     xmlFree(sizeStr);
     xmlFree(unitSize);
+    xmlFree(info);
 
     pl->id = num;
     pl->did = did;

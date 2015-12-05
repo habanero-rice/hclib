@@ -120,51 +120,15 @@ void* worker_routine(void * args);
 /*
  * Main initialization function for the hcpp_context object.
  */
-void hcpp_global_init(bool HPT) {
+void hcpp_global_init() {
     // Build queues
     hcpp_context->done = 1;
-    if (!HPT) {
-        hcpp_context->nproc = hcpp_options->nproc;
-        hcpp_context->nworkers = hcpp_options->nworkers;
-
-        place_t * root = (place_t*) malloc(sizeof(place_t));
-        root->id = 0;
-        root->nnext = NULL;
-        root->child = NULL;
-        root->parent = NULL;
-        root->type = MEM_PLACE;
-        root->ndeques = hcpp_context->nworkers;
-        hcpp_context->hpt = root;
-        hcpp_context->places = &hcpp_context->hpt;
-        hcpp_context->nplaces = 1;
-        hcpp_context->workers = (hc_workerState**) malloc(
-                sizeof(hc_workerState*) * hcpp_options->nworkers);
-        HASSERT(hcpp_context->workers);
-        hc_workerState * cur_ws = NULL;
-        for(int i=0; i<hcpp_options->nworkers; i++) {
-            hcpp_context->workers[i] = new hc_workerState;
-            HASSERT(hcpp_context->workers[i]);
-            hcpp_context->workers[i]->context = hcpp_context;
-            hcpp_context->workers[i]->id = i;
-            hcpp_context->workers[i]->pl = root;
-            hcpp_context->workers[i]->hpt_path = NULL;
-            hcpp_context->workers[i]->nnext = NULL;
-            if (i == 0) {
-                cur_ws = hcpp_context->workers[i];
-            } else {
-                cur_ws->nnext = hcpp_context->workers[i];
-                cur_ws = hcpp_context->workers[i];
-            }
-        }
-        root->workers = hcpp_context->workers[0];
-    } else {
-        hcpp_context->hpt = readhpt(&hcpp_context->places,
-                &hcpp_context->nplaces, &hcpp_context->nproc,
-                &hcpp_context->workers, &hcpp_context->nworkers);
-        for (int i = 0; i < hcpp_context->nworkers; i++) {
-            hc_workerState * ws = hcpp_context->workers[i];
-            ws->context = hcpp_context;
-        }
+    hcpp_context->hpt = readhpt(&hcpp_context->places,
+            &hcpp_context->nplaces, &hcpp_context->nproc,
+            &hcpp_context->workers, &hcpp_context->nworkers);
+    for (int i = 0; i < hcpp_context->nworkers; i++) {
+        hc_workerState * ws = hcpp_context->workers[i];
+        ws->context = hcpp_context;
     }
 
     total_push_outd = 0;
@@ -213,7 +177,7 @@ static void display_runtime() {
 	cout << "----------------------------------------" << endl;
 }
 
-void hcpp_entrypoint(bool HPT) {
+void hcpp_entrypoint() {
 	if (hcpp_stats) {
 		display_runtime();
 	}
@@ -225,25 +189,7 @@ void hcpp_entrypoint(bool HPT) {
 	hcpp_context = new hc_context;
 	HASSERT(hcpp_context);
 
-    /*
-     * If places are not enabled, we just create a flat set of worker threads
-     * for this application.
-     */
-	if (!HPT) {
-		const char* workers_env = getenv("HCPP_WORKERS");
-		int workers = 1;
-		if (!workers_env) {
-			std::cout << "HCPP: WARNING -- Number of workers not set. " <<
-                "Please set using env HCPP_WORKERS" << std::endl;
-		} else {
-			workers = atoi(workers_env);
-		}
-		HASSERT(workers > 0);
-		hcpp_options->nworkers = workers;
-		hcpp_options->nproc = workers;
-	}
-
-	hcpp_global_init(HPT);
+	hcpp_global_init();
 
 	hc_hpt_init(hcpp_context);
 #if TODO
@@ -597,8 +543,15 @@ void init(int * argc, char ** argv) {
         show_stats_header();
     }
 
-    const bool HPT = getenv("HCPP_HPT_FILE") != NULL;
-    hcpp_entrypoint(HPT);
+    const char *hpt_file = getenv("HCPP_HPT_FILE");
+    if (hpt_file == NULL) {
+        fprintf(stderr, "ERROR: HCPP_HPT_FILE must be provided. If you do not "
+                "want to write one manually, one can be auto-generated for your "
+                "platform using the hwloc_to_hpt tool.\n");
+        exit(1);
+    }
+
+    hcpp_entrypoint();
 }
 
 void finalize() {

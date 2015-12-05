@@ -1,6 +1,7 @@
 #include <hwloc.h>
 #include <iostream>
 #include <fstream>
+#include <assert.h>
 #include "common.h"
 
 #define BOOL_STR(cond) ((cond) ? "true" : "false")
@@ -88,11 +89,9 @@ static void write_hpt_tree(std::ofstream &output, hwloc_obj_t obj, int indent) {
         write_indent(output, indent);
         output << "</place>" << std::endl;
     } else if (is_cpu_worker(obj)) {
+        assert(obj->arity == 0);
         write_indent(output, indent);
-        output << "<worker num=\"1\">" << std::endl;
-        recur_on_children(output, obj, indent + 1);
-        write_indent(output, indent);
-        output << "</worker>" << std::endl;
+        output << "<worker num=\"1\"/>" << std::endl;
     } else if (is_nvgpu_place(obj)) {
         write_indent(output, indent);
         output << "<place num=\"1\" type=\"nvgpu\" info=\"" <<
