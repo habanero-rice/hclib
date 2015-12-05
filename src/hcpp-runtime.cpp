@@ -156,8 +156,12 @@ void hcpp_createWorkerThreads(int nb_workers) {
     // Launch the worker threads
     pthread_once(&selfKeyInitialized, initializeKey);
 
+    if (hcpp_stats) {
+        printf("Using %d worker threads (including main thread)\n", nb_workers);
+    }
+
     // Start workers
-    for(int i = 1; i < nb_workers; i++) {
+    for (int i = 1; i < nb_workers; i++) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine,
@@ -167,8 +171,8 @@ void hcpp_createWorkerThreads(int nb_workers) {
 }
 
 static void display_runtime() {
-	cout << "---------HCPP_RUNTIME_INFO-----------" << endl;
-	printf(">>> HCPP_WORKERS\t\t= %s\n", getenv("HCPP_WORKERS"));
+	printf("---------HCPP_RUNTIME_INFO-----------\n");
+	printf(">>> HCPP_WORKERS\t= %s\n", getenv("HCPP_WORKERS"));
 	printf(">>> HCPP_HPT_FILE\t= %s\n", getenv("HCPP_HPT_FILE"));
 	printf(">>> HCPP_BIND_THREADS\t= %s\n", bind_threads ? "true" : "false");
 	if (getenv("HCPP_WORKERS") && bind_threads) {
@@ -177,7 +181,7 @@ static void display_runtime() {
                 "will assign both HCUPC++ places on same socket\n");
 	}
 	printf(">>> HCPP_STATS\t\t= %s\n", hcpp_stats);
-	cout << "----------------------------------------" << endl;
+	printf("----------------------------------------\n");
 }
 
 void hcpp_entrypoint() {
@@ -260,20 +264,22 @@ inline void execute_task(task_t* task) {
 }
 
 inline void rt_schedule_async(task_t* async_task, int comm_task) {
-	if(comm_task) {
+    if(comm_task) {
 #ifdef HCPP_COMM_WORKER
-		// push on comm_worker out_deq
-		semiConcDequeLockedPush(comm_worker_out_deque, (task_t*) async_task);
+        // push on comm_worker out_deq
+        semiConcDequeLockedPush(comm_worker_out_deque, async_task);
 #endif
-	}
-	else {
-		// push on worker deq
-		if(!dequePush(&(hcpp_context->workers[get_current_worker()]->current->deque), (task_t*) async_task)) {
-			// TODO: deque is full, so execute in place
-			printf("WARNING: deque full, local executino\n");
-			execute_task((task_t*) async_task);
-		}
-	}
+    }
+    else {
+        // push on worker deq
+        const int wid = get_current_worker();
+        if (!dequePush(&(hcpp_context->workers[wid]->current->deque),
+                    async_task)) {
+            // TODO: deque is full, so execute in place
+            printf("WARNING: deque full, local execution\n");
+            execute_task(async_task);
+        }
+    }
 }
 
 inline int is_eligible_to_schedule(task_t * async_task) {
