@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<!DOCTYPE HPT SYSTEM "hpt.dtd">
+
+<HPT version="0.1" info="Auto-generated using hwloc">
+  <place num="1" type="mem">
+    <place num="1" type="cache">
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+    </place>
+    <place num="1" type="cache">
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+      <place num="1" type="cache">
+        <place num="1" type="cache">
+          <worker num="1">
+          </worker>
+          <worker num="1">
+          </worker>
+        </place>
+      </place>
+    </place>
+    <place num="1" type="nvgpu" info="NVIDIA Corporation, Quadro K2000">
+    </place>
+    <place num="1" type="nvgpu" info="NVIDIA Corporation, Tesla K20c">
+    </place>
+  </place>
+</HPT>
