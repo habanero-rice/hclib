@@ -42,11 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hcpp {
 
-place_t * readhpt(place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk);
+place_t * read_hpt(place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk);
 void freeHPT(place_t * hpt);
 void hc_hpt_init(hc_context * context);
-void hc_hpt_cleanup_1(hc_context * context);
-void hc_hpt_cleanup_2(hc_context * context);
+void hc_hpt_cleanup(hc_context * context);
 void hc_hpt_dev_init(hc_context * context);
 void hc_hpt_dev_cleanup(hc_context * context);
 hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);

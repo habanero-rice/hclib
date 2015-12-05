@@ -123,7 +123,7 @@ void* worker_routine(void * args);
 void hcpp_global_init() {
     // Build queues
     hcpp_context->done = 1;
-    hcpp_context->hpt = readhpt(&hcpp_context->places,
+    hcpp_context->hpt = read_hpt(&hcpp_context->places,
             &hcpp_context->nplaces, &hcpp_context->nproc,
             &hcpp_context->workers, &hcpp_context->nworkers);
     for (int i = 0; i < hcpp_context->nworkers; i++) {
@@ -192,9 +192,6 @@ void hcpp_entrypoint() {
 	hcpp_global_init();
 
 	hc_hpt_init(hcpp_context);
-#if TODO
-	hc_hpt_dev_init(hcpp_context);
-#endif
 
 	// init timer stats
 #ifdef HCPP_COMM_WORKER
@@ -229,9 +226,7 @@ void hcpp_join_workers(int nb_workers) {
 }
 
 void hcpp_cleanup() {
-	hc_hpt_dev_cleanup(hcpp_context);
-	hc_hpt_cleanup_1(hcpp_context); /* cleanup deques (allocated by hc mm) */
-	hc_hpt_cleanup_2(hcpp_context); /* cleanup the HPT, places, and workers (allocated by malloc) */
+	hc_hpt_cleanup(hcpp_context); /* cleanup deques (allocated by hc mm) */
 	pthread_key_delete(wskey);
 
 	free(hcpp_context);

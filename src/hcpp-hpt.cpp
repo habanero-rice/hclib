@@ -298,11 +298,6 @@ void hc_hpt_init(hc_context * context) {
         for (j = 0; j < ndeques; j++) {
             hc_deque_t * hc_deq = &(pl->deques[j]);
             init_hc_deque_t(hc_deq, pl);
-#ifndef BUCKET_DEQUE
-#ifndef UNLOCK_DEQUE
-            //pthread_mutex_init(&(hc_deq->deque.lock), NULL); // TODO:Check
-#endif
-#endif
         }
     }
 #endif
@@ -376,7 +371,8 @@ void hc_hpt_init(hc_context * context) {
         }
         ws->current = &(current->deques[id]);
     }
-#if 0
+
+#ifdef VERBOSE
     /*Print HPT*/
     int level = context->places[0]->level;
     for (i=0; i<context->nplaces; i++) {
@@ -412,67 +408,15 @@ void hc_hpt_init(hc_context * context) {
 #endif
 }
 
-/* init dev places of the hpt, create a pthread and a reverse-deque for each GPU place */
-void hc_hpt_dev_init(hc_context * context) {
-#ifdef TODO
-    // Not supported currently
-    int i;
-    for (i = 0; i < context->nplaces; i++) {
-        place_t * pl = context->places[i];
-        if (is_device_place(pl)) {
-            hc_workerState * dws = pl->workers;
-            // NOTE: the following inits are not used at this moment, may be later, so we do it
-            dws->num = 1;
-            dws->deques = pl->deques;
-            dws->current = pl->deques;
-            dws->deques->ws = dws;
-
-            // init the (dev) task queue
-            pl->hcque = hcqueue_init(dws);
-        }
-    }
-#endif
-}
-
-void hc_hpt_dev_cleanup(hc_context * context) {
-#ifdef TODO
-    int i;
-    for (i = 0; i < context->nplaces; i++) {
-        place_t * pl = context->places[i];
-        if (is_device_place(pl)) {
-            hc_workerState * dws = pl->workers;
-            // NOTE: the following inits are not used at this moment, may be later, so we do it
-            dws->num = 1;
-            dws->deques = pl->deques;
-            dws->current = pl->deques;
-
-            // init the (dev) task queue
-            hcqueue_destroy(dws, pl->hcque);
-        }
-    }
-#endif
-}
-
-void hc_hpt_cleanup_1(hc_context * context) {
+void hc_hpt_cleanup(hc_context * context) {
     /* clean up HPT deques for cpu workers*/
     for (int i = 0; i < context->nplaces; i++) {
         place_t * pl = context->places[i];
         if (is_device_place(pl)) continue;
         free(pl->deques);
     }
-}
-
-void hc_hpt_cleanup_2(hc_context * context) {
     /* clean up the HPT, places and workers */
-    if (getenv("HCPP_HPT_FILE")) {
-        freeHPT(context->hpt);
-    } else {
-        for(int i=0; i<context->nproc; i++) {
-            free(context->workers[i]);
-        }
-        free(context->workers);
-        free(context->hpt);
-    }
+    freeHPT(context->hpt);
 }
 
 /*
@@ -483,12 +427,15 @@ hc_workerState * parseWorkerElement(xmlNode * wkNode) {
     xmlChar * num = xmlGetProp(wkNode, xmlCharStrdup("num"));
     xmlChar * didStr = xmlGetProp(wkNode, xmlCharStrdup("did"));
     xmlChar * type = xmlGetProp(wkNode, xmlCharStrdup("type"));
-    /*
-       printf("Worker(%x): num: %s, type: %s\n", wk, num, type);
-       */
 
+    /*
+     * Kind of hacky, the id field is re-used to store the number of workers at
+     * this level in the hierarchy. This field is later re-assigned with the
+     * actual worker ID.
+     */
     if (num != NULL) wk->id = atoi((char*)num);
     else wk->id = 1;
+
     if (didStr != NULL) wk->did = atoi((char*)didStr);
     else wk->did = 0;
     wk->nnext = NULL;
@@ -643,9 +590,18 @@ typedef struct worker_node {
     struct worker_node * next;
 }worker_node_t;
 
+/*
+ * Generate two lists for all places and workers below the place pl in the HPT:
+ * a list of places that are leaves in the tree (i.e. have no child places) and
+ * a list of all workers in the HPT (which are implicitly leaves, by the
+ * definition of a worker).
+ *
+ * This is done recursively to find all leaf places and workers in a global HPT.
+ */
 void find_leaf(place_t * pl, place_node_t **pl_list_cur, worker_node_t ** wk_list_cur) {
     place_t * child = pl->child;
     if (child == NULL) {
+        // Leaf, add it to the pl_list
         place_node_t *new_pl = (place_node_t*)malloc(sizeof(place_node_t));
         new_pl->data = pl;
         new_pl->next = NULL;
@@ -659,7 +615,8 @@ void find_leaf(place_t * pl, place_node_t **pl_list_cur, worker_node_t ** wk_lis
     }
 
     hc_workerState * wk = pl->workers;
-    while(wk != NULL){
+    while (wk != NULL){
+        // Add any workers to wk_list
         worker_node_t *new_ws = (worker_node_t*) malloc(sizeof(worker_node_t));
         new_ws->next = NULL;
         new_ws->data = wk;
@@ -672,14 +629,43 @@ void find_leaf(place_t * pl, place_node_t **pl_list_cur, worker_node_t ** wk_lis
 place_t * clonePlace(place_t *pl, int * num_pl, int * num_wk);
 void setupWorkerHptPath(hc_workerState * worker, place_t * pl);
 
-void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk) {
+/*
+ * When we write HPT XML files manually, a count or num can be provided for each
+ * place or worker node which reduces the need to write duplicate XML for
+ * sibling XML nodes that are identical. For example, rather than having to
+ * write:
+ *
+ *   <worker/>
+ *   <worker/>
+ *
+ * to represent two cores sharing a place in the cache hierarchy, we can simply write:
+ *
+ *   <worker num="2"/>
+ *
+ * The same goes for places. However, it is cleaner at runtime to store the HPT
+ * in its fully expanded form, where every node has a num/count of 1. unrollHPT
+ * handles unrolling or expanding worker and place nodes that have a num/count >
+ * 1 by duplicating/cloning them and their subtree. At a high level, it starts
+ * by expanding worker nodes, then leaf place nodes, then works recursively up
+ * the HPT from the leaf place nodes and expands as it goes.
+ *
+ * At the end, it goes back over the HPT and re-assigns worker and place IDs to
+ * be consistent.
+ */
+void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
+        hc_workerState *** all_workers, int * num_wk) {
     int i;
     place_node_t leaf_places = {NULL, NULL};
     worker_node_t leaf_workers = {NULL, NULL};
     place_node_t * pl_list_cur = &leaf_places;
     worker_node_t * wk_list_cur = &leaf_workers;
+
     place_t * plp = hpt;
-    while(plp != NULL) {
+    /*
+     * Iterate over all top-level places in the HPT, collecting all leaf places
+     * and workers in this platform.
+     */
+    while (plp != NULL) {
         find_leaf (plp, &pl_list_cur, &wk_list_cur);
         plp = plp->nnext;
     }
@@ -687,13 +673,21 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
     *num_wk = 0;
     *num_pl = 0;
     *nproc = 0;
-    /* unroll workers */
+    /*
+     * Take any workers that were supposed with num > 1 in the HPT XML file and
+     * "unroll" them, i.e. fully expand them into separate nodes in the HPT
+     * tree so that all workers have num == 1. Do this for every single worker
+     * in the HPT, discovered by find_leaf.
+     */
     wk_list_cur = leaf_workers.next;
     while (wk_list_cur != NULL) {
         hc_workerState * ws = wk_list_cur->data;
+
+        // num is read from the XML file and temporarily stored in the id field.
         int num = ws->id;
         for (i=0; i<num-1; i++) {
-            hc_workerState * tmp = (hc_workerState*) malloc(sizeof(hc_workerState));
+            hc_workerState * tmp = (hc_workerState*) malloc(
+                    sizeof(hc_workerState));
             tmp->pl = ws->pl;
             tmp->did = ws->did + num - i - 1; /* please note the way we add to the list, and the way we allocate did */
             tmp->nnext = ws->nnext;
@@ -712,13 +706,20 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
     while (pl_list_cur != NULL) {
         place_t * pl = pl_list_cur->data;
 
-        /* we first check whether this is the last one of its parent that needs unrolling */
+        /*
+         * we first check whether this is the last child of its parent that
+         * needs unrolling
+         */
         place_t * parent = pl->parent;
         int unfinished = 0;
         if (parent != NULL) {
             place_t * pllast = parent->child;
 
             while (pllast != NULL) {
+                /*
+                 * id is cleared to -1 when we start processing a place node,
+                 * check for places we haven't started processing.
+                 */
                 if (pllast->id != -1) unfinished ++;
                 pllast = pllast->nnext;
             }
@@ -726,12 +727,16 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
 
         /* now do the clone and link them as sibling */
         (*num_pl) ++;
-        if (pl->parent != NULL) pl->parent->ndeques += pl->ndeques; /*////////////////////////////////////// This will add too many deques */
+
+        // TODO This will add too many deques
+        if (pl->parent != NULL) pl->parent->ndeques += pl->ndeques;
         int num = pl->id;
         pl->id = -1; /* clear this out, we only reset this after processing the whole HPT */
-        for (i=0; i<num-1; i++) {
+
+        for (i = 0; i < num - 1; i++) {
             place_t * clpl = clonePlace(pl, num_pl, nproc);
-            if (pl->parent != NULL) pl->parent->ndeques += pl->ndeques; /*////////////////////////////////////// This will add too many deques */
+            // TODO This will add too many deques
+            if (pl->parent != NULL) pl->parent->ndeques += pl->ndeques;
 
             /* now they are sibling */
             clpl->did = pl->did + num - i - 1; /* please note the way we add to the list, and the way we allocate did */
@@ -740,6 +745,14 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
         }
 
         if (unfinished == 1) {/* the one we just unrolled should be this one */
+            /*
+             * If this is the last child place to be unrolled for a given
+             * parent, add that parent to the work list being iterated over by
+             * pl_list_cur so that we expand it at some point in the future.
+             * This leads to a bottom-up traversal of the place tree, expanding
+             * place nodes only after all of their children have already been
+             * expanded.
+             */
             place_node_t *new_pl = (place_node_t*)malloc(sizeof(place_node_t));
             new_pl->data = parent;
             new_pl->next = NULL;
@@ -747,6 +760,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
             lastpl = new_pl;
         }
 
+        // Move to next place in place list
         place_node_t * tmppl = pl_list_cur;
         pl_list_cur = tmppl->next;
         free(tmppl);
@@ -763,6 +777,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
     /* allocate worker objects for CPU workers */
     *all_workers = (hc_workerState **)malloc(sizeof(hc_workerState *) * (*nproc));
 
+    // Construct a new list of top-level places, starting with start.
     while (plp != NULL) {
         tmp= (place_node_t*) malloc(sizeof(place_node_t));
         tmp->data = plp;
@@ -776,7 +791,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
 
     int wkid = 0;
     int plid = 0;
-    while(start != NULL) {
+    while (start != NULL) {
         plp = start->data;
         if (plp->level == 0) {
             fprintf(stderr, "Place level is not set!\n");
@@ -849,6 +864,11 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc, 
     }
 }
 
+/*
+ * Recursively copy a place and its entire subtree, incrementing num_pl every
+ * time a new place is created and incrementing nproc every time a new worker is
+ * created.
+ */
 place_t * clonePlace(place_t *pl, int * num_pl, int * nproc) {
     place_t * clone = (place_t*) malloc(sizeof(place_t));
     clone->type = pl->type;
@@ -865,7 +885,7 @@ place_t * clonePlace(place_t *pl, int * num_pl, int * nproc) {
     clone->children = NULL;
     place_t * child = pl->child;
     place_t * pllast = NULL;
-    while(child != NULL) {
+    while (child != NULL) {
         place_t * tmp = clonePlace(child, num_pl, nproc);
         tmp->parent = clone;
         if (clone->child == NULL) clone->child = tmp;
@@ -944,10 +964,11 @@ void setupWorkerHptPath(hc_workerState * worker, place_t * pl) {
  * multiple elements at the same nesting level, e.g. both L3 and GPU device
  * memory at the same level in the hierarchy.
  *
- * readhpt parses one of these XML files and produces the equivalent place
- * hierarchy, returning the root of that hierarchy.
+ * read_hpt parses one of these XML files and produces the equivalent place
+ * hierarchy, returning the root of that hierarchy. The schema of the HPT XML
+ * file is stored in $HCPP_HOME/hpt/hpt.dtd.
  */
-place_t* readhpt(place_t *** all_places, int * num_pl, int * nproc,
+place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
         hc_workerState *** all_workers, int * num_wk) {
     const char *filename = getenv("HCPP_HPT_FILE");
     HASSERT(filename);
@@ -975,6 +996,11 @@ place_t* readhpt(place_t *** all_places, int * num_pl, int * nproc,
     xmlNode *root_element = xmlDocGetRootElement(doc);
 
     place_t *hpt = parseHPTDoc(root_element);
+    /*
+     * This takes places which have num > 1 and workers that have num > 1 and
+     * fully expand them in the place tree so that every node in the tree
+     * corresponds to a single place/worker.
+     */
     unrollHPT(hpt, all_places, num_pl, nproc, all_workers, num_wk);
 
     /*free the document */
