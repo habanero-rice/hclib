@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <libxml/tree.h>
 #include <assert.h>
 
+// #define VERBOSE
+
 namespace hcpp {
 
 /**
