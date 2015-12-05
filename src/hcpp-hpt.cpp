@@ -50,9 +50,7 @@ namespace hcpp {
 /**
  * HPT: Try to steal a frame from another worker.
  * 1) First look for work in current place worker deques
- * 2) If nothing is found, check if current place has device
- *    places and if so, try to steal from there.
- * 3) If unsuccessful, start over at step 1) in the parent
+ * 2) If unsuccessful, start over at step 1) in the parent
  *    place all to the hpt top.
  */
 task_t* hpt_steal_task(hc_workerState* ws) {
