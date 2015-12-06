@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNINITIALIZED_DDF_DATA_PTR NULL
 
 // For waiting frontier (last element of the list)
-#define UNINITIALIZED_DDF_WAITLIST_PTR ((struct ddt_st *) -1)
+#define UNINITIALIZED_DDF_WAITLIST_PTR ((ddt_t *) -1)
 #define EMPTY_DDF_WAITLIST_PTR NULL
 
 /**
@@ -135,13 +135,14 @@ void ddf_free(hclib_ddf_t * ddf) {
 	free(ddf);
 }
 
-__inline__ int __registerIfDDFnotReady_AND ( ddt_t* wrapperTask, hclib_ddf_t* ddfToCheck ) {
+__inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
+        hclib_ddf_t* ddfToCheck ) {
     int success = 0;
-    ddt_t* waitListOfDDF = ( ddt_t* ) ddfToCheck->headDDTWaitList;
+    ddt_t* waitListOfDDF = (ddt_t*)ddfToCheck->headDDTWaitList;
 
-    if ( waitListOfDDF != EMPTY_DDF_WAITLIST_PTR ) {
+    if (waitListOfDDF != EMPTY_DDF_WAITLIST_PTR) {
 
-        while ( waitListOfDDF != EMPTY_DDF_WAITLIST_PTR && !success ) {
+        while (waitListOfDDF != EMPTY_DDF_WAITLIST_PTR && !success) {
             /* waitListOfDDF can not be EMPTY_DDF_WAITLIST_PTR in here*/
             wrapperTask->nextDDTWaitingOnSameDDF = waitListOfDDF;
 
@@ -166,7 +167,7 @@ __inline__ int __registerIfDDFnotReady_AND ( ddt_t* wrapperTask, hclib_ddf_t* dd
  * Runtime interface to DDTs.
  * Returns '1' if all ddf dependencies have been satisfied.
  */
-int iterate_ddt_frontier ( ddt_t* wrapperTask) {
+int iterate_ddt_frontier (ddt_t* wrapperTask) {
 	hclib_ddf_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
 
     while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND (wrapperTask, *currDDFnodeToWaitOn) ) {

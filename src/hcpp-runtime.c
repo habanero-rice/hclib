@@ -259,8 +259,14 @@ static inline void check_out_finish(finish_t * finish) {
 
 static inline void execute_task(task_t* task) {
 	finish_t* current_finish = get_current_finish(task);
+    /*
+     * Update the current finish of this worker to be inherited from the
+     * currently executing task so that any asyncs spawned from the currently
+     * executing task are registered on the same finish.
+     */
 	current_ws_internal()->current_finish = current_finish;
 
+    // task->_fp is of type 'void (*generic_framePtr)(void*)'
 	(task->_fp)(task->_args);
 	check_out_finish(current_finish);
 	HC_FREE(task);
@@ -269,11 +275,10 @@ static inline void execute_task(task_t* task) {
 static inline void rt_schedule_async(task_t* async_task, int comm_task) {
     if(comm_task) {
 #ifdef HCPP_COMM_WORKER
-        // push on comm_worker out_deq
+        // push on comm_worker out_deq if this is a communication task
         semiConcDequeLockedPush(comm_worker_out_deque, async_task);
 #endif
-    }
-    else {
+    } else {
         // push on worker deq
         const int wid = get_current_worker();
         if (!dequePush(&(hcpp_context->workers[wid]->current->deque),
@@ -285,15 +290,28 @@ static inline void rt_schedule_async(task_t* async_task, int comm_task) {
     }
 }
 
+/*
+ * A task which has no dependencies on prior tasks through DDFs is always
+ * immediately ready for scheduling. A task that is registered on some prior
+ * DDFs may be ready for scheduling if all of those DDFs have already been
+ * satisfied. If they have not all been satisfied, the execution of this task is
+ * registered on each, and it is only places in a work deque once all DDFs have
+ * been satisfied.
+ */
 inline int is_eligible_to_schedule(task_t * async_task) {
     if (async_task->ddf_list != NULL) {
-    	struct ddt_st * ddt = (ddt_t *) rt_async_task_to_ddt(async_task);
+    	ddt_t * ddt = (ddt_t *)rt_async_task_to_ddt(async_task);
         return iterate_ddt_frontier(ddt);
     } else {
         return 1;
     }
 }
 
+/*
+ * If this async is eligible for scheduling, we insert it into the work-stealing
+ * runtime. See is_eligible_to_schedule to understand when a task is or isn't
+ * eligible for scheduling.
+ */
 void try_schedule_async(task_t * async_task, int comm_task) {
     if (is_eligible_to_schedule(async_task)) {
         rt_schedule_async(async_task, comm_task);

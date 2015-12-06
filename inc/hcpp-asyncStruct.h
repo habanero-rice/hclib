@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-inline void init_hcpp_async_task(struct hcpp_async_task *t,
+inline void init_task_t(task_t *t,
         generic_framePtr fp, size_t arg_sz, void *async_args) {
     HASSERT(t);
     HASSERT(arg_sz <= MAX_HCPP_ASYNC_ARG_SIZE);
@@ -26,15 +26,15 @@ inline void init_hcpp_async_task(struct hcpp_async_task *t,
     memcpy(&t->_args, async_args, arg_sz);
 }
 
-inline hclib_ddf_t ** get_ddf_list(struct hcpp_async_task *t) {
+inline hclib_ddf_t ** get_ddf_list(task_t *t) {
     return t->ddf_list;
 }
 
-inline void mark_as_asyncAnyTask(struct hcpp_async_task *t) {
+inline void mark_as_asyncAnyTask(task_t *t) {
     t->is_asyncAnyType = 1;
 }
 
-inline int is_asyncAnyTask(struct hcpp_async_task *t) {
+inline int is_asyncAnyTask(task_t *t) {
     return t->is_asyncAnyType;
 }
 

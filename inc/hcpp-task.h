@@ -3,12 +3,23 @@
 
 /*
  * We just need to pack the function pointer and the pointer to
- * the heap allocated lambda. Due to this 16 bytes is sufficient
- * for our lambda based approach.
+ * the heap allocated lambda for the lambda-based approach. Without lambdas, we
+ * simply store the user-provided data pointer (which is obviously smaller).
  */
-#define MAX_HCPP_ASYNC_ARG_SIZE 16
+#define MAX_HCPP_ASYNC_ARG_SIZE (sizeof(void *) + sizeof(void *))
 
-struct hcpp_async_task  {
+/*
+ * The core task representation, including:
+ *
+ *   1) _fp: a user-provided function pointer to execute.
+ *   2) _args: a fixed-size buffer to hold the arguments to that function.
+ *   3) current_finish: a pointer to the finish scope this task is registered on
+ *      (possibly NULL).
+ *   4) is_asyncAnyType: a boolean that doesn't seem to be ever be set to 1...
+ *   5) ddf_list: a null-terminated list of pointers to the DDFs that this task
+ *      depends on to execute, and which it will wait on before running.
+ */
+typedef struct _task_t {
     char _args[MAX_HCPP_ASYNC_ARG_SIZE];
     struct finish_t* current_finish;
     generic_framePtr _fp;
@@ -19,29 +30,32 @@ struct hcpp_async_task  {
      */
     int is_asyncAnyType;
     hclib_ddf_t ** ddf_list; // Null terminated list
-};
+} task_t;
 
-#ifdef __cplusplus
-typedef struct hcpp_async_task task_t;
-#else
-#define task_t         struct hcpp_async_task
-#endif
-
+/*
+ * A representation of a task whose execution is dependent on prior tasks
+ * through a list of DDF objects.
+ */
 typedef struct hcpp_task_t {
 	task_t async_task; 	// the actual task
-	ddt_t ddt; 			// ddt meta-information
+    /*
+     * ddt meta-information, tasks that this task is blocked on for execution.
+     * ddt.waitingFrontier is generally equal to async_task.ddf_list. TODO can
+     * we factor out this redundant storage of data?
+     */
+	ddt_t ddt;
 } hcpp_task_t;
 
-inline struct finish_t* get_current_finish(struct hcpp_async_task *t) {
+inline struct finish_t* get_current_finish(task_t *t) {
     return t->current_finish;
 }
 
-inline void set_current_finish(struct hcpp_async_task *t,
+inline void set_current_finish(task_t *t,
         struct finish_t* finish) {
     t->current_finish = finish;
 }
 
-inline void set_ddf_list(struct hcpp_async_task *t, hclib_ddf_t ** ddf) {
+inline void set_ddf_list(task_t *t, hclib_ddf_t ** ddf) {
     t->ddf_list = ddf;
 }
 

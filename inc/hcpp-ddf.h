@@ -65,10 +65,6 @@ typedef enum DDF_Kind {
 	DDF_KIND_DISTRIBUTED_REMOTE,
 } DDF_Kind_t;
 
-//================= DDF Support ==================    //
-// Copied from https://github.com/habanero-rice/hclib //
-//================================================    //
-
 /**
  * DDT data-structure to associate DDTs and DDFs.
  * This is exposed so that the runtime know the size of the struct.
@@ -88,7 +84,7 @@ typedef struct ddt_st {
 typedef struct hclib_ddf_st {
 	int kind;
     volatile void * datum;
-    volatile struct ddt_st * headDDTWaitList;
+    volatile ddt_t * headDDTWaitList;
 } hclib_ddf_t;
 
 /**
