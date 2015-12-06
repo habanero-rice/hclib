@@ -16,14 +16,6 @@
 extern "C" {
 #endif
 
-inline void init_task_t(task_t *t, generic_framePtr fp, void *async_args) {
-    HASSERT(t); HASSERT(fp); HASSERT(async_args);
-    t->_fp = fp;
-    t->args = async_args;
-    t->is_asyncAnyType = 0;
-    t->ddf_list = NULL;
-}
-
 inline hclib_ddf_t ** get_ddf_list(task_t *t) {
     return t->ddf_list;
 }

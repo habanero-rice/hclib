@@ -47,7 +47,12 @@ namespace hclib {
 
 /*
  * The C API to the HC runtime defines a task at its simplest as a function
- * pointer paired with a void* pointing to some user data.
+ * pointer paired with a void* pointing to some user data. This file adds a C++
+ * wrapper over that API by passing the C API a lambda-caller function and a
+ * pointer to the lambda stored on the heap, which are then called.
+ *
+ * This does add more overheads in the C++ version (i.e. memory allocations).
+ * TODO optimize that overhead.
  */
 
 /*
@@ -78,6 +83,11 @@ struct async_arguments {
         lambda_caller(k), lambda_on_heap(a) { }
 };
 
+/*
+ * The method called directly from the HC runtime, passed a pointer to an
+ * async_arguments object. It then uses these async_arguments to call
+ * call_lambda, passing the user-provided lambda.
+ */
 template<typename Function, typename T1>
 void lambda_wrapper(void *args) {
     async_arguments<Function, T1> *a =
@@ -86,12 +96,18 @@ void lambda_wrapper(void *args) {
     (*a->lambda_caller)(a->lambda_on_heap);
 }
 
+/*
+ * Initialize a task_t for the C++ APIs, using a user-provided lambda.
+ */
 template<typename Function, typename T1>
 inline void initialize_task(task_t *t, Function lambda_caller,
         T1 *lambda_on_heap) {
     async_arguments<Function, T1 *> *args =
         new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
-    init_task_t(t, lambda_wrapper<Function, T1 *>, args);
+    t->_fp = lambda_wrapper<Function, T1 *>;
+    t->args = args;
+    t->is_asyncAnyType = 0;
+    t->ddf_list = NULL;
 }
 
 template <typename T>
