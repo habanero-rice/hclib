@@ -20,7 +20,7 @@ void hclib_async(generic_framePtr fp, void *arg, struct ddf_st ** ddf_list,
     task->_fp = fp;
     task->is_asyncAnyType = 0;
     task->ddf_list = NULL;
-    memcpy(task->_args, &arg, sizeof(arg));
+    task->args = arg;
 
     spawn(task);
 }

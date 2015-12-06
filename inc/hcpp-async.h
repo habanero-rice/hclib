@@ -45,8 +45,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hclib {
 
+/*
+ * The C API to the HC runtime defines a task at its simplest as a function
+ * pointer paired with a void* pointing to some user data.
+ */
+
+/*
+ * At the lowest layer in the call stack before entering user code, this method
+ * invokes the user-provided lambda.
+ */
 template <typename T>
-inline void execute_hcpp_lambda(T* lambda) {
+inline void call_lambda(T* lambda) {
 	const int wid = current_ws()->id;
 	MARK_BUSY(wid);
 	(*lambda)();
@@ -54,40 +63,52 @@ inline void execute_hcpp_lambda(T* lambda) {
 	MARK_OVH(wid);
 }
 
+/*
+ * Store a reference to the type-specific function for calling the user lambda,
+ * as well as a pointer to the lambda's location on the heap (through which we
+ * can invoke it). async_arguments is stored as the args field in the task_t
+ * object for a task, and passed to lambda_wrapper.
+ */
 template <typename Function, typename T1>
-struct async_arguments1 {
-    Function kernel;
-    T1 arg1;
+struct async_arguments {
+    Function lambda_caller;
+    T1 lambda_on_heap;
 
-    async_arguments1(Function k, T1 a1) :
-        kernel(k), arg1(a1) { }
+    async_arguments(Function k, T1 a) :
+        lambda_caller(k), lambda_on_heap(a) { }
 };
 
 template<typename Function, typename T1>
-void wrapper1(void *args) {
-    async_arguments1<Function, T1> *a =
-        (async_arguments1<Function, T1> *)args;
+void lambda_wrapper(void *args) {
+    async_arguments<Function, T1> *a =
+        (async_arguments<Function, T1> *)args;
 
-    (*a->kernel)(a->arg1);
+    (*a->lambda_caller)(a->lambda_on_heap);
 }
 
 template<typename Function, typename T1>
-inline void initialize_hcpp_async_task(struct hcpp_async_task *t,
-        Function kernel, const T1 &a1) {
-    async_arguments1<Function, T1> args(kernel, a1);
-    init_hcpp_async_task(t, wrapper1<Function, T1>, (size_t)sizeof(args),
-            (void *)&args);
+inline void initialize_task(task_t *t, Function lambda_caller,
+        T1 *lambda_on_heap) {
+    async_arguments<Function, T1 *> *args =
+        new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
+    init_task_t(t, lambda_wrapper<Function, T1 *>, args);
 }
 
 template <typename T>
 inline task_t* _allocate_async_hcpp(T lambda, bool await) {
 	const size_t hcpp_task_size = await ? sizeof(hcpp_task_t) : sizeof(task_t);
-	task_t* task = (task_t*) HC_MALLOC(hcpp_task_size);
+    // create off-stack storage for this task
+	task_t* task = (task_t*)HC_MALLOC(hcpp_task_size);
 	const size_t lambda_size = sizeof(T);
-	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
-	memcpy(lambda_onHeap, &lambda, lambda_size);
-    struct hcpp_async_task t;
-    initialize_hcpp_async_task(&t, execute_hcpp_lambda<T>, lambda_onHeap);
+    /*
+     * create off-stack storage for the lambda object (including its captured
+     * variables), which will be pointed to from the task_t.
+     */
+	T* lambda_on_heap = (T*)HC_MALLOC(lambda_size);
+	memcpy(lambda_on_heap, &lambda, lambda_size);
+
+    task_t t;
+    initialize_task(&t, call_lambda<T>, lambda_on_heap);
 	memcpy(task, &t, sizeof(task_t));
 	return task;
 }

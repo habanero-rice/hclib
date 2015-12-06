@@ -16,14 +16,12 @@
 extern "C" {
 #endif
 
-inline void init_task_t(task_t *t,
-        generic_framePtr fp, size_t arg_sz, void *async_args) {
-    HASSERT(t);
-    HASSERT(arg_sz <= MAX_HCPP_ASYNC_ARG_SIZE);
+inline void init_task_t(task_t *t, generic_framePtr fp, void *async_args) {
+    HASSERT(t); HASSERT(fp); HASSERT(async_args);
     t->_fp = fp;
+    t->args = async_args;
     t->is_asyncAnyType = 0;
     t->ddf_list = NULL;
-    memcpy(&t->_args, async_args, arg_sz);
 }
 
 inline hclib_ddf_t ** get_ddf_list(task_t *t) {

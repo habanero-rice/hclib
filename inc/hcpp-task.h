@@ -12,7 +12,7 @@
  * The core task representation, including:
  *
  *   1) _fp: a user-provided function pointer to execute.
- *   2) _args: a fixed-size buffer to hold the arguments to that function.
+ *   2) _args: a pointer to user-provided arguments to that function.
  *   3) current_finish: a pointer to the finish scope this task is registered on
  *      (possibly NULL).
  *   4) is_asyncAnyType: a boolean that doesn't seem to be ever be set to 1...
@@ -20,7 +20,7 @@
  *      depends on to execute, and which it will wait on before running.
  */
 typedef struct _task_t {
-    char _args[MAX_HCPP_ASYNC_ARG_SIZE];
+    void *args;
     struct finish_t* current_finish;
     generic_framePtr _fp;
     /*

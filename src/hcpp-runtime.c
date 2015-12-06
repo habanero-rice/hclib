@@ -267,7 +267,7 @@ static inline void execute_task(task_t* task) {
 	current_ws_internal()->current_finish = current_finish;
 
     // task->_fp is of type 'void (*generic_framePtr)(void*)'
-	(task->_fp)(task->_args);
+	(task->_fp)(task->args);
 	check_out_finish(current_finish);
 	HC_FREE(task);
 }
