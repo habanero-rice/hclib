@@ -4,7 +4,8 @@ SUBDIRS =
 INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc
 
 # cflags: important to define that otherwise we inherit default values too
-CXXFLAGS = -Wall -g -O3 -std=c++11
+CFLAGS = -Wall -g -O3
+CXXFLAGS = $(CFLAGS) -std=c++11
 LDFLAGS = -lpthread
 
 if DIST_WS
@@ -34,9 +35,10 @@ noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
 AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp
+libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp hclib.cpp
 
 # build hcpp
 libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
+libhcpp_la_CFLAGS= $(CFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
 
 MAINTAINERCLEANFILES = Makefile.in

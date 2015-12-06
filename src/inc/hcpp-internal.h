@@ -90,10 +90,7 @@ typedef struct hc_context {
     volatile int done;
 } hc_context;
 
-typedef struct finish_t {
-    struct finish_t* parent;
-    volatile int counter;
-} finish_t;
+#include "hcpp-finish.h"
 
 typedef struct hc_deque_t {
     /* The actual deque, WARNING: do not move declaration !

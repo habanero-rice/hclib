@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCPP_DDF_H_
 #define HCPP_DDF_H_
 
+#include <stdlib.h>
+
 namespace hcpp {
 /**
  * @file User Interface to HCLIB's Data-Driven Futures

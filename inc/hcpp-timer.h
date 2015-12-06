@@ -13,6 +13,7 @@
 #define HCPP_TIMER_H_
 
 namespace hcpp {
+
 /*
  * Comment this if you don't want timing analysis
  */
@@ -36,6 +37,7 @@ void hcpp_getAvgTime (double* tWork, double *tOvh, double* tSearch);
 #define MARK_BUSY(w)	hcpp_setState(w, HCPP_WORK);
 #define MARK_OVH(w)		hcpp_setState(w, HCPP_OVH);
 #define MARK_SEARCH(w)	hcpp_setState(w, HCPP_SEARCH);
+
 }
 
 #endif /* HCPP_TIMER_H_ */

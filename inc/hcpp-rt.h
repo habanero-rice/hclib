@@ -75,9 +75,11 @@ hc_workerState* current_ws();
 }
 
 namespace hcpp {
+
 #define HC_MALLOC(msize)	malloc(msize)
 #define HC_FREE(p)			free(p)
 typedef void (*generic_framePtr)(void*);
+
 }
 
 #include "hcpp-timer.h"
@@ -99,4 +101,3 @@ void end_finish();
 void user_harness_timer(double dur);
 
 }
-
