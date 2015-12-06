@@ -56,12 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param[in] stride    Stride access
  * @param[in] tile      Tile size for chunking
  */
-typedef struct _loop_domain_t {
-	int low;
-	int high;
-	int stride;
-	int tile;
-} loop_domain_t;
 
 template <typename T>
 inline void forasync1D_runner(_loop_domain_t* loop, T lambda) {

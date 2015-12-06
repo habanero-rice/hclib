@@ -59,7 +59,7 @@ int totalAsyncAnyAvailable() {
 }
 
 void spawn_asyncAnyTask(task_t* task) {
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	spawn(task);
 	asyncAnyInfo_forWorker[ws->id].asyncAny_pushed++;
 }
@@ -74,7 +74,7 @@ static bool* worker_state;
 
 void registerHCUPC_callback(volatile int* idle_wrkrs) {
 	idle_workers = idle_wrkrs;
-	int workers = current_ws_internal()->context->nworkers;
+	int workers = CURRENT_WS_INTERNAL->context->nworkers;
 	worker_state = new bool[workers];
 	for(int i=0;i<workers; i++) worker_state[i] = WORKER_IS_BUSY;
 	hcupc_callback_registered = true;
@@ -102,7 +102,7 @@ void inform_HCUPC_myStatus(int wid, bool status) {
 #ifdef HPT_VERSION
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	task_t buff;
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	place_t * pl = ws->pl;
 	while (pl != NULL) {
 		hc_deque_t * deqs = pl->deques;
@@ -177,7 +177,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
  */
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	task_t buff;
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	const hc_context* context = ws->context;
 	const int nworkers = context->nworkers;
 	for(int i=1; i<nworkers; i++) {
@@ -281,7 +281,7 @@ int totalPendingLocalAsyncs() {
 	 * snapshot of all pending tasks at all workers
 	 */
 #if 1
-	return current_ws_internal()->current_finish->counter;
+	return CURRENT_WS_INTERNAL->current_finish->counter;
 #else
 	int pending_tasks = 0;
 	for(int i=0; i<hcpp_context->nworkers; i++) {
@@ -312,7 +312,7 @@ void init(int * argc, char ** argv, void (*_dddf_register_callback)(hclib_ddf_t*
 
 volatile int* start_finish_special() {
 	start_finish();
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	return &(ws->current_finish->counter);
 }
 

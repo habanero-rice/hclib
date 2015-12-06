@@ -72,7 +72,7 @@ int main (int argc, char ** argv) {
     loop_domain_t loop0 = {0,H1,1,T1};
     loop_domain_t loop1 = {0,H2,1,T2};
     loop_domain_t loop[2] = {loop0, loop1};
-    forasync(forasync_fct2,(void*)(ran),NULL, NULL,NULL,2,loop, FORASYNC_MODE_FLAT);
+    hclib_forasync(forasync_fct2,(void*)(ran),NULL, NULL,NULL,2,loop, FORASYNC_MODE_FLAT);
 
     printf("Call Finalize\n");
     hclib_finalize();

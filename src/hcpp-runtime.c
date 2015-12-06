@@ -115,7 +115,7 @@ int get_current_worker() {
 }
 
 hc_workerState* current_ws() {
-    return current_ws_internal();
+    return CURRENT_WS_INTERNAL;
 }
 
 // FWD declaration for pthread_create
@@ -226,7 +226,7 @@ void hcpp_entrypoint() {
 
 	// allocate root finish
     root_finish = (finish_t *)malloc(sizeof(finish_t));
-	current_ws_internal()->current_finish = root_finish;
+	CURRENT_WS_INTERNAL->current_finish = root_finish;
 	hclib_start_finish();
 }
 
@@ -264,7 +264,7 @@ static inline void execute_task(task_t* task) {
      * currently executing task so that any asyncs spawned from the currently
      * executing task are registered on the same finish.
      */
-	current_ws_internal()->current_finish = current_finish;
+	CURRENT_WS_INTERNAL->current_finish = current_finish;
 
     // task->_fp is of type 'void (*generic_framePtr)(void*)'
 	(task->_fp)(task->args);
@@ -320,7 +320,7 @@ void try_schedule_async(task_t * async_task, int comm_task) {
 
 void spawn_at_hpt(place_t* pl, task_t * task) {
 	// get current worker
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
 	deque_push_place(ws, pl, task);
@@ -332,7 +332,7 @@ void spawn_at_hpt(place_t* pl, task_t * task) {
 
 void spawn(task_t * task) {
 	// get current worker
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
 	try_schedule_async(task, 0);
@@ -347,7 +347,7 @@ void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 	// check if this is DDDf_t (remote or owner) and do callback to HabaneroUPC++ for implementation
 	check_if_hcupc_dddf(ddf_list);
 	// get current worker
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
 	set_ddf_list(task, ddf_list);
@@ -363,7 +363,7 @@ void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 
 void spawn_commTask(task_t * task) {
 #ifdef HCPP_COMM_WORKER
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
 	try_schedule_async(task, 1);
@@ -373,7 +373,7 @@ void spawn_commTask(task_t * task) {
 }
 
 static inline void slave_worker_finishHelper_routine(finish_t* finish) {
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	int wid = ws->id;
 
 	while(finish->counter > 0) {
@@ -418,7 +418,7 @@ void* worker_routine(void * args) {
 	int wid = *((int *) args);
 	set_current_worker(wid);
 
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 
 	while (hcpp_context->done) {
 		task_t* task = hpt_pop_task(ws);
@@ -449,7 +449,7 @@ void teardown() {
 
 static inline void help_finish(finish_t * finish) {
 #ifdef HCPP_COMM_WORKER
-	if(current_ws_internal()->id == 0) {
+	if(CURRENT_WS_INTERNAL->id == 0) {
 		master_worker_routine(finish);
 	}
 	else {
@@ -465,7 +465,7 @@ static inline void help_finish(finish_t * finish) {
  */
 
 void hclib_start_finish() {
-	hc_workerState* ws = current_ws_internal();
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
 	finish->counter = 0;
 	finish->parent = ws->current_finish;
@@ -476,7 +476,7 @@ void hclib_start_finish() {
 }
 
 void hclib_end_finish() {
-	hc_workerState* ws =current_ws_internal();
+	hc_workerState* ws =CURRENT_WS_INTERNAL;
 	finish_t* current_finish = ws->current_finish;
 
 	if (current_finish->counter > 0) {

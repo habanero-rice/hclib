@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCLIB_H_
 #define HCLIB_H_
 
+#include "hcpp-task.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -142,20 +144,6 @@ typedef void (*forasync2D_Fct_t) (void * arg,int index_outer,int index_inner);
  * @param[in] index_inner       Current inner iteration index
  */
 typedef void (*forasync3D_Fct_t) (void * arg,int index_outer,int index_mid,int index_inner);
-
-/** @struct loop_domain_t
- * @brief Describe loop domain when spawning a forasync.
- * @param[in] low       Lower bound for the loop
- * @param[in] high      Upper bound for the loop
- * @param[in] stride    Stride access
- * @param[in] tile      Tile size for chunking
- */
-typedef struct _loop_domain_t {
-    int low;
-    int high;
-    int stride;
-    int tile;
-} loop_domain_t;
 
 /**
  * @brief Parallel for loop 'forasync' (up to 3 dimensions).

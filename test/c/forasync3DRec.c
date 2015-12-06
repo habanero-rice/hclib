@@ -75,7 +75,7 @@ int main (int argc, char ** argv) {
     loop_domain_t loop1 = {0,H2,1,T2};
     loop_domain_t loop2 = {0,H3,1,T3};
     loop_domain_t loop[3] = {loop0, loop1, loop2};
-    forasync(forasync_fct3,(void*)(ran),NULL, NULL,NULL,3,loop,FORASYNC_MODE_RECURSIVE);
+    hclib_forasync(forasync_fct3,(void*)(ran),NULL, NULL,NULL,3,loop,FORASYNC_MODE_RECURSIVE);
 
     printf("Call Finalize\n");
     hclib_finalize();

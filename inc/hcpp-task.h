@@ -1,6 +1,8 @@
 #ifndef HCPP_TASK_H_
 #define HCPP_TASK_H_
 
+#include "hcpp-rt.h"
+
 /*
  * We just need to pack the function pointer and the pointer to
  * the heap allocated lambda for the lambda-based approach. Without lambdas, we
@@ -45,6 +47,61 @@ typedef struct hcpp_task_t {
      */
 	ddt_t ddt;
 } hcpp_task_t;
+
+/** @struct loop_domain_t
+ * @brief Describe loop domain when spawning a forasync.
+ * @param[in] low       Lower bound for the loop
+ * @param[in] high      Upper bound for the loop
+ * @param[in] stride    Stride access
+ * @param[in] tile      Tile size for chunking
+ */
+typedef struct _loop_domain_t {
+    int low;
+    int high;
+    int stride;
+    int tile;
+} loop_domain_t;
+
+typedef struct {
+    task_t *user;
+} forasync_t;
+
+typedef struct _forasync_task_t {
+    task_t forasync_task;
+} forasync_task_t;
+
+typedef struct {
+    forasync_t base;
+    loop_domain_t loop0;
+} forasync1D_t;
+
+typedef struct _forasync_1D_task_t {
+    forasync_task_t task;
+    forasync1D_t def;
+} forasync1D_task_t;
+
+typedef struct {
+    forasync_t base;
+    loop_domain_t loop0;
+    loop_domain_t loop1;
+} forasync2D_t;
+
+typedef struct _forasync_2D_task_t {
+    forasync_task_t task;
+    forasync2D_t def;
+} forasync2D_task_t;
+
+typedef struct {
+    forasync_t base;
+    loop_domain_t loop0;
+    loop_domain_t loop1;
+    loop_domain_t loop2;
+} forasync3D_t;
+
+typedef struct _forasync_3D_task_t {
+    forasync_task_t task;
+    forasync3D_t def;
+} forasync3D_task_t;
 
 inline struct finish_t* get_current_finish(task_t *t) {
     return t->current_finish;

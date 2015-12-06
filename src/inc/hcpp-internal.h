@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define WHEREARG __FILE__,__LINE__
 
-#define LOG_(level, ...) if (level<=LOG_LEVEL) log_(WHEREARG, current_ws_internal(), __VA_ARGS__);
+#define LOG_(level, ...) if (level<=LOG_LEVEL) log_(WHEREARG, CURRENT_WS_INTERNAL, __VA_ARGS__);
 
 /* We more or less mimic log4c without the ERROR level */
 #define LOG_FATAL(...)  LOG_(LOG_LEVEL_FATAL, __VA_ARGS__)

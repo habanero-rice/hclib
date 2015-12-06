@@ -145,13 +145,13 @@ inline short is_nvgpu_place(place_t * pl) {
 #endif
 
 place_t* hc_get_current_place() {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     HASSERT(ws->current->pl != NULL);
     return ws->current->pl;
 }
 
 int hc_get_num_places(short type) {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     int np = ws->context->nplaces;
     int i;
@@ -162,7 +162,7 @@ int hc_get_num_places(short type) {
 }
 
 void hc_get_places(place_t ** pls, short type) {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     int np = ws->context->nplaces;
     int i;
@@ -173,7 +173,7 @@ void hc_get_places(place_t ** pls, short type) {
 }
 
 place_t * hc_get_place(short type) {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     int np = ws->context->nplaces;
     int i;
@@ -183,7 +183,7 @@ place_t * hc_get_place(short type) {
 }
 
 place_t * hc_get_root_place() {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     return all_places[0];
 }
@@ -195,7 +195,7 @@ inline place_t * get_ancestor_place(hc_workerState * ws) {
 }
 
 place_t * hc_get_child_place() {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t * pl = ws->current->pl;
     HASSERT(pl != NULL);
     if (ws->hpt_path == NULL) return pl;
@@ -203,7 +203,7 @@ place_t * hc_get_child_place() {
 }
 
 place_t * hc_get_parent_place() {
-    hc_workerState * ws = current_ws_internal();
+    hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t * pl = ws->current->pl;
     HASSERT(pl != NULL);
     if (ws->hpt_path == NULL) return pl;

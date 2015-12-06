@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #include <assert.h>
 
+#ifndef HCPP_RT_H_
+#define HCPP_RT_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -73,7 +76,7 @@ typedef struct hc_workerState {
 #define HASSERT(cond)       // Do Nothing
 #endif
 
-#define current_ws_internal() ((hc_workerState *) pthread_getspecific(wskey))
+#define CURRENT_WS_INTERNAL ((hc_workerState *) pthread_getspecific(wskey))
 
 int get_hc_wid();
 hc_workerState* current_ws();
@@ -95,4 +98,6 @@ void hclib_user_harness_timer(double dur);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
