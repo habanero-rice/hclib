@@ -172,7 +172,7 @@ typedef struct _loop_domain_t {
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
-void forasync(void* forasync_fct, void * argv, struct ddf_st ** ddf_list, struct _phased_t * phased_clause, 
+void hclib_forasync(void* forasync_fct, void * argv, struct ddf_st ** ddf_list, struct _phased_t * phased_clause, 
             void *accumed_placeholder, int dim, loop_domain_t * domain, forasync_mode_t mode);
 
 /**
