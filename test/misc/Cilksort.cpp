@@ -54,7 +54,7 @@
  * log factor in the critical path (left as homework).
  */
 
-#include "hcpp.h"
+#include "hclib_cpp.h"
 #include<sys/time.h>
 #include<stdlib.h>
 
@@ -187,8 +187,8 @@ void cilkmerge(int low1, int high1, int low2, int high2, int lowdest, int *src, 
     lowsize = split1 - low1 + split2 - low2;
     dest[(lowdest + lowsize + 1)] = src[split1];
 
-    hcpp::finish([=]() {
-      hcpp::async([=]() {
+    hclib::finish([=]() {
+      hclib::async([=]() {
         cilkmerge(low1, split1 - 1, low2, split2, lowdest, src, dest);
       });
       cilkmerge(split1 + 1, high1, split2 + 1, high2, lowdest + lowsize + 2, src, dest);
@@ -218,21 +218,21 @@ void cilksort(int low, int tmpx, int size) {
     D = C + quarter;
     tmpD = tmpC + quarter;
 
-    hcpp::finish([=]() {
-      hcpp::async([=]() {
+    hclib::finish([=]() {
+      hclib::async([=]() {
         cilksort(A, tmpA, quarter);
       });
-      hcpp::async([=]() {
+      hclib::async([=]() {
         cilksort(B, tmpB, quarter);
       });
-      hcpp::async([=]() {
+      hclib::async([=]() {
         cilksort(C, tmpC, quarter);
       });
       cilksort(D, tmpD, size - 3 * quarter);
     });
 
-    hcpp::finish([=]() {
-      hcpp::async([=]() {
+    hclib::finish([=]() {
+      hclib::async([=]() {
         cilkmerge(A, A + quarter - 1, B, B + quarter - 1, tmpA, array, tmpArr);
       });
       cilkmerge(C, C + quarter - 1, D, low + size - 1, tmpC, array, tmpArr);
@@ -269,7 +269,7 @@ void scramble_array(int *arr, int size)
 
 int main(int argc, char **argv)
 {
-     hcpp::init(&argc, argv);
+     hclib::init(&argc, argv);
      int size = 10000000;
      int check = 1;
      int i, j, k;
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
     free(back);
     free(tmpArr);
 
-    hcpp::finalize();
+    hclib::finalize();
 
     return 0;
 }

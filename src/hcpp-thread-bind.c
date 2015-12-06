@@ -36,17 +36,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#include <iostream>
 #include <stdio.h>
 #define _GNU_SOURCE
 #define __USE_GNU
+#include <xlocale.h>
 #include <unistd.h>
 #include <sched.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
 /** Platform specific thread binding implementations -- > ONLY FOR LINUX **/
-namespace hcpp {
 
 #ifdef __linux
 int get_nb_cpus() {
@@ -117,5 +116,3 @@ void bind_thread(int worker_id, int *bind_map, int bind_map_size) {
 
 }
 #endif
-
-}

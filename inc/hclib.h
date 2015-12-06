@@ -104,7 +104,7 @@ struct ddf_st;
  * @param[in] phased_clause     Phased clause to specify which phasers the async registers on
  * @param[in] property          Flag to pass information to the runtime
  */
-void async(asyncFct_t fct_ptr, void * arg,
+void hclib_async(asyncFct_t fct_ptr, void * arg,
            struct ddf_st ** ddf_list, struct _phased_t * phased_clause, int property);
 
 /*
@@ -173,17 +173,17 @@ typedef struct _loop_domain_t {
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
 void forasync(void* forasync_fct, void * argv, struct ddf_st ** ddf_list, struct _phased_t * phased_clause, 
-            int dim, loop_domain_t * domain, forasync_mode_t mode);
+            void *accumed_placeholder, int dim, loop_domain_t * domain, forasync_mode_t mode);
 
 /**
  * @brief starts a new finish scope
  */
-void start_finish();
+void hclib_start_finish();
 
 /**
  * @brief ends the current finish scope
  */
-void end_finish();
+void hclib_end_finish();
 
 /**
  * @}

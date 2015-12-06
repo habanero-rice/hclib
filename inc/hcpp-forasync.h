@@ -49,8 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define FORASYNC_MODE_FLAT 0
 
-namespace hcpp {
-
 /** @struct loop_domain_t
  * @brief Describe loop domain when spawning a forasync.
  * @param[in] low       Lower bound for the loop
@@ -106,7 +104,7 @@ inline void forasync1D_recursive(_loop_domain_t* loop, T lambda) {
 		int mid = (high+low)/2;
 		// upper-half
 		// delegate scheduling to the underlying runtime
-		hcpp::async([=]() {
+		hclib::async([=]() {
 			_loop_domain_t ld = {mid, high, stride, tile};
 			forasync1D_recursive<T>(&ld, lambda);
 		});
@@ -159,7 +157,7 @@ inline void forasync2D_recursive(const _loop_domain_t loop[2], T lambda) {
 	// recurse
 	if(new_loop_initialized) {
 		// delegate scheduling to the underlying runtime
-		hcpp::async([=]() {
+		hclib::async([=]() {
 			forasync2D_recursive<T>(new_loop, lambda);
 		});
 		//continue to work on the half task
@@ -228,7 +226,7 @@ inline void forasync3D_recursive(const _loop_domain_t loop[3], T lambda) {
 	// recurse
 	if(new_loop_initialized) {
 		// delegate scheduling to the underlying runtime
-		hcpp::async([=]() {
+		hclib::async([=]() {
 			forasync3D_recursive<T>(new_loop, lambda);
 		});
 
@@ -251,14 +249,14 @@ inline void forasync1D_flat(_loop_domain_t* loop, T lambda) {
 	int size = tile*nb_chunks;
 	int low0;
 	for(low0 = low; low0<size; low0+=tile) {
-		hcpp::async([=]() {
+		hclib::async([=]() {
 			_loop_domain_t ld = {low0, low0+tile, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		});
 	}
 	// handling leftover
 	if (size < high) {
-		hcpp::async([=]() {
+		hclib::async([=]() {
 			_loop_domain_t ld = {low0, high, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		});
@@ -286,7 +284,7 @@ inline void forasync2D_flat(const _loop_domain_t loop[2], T lambda) {
 			loop_domain_t new_loop0 = {low0a, high0a, stride0, tile0};
 			loop_domain_t new_loop1 = {low1a, high1a, stride1, tile1};
 			loop_domain_t new_loop[2] = {new_loop0, new_loop1};
-			hcpp::async([=]() {
+			hclib::async([=]() {
 				forasync2D_runner<T>(new_loop, lambda);
 			});
 		}
@@ -323,7 +321,7 @@ inline void forasync3D_flat(const _loop_domain_t loop[3], T lambda) {
 				loop_domain_t new_loop1 = {low1a, high1a, stride1, tile1};
 				loop_domain_t new_loop2 = {low2a, high2a, stride2, tile2};
 				loop_domain_t new_loop[3] = {new_loop0, new_loop1, new_loop2};
-				hcpp::async([=]() {
+				hclib::async([=]() {
 					forasync3D_runner<T>(new_loop, lambda);
 				});
 			}
@@ -386,8 +384,6 @@ inline void forasync2D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RE
 template <typename T>
 inline void forasync3D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RECURSIVE) {
 		forasync3D_internal<T>(loop, lambda, mode);
-}
-
 }
 
 #endif /* HCPP_FORASYNC_H_ */

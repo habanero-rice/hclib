@@ -39,8 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-internal.h"
 #include "hcpp-atomics.h"
 
-namespace hcpp {
-
 void dequeInit(deque_t * deq, void * init_value) {
 	deq->head = 0;
 	deq->tail = 0;
@@ -49,18 +47,18 @@ void dequeInit(deque_t * deq, void * init_value) {
 /*
  * push an entry onto the tail of the deque
  */
-bool dequePush(deque_t* deq, void* entry) {
+int dequePush(deque_t* deq, void* entry) {
 	int size = deq->tail - deq->head;
 	if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
 		/* may not grow the deque if some interleaving steal occur */
 		// std::cout<<getenv("PMI_RANK") <<": Deque full for worker-"<<current_ws()->id << std::endl;
 		// HASSERT("DEQUE full, increase deque's size " && 0);
-		return false;
+		return 0;
 	}
 	int n = (deq->tail) % INIT_DEQUE_CAPACITY;
 	deq->data[n] = (task_t*) entry;
 	deq->tail++;
-	return true;
+	return 1;
 }
 
 void dequeDestroy(deque_t* deq) {
@@ -173,6 +171,4 @@ task_t* semiConcDequeNonLockedPop(semiConcDeque_t * semiDeq) {
 		return t;
 	}
 	return NULL;
-}
-
 }

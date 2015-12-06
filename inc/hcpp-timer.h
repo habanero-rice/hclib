@@ -12,8 +12,6 @@
 #ifndef HCPP_TIMER_H_
 #define HCPP_TIMER_H_
 
-namespace hcpp {
-
 /*
  * Comment this if you don't want timing analysis
  */
@@ -30,14 +28,12 @@ namespace hcpp {
 #define HCPP_IDLE    3
 #define HCPP_NSTATES 4
 
-void hcpp_initStats  (int numWorkers, bool comm_worker);
+void hcpp_initStats  (int numWorkers, int is_comm_worker);
 void hcpp_setState   (int wid, int state);
 void hcpp_getAvgTime (double* tWork, double *tOvh, double* tSearch);
 
 #define MARK_BUSY(w)	hcpp_setState(w, HCPP_WORK);
 #define MARK_OVH(w)		hcpp_setState(w, HCPP_OVH);
 #define MARK_SEARCH(w)	hcpp_setState(w, HCPP_SEARCH);
-
-}
 
 #endif /* HCPP_TIMER_H_ */

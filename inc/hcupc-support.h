@@ -40,8 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCUPC_SUPPORT_H_
 #define HCUPC_SUPPORT_H_
 
-namespace hcpp {
-
 #if defined(HUPCPP) && defined(DIST_WS)
 
 typedef struct asyncAnyInfo {
@@ -152,7 +150,7 @@ inline void asyncAny(T lambda) {
  */
 void init_hcupc_related_datastructures(int w);
 void free_hcupc_related_datastructures();
-void check_if_hcupc_dddf(ddf_t** ddf_list);
+void check_if_hcupc_dddf(hclib_ddf_t** ddf_list);
 void hcupc_reset_asyncAnyInfo(int id);
 void hcupc_check_if_asyncAny_stolen(task_t* buff, int victim, int id);
 void hcupc_inform_failedSteal(int id);
@@ -163,7 +161,7 @@ void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
 int totalPendingLocalAsyncs();
 void display_runtime();
 volatile int* start_finish_special();
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**));
+void init(int * argc, char ** argv, void (*_dddf_register_callback)(hclib_ddf_t**));
 #endif
 
 #ifdef DIST_WS
@@ -171,7 +169,5 @@ int totalAsyncAnyAvailable();
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff);
 void registerHCUPC_callback(volatile int*);
 #endif
-
-}
 
 #endif /* HCUPC_SUPPORT_H_ */

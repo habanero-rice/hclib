@@ -39,8 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCPP_ATOMICS_H_
 #define HCPP_ATOMICS_H_
 
-namespace hcpp {
-
 #if defined __x86_64 || __i686__
 
 #define HC_CACHE_LINE 64
@@ -93,7 +91,5 @@ static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
 }
 
 #endif /* __x86_64 */
-
-}
 
 #endif /* HCPP_ATOMICS_H_ */

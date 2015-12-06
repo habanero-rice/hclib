@@ -64,7 +64,7 @@ void assert_done(int start, int end) {
 int main (int argc, char ** argv) {
     printf("Call Init\n");
     hclib_init(&argc, argv);
-    start_finish();
+    hclib_start_finish();
 
     int mid = NB_ASYNC/2;
     int i = 0;
@@ -76,17 +76,17 @@ int main (int argc, char ** argv) {
     while(i < mid) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void **
-        async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
+        hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
-    end_finish();
+    hclib_end_finish();
     printf("Midway\n");
     assert_done(0, mid);
     printf("Go over [%d:%d]\n", i, NB_ASYNC);
     while(i < NB_ASYNC) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void **
-        async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
+        hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
     printf("Call Finalize\n");

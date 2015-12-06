@@ -38,8 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-internal.h"
 #include "hcpp-atomics.h"
 
-namespace hcpp {
-
 #if defined(HUPCPP) && defined(DIST_WS)
 
 #define WORKER_IS_FREE	false
@@ -276,7 +274,7 @@ void hcupc_check_if_asyncAny_pop(task_t* buff, int id) {
 
 #ifdef HUPCPP
 
-void (*dddf_register_callback)(ddf_t** ddf_list) = NULL;
+void (*dddf_register_callback)(hclib_ddf_t** ddf_list) = NULL;
 
 int totalPendingLocalAsyncs() {
 	/*
@@ -306,7 +304,7 @@ int totalPendingLocalAsyncs() {
 #endif
 }
 
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**)) {
+void init(int * argc, char ** argv, void (*_dddf_register_callback)(hclib_ddf_t**)) {
 	assert(_dddf_register_callback);
 	dddf_register_callback = _dddf_register_callback;
 	init(argc, argv);
@@ -320,12 +318,8 @@ volatile int* start_finish_special() {
 
 #endif
 
-void check_if_hcupc_dddf(ddf_t** ddf_list) {
+void check_if_hcupc_dddf(hclib_ddf_t** ddf_list) {
 #ifdef HUPCPP
 	dddf_register_callback(ddf_list);
 #endif
 }
-
-}
-
-

@@ -36,16 +36,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#include "hcpp-internal.h"
-#include "hcpp-atomics.h"
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <assert.h>
 
+#include "hcpp-internal.h"
+#include "hcpp-atomics.h"
+#include "hcupc-support.h"
+
 // #define VERBOSE
 
-namespace hcpp {
+inline hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
+void freeHPT(place_t * hpt);
 
 /**
  * HPT: Try to steal a frame from another worker.
@@ -237,11 +240,11 @@ hc_deque_t * get_deque_hpt(hc_workerState * ws, place_t * pl) {
 
 }
 
-bool deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
+int deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
 #ifdef TODO
     if (is_device_place(pl)) {
         hcqueue_enqueue(ws, pl->hcque, ele); // TODO
-        return true;
+        return 1;
     } else {
 #endif
         hc_deque_t * deq = get_deque_place(ws, pl);
@@ -402,7 +405,7 @@ void hc_hpt_init(hc_context * context) {
                 hc_deq->ws = ws;
             } else {
                 /* unhandled or ignored situation */
-                assert(false);
+                assert(0);
             }
         }
 
@@ -1107,6 +1110,4 @@ void freeHPT(place_t * hpt) {
         free(plp);
         start = tmp;
     }
-}
-
 }

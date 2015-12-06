@@ -48,7 +48,7 @@ void async_fct(void * arg) {
 int main (int argc, char ** argv) {
     hclib_init(&argc, argv);
     printf("Hello\n");
-    async(async_fct, NULL, NULL, NULL, NO_PROP);
+    hclib_async(async_fct, NULL, NULL, NULL, NO_PROP);
     hclib_finalize();
     assert(ran == 1);
     return 0;

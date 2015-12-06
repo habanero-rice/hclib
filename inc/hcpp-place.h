@@ -7,7 +7,7 @@
 #ifndef HCPP_PLACE_H_
 #define HCPP_PLACE_H_
 
-namespace hcpp {
+struct hc_deque_t;
 
 typedef enum place_type {
 	CACHE_PLACE,
@@ -25,7 +25,7 @@ typedef struct place_t {
 	struct place_t * nnext; /* the sibling link of the HPT */
 	struct place_t ** children;
 	struct hc_workerState * workers; /* directly attached cpu workers */
-	hc_deque_t * deques;
+	struct hc_deque_t * deques;
 	int ndeques; /* only for deques */
 	int id;
 	int did; /* the mapping device id */
@@ -47,7 +47,5 @@ place_t * hc_get_child_place();
 place_t * hc_get_parent_place();
 place_t ** hc_get_children_places(int * numChildren);
 place_t ** hc_get_children_of_place(place_t * pl, int * numChildren);
-
-}
 
 #endif /* HCPP_PLACE_H_ */

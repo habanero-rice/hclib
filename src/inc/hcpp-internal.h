@@ -43,8 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 #include "hcpp-deque.h"
 
-namespace hcpp {
-
 #define LOG_LEVEL_FATAL         1
 #define LOG_LEVEL_WARN          2
 #define LOG_LEVEL_INFO          3
@@ -114,6 +112,5 @@ int get_current_worker();
 int iterate_ddt_frontier(ddt_t * ddt);
 ddt_t * rt_async_task_to_ddt(task_t * async_task);
 void try_schedule_async(task_t * async_task, int comm_task);
-}
 
 #endif /* HCPP_INTERNAL_H_ */

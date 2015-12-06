@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
-namespace hcpp {
 /**
  * @file User Interface to HCLIB's Data-Driven Futures
  */
@@ -57,7 +56,7 @@ namespace hcpp {
 /**
  * @brief Opaque type for DDFs.
  */
-struct ddf_st;
+struct hclib_ddf_st;
 
 typedef enum DDF_Kind {
 	DDF_KIND_UNKNOWN=0,
@@ -76,7 +75,7 @@ typedef enum DDF_Kind {
  */
 typedef struct ddt_st {
     // NULL-terminated list of DDFs the DDT is registered on
-    struct ddf_st ** waitingFrontier;
+    struct hclib_ddf_st ** waitingFrontier;
     // This allows us to chain all DDTs waiting on a same DDF
     // Whenever a DDT wants to register on a DDF, and that DDF is
     // not ready, we chain the current DDT and the DDF's headDDTWaitList
@@ -86,24 +85,22 @@ typedef struct ddt_st {
 
 // struct ddf_st is the opaque we expose.
 // We define a typedef in this unit for convenience
-typedef struct ddf_st {
+typedef struct hclib_ddf_st {
 	int kind;
     volatile void * datum;
     volatile struct ddt_st * headDDTWaitList;
-} ddf_t;
-
-#define DDF_t	ddf_t
+} hclib_ddf_t;
 
 /**
  * @brief Allocate and initialize a DDF.
  * @return A DDF.
  */
-ddf_t * ddf_create();
+hclib_ddf_t *hclib_ddf_create();
 
 /**
  * Initialize a pre-Allocated DDF.
  */
-void ddf_create_preinit(ddf_t* ddf);
+void ddf_create_preinit(hclib_ddf_t* ddf);
 
 /**
  * @brief Allocate and initialize an array of DDFs.
@@ -111,7 +108,7 @@ void ddf_create_preinit(ddf_t* ddf);
  * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
  * @return A contiguous array of DDFs
  */
-ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
+hclib_ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
 
 /**
  * @brief Destruct a DDF.
@@ -119,32 +116,30 @@ ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
  * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
  * @param[in] ddf 				The DDF to destruct
  */
-void ddf_free_n(ddf_t ** ddf,  size_t nb_ddfs, int null_terminated);
+void ddf_free_n(hclib_ddf_t ** ddf,  size_t nb_ddfs, int null_terminated);
 
 /**
  * @brief Destruct a DDF.
  * @param[in] ddf 				The DDF to destruct
  */
-void ddf_free(ddf_t * ddf);
+void ddf_free(hclib_ddf_t * ddf);
 
 /**
  * @brief Get the value of a DDF.
  * @param[in] ddf 				The DDF to get a value from
  */
-void * ddf_get(ddf_t * ddf);
+void * hclib_ddf_get(hclib_ddf_t * ddf);
 
 /**
  * @brief Put a value in a DDF.
  * @param[in] ddf 				The DDF to get a value from
  * @param[in] datum 			The datum to be put in the DDF
  */
-void ddf_put(ddf_t * ddf, void * datum);
+void hclib_ddf_put(hclib_ddf_t * ddf, void * datum);
 
 /*
  * Some extras
  */
-void ddt_init(ddt_t * ddt, ddf_t ** ddf_list);
-
-}
+void ddt_init(ddt_t * ddt, hclib_ddf_t ** ddf_list);
 
 #endif /* HCPP_DDF_H_ */

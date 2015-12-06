@@ -36,10 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#include "hcpp-internal.h"
 #include <stdio.h>
 
-namespace hcpp {
+#include "hcpp-internal.h"
+#include "hcpp-task.h"
 
 // Control debug statements
 #define DEBUG_DDF 0
@@ -59,7 +59,7 @@ namespace hcpp {
 /**
  * Associate a DDT to a DDF list.
  */
-void ddt_init(ddt_t * ddt, ddf_t ** ddf_list) {
+void ddt_init(ddt_t * ddt, hclib_ddf_t ** ddf_list) {
 	ddt->waitingFrontier = ddf_list;
 	ddt->nextDDTWaitingOnSameDDF = NULL;
 }
@@ -67,8 +67,8 @@ void ddt_init(ddt_t * ddt, ddf_t ** ddf_list) {
 /**
  * Allocate a DDF and initializes it.
  */
-ddf_t * ddf_create() {
-	ddf_t * ddf = (ddf_t *) malloc(sizeof(ddf_t));
+hclib_ddf_t * hclib_ddf_create() {
+	hclib_ddf_t * ddf = (hclib_ddf_t *) malloc(sizeof(hclib_ddf_t));
 	ddf-> kind = DDF_KIND_SHARED;
 	ddf->datum = UNINITIALIZED_DDF_DATA_PTR;
 	ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
@@ -78,7 +78,7 @@ ddf_t * ddf_create() {
 /**
  * Initialize a pre-Allocated DDF.
  */
-void ddf_create_preinit(DDF_t* ddf) {
+void ddf_create_preinit(hclib_ddf_t* ddf) {
 	ddf-> kind = DDF_KIND_SHARED;
 	ddf->datum = UNINITIALIZED_DDF_DATA_PTR;
 	ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
@@ -87,12 +87,12 @@ void ddf_create_preinit(DDF_t* ddf) {
 /**
  * Allocate 'nb_ddfs' DDFs in contiguous memory.
  */
-ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated) {
-	ddf_t ** ddfs = (ddf_t **) malloc((sizeof(ddf_t*) * nb_ddfs));
+hclib_ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated) {
+	hclib_ddf_t ** ddfs = (hclib_ddf_t **) malloc((sizeof(hclib_ddf_t*) * nb_ddfs));
 	int i = 0;
 	int lg = (null_terminated) ? nb_ddfs-1 : nb_ddfs;
 	while(i < lg) {
-		ddfs[i] = ddf_create();
+		ddfs[i] = hclib_ddf_create();
 		i++;
 	}
 	if (null_terminated) {
@@ -105,7 +105,7 @@ ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated) {
  * Get datum from a DDF.
  * Note: this is concurrent with the 'put' operation.
  */
-void * ddf_get(ddf_t * ddf) {
+void * hclib_ddf_get(hclib_ddf_t * ddf) {
 	if (ddf->datum == UNINITIALIZED_DDF_DATA_PTR) {
 		return NULL;
 	}
@@ -118,7 +118,7 @@ void * ddf_get(ddf_t * ddf) {
  * @param[in] null_terminated           If true, create nb_ddfs-1 and set the last element to NULL.
  * @param[in] ddf                               The DDF to destruct
  */
-void ddf_free_n(ddf_t ** ddfs, size_t nb_ddfs, int null_terminated) {
+void ddf_free_n(hclib_ddf_t ** ddfs, size_t nb_ddfs, int null_terminated) {
 	int i = 0;
 	int lg = (null_terminated) ? nb_ddfs-1 : nb_ddfs;
 	while(i < lg) {
@@ -131,11 +131,11 @@ void ddf_free_n(ddf_t ** ddfs, size_t nb_ddfs, int null_terminated) {
 /**
  * Deallocate a ddf pointer
  */
-void ddf_free(ddf_t * ddf) {
+void ddf_free(hclib_ddf_t * ddf) {
 	free(ddf);
 }
 
-__inline__ int __registerIfDDFnotReady_AND ( ddt_t* wrapperTask, DDF_t* ddfToCheck ) {
+__inline__ int __registerIfDDFnotReady_AND ( ddt_t* wrapperTask, hclib_ddf_t* ddfToCheck ) {
     int success = 0;
     ddt_t* waitListOfDDF = ( ddt_t* ) ddfToCheck->headDDTWaitList;
 
@@ -167,7 +167,7 @@ __inline__ int __registerIfDDFnotReady_AND ( ddt_t* wrapperTask, DDF_t* ddfToChe
  * Returns '1' if all ddf dependencies have been satisfied.
  */
 int iterate_ddt_frontier ( ddt_t* wrapperTask) {
-	DDF_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
+	hclib_ddf_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
 
     while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND (wrapperTask, *currDDFnodeToWaitOn) ) {
         ++currDDFnodeToWaitOn;
@@ -194,7 +194,7 @@ ddt_t * rt_async_task_to_ddt(task_t * async_task) {
  * Close down registration of DDTs on this DDF and iterate over the
  * DDF's frontier to try to advance DDTs that were waiting on this DDF.
  */
-void ddf_put (ddf_t* ddfToBePut, void * datumToBePut ) {
+void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut ) {
 	HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR && EMPTY_DATUM_ERROR_MSG);
 	HASSERT (ddfToBePut != NULL && "can not put into NULL DDF");
 	HASSERT (ddfToBePut-> datum == NULL && "violated single assignment property for DDFs");
@@ -225,5 +225,4 @@ void ddf_put (ddf_t* ddfToBePut, void * datumToBePut ) {
 		}
 		currDDT = nextDDT;
 	}
-}
 }

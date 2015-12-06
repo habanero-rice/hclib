@@ -36,14 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#include "hcpp-internal.h"
 #include <pthread.h>
-#include "hcpp-atomics.h"
 #include <sys/time.h>
 
-namespace hcpp {
-
-using namespace std;
+#include "hcpp-internal.h"
+#include "hcpp-atomics.h"
+#include "hcpp-finish.h"
+#include "hcpp-hpt.h"
+#include "hcupc-support.h"
 
 static double benchmark_start_time_stats = 0;
 static double user_specified_timer = 0;
@@ -59,9 +59,10 @@ static finish_t*	root_finish;
 hc_context* 		hcpp_context;
 hc_options* 		hcpp_options;
 
-static const char *hcpp_stats = getenv("HCPP_STATS");
-static const bool bind_threads = (getenv("HCPP_BIND_THREADS") != NULL);
+static char *hcpp_stats = NULL;
+static int bind_threads = -1;
 
+void hclib_start_finish();
 
 void log_(const char * file, int line, hc_workerState * ws, const char * format,
         ...) {
@@ -135,15 +136,17 @@ void hcpp_global_init() {
     }
 
     total_push_outd = 0;
-    total_steals = new int[hcpp_context->nworkers];
-    total_push_ind = new int[hcpp_context->nworkers];
+    total_steals = (int *)malloc(hcpp_context->nworkers * sizeof(int));
+    HASSERT(total_steals);
+    total_push_ind = (int *)malloc(hcpp_context->nworkers * sizeof(int));
+    HASSERT(total_push_ind);
     for(int i=0; i<hcpp_context->nworkers; i++) {
         total_steals[i] = 0;
         total_push_ind[i] = 0;
     }
 
 #ifdef HCPP_COMM_WORKER
-    comm_worker_out_deque = new semiConcDeque_t;
+    comm_worker_out_deque = (semiConcDeque_t *)malloc(sizeof(semiConcDeque_t));
     HASSERT(comm_worker_out_deque);
     semiConcDequeInit(comm_worker_out_deque, NULL);
 #endif
@@ -191,9 +194,9 @@ void hcpp_entrypoint() {
 
 	srand(0);
 
-	hcpp_options = new hc_options;
+    hcpp_options = (hc_options *)malloc(sizeof(hc_options));
 	HASSERT(hcpp_options);
-	hcpp_context = new hc_context;
+    hcpp_context = (hc_context *)malloc(sizeof(hc_context));
 	HASSERT(hcpp_context);
 
 	hcpp_global_init();
@@ -201,9 +204,9 @@ void hcpp_entrypoint() {
 	hc_hpt_init(hcpp_context);
 
 	// init timer stats
-    bool have_comm_worker = false;
+    int have_comm_worker = 0;
 #ifdef HCPP_COMM_WORKER
-    have_comm_worker = true;
+    have_comm_worker = 1;
 #endif
 	hcpp_initStats(hcpp_context->nworkers, have_comm_worker);
 
@@ -222,9 +225,9 @@ void hcpp_entrypoint() {
 	hcpp_createWorkerThreads(hcpp_context->nworkers);
 
 	// allocate root finish
-	root_finish = new finish_t;
+    root_finish = (finish_t *)malloc(sizeof(finish_t));
 	current_ws_internal()->current_finish = root_finish;
-	start_finish();
+	hclib_start_finish();
 }
 
 void hcpp_join_workers(int nb_workers) {
@@ -246,16 +249,16 @@ void hcpp_cleanup() {
 	free_hcupc_related_datastructures();
 }
 
-inline void check_in_finish(finish_t * finish) {
+static inline void check_in_finish(finish_t * finish) {
 	hc_atomic_inc(&(finish->counter));
 }
 
-inline void check_out_finish(finish_t * finish) {
+static inline void check_out_finish(finish_t * finish) {
 	hc_atomic_dec(&(finish->counter));
 }
 
-inline void execute_task(task_t* task) {
-	finish_t* current_finish = task->get_current_finish();
+static inline void execute_task(task_t* task) {
+	finish_t* current_finish = get_current_finish(task);
 	current_ws_internal()->current_finish = current_finish;
 
 	(task->_fp)(task->_args);
@@ -263,7 +266,7 @@ inline void execute_task(task_t* task) {
 	HC_FREE(task);
 }
 
-inline void rt_schedule_async(task_t* async_task, int comm_task) {
+static inline void rt_schedule_async(task_t* async_task, int comm_task) {
     if(comm_task) {
 #ifdef HCPP_COMM_WORKER
         // push on comm_worker out_deq
@@ -301,7 +304,7 @@ void spawn_at_hpt(place_t* pl, task_t * task) {
 	// get current worker
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
-	task->set_current_finish(ws->current_finish);
+	set_current_finish(task, ws->current_finish);
 	deque_push_place(ws, pl, task);
 #ifdef HC_COMM_WORKER_STATS
 	const int wid = get_current_worker();
@@ -313,7 +316,7 @@ void spawn(task_t * task) {
 	// get current worker
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
-	task->set_current_finish(ws->current_finish);
+	set_current_finish(task, ws->current_finish);
 	try_schedule_async(task, 0);
 #ifdef HC_COMM_WORKER_STATS
 	const int wid = get_current_worker();
@@ -322,14 +325,14 @@ void spawn(task_t * task) {
 
 }
 
-void spawn_await(task_t * task, ddf_t** ddf_list) {
+void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 	// check if this is DDDf_t (remote or owner) and do callback to HabaneroUPC++ for implementation
 	check_if_hcupc_dddf(ddf_list);
 	// get current worker
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
-	task->set_current_finish(ws->current_finish);
-	task->set_ddf_list(ddf_list);
+	set_current_finish(task, ws->current_finish);
+	set_ddf_list(task, ddf_list);
 	hcpp_task_t *t = (hcpp_task_t*) task;
 	ddt_init(&(t->ddt), ddf_list);
 	try_schedule_async(task, 0);
@@ -344,14 +347,14 @@ void spawn_commTask(task_t * task) {
 #ifdef HCPP_COMM_WORKER
 	hc_workerState* ws = current_ws_internal();
 	check_in_finish(ws->current_finish);
-	task->set_current_finish(ws->current_finish);
+	set_current_finish(task, ws->current_finish);
 	try_schedule_async(task, 1);
 #else
-	assert(false);
+	assert(0);
 #endif
 }
 
-inline void slave_worker_finishHelper_routine(finish_t* finish) {
+static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 	hc_workerState* ws = current_ws_internal();
 	int wid = ws->id;
 
@@ -426,7 +429,7 @@ void teardown() {
 
 }
 
-inline void help_finish(finish_t * finish) {
+static inline void help_finish(finish_t * finish) {
 #ifdef HCPP_COMM_WORKER
 	if(current_ws_internal()->id == 0) {
 		master_worker_routine(finish);
@@ -443,7 +446,7 @@ inline void help_finish(finish_t * finish) {
  * =================== INTERFACE TO USER FUNCTIONS ==========================
  */
 
-void start_finish() {
+void hclib_start_finish() {
 	hc_workerState* ws = current_ws_internal();
 	finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
 	finish->counter = 0;
@@ -454,7 +457,7 @@ void start_finish() {
 	ws->current_finish = finish;
 }
 
-void end_finish() {
+void hclib_end_finish() {
 	hc_workerState* ws =current_ws_internal();
 	finish_t* current_finish = ws->current_finish;
 
@@ -469,12 +472,6 @@ void end_finish() {
 
 	ws->current_finish = current_finish->parent;
 	HC_FREE(current_finish);
-}
-
-void finish(std::function<void()> lambda) {
-	start_finish();
-	lambda();
-	end_finish();
 }
 
 int numWorkers() {
@@ -522,15 +519,15 @@ void runtime_statistics(double duration) {
 }
 
 static void show_stats_header() {
-	cout << endl;
-	cout << "-----" << endl;
-	cout << "mkdir timedrun fake" << endl;
-	cout << endl;
-	cout << "-----" << endl;
+    printf("\n");
+    printf("-----\n");
+	printf("mkdir timedrun fake\n");
+	printf("\n");
+	printf("-----\n");
 	benchmark_start_time_stats = mysecond();
 }
 
-void user_harness_timer(double dur) {
+void hclib_user_harness_timer(double dur) {
 	user_specified_timer = dur;
 }
 
@@ -545,7 +542,12 @@ void showStatsFooter() {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-void init(int * argc, char ** argv) {
+void hclib_init(int * argc, char ** argv) {
+    assert(hcpp_stats == NULL);
+    assert(bind_threads == -1);
+    hcpp_stats = getenv("HCPP_STATS");
+    bind_threads = (getenv("HCPP_BIND_THREADS") != NULL);
+
     if (hcpp_stats) {
         show_stats_header();
     }
@@ -561,8 +563,8 @@ void init(int * argc, char ** argv) {
     hcpp_entrypoint();
 }
 
-void finalize() {
-	end_finish();
+void hclib_finalize() {
+	hclib_end_finish();
 	free(root_finish);
 
 	if (hcpp_stats) {
@@ -571,6 +573,4 @@ void finalize() {
 
 	hcpp_join_workers(hcpp_context->nworkers);
 	hcpp_cleanup();
-}
-
 }

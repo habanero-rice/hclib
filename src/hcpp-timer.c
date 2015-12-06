@@ -14,8 +14,6 @@
 #include <stdlib.h>
 #include "hcpp-timer.h"
 
-namespace hcpp {
-
 typedef struct stats_t {
 	double time[HCPP_NSTATES];	/* Time spent in each state */
 	double timeLast;
@@ -23,10 +21,12 @@ typedef struct stats_t {
 	int    curState;
 } stats_t;
 
+#ifdef _TIMER_ON_
 static stats_t* status;
-double avgtime_nstates[HCPP_NSTATES];
 static int numWorkers = -1;
-static bool comm_worker = false;
+static int have_comm_worker = 0;
+#endif
+double avgtime_nstates[HCPP_NSTATES];
 
 inline double wctime() {
 	struct timeval tv;
@@ -34,10 +34,10 @@ inline double wctime() {
 	return (tv.tv_sec + 1E-6 * tv.tv_usec);
 }
 
-void hcpp_initStats  (int nw, bool comm_w) {
+void hcpp_initStats  (int nw, int comm_w) {
 #ifdef _TIMER_ON_
 	numWorkers = nw;
-	comm_worker = comm_w;
+	have_comm_worker = comm_w;
 	status = new stats_t[numWorkers];
 	for(int i=0; i<numWorkers; i++) {
 		status[i].timeLast = wctime();
@@ -71,8 +71,8 @@ void hcpp_setState(int wid, int state) {
 
 void find_avgtime_nstates() {
 #ifdef _TIMER_ON_
-	int start = comm_worker ? 1 : 0;
-	int total = comm_worker ? (numWorkers - 1) : numWorkers;
+	int start = have_comm_worker ? 1 : 0;
+	int total = have_comm_worker ? (numWorkers - 1) : numWorkers;
 	for(int j=0; j<HCPP_NSTATES; j++) {
 		avgtime_nstates[j] = 0;
 		for(int i = start; i<numWorkers; i++) {
@@ -94,6 +94,4 @@ void hcpp_getAvgTime (double* tWork, double *tOvh, double* tSearch) {
 	*tOvh = 0;
 	*tSearch = 0;
 #endif
-}
-
 }

@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCPP_DEQUE_H_
 #define HCPP_DEQUE_H_
 
-namespace hcpp {
+#include "hcpp-task.h"
 
 /****************************************************/
 /* DEQUE API                                        */
@@ -54,7 +54,7 @@ typedef struct deque_t {
 } deque_t;
 
 void dequeInit(deque_t * deq, void * initValue);
-bool dequePush(deque_t* deq, void* entry);
+int dequePush(deque_t* deq, void* entry);
 task_t* dequePop(deque_t * deq);
 task_t* dequeSteal(deque_t * deq);
 void dequeDestroy(deque_t* deq);
@@ -71,7 +71,5 @@ void semiConcDequeInit(semiConcDeque_t* deq, void * initValue);
 void semiConcDequeLockedPush(semiConcDeque_t* deq, void* entry);
 task_t* semiConcDequeNonLockedPop(semiConcDeque_t * deq);
 void semiConcDequeDestroy(semiConcDeque_t * deq);
-
-}
 
 #endif /* HCPP_DEQUE_H_ */

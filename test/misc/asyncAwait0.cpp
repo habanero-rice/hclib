@@ -1,23 +1,23 @@
-#include "hcpp.h"
+#include "hclib_cpp.h"
 
 int main(int argc, char ** argv) {
-    hcpp::init(&argc, argv);
-    hcpp::DDF_t * ddf1 = hcpp::ddf_create();
+    hclib::init(&argc, argv);
+    hclib::ddf_t * ddf1 = hclib::ddf_create();
     int * val = new int;
     *val = 100;
 
-    hcpp::start_finish();
-    hcpp::asyncAwait(ddf1, [=]() {
+    hclib::start_finish();
+    hclib::asyncAwait(ddf1, [=]() {
         printf("Running asyncAwait \n");
-        int* res = (int*) hcpp::ddf_get(ddf1);
+        int* res = (int*) hclib::ddf_get(ddf1);
         printf("ddf_get = %d\n",*res);
     });  
-    hcpp::async([=]() {
+    hclib::async([=]() {
         printf("Start ddf_put\n");
-        hcpp::ddf_put(ddf1, val);
+        hclib::ddf_put(ddf1, val);
         printf("End ddf_put\n");
     });
-    hcpp::end_finish();
-    hcpp::finalize();
+    hclib::end_finish();
+    hclib::finalize();
     return 0;
 }

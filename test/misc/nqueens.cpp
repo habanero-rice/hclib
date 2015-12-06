@@ -1,6 +1,6 @@
-#include "hcpp.h"
+#include "hclib_cpp.h"
 #include <sys/time.h>
-using namespace hcpp;
+using namespace hclib;
 
 int solutions[16] =
 {
@@ -51,7 +51,7 @@ void nqueens_kernel(int* A, int depth, int size) {
       B[depth] = i;
       int failed = ok((depth +  1), B); 
       if (!failed) {
-	hcpp::async([=]() {
+	hclib::async([=]() {
         nqueens_kernel(B, depth+1, size);
 	});
       }
@@ -75,7 +75,7 @@ long get_usecs (void)
 
 int main(int argc, char* argv[])
 {
-  hcpp::init(&argc, argv);
+  hclib::init(&argc, argv);
   int n = 12;
   int i, j;
      
@@ -86,15 +86,15 @@ int main(int argc, char* argv[])
   atomic = (int*) malloc(sizeof(int));;
   atomic[0]=0;
   long start = get_usecs();
-  hcpp::start_finish();
+  hclib::start_finish();
   nqueens_kernel(a, 0, n);  
-  hcpp::end_finish();
+  hclib::end_finish();
   long end = get_usecs();
   dur = ((double)(end-start))/1000000;
   verify_queens(n);  
   free((void*)atomic);
   printf("NQueens(%d) Time = %fsec\n",n,dur);
 
-  hcpp::finalize();
+  hclib::finalize();
   return 0;
 }

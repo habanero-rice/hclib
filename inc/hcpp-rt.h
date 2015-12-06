@@ -36,13 +36,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
+#include <stdio.h>
+#include <pthread.h>
+#include <assert.h>
 
-namespace hcpp {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // forward declaration
 extern pthread_key_t wskey;
 struct hc_context;
-struct hc_options;
+struct hclib_options;
 struct hc_workerState;
 struct place_t;
 struct deque_t;
@@ -51,7 +56,7 @@ struct finish_t;
 
 typedef struct hc_workerState {
         pthread_t t; /* the pthread associated */
-        finish_t* current_finish;
+        struct finish_t* current_finish;
         struct place_t * pl; /* the directly attached place */
         struct place_t ** hpt_path; /* Path from root to worker's leaf place. Array of places. */
         struct hc_context * context;
@@ -63,41 +68,31 @@ typedef struct hc_workerState {
 } hc_workerState;
 
 #ifdef HC_ASSERTION_CHECK
-#define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", hcpp::get_hc_wid()); assert(cond); }
+#define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", get_hc_wid()); assert(cond); }
 #else
-#define HASSERT(cond)       //Do Nothing
+#define HASSERT(cond)       // Do Nothing
 #endif
 
 #define current_ws_internal() ((hc_workerState *) pthread_getspecific(wskey))
 
 int get_hc_wid();
 hc_workerState* current_ws();
-}
-
-namespace hcpp {
 
 #define HC_MALLOC(msize)	malloc(msize)
 #define HC_FREE(p)			free(p)
 typedef void (*generic_framePtr)(void*);
 
-}
-
 #include "hcpp-timer.h"
 #include "hcpp-ddf.h"
-#include "hcpp-async.h"
-#include "hcpp-asyncAwait.h"
-#include "hcpp-forasync.h"
 #include "hcpp-place.h"
-#include "hcpp-hpt.h"
 
-namespace hcpp {
+int  hclib_numWorkers();
+void hclib_init(int * argc, char ** argv);
+void hclib_finalize();
+void hclib_start_finish();
+void hclib_end_finish();
+void hclib_user_harness_timer(double dur);
 
-void finish(std::function<void()> lambda);
-int numWorkers();
-void init(int * argc, char ** argv);
-void finalize();
-void start_finish();
-void end_finish();
-void user_harness_timer(double dur);
-
+#ifdef __cplusplus
 }
+#endif

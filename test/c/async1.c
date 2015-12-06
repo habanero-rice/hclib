@@ -66,7 +66,7 @@ int main (int argc, char ** argv) {
     while(i < NB_ASYNC) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void **
-        async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
+        hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
     printf("Call Finalize\n");

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
+#include <functional>
 
 #include "hcpp-asyncStruct.h"
 #include "hcupc-support.h"
@@ -42,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCPP_ASYNC_H_
 #define HCPP_ASYNC_H_
 
-namespace hcpp {
+namespace hclib {
 
 template <typename T>
 inline void execute_hcpp_lambda(T* lambda) {
@@ -53,14 +54,40 @@ inline void execute_hcpp_lambda(T* lambda) {
 	MARK_OVH(wid);
 }
 
+template <typename Function, typename T1>
+struct async_arguments1 {
+    Function kernel;
+    T1 arg1;
+
+    async_arguments1(Function k, T1 a1) :
+        kernel(k), arg1(a1) { }
+};
+
+template<typename Function, typename T1>
+void wrapper1(void *args) {
+    async_arguments1<Function, T1> *a =
+        (async_arguments1<Function, T1> *)args;
+
+    (*a->kernel)(a->arg1);
+}
+
+template<typename Function, typename T1>
+inline void initialize_hcpp_async_task(struct hcpp_async_task *t,
+        Function kernel, const T1 &a1) {
+    async_arguments1<Function, T1> args(kernel, a1);
+    init_hcpp_async_task(t, wrapper1<Function, T1>, (size_t)sizeof(args),
+            (void *)&args);
+}
+
 template <typename T>
 inline task_t* _allocate_async_hcpp(T lambda, bool await) {
-	const size_t hcpp_task_size = !await ? sizeof(task_t) : sizeof(hcpp_task_t);
+	const size_t hcpp_task_size = await ? sizeof(hcpp_task_t) : sizeof(task_t);
 	task_t* task = (task_t*) HC_MALLOC(hcpp_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);
-	task_t t = task_t(execute_hcpp_lambda<T>, lambda_onHeap);
+    struct hcpp_async_task t;
+    initialize_hcpp_async_task(&t, execute_hcpp_lambda<T>, lambda_onHeap);
 	memcpy(task, &t, sizeof(task_t));
 	return task;
 }
@@ -92,7 +119,7 @@ inline void async(T lambda) {
 }
 
 template <typename T>
-inline void _asyncAwait(ddf_t ** ddf_list, T lambda) {
+inline void _asyncAwait(hclib_ddf_t ** ddf_list, T lambda) {
 	MARK_OVH(current_ws()->id);
 	task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await(task, ddf_list);
@@ -104,7 +131,12 @@ inline void asyncComm(T lambda) {
 	spawn_commTask(task);
 }
 
+inline void finish(std::function<void()> lambda) {
+    hclib_start_finish();
+    lambda();
+    hclib_end_finish();
+}
+
 }
 
 #endif /* HCPP_ASYNC_H_ */
-

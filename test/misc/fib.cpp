@@ -1,4 +1,4 @@
-#include "hcpp.h"
+#include "hclib_cpp.h"
 #include <sys/time.h>
 
 using namespace std;
@@ -17,8 +17,8 @@ int fib(int n)
     }
     else {
 	int x, y;
-	hcpp::finish([n, &x, &y]( ) {
-  	    hcpp::async([n, &x]( ){x = fib(n-1);});
+	hclib::finish([n, &x, &y]( ) {
+  	    hclib::async([n, &x]( ){x = fib(n-1);});
   	    y = fib(n-2);
 	});
 	return x + y;
@@ -33,7 +33,7 @@ long get_usecs (void)
 }
 
 int main (int argc, char ** argv) {
-  hcpp::init(&argc, argv);
+  hclib::init(&argc, argv);
   int n = 40;
   if(argc > 1) n = atoi(argv[1]);
   if(argc > 2) threshold = atoi(argv[2]);
@@ -44,7 +44,7 @@ int main (int argc, char ** argv) {
   long end = get_usecs();
   double dur = ((double)(end-start))/1000000;
   printf("Fib(%d) = %d. Time = %f\n",n,res,dur);
-  hcpp::finalize();
+  hclib::finalize();
   return 0;
 }
 

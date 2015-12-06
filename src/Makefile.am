@@ -4,8 +4,8 @@ SUBDIRS =
 INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc
 
 # cflags: important to define that otherwise we inherit default values too
-CFLAGS = -Wall -g -O3
-CXXFLAGS = $(CFLAGS) -std=c++11
+CFLAGS = -Wall -g -O3 -std=c99
+CXXFLAGS = -Wall -g -O3 -std=c++11
 LDFLAGS = -lpthread
 
 if DIST_WS
@@ -35,7 +35,7 @@ noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
 AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp hclib.cpp
+libhcpp_la_SOURCES = hcpp-runtime.c hcpp-deque.c hcpp-hpt.c hcpp-thread-bind.c hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c
 
 # build hcpp
 libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)

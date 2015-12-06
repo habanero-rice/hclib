@@ -10,17 +10,17 @@ if($#ARGV != 0) {
 }
 ####################################################
 #template <typename T>
-#void asyncAwait(DDF_t* ddf0, T lambda) {
+#void asyncAwait(hclib_ddf_t* ddf0, T lambda) {
 #	int ddfs = 2;
-#	DDF_t** ddfList = (DDF_t**) malloc(sizeof(DDF_t *) * ddfs);
+#	hclib_ddf_t** ddfList = (hclib_ddf_t**) malloc(sizeof(hclib_ddf_t *) * ddfs);
 #	ddfList[0] = ddf0; 
 #	ddfList[1] = NULL; 
 #	_asyncAwait<T>(ddfList, lambda);
 #}
 #template <typename T>
-#void asyncAwait(DDF_t* ddf0, DDF_t* ddf1, T lambda) {
+#void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, T lambda) {
 #	int ddfs = 3;
-#	DDF_t** ddfList = (DDF_t**) malloc(sizeof(DDF_t *) * ddfs);
+#	hclib_ddf_t** ddfList = (hclib_ddf_t**) malloc(sizeof(hclib_ddf_t *) * ddfs);
 #	ddfList[0] = ddf0; 
 #	ddfList[1] = ddf1; 
 #	ddfList[2] = NULL; 
@@ -28,19 +28,25 @@ if($#ARGV != 0) {
 #}
 ####################################################
 
+print "#include \"hcpp-ddf.h\"\n";
+print "#include \"hcpp-async.h\"\n";
+print "\n";
+print "namespace hclib {\n";
+print "\n";
+
 for (my $j=0; $j<$ARGV[0]; $j++) {
 	print "template <typename T>\n";
-	print "void asyncAwait(DDF_t* ddf0";
+	print "void asyncAwait(hclib_ddf_t* ddf0";
 
-	#Printing the DDF_t parameters
+	#Printing the hclib_ddf_t parameters
 	for (my $i=1; $i<=$j; $i++) {
-  		print ", DDF_t* ddf$i";
+  		print ", hclib_ddf_t* ddf$i";
 	}
 	print ", T lambda) {\n";
 
 	my $ddfs = $j + 2;
 	print "\tint ddfs = $ddfs;\n";
-	print "\tDDF_t** ddfList = (DDF_t**) HC_MALLOC(sizeof(DDF_t *) * ddfs);\n";
+	print "\thclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);\n";
 
 	for (my $i=0; $i<=$j; $i++) {
   		print "\tddfList[$i] = ddf$i; \n";
@@ -49,6 +55,9 @@ for (my $j=0; $j<$ARGV[0]; $j++) {
 	print "\tddfList[$ddfs] = NULL; \n";
 
 
-	print "\t_asyncAwait<T>(ddfList, lambda);\n";
+	print "\thclib::_asyncAwait<T>(ddfList, lambda);\n";
 	print "}\n";
 }
+print "\n";
+print "}\n";
+print "\n";

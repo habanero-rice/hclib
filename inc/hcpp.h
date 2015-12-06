@@ -39,12 +39,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCPP_H_
 #define HCPP_H_
 
-#include <iostream>
 // Required for lambda as std::function
-#include <list>
-#include <functional>
+// #include <functional>
 #include <stdlib.h>
-#include <cstring>
+#include <string.h>
 #include <assert.h>
 
 #include "hcpp-rt.h"

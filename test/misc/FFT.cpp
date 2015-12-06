@@ -25,7 +25,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
-#include "hcpp.h"
+#include "hclib_cpp.h"
 
 /* Definitions and operations for complex numbers */
 
@@ -63,9 +63,9 @@ static void compute_w_coefficients(int n, int a, int b, COMPLEX * W)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  compute_w_coefficients(n, a, ab, W); });
-	  hcpp::async([=]() {  compute_w_coefficients(n, ab + 1, b, W); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  compute_w_coefficients(n, a, ab, W); });
+	  hclib::async([=]() {  compute_w_coefficients(n, ab + 1, b, W); });
 	  });
      }
 }
@@ -137,9 +137,9 @@ static void unshuffle(int a, int b,
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  unshuffle(a, ab, in, out, r, m); });
-	  hcpp::async([=]() {  unshuffle(ab, b, in, out, r, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  unshuffle(a, ab, in, out, r, m); });
+	  hclib::async([=]() {  unshuffle(ab, b, in, out, r, m); });
 	});
      }
 }
@@ -183,10 +183,10 @@ static void fft_twiddle_gen(int i, int i1,
 				 r, m, nW, nWdn * i, nWdn * m);
      } else {
 	  int i2 = (i + i1) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_twiddle_gen(i, i2, in, out, W, nW,
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_twiddle_gen(i, i2, in, out, W, nW,
 				nWdn, r, m); });
-	  hcpp::async([=]() {  fft_twiddle_gen(i2, i1, in, out, W, nW,
+	  hclib::async([=]() {  fft_twiddle_gen(i2, i1, in, out, W, nW,
 				nWdn, r, m); });
 	});
      }
@@ -235,9 +235,9 @@ static void fft_twiddle_2(int a, int b, COMPLEX * in, COMPLEX * out,
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_twiddle_2(a, ab, in, out, W, nW, nWdn, m); });
-	  hcpp::async([=]() {  fft_twiddle_2(ab, b, in, out, W, nW, nWdn, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_twiddle_2(a, ab, in, out, W, nW, nWdn, m); });
+	  hclib::async([=]() {  fft_twiddle_2(ab, b, in, out, W, nW, nWdn, m); });
 	});
      }
 }
@@ -256,9 +256,9 @@ static void fft_unshuffle_2(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_unshuffle_2(a, ab, in, out, m); });
-	  hcpp::async([=]() {  fft_unshuffle_2(ab, b, in, out, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_unshuffle_2(a, ab, in, out, m); });
+	  hclib::async([=]() {  fft_unshuffle_2(ab, b, in, out, m); });
 	});
      }
 }
@@ -364,9 +364,9 @@ static void fft_twiddle_4(int a, int b, COMPLEX * in, COMPLEX * out,
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_twiddle_4(a, ab, in, out, W, nW, nWdn, m); });
-	  hcpp::async([=]() {  fft_twiddle_4(ab, b, in, out, W, nW, nWdn, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_twiddle_4(a, ab, in, out, W, nW, nWdn, m); });
+	  hclib::async([=]() {  fft_twiddle_4(ab, b, in, out, W, nW, nWdn, m); });
 	});
      }
 }
@@ -389,9 +389,9 @@ static void fft_unshuffle_4(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_unshuffle_4(a, ab, in, out, m); });
-	  hcpp::async([=]() {  fft_unshuffle_4(ab, b, in, out, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_unshuffle_4(a, ab, in, out, m); });
+	  hclib::async([=]() {  fft_unshuffle_4(ab, b, in, out, m); });
 	});
      }
 }
@@ -652,9 +652,9 @@ static void fft_twiddle_8(int a, int b, COMPLEX * in, COMPLEX * out,
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_twiddle_8(a, ab, in, out, W, nW, nWdn, m); });
-	  hcpp::async([=]() {  fft_twiddle_8(ab, b, in, out, W, nW, nWdn, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_twiddle_8(a, ab, in, out, W, nW, nWdn, m); });
+	  hclib::async([=]() {  fft_twiddle_8(ab, b, in, out, W, nW, nWdn, m); });
 	});
      }
 }
@@ -685,9 +685,9 @@ static void fft_unshuffle_8(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_unshuffle_8(a, ab, in, out, m); });
-	  hcpp::async([=]() {  fft_unshuffle_8(ab, b, in, out, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_unshuffle_8(a, ab, in, out, m); });
+	  hclib::async([=]() {  fft_unshuffle_8(ab, b, in, out, m); });
 	});
      }
 }
@@ -1317,9 +1317,9 @@ static void fft_twiddle_16(int a, int b, COMPLEX * in, COMPLEX * out,
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_twiddle_16(a, ab, in, out, W, nW, nWdn, m); });
-	  hcpp::async([=]() {  fft_twiddle_16(ab, b, in, out, W, nW, nWdn, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_twiddle_16(a, ab, in, out, W, nW, nWdn, m); });
+	  hclib::async([=]() {  fft_twiddle_16(ab, b, in, out, W, nW, nWdn, m); });
 		});
      }
 }
@@ -1367,9 +1367,9 @@ static void fft_unshuffle_16(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_unshuffle_16(a, ab, in, out, m); });
-	  hcpp::async([=]() {  fft_unshuffle_16(ab, b, in, out, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_unshuffle_16(a, ab, in, out, m); });
+	  hclib::async([=]() {  fft_unshuffle_16(ab, b, in, out, m); });
 	});
      }
 }
@@ -2862,9 +2862,9 @@ static void fft_twiddle_32(int a, int b, COMPLEX * in, COMPLEX * out,
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_twiddle_32(a, ab, in, out, W, nW, nWdn, m); });
-	  hcpp::async([=]() {  fft_twiddle_32(ab, b, in, out, W, nW, nWdn, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_twiddle_32(a, ab, in, out, W, nW, nWdn, m); });
+	  hclib::async([=]() {  fft_twiddle_32(ab, b, in, out, W, nW, nWdn, m); });
 	});
      }
 }
@@ -2944,9 +2944,9 @@ static void fft_unshuffle_32(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-	hcpp::finish([=]() {
-	  hcpp::async([=]() {  fft_unshuffle_32(a, ab, in, out, m); });
-	  hcpp::async([=]() {  fft_unshuffle_32(ab, b, in, out, m); });
+	hclib::finish([=]() {
+	  hclib::async([=]() {  fft_unshuffle_32(a, ab, in, out, m); });
+	  hclib::async([=]() {  fft_unshuffle_32(ab, b, in, out, m); });
 	});
      }
 }
@@ -3019,9 +3019,9 @@ static void fft_aux(int n, COMPLEX * in, COMPLEX * out, int *factors,
 	  else
 	       unshuffle(0, m, in, out, r, m);
 
-	  hcpp::finish([=]() {
+	  hclib::finish([=]() {
 	  for(int k=0; k < n; k += m) {
-	       hcpp::async([=]() { 
+	       hclib::async([=]() { 
 			fft_aux(m, out + k, in + k, factors + 1,
 			     W, nW);
 		});
@@ -3205,7 +3205,7 @@ void test_speed(long size)
 
 int main(int argc, char *argv[])
 {
-     hcpp::init(&argc, argv);
+     hclib::init(&argc, argv);
      int correctness=0;
      int n = 2048;
      
@@ -3219,6 +3219,6 @@ int main(int argc, char *argv[])
 	test_correctness();
      else
 	test_speed(size);
-     hcpp::finalize();
+     hclib::finalize();
     return 0;
 }
