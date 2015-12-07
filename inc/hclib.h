@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCLIB_H_
 #define HCLIB_H_
 
+#include "hclib_common.h"
 #include "hcpp-task.h"
 #include "hcpp-ddf.h"
 
@@ -64,25 +65,6 @@ void hclib_init(int * argc, char ** argv);
  * Ends the global finish scope and waits for all asyncs to terminate.
  */
 void hclib_finalize();
-
-/*
- * Default async arguments
- */
-
-/** @brief No properties defined. */
-#define NO_PROP 0
-/** @brief No arguments provided. */
-#define NO_ARG NULL
-/** @brief To satisfy a DDF with a 'NULL' value. */
-#define NO_DATUM NULL
-/** @brief No DDF argument provided. */
-#define NO_DDF NULL
-/** @brief No phaser argument provided. */
-#define NO_PHASER NULL
-/** @brief To indicate an async must register with all phasers. */
-#define PHASER_TRANSMIT_ALL ((int) 0x1) 
-/** @brief No accumulator argument provided. */
-#define NO_ACCUM NULL
 
 /*
  * Async definition and API

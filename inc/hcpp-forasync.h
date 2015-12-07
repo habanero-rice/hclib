@@ -57,6 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param[in] tile      Tile size for chunking
  */
 
+namespace hclib {
+
 template <typename T>
 inline void forasync1D_runner(_loop_domain_t* loop, T lambda) {
 	loop_domain_t loop0 = loop[0];
@@ -378,6 +380,8 @@ inline void forasync2D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RE
 template <typename T>
 inline void forasync3D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RECURSIVE) {
 		forasync3D_internal<T>(loop, lambda, mode);
+}
+
 }
 
 #endif /* HCPP_FORASYNC_H_ */

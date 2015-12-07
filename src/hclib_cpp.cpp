@@ -22,6 +22,10 @@ ddf_t *ddf_create() {
     return hclib_ddf_create();
 }
 
+void ddf_free(ddf_t *ddf) {
+    hclib_ddf_free(ddf);
+}
+
 void ddf_put(ddf_t *ddf, void *datum) {
     hclib_ddf_put(ddf, datum);
 }
