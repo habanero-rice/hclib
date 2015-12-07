@@ -382,7 +382,6 @@ void forasync3D_flat(void * forasync_arg) {
     }
 }
 
-//TODO remove start_finish and end_finish here to make forasync not blocking
 static void forasync_internal(void* user_fct_ptr, void * user_arg,
         void *accumed /* accumed_t * accumed */ ,
         int dim, loop_domain_t * loop_domain, forasync_mode_t mode) {
@@ -394,7 +393,6 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     user_def.args = user_arg;
     user_def.ddf_list = NULL;
 
-    hclib_start_finish();
     // if (accumed != NULL) {
     //     accum_register(accumed->accums, accumed->count);
     // }
@@ -414,8 +412,6 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
         forasync3D_t forasync = {{&user_def}, loop_domain[0], loop_domain[1], loop_domain[2]};
         (fct_ptr[dim-1])((void *) &forasync);
     }
-
-    hclib_end_finish();
 }
 
 void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,

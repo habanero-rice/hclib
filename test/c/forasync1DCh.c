@@ -67,7 +67,9 @@ int main (int argc, char ** argv) {
 
     init_ran(ran, H1);
     loop_domain_t loop = {0, H1, 1, T1};
+    hclib_start_finish();
     hclib_forasync(forasync_fct1, (void*)ran, NULL, NULL, NULL, 1, &loop, FORASYNC_MODE_FLAT);
+    hclib_end_finish();
 
     printf("Call Finalize\n");
     hclib_finalize();

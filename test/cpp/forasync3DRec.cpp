@@ -45,15 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T2 217
 #define T1 7
 
-//user written code
-void forasync_fct3(void * argv,int idx1,int idx2,int idx3) {
-    
-    int *ran=(int *)argv;
-    //printf("%d_%d_%d ",idx1,idx2,ran[idx1*32+idx2]);
-    assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
-    ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3;
-}
-
 void init_ran(int *ran, int size) {
     while (size > 0) {
         ran[size-1] = -1;
@@ -70,14 +61,16 @@ int main (int argc, char ** argv) {
     // code is alive until the end of the program.
 
     init_ran(ran, H1*H2*H3);
-    loop_domain_t loop0 = {0,H1,1,T1};
-    loop_domain_t loop1 = {0,H2,1,T2};
-    loop_domain_t loop2 = {0,H3,1,T3};
-    loop_domain_t loop[3] = {loop0, loop1, loop2};
-    hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
-            assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
-            ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3; },
-            FORASYNC_MODE_RECURSIVE);
+    hclib::finish([=]() {
+        loop_domain_t loop0 = {0,H1,1,T1};
+        loop_domain_t loop1 = {0,H2,1,T2};
+        loop_domain_t loop2 = {0,H3,1,T3};
+        loop_domain_t loop[3] = {loop0, loop1, loop2};
+        hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
+                assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
+                ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3; },
+                FORASYNC_MODE_RECURSIVE);
+    });
 
     printf("Call Finalize\n");
     hclib::finalize();

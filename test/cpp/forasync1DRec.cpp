@@ -57,8 +57,10 @@ int main (int argc, char ** argv) {
     // code is alive until the end of the program.
 
     init_ran(ran, H1);
-    loop_domain_t loop = {0,H1,1,T1};
-    hclib::forasync1D(&loop, [=](int idx) { assert(ran[idx] == -1); ran[idx] = idx; });
+    hclib::finish([=]() {
+        loop_domain_t loop = {0,H1,1,T1};
+        hclib::forasync1D(&loop, [=](int idx) { assert(ran[idx] == -1); ran[idx] = idx; });
+    });
 
     printf("Call Finalize\n");
     hclib::finalize();

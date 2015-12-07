@@ -59,12 +59,14 @@ int main (int argc, char ** argv) {
     // code is alive until the end of the program.
 
     init_ran(ran, H1*H2);
-    loop_domain_t loop0 = {0,H1,1,T1};
-    loop_domain_t loop1 = {0,H2,1,T2};
-    loop_domain_t loop[2] = {loop0, loop1};
-    hclib::forasync2D(loop, [=](int idx1, int idx2) {
-            assert(ran[idx1*H2+idx2] == -1);
-            ran[idx1*H2+idx2] = idx1*H2+idx2; }, FORASYNC_MODE_RECURSIVE);
+    hclib::finish([=]() {
+        loop_domain_t loop0 = {0,H1,1,T1};
+        loop_domain_t loop1 = {0,H2,1,T2};
+        loop_domain_t loop[2] = {loop0, loop1};
+        hclib::forasync2D(loop, [=](int idx1, int idx2) {
+                assert(ran[idx1*H2+idx2] == -1);
+                ran[idx1*H2+idx2] = idx1*H2+idx2; }, FORASYNC_MODE_RECURSIVE);
+    });
 
     printf("Call Finalize\n");
     hclib::finalize();
