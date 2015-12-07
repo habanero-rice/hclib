@@ -61,7 +61,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 void ddt_init(ddt_t * ddt, hclib_ddf_t ** ddf_list) {
 	ddt->waitingFrontier = ddf_list;
-    fprintf(stderr, "B Setting to %p\n", ddt->waitingFrontier);
 	ddt->nextDDTWaitingOnSameDDF = NULL;
 }
 
@@ -171,16 +170,12 @@ __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
  */
 int iterate_ddt_frontier(ddt_t* wrapperTask) {
 	hclib_ddf_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
-    fprintf(stderr, "iterate_ddt_frontier wrapperTask=%p "
-            "currDDFnodeToWaitOn=%p\n", wrapperTask, currDDFnodeToWaitOn);
 
     while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND (wrapperTask,
                 *currDDFnodeToWaitOn) ) {
         ++currDDFnodeToWaitOn;
-        fprintf(stderr, "B currDDFnodeToWaitOn=%p\n", currDDFnodeToWaitOn);
     }
 	wrapperTask->waitingFrontier = currDDFnodeToWaitOn;
-    fprintf(stderr, "A Setting to %p\n", wrapperTask->waitingFrontier);
     return *currDDFnodeToWaitOn == NULL;
 }
 
@@ -224,7 +219,6 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut ) {
 	/* printf("DDF:%p was put:%p with value:%d\n", ddfToBePut, datumToBePut,*((int*)datumToBePut)); */
 	while (currDDT != UNINITIALIZED_DDF_WAITLIST_PTR) {
 
-        fprintf(stderr, "HOWDY iter_count=%d currDDT=%p waitingFrontier=%p UNINITIALIZED_DDF_WAITLIST_PTR=%p\n", iter_count, currDDT, currDDT->waitingFrontier, UNINITIALIZED_DDF_WAITLIST_PTR);
 		nextDDT = currDDT->nextDDTWaitingOnSameDDF;
 		if (iterate_ddt_frontier(currDDT) ) {
 			/* printf("pushed:%p\n", currDDT); */

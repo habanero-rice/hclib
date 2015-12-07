@@ -301,7 +301,6 @@ static inline void rt_schedule_async(task_t* async_task, int comm_task) {
 inline int is_eligible_to_schedule(task_t * async_task) {
     if (async_task->ddf_list != NULL) {
     	ddt_t * ddt = (ddt_t *)rt_async_task_to_ddt(async_task);
-        fprintf(stderr, "is_eligible_to_schedule: ddt=%p\n", ddt);
         return iterate_ddt_frontier(ddt);
     } else {
         return 1;
