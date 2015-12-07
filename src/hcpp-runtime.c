@@ -301,6 +301,7 @@ static inline void rt_schedule_async(task_t* async_task, int comm_task) {
 inline int is_eligible_to_schedule(task_t * async_task) {
     if (async_task->ddf_list != NULL) {
     	ddt_t * ddt = (ddt_t *)rt_async_task_to_ddt(async_task);
+        fprintf(stderr, "is_eligible_to_schedule: ddt=%p\n", ddt);
         return iterate_ddt_frontier(ddt);
     } else {
         return 1;
@@ -344,7 +345,11 @@ void spawn(task_t * task) {
 }
 
 void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
-	// check if this is DDDf_t (remote or owner) and do callback to HabaneroUPC++ for implementation
+    fprintf(stderr, "%p %p\n", ddf_list[0], ddf_list[1]);
+	/*
+     * check if this is DDDf_t (remote or owner) and do callback to
+     * HabaneroUPC++ for implementation
+     */
 	check_if_hcupc_dddf(ddf_list);
 	// get current worker
 	hc_workerState* ws = CURRENT_WS_INTERNAL;

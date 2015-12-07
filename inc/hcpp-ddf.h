@@ -79,7 +79,6 @@ typedef struct ddt_st {
     struct ddt_st * nextDDTWaitingOnSameDDF;
 } ddt_t;
 
-// struct ddf_st is the opaque we expose.
 // We define a typedef in this unit for convenience
 typedef struct hclib_ddf_st {
 	int kind;
@@ -112,13 +111,13 @@ hclib_ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
  * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
  * @param[in] ddf 				The DDF to destruct
  */
-void ddf_free_n(hclib_ddf_t ** ddf,  size_t nb_ddfs, int null_terminated);
+void hclib_ddf_free_n(hclib_ddf_t ** ddf,  size_t nb_ddfs, int null_terminated);
 
 /**
  * @brief Destruct a DDF.
  * @param[in] ddf 				The DDF to destruct
  */
-void ddf_free(hclib_ddf_t * ddf);
+void hclib_ddf_free(hclib_ddf_t * ddf);
 
 /**
  * @brief Get the value of a DDF.

@@ -13,10 +13,9 @@ extern "C" {
 
 /*** START ASYNC IMPLEMENTATION ***/
 
-void hclib_async(generic_framePtr fp, void *arg, struct ddf_st ** ddf_list,
+void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
         struct _phased_t * phased_clause, int property) {
     assert(property == 0);
-    assert(ddf_list == NULL);
     assert(phased_clause == NULL);
 
     task_t *task = (task_t *)malloc(sizeof(task_t));
@@ -25,7 +24,11 @@ void hclib_async(generic_framePtr fp, void *arg, struct ddf_st ** ddf_list,
     task->ddf_list = NULL;
     task->args = arg;
 
-    spawn(task);
+    if (ddf_list) {
+        spawn_await(task, ddf_list);
+    } else {
+        spawn(task);
+    }
 }
 
 /*** END ASYNC IMPLEMENTATION ***/
@@ -409,7 +412,7 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     hclib_end_finish();
 }
 
-void hclib_forasync(void* forasync_fct, void * argv, struct ddf_st ** ddf_list,
+void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,
         struct _phased_t * phased_clause,
         void *accumed /* struct _accumed_t * accumed */ , int dim,
         loop_domain_t * domain, forasync_mode_t mode) {
