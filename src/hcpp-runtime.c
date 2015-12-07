@@ -336,6 +336,7 @@ void spawn(task_t * task) {
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
+
 	try_schedule_async(task, 0);
 #ifdef HC_COMM_WORKER_STATS
 	const int wid = get_current_worker();
@@ -345,7 +346,6 @@ void spawn(task_t * task) {
 }
 
 void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
-    fprintf(stderr, "%p %p\n", ddf_list[0], ddf_list[1]);
 	/*
      * check if this is DDDf_t (remote or owner) and do callback to
      * HabaneroUPC++ for implementation
@@ -355,6 +355,7 @@ void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
+
 	set_ddf_list(task, ddf_list);
 	hcpp_task_t *t = (hcpp_task_t*) task;
 	ddt_init(&(t->ddt), ddf_list);

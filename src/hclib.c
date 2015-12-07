@@ -18,15 +18,21 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
     assert(property == 0);
     assert(phased_clause == NULL);
 
-    task_t *task = (task_t *)malloc(sizeof(task_t));
-    task->_fp = fp;
-    task->is_asyncAnyType = 0;
-    task->ddf_list = NULL;
-    task->args = arg;
-
     if (ddf_list) {
+        hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
+        task->async_task._fp = fp;
+        task->async_task.is_asyncAnyType = 0;
+        task->async_task.ddf_list = NULL;
+        task->async_task.args = arg;
+
         spawn_await(task, ddf_list);
     } else {
+        task_t *task = (task_t *)malloc(sizeof(task_t));
+        task->_fp = fp;
+        task->is_asyncAnyType = 0;
+        task->ddf_list = NULL;
+        task->args = arg;
+
         spawn(task);
     }
 }
