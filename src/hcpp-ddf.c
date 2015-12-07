@@ -50,7 +50,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DDF_SATISFIED NULL
 
 // Default value of a DDF datum
-#define UNINITIALIZED_DDF_DATA_PTR NULL
+// #define UNINITIALIZED_DDF_DATA_PTR NULL
+#define UNINITIALIZED_DDF_DATA_PTR ((void *) -1)
 
 // For waiting frontier (last element of the list)
 #define UNINITIALIZED_DDF_WAITLIST_PTR ((ddt_t *) -1)
@@ -197,10 +198,10 @@ ddt_t * rt_async_task_to_ddt(task_t * async_task) {
  * Close down registration of DDTs on this DDF and iterate over the
  * DDF's frontier to try to advance DDTs that were waiting on this DDF.
  */
-void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut ) {
+void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut) {
 	HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR && EMPTY_DATUM_ERROR_MSG);
 	HASSERT (ddfToBePut != NULL && "can not put into NULL DDF");
-	HASSERT (ddfToBePut-> datum == NULL && "violated single assignment property for DDFs");
+	HASSERT (ddfToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR && "violated single assignment property for DDFs");
 
 	volatile ddt_t* waitListOfDDF = NULL;
 	ddt_t* currDDT = NULL;
