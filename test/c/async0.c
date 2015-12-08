@@ -41,15 +41,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int ran = 0;
 
 void async_fct(void * arg) {
-    printf("Running Async\n");
+    fprintf(stderr, "Running Async\n");
     ran = 1;
 }
 
+void entrypoint(void *arg) {
+    fprintf(stderr, "Hello\n");
+    // hclib_start_finish();
+    // hclib_async(async_fct, NULL, NULL, NULL, NO_PROP);
+    // hclib_end_finish();
+    // assert(ran == 1);
+    printf("Passed\n");
+}
+
 int main (int argc, char ** argv) {
-    hclib_init(&argc, argv);
-    printf("Hello\n");
-    hclib_async(async_fct, NULL, NULL, NULL, NO_PROP);
-    hclib_finalize();
-    assert(ran == 1);
+    hclib_launch(&argc, argv, entrypoint, NULL);
     return 0;
 }

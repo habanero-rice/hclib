@@ -25,7 +25,7 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
         task->async_task.ddf_list = NULL;
         task->async_task.args = arg;
 
-        spawn_await(task, ddf_list);
+        spawn_await((task_t *)task, ddf_list);
     } else {
         task_t *task = (task_t *)malloc(sizeof(task_t));
         task->_fp = fp;

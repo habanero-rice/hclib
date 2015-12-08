@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <pthread.h>
 #include <assert.h>
+#include "litectx.h"
 
 #ifndef HCPP_RT_H_
 #define HCPP_RT_H_
@@ -48,7 +49,7 @@ extern "C" {
 #endif
 
 // forward declaration
-extern pthread_key_t wskey;
+extern pthread_key_t ws_key;
 struct hc_context;
 struct hclib_options;
 struct hc_workerState;
@@ -68,6 +69,8 @@ typedef struct hc_workerState {
         struct hc_deque_t * deques;
         int id; /* The id, identify a worker */
         int did; /* the mapping device id */
+        LiteCtx *orig_ctx;
+        LiteCtx *curr_ctx;
 } hc_workerState;
 
 #ifdef HC_ASSERTION_CHECK
@@ -76,7 +79,7 @@ typedef struct hc_workerState {
 #define HASSERT(cond)       // Do Nothing
 #endif
 
-#define CURRENT_WS_INTERNAL ((hc_workerState *) pthread_getspecific(wskey))
+#define CURRENT_WS_INTERNAL ((hc_workerState *) pthread_getspecific(ws_key))
 
 int get_hc_wid();
 hc_workerState* current_ws();

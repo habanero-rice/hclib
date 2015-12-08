@@ -1,0 +1,4 @@
+This example demonstrates how the current "work-shift" strategy used by HC 
+workers (in which a blocked worker tries to steal a new task) can easily lead 
+to deadlock. This example will deadlock when run with 4 workers on CRT. To 
+build and run the example, simply "make run".

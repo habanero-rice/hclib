@@ -16,7 +16,7 @@ library_include_HEADERS = inc/hcpp-timer.h inc/hcpp-rt.h inc/hcpp.h \
 						  inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h \
 						  src/inc/hcpp-atomics.h inc/hcpp-place.h inc/hcupc-support.h \
 						  inc/hcpp-asyncStruct.h inc/hclib.h inc/hclib_cpp.h \
-						  inc/hcpp-task.h inc/hclib_common.h
+						  inc/hcpp-task.h inc/hclib_common.h src/inc/litectx.h src/fcontext/fcontext.h
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \

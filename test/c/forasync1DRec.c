@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //user written code
 void forasync_fct1(void * argv,int idx) {
-    
     int *ran=(int *)argv;
     assert(ran[idx] == -1);
     ran[idx] = idx;
@@ -57,11 +56,9 @@ void init_ran(int *ran, int size) {
     }
 }
 
-int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    hclib_init(&argc, argv);
+void entrypoint(void *arg) {
     int i = 0;
-    int *ran=(int *)malloc(H1*sizeof(int));
+    int *ran = (int *)arg;
     // This is ok to have these on stack because this
     // code is alive until the end of the program.
 
@@ -72,9 +69,14 @@ int main (int argc, char ** argv) {
     hclib_end_finish();
 
     printf("Call Finalize\n");
-    hclib_finalize();
+}
+
+int main (int argc, char ** argv) {
+    printf("Call Init\n");
+    int *ran=(int *)malloc(H1*sizeof(int));
+    hclib_launch(&argc, argv, entrypoint, ran);
     printf("Check results: ");
-    i=0;
+    int i = 0;
     while(i < H1) {
         assert(ran[i] == i);
         i++;

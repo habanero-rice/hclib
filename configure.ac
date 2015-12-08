@@ -16,9 +16,18 @@ AC_COPYRIGHT([])
 # configure script revision
 AC_REVISION([$Revision: 0.1 $])
 
+AM_PROG_AS
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_LANG(C++)
+AC_CANONICAL_HOST
+
+# Platform check
+AM_CONDITIONAL([OSX], [case $host_os in darwin*) true;; *) false;; esac])
+AM_CONDITIONAL([LINUX], [case $host_os in *linux*) true;; *) false;; esac])
+AM_CONDITIONAL([X86], [case $host_cpu in i?86) true;; *) false;; esac])
+AM_CONDITIONAL([X86_64], [case $host_cpu in x86_64) true;; *) false;; esac])
+AC_MSG_NOTICE([Host detected as $host_os $host_cpu])
 
 CPPFLAGS=$CPPFLAGS_BACKUP
 

@@ -66,24 +66,22 @@ void ddt_init(ddt_t * ddt, hclib_ddf_t ** ddf_list) {
 }
 
 /**
- * Allocate a DDF and initializes it.
+ * Initialize a pre-Allocated DDF.
  */
-hclib_ddf_t * hclib_ddf_create() {
-	hclib_ddf_t * ddf = (hclib_ddf_t *) malloc(sizeof(hclib_ddf_t));
-    assert(ddf);
-	ddf-> kind = DDF_KIND_SHARED;
-	ddf->datum = UNINITIALIZED_DDF_DATA_PTR;
-	ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
-	return ddf;
+void hclib_ddf_init(hclib_ddf_t* ddf) {
+    ddf->kind = DDF_KIND_SHARED;
+    ddf->datum = UNINITIALIZED_DDF_DATA_PTR;
+    ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
 }
 
 /**
- * Initialize a pre-Allocated DDF.
+ * Allocate a DDF and initializes it.
  */
-void ddf_create_preinit(hclib_ddf_t* ddf) {
-	ddf-> kind = DDF_KIND_SHARED;
-	ddf->datum = UNINITIALIZED_DDF_DATA_PTR;
-	ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
+hclib_ddf_t * hclib_ddf_create() {
+    hclib_ddf_t * ddf = (hclib_ddf_t *) malloc(sizeof(hclib_ddf_t));
+    assert(ddf);
+    hclib_ddf_init(ddf);
+    return ddf;
 }
 
 /**

@@ -44,6 +44,8 @@ extern "C" {
  * @file Interface to HCLIB
  */
 
+#define HCLIB_LITECTX_STRATEGY 1
+
 /**
  * @defgroup HClib Finish/Async/Forasync
  * @brief Core API, Finish/Async/Forasync for structured parallelism.
@@ -53,6 +55,12 @@ extern "C" {
 
 //TODO make this conditional in phased.h
 struct _phased_t;
+
+/**
+ * @brief Function prototype executable by an async.
+ * @param[in] arg           Arguments to the function
+ */
+typedef void (*asyncFct_t) (void * arg);
 
 /**
  * @brief Initialize the HClib runtime.
@@ -66,15 +74,11 @@ void hclib_init(int * argc, char ** argv);
  */
 void hclib_finalize();
 
+void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
+
 /*
  * Async definition and API
  */
-
-/**
- * @brief Function prototype executable by an async.
- * @param[in] arg           Arguments to the function
- */
-typedef void (*asyncFct_t) (void * arg);
 
 // forward declaration for phased clause defined in phased.h
 struct _phased_t;
@@ -104,6 +108,8 @@ typedef int forasync_mode_t;
 #define FORASYNC_MODE_RECURSIVE 1
 /** @brief Forasync mode to perform static chunking of the iteration space. */
 #define FORASYNC_MODE_FLAT 0
+/** @brief To indicate an async need not register with any finish scopes. */
+#define ESCAPING_ASYNC      ((int) 0x2)
 
 /**
  * @brief Function prototype for a 1-dimension forasync.

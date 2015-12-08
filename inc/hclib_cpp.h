@@ -13,6 +13,13 @@ typedef hclib_ddf_t ddf_t;
 
 void init(int *argc, char **argv);
 void finalize();
+template <typename T>
+void launch(int *argc, char **argv, T lambda) {
+    init(argc, argv);
+    lambda();
+    finalize();
+}
+
 void start_finish();
 void end_finish();
 

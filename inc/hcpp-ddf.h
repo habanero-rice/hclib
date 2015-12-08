@@ -95,7 +95,7 @@ hclib_ddf_t *hclib_ddf_create();
 /**
  * Initialize a pre-Allocated DDF.
  */
-void ddf_create_preinit(hclib_ddf_t* ddf);
+void hclib_ddf_init(hclib_ddf_t* ddf);
 
 /**
  * @brief Allocate and initialize an array of DDFs.

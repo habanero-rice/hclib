@@ -1,7 +1,7 @@
 SUBDIRS =
 
 # Includes folders
-INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc
+INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/fcontext
 
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O3 -std=c99
@@ -34,8 +34,44 @@ lib_LTLIBRARIES = libhcpp.la
 noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
-AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhcpp_la_SOURCES = hcpp-runtime.c hcpp-deque.c hcpp-hpt.c hcpp-thread-bind.c hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c
+AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) \
+			  -I$(LIBXML2_INCLUDE)
+libhcpp_la_SOURCES = hcpp-runtime.c hcpp-deque.c hcpp-hpt.c hcpp-thread-bind.c \
+					 hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c
+
+if X86
+if OSX
+libhcpp_la_SOURCES += \
+fcontext/jump_i386_sysv_macho_gas.S \
+fcontext/make_i386_sysv_macho_gas.S
+else
+if LINUX
+libhcpp_la_SOURCES += \
+fcontext/jump_i386_sysv_elf_gas.S \
+fcontext/make_i386_sysv_elf_gas.S
+else
+$(error Unknown OS)
+endif # LINUX
+endif # OSX
+else
+if X86_64
+if OSX
+libhcpp_la_SOURCES += \
+fcontext/jump_x86_64_sysv_macho_gas.S \
+fcontext/make_x86_64_sysv_macho_gas.S
+else
+if LINUX
+libhcpp_la_SOURCES += \
+fcontext/jump_x86_64_sysv_elf_gas.S \
+fcontext/make_x86_64_sysv_elf_gas.S
+else
+$(error Unknown OS)
+endif # LINUX
+endif # OSX
+else
+$(error Unknown architecture)
+endif # X86_64
+endif # X86
 
 # build hcpp
 libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)

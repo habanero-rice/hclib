@@ -39,9 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCPP_INTERNAL_H_
 #define HCPP_INTERNAL_H_
 
-#include "hcpp.h"
 #include <stdarg.h>
+#include <stdint.h>
 #include "hcpp-deque.h"
+#include "hcpp.h"
+#include "litectx.h"
 
 #define LOG_LEVEL_FATAL         1
 #define LOG_LEVEL_WARN          2
@@ -67,6 +69,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define log_die(... ) { LOG_FATAL(__VA_ARGS__); abort(); }
 #define check_log_die(cond, ... ) if(cond) { log_die(__VA_ARGS__) }
 
+#define CACHE_LINE_L1 8
+
+typedef struct {
+    volatile uint64_t flag;
+    void * pad[CACHE_LINE_L1-1];
+} worker_done_t;
+
 typedef struct hc_options {
     int nproc; /* number of physical processors */
     /* number of workers, one per hardware core, plus workers for device (GPU)
@@ -84,8 +93,9 @@ typedef struct hc_context {
     int nworkers; /* # of worker threads created */
     int nplaces; /* # of places */
     int nproc; /* the number of hardware cores in the runtime */
-    volatile int workers_wait_cond; /* a simple implementation of wait/wakeup condition */
-    volatile int done;
+    /* a simple implementation of wait/wakeup condition */
+    volatile int workers_wait_cond;
+    worker_done_t *done_flags;
 } hc_context;
 
 #include "hcpp-finish.h"
