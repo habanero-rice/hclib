@@ -44,8 +44,6 @@ extern "C" {
  * @file Interface to HCLIB
  */
 
-#define HCLIB_LITECTX_STRATEGY 1
-
 /**
  * @defgroup HClib Finish/Async/Forasync
  * @brief Core API, Finish/Async/Forasync for structured parallelism.

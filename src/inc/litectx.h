@@ -1,6 +1,7 @@
 #ifndef _LITECTX_H_
 #define _LITECTX_H_
 
+#include "hclib_common.h"
 #include <stdlib.h>
 #include "fcontext.h"
 #include <string.h>

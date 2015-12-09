@@ -94,22 +94,6 @@ inline void increment_asyncComm_counter() {
     total_push_outd++;
 }
 
-/**
- * current - current context pointer
- * next - target context pointer
- * return - pointer to the current context,
- *   with the prev field set to the source context's pointer
- */
-static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next,
-        const char *lbl) {
-    next->prev = current;
-#ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap[%s]: current=%p next=%p\n", lbl, current,
-            next);
-#endif
-    jump_fcontext(&current->_fctx, next->_fctx, next, false);
-}
-
 void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hcpp_context->workers[wid]) != 0) {
 		log_die("Cannot set thread-local worker state");
@@ -122,6 +106,22 @@ void set_current_worker(int wid) {
 
 int get_current_worker() {
     return ((hc_workerState*)pthread_getspecific(ws_key))->id;
+}
+
+/**
+ * current - current context pointer
+ * next - target context pointer
+ * return - pointer to the current context,
+ *   with the prev field set to the source context's pointer
+ */
+static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next,
+        const char *lbl) {
+    next->prev = current;
+#ifdef VERBOSE
+    fprintf(stderr, "LiteCtx_swap[%s]: wid=%d current=%p next=%p\n", lbl,
+            get_current_worker(), current, next);
+#endif
+    jump_fcontext(&current->_fctx, next->_fctx, next, false);
 }
 
 static void set_curr_lite_ctx(LiteCtx *ctx) {
@@ -503,8 +503,10 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
     LiteCtx *original = ctx->prev;
     hclib_end_finish();
-    // Signal shutdown, switch back to original thread
+    // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
+    fprintf(stderr, "Leaving _hclib_finalize_ctx\n");
+    // Switch back to the main context for the main application thread
     LiteCtx_swap(ctx, original, "_hclib_finalize_ctx");
 }
 
@@ -512,26 +514,31 @@ void hclib_start_ctx(void) {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create();
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
     LiteCtx_swap(finalize_ctx, finish_ctx, "hclib_start_ctx");
+    fprintf(stderr, "exiting hclib_start_ctx\n");
     // free resources
     LiteCtx_destroy(finish_ctx);
     LiteCtx_proxy_destroy(finalize_ctx);
 }
 
-static void crt_work_loop(LiteCtx *ctx) {
+static void core_work_loop() {
     uint64_t wid;
     do {
         hc_workerState *ws = CURRENT_WS_INTERNAL;
         wid = (uint64_t)ws->id;
         find_and_run_task(ws);
     } while (hcpp_context->done_flags[wid].flag);
-    // switch back to original thread
-    LiteCtx_swap(ctx, ctx->prev, "crt_work_loop");
 }
 
-static void _worker_ctx(LiteCtx *ctx) {
+static void crt_work_loop(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
-
-    crt_work_loop(ctx);
+    LiteCtx *original = ctx->prev;
+    core_work_loop();
+    /*
+     * switch back to whichever thread created this work loop context, either
+     * the main entrypoint of a worker thread (worker_routine) or a thread that
+     * hit an end finish.
+     */
+    LiteCtx_swap(ctx, original, "crt_work_loop");
 }
 
 /*
@@ -540,8 +547,8 @@ static void _worker_ctx(LiteCtx *ctx) {
  * be performed from beneath an explicitly created context, rather than from a
  * pthread context. To do this, we start worker_routine by creating a proxy
  * context to switch from and create a lightweight context to switch to, which
- * enters _worker_ctx immediately. _worker_ctx then moves into the main work
- * loop contained in crt_work_loop, eventually swapping back to the proxy task
+ * enters crt_work_loop immediately, moving into the main work loop, eventually
+ * swapping back to the proxy task
  * to clean up this worker thread when the worker thread is signalled to exit.
  */
 static void* worker_routine(void * args) {
@@ -553,9 +560,9 @@ static void* worker_routine(void * args) {
 
     /*
      * Create the new proxy we will be switching to, which will start with
-     * _worker_ctx at the top of the stack.
+     * crt_work_loop at the top of the stack.
      */
-    LiteCtx *newCtx = LiteCtx_create(_worker_ctx);
+    LiteCtx *newCtx = LiteCtx_create(crt_work_loop);
     newCtx->arg = args;
 
     // Swap in the newCtx lite context
@@ -563,7 +570,7 @@ static void* worker_routine(void * args) {
 
 #ifdef VERBOSE
     fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
-            "and lite ctx %p\n", wid, currentCtx, newCtx);
+            "and lite ctx %p\n", get_current_worker(), currentCtx, newCtx);
 #endif
 
     // free resources
@@ -610,19 +617,19 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     // Set up previous context to be stolen when the finish completes
     // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
     finish_t *finish = ctx->arg;
-    LiteCtx *finish_ctx = ctx->prev;
+    LiteCtx *hclib_finish_ctx = ctx->prev;
 
     hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.is_asyncAnyType = 0;
     task->async_task.ddf_list = NULL;
-    task->async_task.args = finish_ctx;
+    task->async_task.args = hclib_finish_ctx;
 
     spawn_escaping((task_t *)task, finish->finish_deps);
 
     // keep workstealing until this context gets swapped out and destroyed
     check_out_finish(finish);
-    crt_work_loop(ctx);
+    core_work_loop();
 }
 #else /* default (broken) strategy */
 static void _help_finish(finish_t * finish) {
@@ -814,6 +821,7 @@ void hclib_finalize() {
 
     hcpp_join(hcpp_context->nworkers);
     hcpp_cleanup();
+    fprintf(stderr, "Exiting hclib_finalize\n");
 }
 
 /**
