@@ -55,10 +55,9 @@ pthread_key_t ws_key;
 semiConcDeque_t * comm_worker_out_deque;
 #endif
 
-static finish_t*	root_finish;
+// static finish_t*	root_finish;
 
 hc_context* 		hcpp_context;
-hc_options* 		hcpp_options;
 
 static char *hcpp_stats = NULL;
 static int bind_threads = -1;
@@ -97,6 +96,18 @@ inline void increment_asyncComm_counter() {
     total_push_outd++;
 }
 
+/**
+ * current - current context pointer
+ * next - target context pointer
+ * return - pointer to the current context,
+ *   with the prev field set to the source context's pointer
+ */
+static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next) {
+    next->prev = current;
+    fprintf(stderr, "LiteCtx_swap: current=%p next=%p\n", current, next);
+    jump_fcontext(&current->_fctx, next->_fctx, next, false);
+}
+
 void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hcpp_context->workers[wid]) != 0) {
 		log_die("Cannot set thread-local worker state");
@@ -111,10 +122,13 @@ int get_current_worker() {
     return ((hc_workerState*)pthread_getspecific(ws_key))->id;
 }
 
-void set_curr_lite_ctx(LiteCtx *ctx) { CURRENT_WS_INTERNAL->curr_ctx = ctx; }
-LiteCtx *get_curr_lite_ctx() { return CURRENT_WS_INTERNAL->curr_ctx; }
-void set_orig_lite_ctx(LiteCtx *ctx) { CURRENT_WS_INTERNAL->orig_ctx = ctx; }
-LiteCtx *get_orig_lite_ctx() { return CURRENT_WS_INTERNAL->orig_ctx; }
+static void set_curr_lite_ctx(LiteCtx *ctx) {
+    CURRENT_WS_INTERNAL->curr_ctx = ctx;
+}
+static LiteCtx *get_curr_lite_ctx() {
+    return CURRENT_WS_INTERNAL->curr_ctx;
+}
+// LiteCtx *get_orig_lite_ctx() { return CURRENT_WS_INTERNAL->orig_ctx; }
 
 hc_workerState* current_ws() {
     return CURRENT_WS_INTERNAL;
@@ -156,8 +170,15 @@ void hcpp_global_init() {
 #endif
 
     init_hcupc_related_datastructures(hcpp_context->nworkers);
+
+    // Sets up the deques and worker contexts for the parsed HPT
+    hc_hpt_init(hcpp_context);
 }
 
+/*
+ * Launch nworkers - 1 worker threads, retaining the current main thread as the
+ * final worker. See worker_routine for a description of worker initialization.
+ */
 void hcpp_create_worker_threads(int nb_workers) {
     /* setting current thread as worker 0 */
     // Launch the worker threads
@@ -168,9 +189,15 @@ void hcpp_create_worker_threads(int nb_workers) {
     // Start workers
     for (int i = 1; i < nb_workers; i++) {
         pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine,
-                &hcpp_context->workers[i]->id);
+        if (pthread_attr_init(&attr) != 0) {
+            fprintf(stderr, "Error in pthread_attr_init\n");
+            exit(1);
+        }
+        if (pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine,
+                &hcpp_context->workers[i]->id) != 0) {
+            fprintf(stderr, "Error launching thread\n");
+            exit(1);
+        }
     }
     set_current_worker(0);
 }
@@ -190,46 +217,51 @@ static void display_runtime() {
 }
 
 void hcpp_entrypoint() {
-	if (hcpp_stats) {
-		display_runtime();
-	}
+    if (hcpp_stats) {
+        display_runtime();
+    }
 
-	srand(0);
+    srand(0);
 
-    hcpp_options = (hc_options *)malloc(sizeof(hc_options));
-	HASSERT(hcpp_options);
     hcpp_context = (hc_context *)malloc(sizeof(hc_context));
-	HASSERT(hcpp_context);
+    HASSERT(hcpp_context);
 
-	hcpp_global_init();
+    /*
+     * Parse the platform description from the HPT configuration file and load
+     * it into the hcpp_context.
+     */
+    hcpp_global_init();
 
-	hc_hpt_init(hcpp_context);
-
-	// init timer stats
-    int have_comm_worker = 0;
 #ifdef HCPP_COMM_WORKER
-    have_comm_worker = 1;
+    const int have_comm_worker = 1;
+#else
+    const int have_comm_worker = 0;
 #endif
-	hcpp_initStats(hcpp_context->nworkers, have_comm_worker);
+    // init timer stats
+    hcpp_initStats(hcpp_context->nworkers, have_comm_worker);
 
-	/* Create key to store per thread worker_state */
-	if (pthread_key_create(&ws_key, NULL) != 0) {
-		log_die("Cannot create ws_key for worker-specific data");
-	}
+    /* Create key to store per thread worker_state */
+    if (pthread_key_create(&ws_key, NULL) != 0) {
+        log_die("Cannot create ws_key for worker-specific data");
+    }
 
-	/*
+    /*
      * set pthread's concurrency. Doesn't seem to do much on Linux, only
      * relevant when there are more pthreads than hardware cores to schedule
      * them on. */
-	pthread_setconcurrency(hcpp_context->nworkers);
+    pthread_setconcurrency(hcpp_context->nworkers);
 
-	/* Create all worker threads, running worker_routine */
-	hcpp_create_worker_threads(hcpp_context->nworkers);
+    /* Create all worker threads, running worker_routine */
+    hcpp_create_worker_threads(hcpp_context->nworkers);
 
-	// allocate root finish
-    root_finish = (finish_t *)malloc(sizeof(finish_t));
-	CURRENT_WS_INTERNAL->current_finish = root_finish;
-	hclib_start_finish();
+    // allocate root finish
+    // TODO what is the purpose of the root finish?
+    // root_finish = (finish_t *)malloc(sizeof(finish_t));
+    // assert(root_finish);
+    // root_finish->parent = NULL;
+    // root_finish->finish_deps = NULL;
+    // CURRENT_WS_INTERNAL->current_finish = root_finish;
+    hclib_start_finish();
 }
 
 void hcpp_signal_join(int nb_workers) {
@@ -240,21 +272,20 @@ void hcpp_signal_join(int nb_workers) {
 }
 
 void hcpp_join(int nb_workers) {
-	// Join the workers
-	for(int i=1;i< nb_workers; i++) {
-		pthread_join(hcpp_context->workers[i]->t, NULL);
-	}
+    // Join the workers
+    for(int i=1;i< nb_workers; i++) {
+        pthread_join(hcpp_context->workers[i]->t, NULL);
+    }
 }
 
 void hcpp_cleanup() {
-	// hc_hpt_cleanup(hcpp_context); /* cleanup deques (allocated by hc mm) */
-	// pthread_key_delete(ws_key);
+	hc_hpt_cleanup(hcpp_context); /* cleanup deques (allocated by hc mm) */
+	pthread_key_delete(ws_key);
 
-	// free(hcpp_context);
-	// free(hcpp_options);
-	// free(total_steals);
-	// free(total_push_ind);
-	// free_hcupc_related_datastructures();
+	free(hcpp_context);
+	free(total_steals);
+	free(total_push_ind);
+	free_hcupc_related_datastructures();
 }
 
 static inline void check_in_finish(finish_t * finish) {
@@ -267,25 +298,28 @@ static inline void check_out_finish(finish_t * finish) {
     if (finish) {
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            hclib_ddf_put(finish->finish_deps[0], finish);
+            // if (finish->finish_deps) {
+                // finish_deps will be NULL on the root finish
+                hclib_ddf_put(finish->finish_deps[0], finish);
+            // }
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
 }
 
 static inline void execute_task(task_t* task) {
-	finish_t* current_finish = get_current_finish(task);
+    finish_t* current_finish = get_current_finish(task);
     /*
      * Update the current finish of this worker to be inherited from the
      * currently executing task so that any asyncs spawned from the currently
      * executing task are registered on the same finish.
      */
-	CURRENT_WS_INTERNAL->current_finish = current_finish;
+    CURRENT_WS_INTERNAL->current_finish = current_finish;
 
     // task->_fp is of type 'void (*generic_framePtr)(void*)'
-	(task->_fp)(task->args);
-	check_out_finish(current_finish);
-	HC_FREE(task);
+    (task->_fp)(task->args);
+    check_out_finish(current_finish);
+    HC_FREE(task);
 }
 
 static inline void rt_schedule_async(task_t* async_task, int comm_task) {
@@ -466,65 +500,70 @@ void find_and_run_task(hc_workerState* ws) {
     if (task) {
         execute_task(task);
     }
-
 }
 
 #if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
     hclib_end_finish();
-    // TODO:
-    // signal shutdown
-    // switch back to original thread
+    // Signal shutdown, switch back to original thread
     hcpp_signal_join(hcpp_context->nworkers);
-    LiteCtx *originalCtx = get_orig_lite_ctx();
-    LiteCtx_swap(ctx, originalCtx);
-    set_curr_lite_ctx(ctx);
+    LiteCtx_swap(ctx, ctx->prev);
 }
 
 void hclib_start_ctx(void) {
-    LiteCtx *currentCtx = LiteCtx_proxy_create();
-    set_orig_lite_ctx(currentCtx);
-    LiteCtx *newCtx = LiteCtx_create(_hclib_finalize_ctx);
-    LiteCtx_swap(currentCtx, newCtx);
+    LiteCtx *finalize_ctx = LiteCtx_proxy_create();
+    LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
+    LiteCtx_swap(finalize_ctx, finish_ctx);
     // free resources
-    LiteCtx_destroy(currentCtx->prev);
-    LiteCtx_proxy_destroy(currentCtx);
+    LiteCtx_destroy(finish_ctx->prev);
+    LiteCtx_proxy_destroy(finish_ctx);
 }
 
-static void crt_work_loop(void) {
+static void crt_work_loop(LiteCtx *ctx) {
     uint64_t wid;
     do {
         hc_workerState *ws = CURRENT_WS_INTERNAL;
         wid = (uint64_t)ws->id;
         find_and_run_task(ws);
-    } while(hcpp_context->done_flags[wid].flag);
+    } while (hcpp_context->done_flags[wid].flag);
     // switch back to original thread
-    {
-        LiteCtx *currentCtx = get_curr_lite_ctx();
-        LiteCtx *originalCtx = get_orig_lite_ctx();
-        LiteCtx_swap(currentCtx, originalCtx);
-    }
+    LiteCtx_swap(ctx, ctx->prev);
 }
 
 static void _worker_ctx(LiteCtx *ctx) {
-    const int wid = *((int *)ctx->arg);
-    set_current_worker(wid);
-
     set_curr_lite_ctx(ctx);
-    crt_work_loop();
+
+    crt_work_loop(ctx);
 }
 
+/*
+ * With the addition of lightweight context switching, worker creation becomes a
+ * bit more complicated because we need all task creation and finish scopes to
+ * be performed from beneath an explicitly created context, rather than from a
+ * pthread context. To do this, we start worker_routine by creating a proxy
+ * context to switch from and create a lightweight context to switch to, which
+ * enters _worker_ctx immediately. _worker_ctx then moves into the main work
+ * loop contained in crt_work_loop, eventually swapping back to the proxy task
+ * to clean up this worker thread when the worker thread is signalled to exit.
+ */
 static void* worker_routine(void * args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
 
-    // set up context
+    // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create();
-    set_orig_lite_ctx(currentCtx);
+
+    /*
+     * Create the new proxy we will be switching to, which will start with
+     * _worker_ctx at the top of the stack.
+     */
     LiteCtx *newCtx = LiteCtx_create(_worker_ctx);
     newCtx->arg = args;
+
+    // Swap in the newCtx lite context
     LiteCtx_swap(currentCtx, newCtx);
+
     // free resources
     LiteCtx_destroy(currentCtx->prev);
     LiteCtx_proxy_destroy(currentCtx);
@@ -558,7 +597,7 @@ static void _finish_ctx_resume(void *arg) {
     assert(!"UNREACHABLE");
 }
 
-void crt_work_loop(void);
+void crt_work_loop(LiteCtx *ctx);
 
 static void _help_finish_ctx(LiteCtx *ctx) {
     // Remember the current context
@@ -566,19 +605,19 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     // Set up previous context to be stolen when the finish completes
     // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
     finish_t *finish = ctx->arg;
-    LiteCtx *finishCtx = ctx->prev;
+    LiteCtx *finish_ctx = ctx->prev;
 
     hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.is_asyncAnyType = 0;
     task->async_task.ddf_list = NULL;
-    task->async_task.args = finishCtx;
+    task->async_task.args = finish_ctx;
 
     spawn_escaping((task_t *)task, finish->finish_deps);
 
     // keep workstealing until this context gets swapped out and destroyed
     check_out_finish(finish);
-    crt_work_loop();
+    crt_work_loop(ctx);
 }
 #else /* default (broken) strategy */
 static void _help_finish(finish_t * finish) {
@@ -600,9 +639,9 @@ void help_finish(finish_t * finish) {
     // reached but it hasn't completed yet.
     // Note that's also where the master worker ends up entering its work loop
 
-#   if HCLIB_THREAD_BLOCKING_STRATEGY
-#   error Thread-blocking strategy is not yet implemented
-#   elif HCLIB_LITECTX_STRATEGY
+#if HCLIB_THREAD_BLOCKING_STRATEGY
+#error Thread-blocking strategy is not yet implemented
+#elif HCLIB_LITECTX_STRATEGY
     {
         // create finish event
         hclib_ddf_t *finish_deps[] = { hclib_ddf_create(), NULL };
@@ -617,9 +656,9 @@ void help_finish(finish_t * finish) {
         LiteCtx_destroy(currentCtx->prev);
         hclib_ddf_free(finish_deps[0]);
     }
-#   else /* default (broken) strategy */
+#else /* default (broken) strategy */
     _help_finish(finish);
-#   endif /* HCLIB_???_STRATEGY */
+#endif /* HCLIB_???_STRATEGY */
 
     assert(finish->counter == 0);
 }
@@ -634,14 +673,14 @@ void hclib_start_finish() {
     finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
     finish->counter = 0;
     finish->parent = ws->current_finish;
-    if(finish->parent) {
+    if (finish->parent) {
         check_in_finish(finish->parent);
     }
     ws->current_finish = finish;
 }
 
 void hclib_end_finish() {
-    hc_workerState* ws =CURRENT_WS_INTERNAL;
+    hc_workerState* ws = CURRENT_WS_INTERNAL;
     finish_t* current_finish = ws->current_finish;
 
     if (current_finish->counter > 0) {
@@ -725,7 +764,7 @@ void showStatsFooter() {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-void hclib_init(int * argc, char ** argv) {
+void hclib_init(int* argc, char** argv) {
     assert(hcpp_stats == NULL);
     assert(bind_threads == -1);
     hcpp_stats = getenv("HCPP_STATS");
@@ -746,22 +785,22 @@ void hclib_init(int * argc, char ** argv) {
     hcpp_entrypoint();
 }
 
-void hclib_finalize() {
 
+void hclib_finalize() {
 #if HCLIB_LITECTX_STRATEGY
     hclib_start_ctx();
 #else /* default (broken) strategy */
-	hclib_end_finish();
+    hclib_end_finish();
     hcpp_signal_join(hcpp_context->nworkers);
 #endif /* HCLIB_LITECTX_STRATEGY */
-	free(root_finish);
+    // free(root_finish);
 
-	if (hcpp_stats) {
-		showStatsFooter();
-	}
+    if (hcpp_stats) {
+        showStatsFooter();
+    }
 
-	hcpp_join(hcpp_context->nworkers);
-	hcpp_cleanup();
+    hcpp_join(hcpp_context->nworkers);
+    hcpp_cleanup();
 }
 
 /**

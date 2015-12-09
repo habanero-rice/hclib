@@ -311,11 +311,6 @@ static const char *place_type_to_str(short type) {
 
 /* init the hpt and place deques */
 void hc_hpt_init(hc_context * context) {
-    if (sizeof(hc_deque_t) < 128) {
-        fprintf(stderr, "WARNING: deque size is less than 128 bytes, and may "
-                "lead to frequent false sharing of cache lines.\n");
-    }
-
     int i, j;
 #ifdef HPT_DESCENTWORKER_PERPLACE
     /*
@@ -326,6 +321,7 @@ void hc_hpt_init(hc_context * context) {
         place_t * pl = context->places[i];
         int nworkers = pl->ndeques;
         pl->deques = malloc(sizeof(hc_deque_t) * nworkers);
+        assert(pl->deques);
         for (j = 0; j < nworkers; j++) {
             hc_deque_t * deq = &(pl->deques[j]);
             init_hc_deque_t(deq, pl);
@@ -344,40 +340,6 @@ void hc_hpt_init(hc_context * context) {
             hc_deque_t * hc_deq = &(pl->deques[j]);
             init_hc_deque_t(hc_deq, pl);
         }
-    }
-#endif
-
-    /* init the deque in the HPT tree, set the current place of each worker,
-     * and link the deque for the worker
-     */
-#if 0 /* this is the algorithm in which we only have a deque for the ancestor places of a worker */
-    for (i=0; i<context->nworkers; i++) {
-        hc_workerState * ws = context->workers[i];
-        place_t * parent = ws->pl;
-        hc_deque_t * tmp = NULL;
-        hc_deque_t * deqp = NULL;
-        hc_deque_t * endp = NULL;
-        while (parent != NULL) {
-            for (j=0; j<parent->ndeques; j++) {
-                tmp = &(parent->deques[j]);
-                if (tmp->ws == NULL) { /* find the first deque not owned by a worker */
-                    tmp->ws = ws;
-                    ws->current = tmp; /* we will finally set it to the topmost one */
-                    printf("worker %d deque is at slot %d of place %d\n", ws->id, j, parent->id);
-                    if (deqp == NULL) {
-                        deqp = tmp;
-                        endp = tmp;
-                    } else {
-                        endp->prev = tmp;
-                        tmp->nnext = endp;
-                        endp = tmp;
-                    }
-                    break;
-                }
-            }
-            parent = parent->parent;
-        }
-        ws->deques = deqp;
     }
 #endif
 

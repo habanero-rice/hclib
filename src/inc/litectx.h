@@ -25,32 +25,25 @@ static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
     ctx->arg = NULL;
     typedef void (*ft)(void*);
     ctx->_fctx = make_fcontext(stack_top, LITECTX_STACK_SIZE, (ft)fn);
+    fprintf(stderr, "LiteCtx_create: %p\n", ctx);
     return ctx;
 }
 
 static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
+    fprintf(stderr, "LiteCtx_destroy: ctx=%p\n", ctx);
     LITECTX_FREE(ctx);
 }
 
 static __inline__ LiteCtx *LiteCtx_proxy_create(void) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(sizeof(*ctx));
     memset(ctx, 0, sizeof(*ctx));
+    fprintf(stderr, "LiteCtx_proxy_create: %p\n", ctx);
     return ctx;
 }
 
 static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
+    fprintf(stderr, "LiteCtx_proxy_destroy: ctx=%p\n", ctx);
     LITECTX_FREE(ctx);
-}
-
-/**
- * current - current context pointer
- * next - target context pointer
- * return - pointer to the current context,
- *   with the prev field set to the source context's pointer
- */
-static __inline__ LiteCtx *LiteCtx_swap(LiteCtx *current, LiteCtx *next) {
-    next->prev = current;
-    return (LiteCtx *)jump_fcontext(&current->_fctx, next->_fctx, next, false);
 }
 
 #endif /* _LITECTX_H_ */
