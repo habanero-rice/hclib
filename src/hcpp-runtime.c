@@ -55,8 +55,6 @@ pthread_key_t ws_key;
 semiConcDeque_t * comm_worker_out_deque;
 #endif
 
-// static finish_t*	root_finish;
-
 hc_context* 		hcpp_context;
 
 static char *hcpp_stats = NULL;
@@ -102,9 +100,13 @@ inline void increment_asyncComm_counter() {
  * return - pointer to the current context,
  *   with the prev field set to the source context's pointer
  */
-static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next) {
+static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next,
+        const char *lbl) {
     next->prev = current;
-    fprintf(stderr, "LiteCtx_swap: current=%p next=%p\n", current, next);
+#ifdef VERBOSE
+    fprintf(stderr, "LiteCtx_swap[%s]: current=%p next=%p\n", lbl, current,
+            next);
+#endif
     jump_fcontext(&current->_fctx, next->_fctx, next, false);
 }
 
@@ -148,6 +150,7 @@ void hcpp_global_init() {
     for (int i = 0; i < hcpp_context->nworkers; i++) {
         hc_workerState * ws = hcpp_context->workers[i];
         ws->context = hcpp_context;
+        ws->current_finish = NULL;
     }
     hcpp_context->done_flags = (worker_done_t *)malloc(
             hcpp_context->nworkers * sizeof(worker_done_t));
@@ -193,7 +196,7 @@ void hcpp_create_worker_threads(int nb_workers) {
             fprintf(stderr, "Error in pthread_attr_init\n");
             exit(1);
         }
-        if (pthread_create(&hcpp_context->workers[i]->t, &attr, &worker_routine,
+        if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
                 &hcpp_context->workers[i]->id) != 0) {
             fprintf(stderr, "Error launching thread\n");
             exit(1);
@@ -255,12 +258,6 @@ void hcpp_entrypoint() {
     hcpp_create_worker_threads(hcpp_context->nworkers);
 
     // allocate root finish
-    // TODO what is the purpose of the root finish?
-    // root_finish = (finish_t *)malloc(sizeof(finish_t));
-    // assert(root_finish);
-    // root_finish->parent = NULL;
-    // root_finish->finish_deps = NULL;
-    // CURRENT_WS_INTERNAL->current_finish = root_finish;
     hclib_start_finish();
 }
 
@@ -296,12 +293,11 @@ static inline void check_in_finish(finish_t * finish) {
 
 static inline void check_out_finish(finish_t * finish) {
     if (finish) {
+        // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            // if (finish->finish_deps) {
-                // finish_deps will be NULL on the root finish
-                hclib_ddf_put(finish->finish_deps[0], finish);
-            // }
+            // finish_deps will be NULL on the root finish
+            hclib_ddf_put(finish->finish_deps[0], finish);
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
@@ -505,19 +501,20 @@ void find_and_run_task(hc_workerState* ws) {
 #if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
+    LiteCtx *original = ctx->prev;
     hclib_end_finish();
     // Signal shutdown, switch back to original thread
     hcpp_signal_join(hcpp_context->nworkers);
-    LiteCtx_swap(ctx, ctx->prev);
+    LiteCtx_swap(ctx, original, "_hclib_finalize_ctx");
 }
 
 void hclib_start_ctx(void) {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create();
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
-    LiteCtx_swap(finalize_ctx, finish_ctx);
+    LiteCtx_swap(finalize_ctx, finish_ctx, "hclib_start_ctx");
     // free resources
-    LiteCtx_destroy(finish_ctx->prev);
-    LiteCtx_proxy_destroy(finish_ctx);
+    LiteCtx_destroy(finish_ctx);
+    LiteCtx_proxy_destroy(finalize_ctx);
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
@@ -528,7 +525,7 @@ static void crt_work_loop(LiteCtx *ctx) {
         find_and_run_task(ws);
     } while (hcpp_context->done_flags[wid].flag);
     // switch back to original thread
-    LiteCtx_swap(ctx, ctx->prev);
+    LiteCtx_swap(ctx, ctx->prev, "crt_work_loop");
 }
 
 static void _worker_ctx(LiteCtx *ctx) {
@@ -562,10 +559,15 @@ static void* worker_routine(void * args) {
     newCtx->arg = args;
 
     // Swap in the newCtx lite context
-    LiteCtx_swap(currentCtx, newCtx);
+    LiteCtx_swap(currentCtx, newCtx, "worker_routine");
+
+#ifdef VERBOSE
+    fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
+            "and lite ctx %p\n", wid, currentCtx, newCtx);
+#endif
 
     // free resources
-    LiteCtx_destroy(currentCtx->prev);
+    LiteCtx_destroy(newCtx);
     LiteCtx_proxy_destroy(currentCtx);
     return NULL;
 }
@@ -593,8 +595,11 @@ void teardown() {
 static void _finish_ctx_resume(void *arg) {
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
-    LiteCtx_swap(currentCtx, finishCtx);
-    assert(!"UNREACHABLE");
+    LiteCtx_swap(currentCtx, finishCtx, "_finish_ctx_resume");
+
+    fprintf(stderr, "Should not have reached here, currentCtx=%p "
+            "finishCtx=%p\n", currentCtx, finishCtx);
+    assert(0);
 }
 
 void crt_work_loop(LiteCtx *ctx);
@@ -650,10 +655,10 @@ void help_finish(finish_t * finish) {
         LiteCtx *currentCtx = get_curr_lite_ctx();
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
-        LiteCtx_swap(currentCtx, newCtx);
+        LiteCtx_swap(currentCtx, newCtx, "help_finish");
         set_curr_lite_ctx(currentCtx);
         // free resources
-        LiteCtx_destroy(currentCtx->prev);
+        LiteCtx_destroy(newCtx);
         hclib_ddf_free(finish_deps[0]);
     }
 #else /* default (broken) strategy */
@@ -671,11 +676,21 @@ void help_finish(finish_t * finish) {
 void hclib_start_finish() {
     hc_workerState* ws = CURRENT_WS_INTERNAL;
     finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
-    finish->counter = 0;
+    /*
+     * Set finish counter to 1 initially to emulate the main thread inside the
+     * finish being a task registered on the finish. When we reach the
+     * corresponding end_finish we set up the finish_deps for the continuation
+     * and then decrement the counter from the main thread. This ensures that
+     * anytime the counter reaches zero, it is safe to do a ddf_put on the
+     * finish_deps. If we initialized counter to zero here, any async inside the
+     * finish could start and finish before the main thread reaches the
+     * end_finish, decrementing the finish counter to zero when it completes.
+     * This would make it harder to detect when all tasks within the finish have
+     * completed, or just the tasks launched so far.
+     */
+    finish->counter = 1;
     finish->parent = ws->current_finish;
-    if (finish->parent) {
-        check_in_finish(finish->parent);
-    }
+    check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
 }
 
@@ -683,9 +698,8 @@ void hclib_end_finish() {
     hc_workerState* ws = CURRENT_WS_INTERNAL;
     finish_t* current_finish = ws->current_finish;
 
-    if (current_finish->counter > 0) {
-        help_finish(current_finish);
-    }
+    HASSERT(current_finish->counter > 0);
+    help_finish(current_finish);
     HASSERT(current_finish->counter == 0);
 
     if (current_finish->parent) {
@@ -793,7 +807,6 @@ void hclib_finalize() {
     hclib_end_finish();
     hcpp_signal_join(hcpp_context->nworkers);
 #endif /* HCLIB_LITECTX_STRATEGY */
-    // free(root_finish);
 
     if (hcpp_stats) {
         showStatsFooter();

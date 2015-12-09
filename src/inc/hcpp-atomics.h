@@ -53,10 +53,11 @@ static __inline__ int hc_atomic_inc(volatile int *ptr) {
             : "+m" (*(ptr)), "=qm" (c)
               : : "memory"
     );
-    return c!= 0;
+    return c != 0;
 }
 
-/* return 1 if the *ptr becomes 0 after decremented, otherwise return 0
+/*
+ * return 1 if the *ptr becomes 0 after decremented, otherwise return 0
  */
 static __inline__ int hc_atomic_dec(volatile int *ptr) {
     unsigned char rt;

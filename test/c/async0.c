@@ -47,10 +47,10 @@ void async_fct(void * arg) {
 
 void entrypoint(void *arg) {
     fprintf(stderr, "Hello\n");
-    // hclib_start_finish();
-    // hclib_async(async_fct, NULL, NULL, NULL, NO_PROP);
-    // hclib_end_finish();
-    // assert(ran == 1);
+    hclib_start_finish();
+    hclib_async(async_fct, NULL, NULL, NULL, NO_PROP);
+    hclib_end_finish();
+    assert(ran == 1);
     printf("Passed\n");
 }
 

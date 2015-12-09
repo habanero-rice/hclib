@@ -25,24 +25,32 @@ static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
     ctx->arg = NULL;
     typedef void (*ft)(void*);
     ctx->_fctx = make_fcontext(stack_top, LITECTX_STACK_SIZE, (ft)fn);
+#ifdef VERBOSE
     fprintf(stderr, "LiteCtx_create: %p\n", ctx);
+#endif
     return ctx;
 }
 
 static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
+#ifdef VERBOSE
     fprintf(stderr, "LiteCtx_destroy: ctx=%p\n", ctx);
+#endif
     LITECTX_FREE(ctx);
 }
 
 static __inline__ LiteCtx *LiteCtx_proxy_create(void) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(sizeof(*ctx));
     memset(ctx, 0, sizeof(*ctx));
+#ifdef VERBOSE
     fprintf(stderr, "LiteCtx_proxy_create: %p\n", ctx);
+#endif
     return ctx;
 }
 
 static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
+#ifdef VERBOSE
     fprintf(stderr, "LiteCtx_proxy_destroy: ctx=%p\n", ctx);
+#endif
     LITECTX_FREE(ctx);
 }
 
