@@ -152,10 +152,8 @@ static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next,
             get_current_worker(), current, current->_fctx.sp, next, next->_fctx.sp);
 #endif
     next->prev = current;
-    hc_mfence();
     LiteCtx *new_current = jump_fcontext(&current->_fctx, next->_fctx, next,
             false);
-    hc_mfence();
 #ifdef VERBOSE
     fprintf(stderr, "LiteCtx_swap: swapped back in %p(%p)\n", new_current,
             new_current->_fctx.sp);
