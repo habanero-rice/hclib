@@ -24,8 +24,8 @@ static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
     char *const stack_top = ctx->_stack + LITECTX_STACK_SIZE;
     ctx->prev = NULL;
     ctx->arg = NULL;
-    typedef void (*ft)(void*);
-    ctx->_fctx = make_fcontext(stack_top, LITECTX_STACK_SIZE, (ft)fn);
+    ctx->_fctx = make_fcontext(stack_top, LITECTX_STACK_SIZE,
+            (void (*)(void *))fn);
 #ifdef VERBOSE
     fprintf(stderr, "LiteCtx_create: %p\n", ctx);
 #endif
@@ -39,11 +39,11 @@ static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
     LITECTX_FREE(ctx);
 }
 
-static __inline__ LiteCtx *LiteCtx_proxy_create(void) {
+static __inline__ LiteCtx *LiteCtx_proxy_create(const char *lbl) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(sizeof(*ctx));
     memset(ctx, 0, sizeof(*ctx));
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_proxy_create: %p\n", ctx);
+    fprintf(stderr, "LiteCtx_proxy_create[%s]: %p\n", lbl, ctx);
 #endif
     return ctx;
 }

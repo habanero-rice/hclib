@@ -170,7 +170,7 @@ __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
 int iterate_ddt_frontier(ddt_t* wrapperTask) {
 	hclib_ddf_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
 
-    while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND (wrapperTask,
+    while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND(wrapperTask,
                 *currDDFnodeToWaitOn) ) {
         ++currDDFnodeToWaitOn;
     }

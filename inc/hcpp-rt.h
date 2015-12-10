@@ -69,7 +69,6 @@ typedef struct hc_workerState {
         struct hc_deque_t * deques;
         int id; /* The id, identify a worker */
         int did; /* the mapping device id */
-        // LiteCtx *orig_ctx;
         LiteCtx *curr_ctx;
 } hc_workerState;
 
