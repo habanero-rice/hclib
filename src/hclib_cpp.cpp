@@ -2,14 +2,6 @@
 
 namespace hclib {
 
-void init(int *argc, char **argv) {
-    hclib_init(argc, argv);
-}
-
-void finalize() {
-    hclib_finalize();
-}
-
 void start_finish() {
     hclib_start_finish();
 }

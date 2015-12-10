@@ -144,12 +144,23 @@ static LiteCtx *get_curr_lite_ctx() {
  *   3. In the escaping async created that is dependent on each finish, its only
  *      task is to swap out the current stack to the context for the
  *      continuation.
+ *
+ * NOTE: It is important to know that the boost::context library is designed so
+ * that a fiber exiting its main entrypoint function will immediately call
+ * exit(0). Therefore, it is important to be careful at the end of a fiber
+ * entrypoint to always know what context to switch back to. If you do not swap
+ * in another context, the entrypoint will exit and then your application will
+ * exit silently with an exit code of zero. This can be hugely painful to debug.
+ * It is good practice to end any function that acts as the entrypoint for a
+ * fiber with an 'assert(0)' to ensure that if you do hit this case you get a
+ * more sensible error message.
  */
 static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next,
         const char *lbl) {
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap[%s]: wid=%d current=%p(%p) next=%p(%p)\n", lbl,
-            get_current_worker(), current, current->_fctx.sp, next, next->_fctx.sp);
+    fprintf(stderr, "LiteCtx_swap[%s]: wid=%d current=%p(%p) next=%p(%p)\n",
+            lbl, get_current_worker(), current, current->_fctx.sp, next,
+            next->_fctx.sp);
 #endif
     next->prev = current;
     LiteCtx *new_current = jump_fcontext(&current->_fctx, next->_fctx, next,
@@ -185,6 +196,7 @@ void hcpp_global_init() {
         ws->context = hcpp_context;
         ws->current_finish = NULL;
         ws->curr_ctx = NULL;
+        ws->root_ctx = NULL;
     }
     hcpp_context->done_flags = (worker_done_t *)malloc(
             hcpp_context->nworkers * sizeof(worker_done_t));
@@ -228,12 +240,12 @@ void hcpp_create_worker_threads(int nb_workers) {
         pthread_attr_t attr;
         if (pthread_attr_init(&attr) != 0) {
             fprintf(stderr, "Error in pthread_attr_init\n");
-            exit(1);
+            exit(3);
         }
         if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
                 &hcpp_context->workers[i]->id) != 0) {
             fprintf(stderr, "Error launching thread\n");
-            exit(1);
+            exit(4);
         }
     }
     set_current_worker(0);
@@ -347,6 +359,9 @@ static inline void execute_task(task_t* task) {
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 
     // task->_fp is of type 'void (*generic_framePtr)(void*)'
+#ifdef VERBOSE
+    fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
+#endif
     (task->_fp)(task->args);
     check_out_finish(current_finish);
     HC_FREE(task);
@@ -416,6 +431,9 @@ void spawn(task_t * task) {
     check_in_finish(ws->current_finish);
     set_current_finish(task, ws->current_finish);
 
+#ifdef VERBOSE
+    fprintf(stderr, "spawn: task=%p\n", task);
+#endif
     try_schedule_async(task, 0);
 #ifdef HC_COMM_WORKER_STATS
     const int wid = get_current_worker();
@@ -427,6 +445,9 @@ void spawn_escaping(task_t *task, hclib_ddf_t **ddf_list) {
     // get current worker
     set_current_finish(task, NULL);
 
+#ifdef VERBOSE
+    fprintf(stderr, "spawn_escaping: task=%p\n", task);
+#endif
     set_ddf_list(task, ddf_list);
     hcpp_task_t *t = (hcpp_task_t*) task;
     ddt_init(&(t->ddt), ddf_list);
@@ -556,9 +577,21 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
-    fprintf(stderr, "Leaving _hclib_finalize_ctx ctx=%p(%p) main_thread=%p(%p)\n", ctx, ctx->_fctx.sp, main_thread, main_thread->_fctx.sp);
-    // Switch back to the main context for the main application thread
-    LiteCtx_swap(ctx, main_thread, "_hclib_finalize_ctx");
+    /*
+     * If we are the main thread, then simply switch back to the main
+     * application thread. If we are a worker thread, switch back to the pthread
+     * entrypoint worker_routine instead. If a worker thread ends up picking up
+     * this continuation, that implies the main thread is currently off
+     * somewhere in core_work_loop and will be signalled by hcpp_signal_join
+     * causing it to jump back to root_ctx (which for the main thread is
+     * equivalent to main_thread here).
+     */
+    if (get_current_worker() == 0) {
+        LiteCtx_swap(ctx, main_thread, "_hclib_finalize_ctx");
+    } else {
+        LiteCtx_swap(get_curr_lite_ctx(), CURRENT_WS_INTERNAL->root_ctx,
+                "core_work_loop");
+    }
     assert(0); // Should never return here
 }
 
@@ -569,6 +602,11 @@ static void core_work_loop() {
         wid = (uint64_t)ws->id;
         find_and_run_task(ws);
     } while (hcpp_context->done_flags[wid].flag);
+
+    // Jump back to the context for worker_routine
+    hc_workerState *ws = CURRENT_WS_INTERNAL;
+    assert(ws->root_ctx);
+    LiteCtx_swap(get_curr_lite_ctx(), ws->root_ctx, "core_work_loop");
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
@@ -597,9 +635,11 @@ static void crt_work_loop(LiteCtx *ctx) {
 static void* worker_routine(void * args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
+    hc_workerState* ws = CURRENT_WS_INTERNAL;
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create("worker_routine");
+    ws->root_ctx = currentCtx;
 
     /*
      * Create the new proxy we will be switching to, which will start with
@@ -664,6 +704,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
     // Set up previous context to be stolen when the finish completes
     // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
+    // finish_t *finish = ((volatile LiteCtx * volatile)ctx)->arg;
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
@@ -678,6 +719,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     // keep workstealing until this context gets swapped out and destroyed
     check_out_finish(finish);
     core_work_loop();
+    assert(0); // This is the entrypoint of a fiber, so we should never return here.
 }
 #else /* default (broken) strategy */
 static void _help_finish(finish_t * finish) {
@@ -836,7 +878,7 @@ void showStatsFooter() {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-void hclib_init(int* argc, char** argv) {
+static void hclib_init(int* argc, char** argv) {
     assert(hcpp_stats == NULL);
     assert(bind_threads == -1);
     hcpp_stats = getenv("HCPP_STATS");
@@ -851,19 +893,19 @@ void hclib_init(int* argc, char** argv) {
         fprintf(stderr, "ERROR: HCPP_HPT_FILE must be provided. If you do not "
                 "want to write one manually, one can be auto-generated for your "
                 "platform using the hwloc_to_hpt tool.\n");
-        exit(1);
+        exit(2);
     }
 
     hcpp_entrypoint();
 }
 
 
-void hclib_finalize() {
+static void hclib_finalize() {
 #if HCLIB_LITECTX_STRATEGY
     LiteCtx *finalize_ctx = LiteCtx_proxy_create("hclib_finalize");
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
+    CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
     LiteCtx_swap(finalize_ctx, finish_ctx, "hclib_finalize");
-    fprintf(stderr, "main thread swapped back in\n");
     // free resources
     LiteCtx_destroy(finish_ctx);
     // LiteCtx_proxy_destroy(finalize_ctx);
@@ -878,7 +920,6 @@ void hclib_finalize() {
 
     hcpp_join(hcpp_context->nworkers);
     hcpp_cleanup();
-    fprintf(stderr, "Exiting hclib_finalize\n");
 }
 
 /**
@@ -904,6 +945,6 @@ void hclib_finalize() {
 void hclib_launch(int * argc, char ** argv, generic_framePtr fct_ptr,
         void * arg) {
     hclib_init(argc, argv);
-    // hclib_async(fct_ptr, arg, NO_DDF, NO_PHASER, NO_PROP);
+    hclib_async(fct_ptr, arg, NO_DDF, NO_PHASER, NO_PROP);
     hclib_finalize();
 }

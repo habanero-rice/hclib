@@ -21,6 +21,6 @@
 #define NO_ACCUM NULL
 
 #define HCLIB_LITECTX_STRATEGY 1
-#define VERBOSE 1
+// #define VERBOSE 1
 
 #endif

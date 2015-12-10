@@ -61,9 +61,8 @@ void assert_done(int start, int end) {
         start++;
     }
 }
-int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    hclib_init(&argc, argv);
+
+void entrypoint(void *out_mid) {
     hclib_start_finish();
 
     int mid = NB_ASYNC/2;
@@ -79,7 +78,10 @@ int main (int argc, char ** argv) {
         hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
+
     hclib_end_finish();
+    hclib_start_finish();
+
     printf("Midway\n");
     assert_done(0, mid);
     printf("Go over [%d:%d]\n", i, NB_ASYNC);
@@ -89,8 +91,17 @@ int main (int argc, char ** argv) {
         hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
+    hclib_end_finish();
+
     printf("Call Finalize\n");
-    hclib_finalize();
+
+    *((int *)out_mid) = mid;
+}
+
+int main (int argc, char ** argv) {
+    printf("Call Init\n");
+    int mid;
+    hclib_launch(&argc, argv, entrypoint, &mid);
     printf("Check results: ");
     assert_done(mid, NB_ASYNC);
     printf("OK\n");

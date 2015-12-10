@@ -55,24 +55,32 @@ void init_ran(int *ran, int size) {
     }
 }
 
-int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    hclib_init(&argc, argv);
+void entrypoint(void *arg) {
     int i = 0;
     // This is ok to have these on stack because this
     // code is alive until the end of the program.
     int indices [NB_ASYNC];
     init_ran(ran, NB_ASYNC);
-    while(i < NB_ASYNC) {
+
+    hclib_start_finish();
+
+    while (i < NB_ASYNC) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void **
         hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
+
+    hclib_end_finish();
+
     printf("Call Finalize\n");
-    hclib_finalize();
+}
+
+int main (int argc, char ** argv) {
+    printf("Call Init\n");
+    hclib_launch(&argc, argv, entrypoint, NULL);
     printf("Check results: ");
-    i=0;
+    int i = 0;
     while(i < NB_ASYNC) {
         assert(ran[i] == i);
         i++;

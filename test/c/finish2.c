@@ -66,24 +66,33 @@ void init_ran(int *ran, int size) {
 void spawn_async(volatile int * indices, int i) {
     if (i < NB_ASYNC) {
         hclib_start_finish();
+
         indices[i] = i;
         hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         spawn_async(indices, i+1);
+
         hclib_end_finish();
+
         assert_done(i, i+1);
     }
 }
 
-int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    hclib_init(&argc, argv);
+void entrypoint(void *arg) {
     int indices[NB_ASYNC];
     init_ran(ran, NB_ASYNC);
+
     hclib_start_finish();
+
     spawn_async(indices, 0);
+
     hclib_end_finish();
+
     printf("Call Finalize\n");
-    hclib_finalize();
+}
+
+int main (int argc, char ** argv) {
+    printf("Call Init\n");
+    hclib_launch(&argc, argv, entrypoint, NULL);
     printf("Check results: ");
     assert_done(0, NB_ASYNC);
     printf("OK\n");

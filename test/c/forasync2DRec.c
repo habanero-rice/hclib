@@ -60,11 +60,9 @@ void init_ran(int *ran, int size) {
     }
 }
 
-int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    hclib_init(&argc, argv);
+void entrypoint(void *arg) {
+    int *ran = (int *)arg;
     int i = 0;
-    int *ran=(int *)malloc(H1*H2*sizeof(int));
     // This is ok to have these on stack because this
     // code is alive until the end of the program.
 
@@ -79,9 +77,14 @@ int main (int argc, char ** argv) {
     hclib_end_finish();
 
     printf("Call Finalize\n");
-    hclib_finalize();
+}
+
+int main (int argc, char ** argv) {
+    printf("Call Init\n");
+    int *ran=(int *)malloc(H1*H2*sizeof(int));
+    hclib_launch(&argc, argv, entrypoint, ran);
     printf("Check results: ");
-    i=0;
+    int i = 0;
     while(i < H1*H2) {
         assert(ran[i] == i);
         i++;

@@ -27,13 +27,7 @@ void async_fct(void * arg) {
     free(argv);
 }
 
-/*
- * Create async await and enable them (by a put) in the 
- * reverse order they've been created.
- */
-int main(int argc, char ** argv) {
-    setbuf(stdout,NULL);
-    hclib_init(&argc, argv);
+void entrypoint(void *arg) {
     hclib_start_finish();
     int n = 5;
     int index = 0;
@@ -69,7 +63,15 @@ int main(int argc, char ** argv) {
         hclib_ddf_free(ddf_list[index*2]);
     }
     free(ddf_list);
-    hclib_finalize();
+}
 
+/*
+ * Create async await and enable them (by a put) in the 
+ * reverse order they've been created.
+ */
+int main(int argc, char ** argv) {
+    setbuf(stdout,NULL);
+    hclib_launch(&argc, argv, entrypoint, NULL);
+    printf("Exiting...\n");
     return 0;
 }

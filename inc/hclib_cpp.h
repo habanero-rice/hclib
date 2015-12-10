@@ -11,13 +11,10 @@ namespace hclib {
 
 typedef hclib_ddf_t ddf_t;
 
-void init(int *argc, char **argv);
-void finalize();
 template <typename T>
 void launch(int *argc, char **argv, T lambda) {
-    init(argc, argv);
-    lambda();
-    finalize();
+    task_t *user_task = _allocate_async(lambda, false);
+    hclib_launch(argc, argv, (generic_framePtr)spawn, user_task);
 }
 
 void start_finish();

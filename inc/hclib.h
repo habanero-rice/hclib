@@ -60,18 +60,6 @@ struct _phased_t;
  */
 typedef void (*asyncFct_t) (void * arg);
 
-/**
- * @brief Initialize the HClib runtime.
- * Implicitly defines a global finish scope.
- */
-void hclib_init(int * argc, char ** argv);
-
-/**
- * @brief Finalize execution of the HClib runtime.
- * Ends the global finish scope and waits for all asyncs to terminate.
- */
-void hclib_finalize();
-
 void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
 
 /*

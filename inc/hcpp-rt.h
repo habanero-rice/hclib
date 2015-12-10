@@ -70,6 +70,7 @@ typedef struct hc_workerState {
         int id; /* The id, identify a worker */
         int did; /* the mapping device id */
         LiteCtx *curr_ctx;
+        LiteCtx *root_ctx;
 } hc_workerState;
 
 #ifdef HC_ASSERTION_CHECK
@@ -92,11 +93,11 @@ typedef void (*generic_framePtr)(void*);
 #include "hcpp-place.h"
 
 int  hclib_numWorkers();
-void hclib_init(int * argc, char ** argv);
-void hclib_finalize();
 void hclib_start_finish();
 void hclib_end_finish();
 void hclib_user_harness_timer(double dur);
+void hclib_launch(int * argc, char ** argv, generic_framePtr fct_ptr,
+        void * arg);
 
 #ifdef __cplusplus
 }

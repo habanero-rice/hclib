@@ -66,7 +66,7 @@ forasync3D_task_t * allocate_forasync3D_task() {
 
 void forasync1D_runner(void * forasync_arg) {
     forasync1D_t * forasync = (forasync1D_t *) forasync_arg;
-    task_t * user = *((task_t **) forasync_arg);
+    task_t *user = forasync->base.user;
     forasync1D_Fct_t user_fct_ptr = (forasync1D_Fct_t) user->_fp;
     void * user_arg = (void *) user->args;
     loop_domain_t loop0 = forasync->loop0;
@@ -388,10 +388,11 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     // All the sub-asyncs share async_def
 
     // The user loop code to execute
-    task_t user_def;
-    user_def._fp = user_fct_ptr;
-    user_def.args = user_arg;
-    user_def.ddf_list = NULL;
+    task_t *user_def = (task_t *)malloc(sizeof(task_t));
+    assert(user_def);
+    user_def->_fp = user_fct_ptr;
+    user_def->args = user_arg;
+    user_def->ddf_list = NULL;
 
     // if (accumed != NULL) {
     //     accum_register(accumed->accums, accumed->count);
@@ -399,17 +400,19 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
 
     assert(dim>0 && dim<4);
     // TODO put those somewhere as static
-    asyncFct_t fct_ptr_rec[3] = {forasync1D_recursive, forasync2D_recursive, forasync3D_recursive};
-    asyncFct_t fct_ptr_flat[3] = {forasync1D_flat, forasync2D_flat, forasync3D_flat};
+    asyncFct_t fct_ptr_rec[3] = { forasync1D_recursive, forasync2D_recursive,
+        forasync3D_recursive };
+    asyncFct_t fct_ptr_flat[3] = { forasync1D_flat, forasync2D_flat,
+        forasync3D_flat };
     asyncFct_t * fct_ptr = (mode == FORASYNC_MODE_RECURSIVE) ? fct_ptr_rec : fct_ptr_flat;
-    if (dim==1) {
-        forasync1D_t forasync = {{&user_def}, loop_domain[0]};
+    if (dim == 1) {
+        forasync1D_t forasync = {{user_def}, loop_domain[0]};
         (fct_ptr[dim-1])((void *) &forasync);
-    } else if(dim==2) {
-        forasync2D_t forasync = {{&user_def}, loop_domain[0], loop_domain[1]};
+    } else if (dim == 2) {
+        forasync2D_t forasync = {{user_def}, loop_domain[0], loop_domain[1]};
         (fct_ptr[dim-1])((void *) &forasync);
-    } else if(dim==3) {
-        forasync3D_t forasync = {{&user_def}, loop_domain[0], loop_domain[1], loop_domain[2]};
+    } else if (dim == 3) {
+        forasync3D_t forasync = {{user_def}, loop_domain[0], loop_domain[1], loop_domain[2]};
         (fct_ptr[dim-1])((void *) &forasync);
     }
 }

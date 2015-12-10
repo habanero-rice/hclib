@@ -304,7 +304,7 @@ static const char *place_type_to_str(short type) {
             return PGAS_PLACE_STR;
         default:
             fprintf(stderr, "unknown place type %d\n", type);
-            exit(1);
+            exit(5);
     }
 }
 #endif
