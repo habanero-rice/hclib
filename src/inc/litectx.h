@@ -40,6 +40,10 @@ static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
     LITECTX_FREE(ctx);
 }
 
+/**
+ * Proxy contexts represent contexts that have an externally-managed
+ * stack (e.g., the original context of a pthread).
+ */
 static __inline__ LiteCtx *LiteCtx_proxy_create(const char *lbl) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(sizeof(*ctx));
     memset(ctx, 0, sizeof(*ctx));
