@@ -7,8 +7,8 @@
 #include <string.h>
 
 #define LITECTX_ALLOC(bytes) malloc(bytes)
-// #define LITECTX_FREE(ptr) free(ptr)
-#define LITECTX_FREE(ptr)
+#define LITECTX_FREE(ptr) free(ptr)
+// #define LITECTX_FREE(ptr)
 #define LITECTX_SIZE 0x10000 /* 64KiB */
 
 typedef struct LiteCtxStruct {
