@@ -586,12 +586,8 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
      * causing it to jump back to root_ctx (which for the main thread is
      * equivalent to main_thread here).
      */
-    if (get_current_worker() == 0) {
-        LiteCtx_swap(ctx, main_thread, "_hclib_finalize_ctx");
-    } else {
-        LiteCtx_swap(get_curr_lite_ctx(), CURRENT_WS_INTERNAL->root_ctx,
-                "core_work_loop");
-    }
+    LiteCtx_swap(get_curr_lite_ctx(), CURRENT_WS_INTERNAL->root_ctx,
+            "core_work_loop");
     assert(0); // Should never return here
 }
 
