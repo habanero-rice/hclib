@@ -10,6 +10,9 @@
 namespace hclib {
 
 typedef hclib_ddf_t ddf_t;
+typedef loop_domain_t loop_domain_t;
+typedef place_t place_t;
+typedef place_type_t place_type_t;
 
 template <typename T>
 void launch(int *argc, char **argv, T lambda) {
@@ -24,6 +27,12 @@ ddf_t *ddf_create();
 void ddf_free(ddf_t *ddf);
 void ddf_put(ddf_t *ddf, void *datum);
 void *ddf_get(ddf_t *ddf);
+
+hc_workerState *current_ws();
+int current_worker();
+int num_workers();
+int get_num_places(place_type_t type);
+void get_places(place_t **pls, place_type_t type);
 
 }
 

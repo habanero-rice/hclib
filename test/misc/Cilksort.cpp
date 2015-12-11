@@ -269,41 +269,40 @@ void scramble_array(int *arr, int size)
 
 int main(int argc, char **argv)
 {
-     hclib::init(&argc, argv);
-     int size = 10000000;
-     int check = 1;
-     int i, j, k;
-     
-     if(argc > 1) size = atoi(argv[1]);
-     if(argc > 2) check = atoi(argv[2]);
-     
-     array = (int*) malloc(size * sizeof(int));
-     back = (int*) malloc(size * sizeof(int));
-     tmpArr = (int*) malloc(size * sizeof(int));
-  
-     srand(1);
-     for(i=0; i<size; i++) {
-       back[i] = i;
-     }
-     scramble_array(back,size);
-    
-     long start = get_usecs();
-     memcpy(array, back,sizeof(int) * size);   
-     cilksort(0, 0, size);
-     long end = get_usecs();
-     double dur = ((double)(end-start))/1000000;
-     int passed = 0;
-     for (k = 0; k < size; ++k)
- 	if (array[k] != k)
-         	passed = 1;
+     hclib::launch(&argc, argv, [&]() {
+         int size = 10000000;
+         int check = 1;
+         int i, j, k;
+         
+         if(argc > 1) size = atoi(argv[1]);
+         if(argc > 2) check = atoi(argv[2]);
+         
+         array = (int*) malloc(size * sizeof(int));
+         back = (int*) malloc(size * sizeof(int));
+         tmpArr = (int*) malloc(size * sizeof(int));
+      
+         srand(1);
+         for(i=0; i<size; i++) {
+           back[i] = i;
+         }
+         scramble_array(back,size);
+        
+         long start = get_usecs();
+         memcpy(array, back,sizeof(int) * size);   
+         cilksort(0, 0, size);
+         long end = get_usecs();
+         double dur = ((double)(end-start))/1000000;
+         int passed = 0;
+         for (k = 0; k < size; ++k)
+        if (array[k] != k)
+                passed = 1;
 
-     printf("CilkSort (%d): Passed = %d, Time = %f\n",size,passed,dur);
+         printf("CilkSort (%d): Passed = %d, Time = %f\n",size,passed,dur);
 
-    free(array);
-    free(back);
-    free(tmpArr);
-
-    hclib::finalize();
+        free(array);
+        free(back);
+        free(tmpArr);
+    });
 
     return 0;
 }

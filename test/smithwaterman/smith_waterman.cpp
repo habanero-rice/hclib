@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
-#include "hcpp.h"
+#include "hclib_cpp.h"
 
 #define GAP_PENALTY -1
 #define TRANSITION_PENALTY -2
@@ -74,168 +74,167 @@ signed char* read_file( FILE* file, size_t* n_chars ) {
 }
 
 typedef struct {
-    hcpp::DDF_t* bottom_row;
-    hcpp::DDF_t* right_column;
-    hcpp::DDF_t* bottom_right;
+    hclib::ddf_t* bottom_row;
+    hclib::ddf_t* right_column;
+    hclib::ddf_t* bottom_right;
 } Tile_t;
 
 
 int main ( int argc, char* argv[] ) {
-    hcpp::init(&argc, argv);
+    hclib::launch(&argc, argv, [&]() {
+        int i, j;
 
-    int i, j;
+        int tile_width = (int) atoi (argv[3]);
+        int tile_height = (int) atoi (argv[4]);
 
-    int tile_width = (int) atoi (argv[3]);
-    int tile_height = (int) atoi (argv[4]);
+        int n_tiles_width;
+        int n_tiles_height;
 
-    int n_tiles_width;
-    int n_tiles_height;
-
-    if ( argc < 5 ) {
-        fprintf(stderr, "Usage: %s fileName1 fileName2 tileWidth tileHeight\n", argv[0]);
-        exit(1);
-    }
-
-    signed char* string_1;
-    signed char* string_2;
-
-    char* file_name_1 = argv[1];
-    char* file_name_2 = argv[2];
-
-    FILE* file_1 = fopen(file_name_1, "r");
-    if (!file_1) { fprintf(stderr, "could not open file %s\n",file_name_1); exit(1); }
-    size_t n_char_in_file_1 = 0;
-    string_1 = read_file(file_1, &n_char_in_file_1);
-    fprintf(stdout, "Size of input string 1 is %u\n", n_char_in_file_1 );
-
-    FILE* file_2 = fopen(file_name_2, "r");
-    if (!file_2) { fprintf(stderr, "could not open file %s\n",file_name_2); exit(1); }
-    size_t n_char_in_file_2 = 0;
-    string_2 = read_file(file_2, &n_char_in_file_2);
-    fprintf(stdout, "Size of input string 2 is %u\n", n_char_in_file_2 );
-
-    fprintf(stdout, "Tile width is %d\n", tile_width);
-    fprintf(stdout, "Tile height is %d\n", tile_height);
-
-    n_tiles_width = n_char_in_file_1/tile_width;
-    n_tiles_height = n_char_in_file_2/tile_height;
-
-    fprintf(stdout, "Imported %d x %d tiles.\n", n_tiles_width, n_tiles_height);
-
-    fprintf(stdout, "Allocating tile matrix\n");
-
-    // sagnak: all workers allocate their own copy of tile matrix
-    Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1)); 
-    for ( i = 0; i < n_tiles_height+1; ++i ) {
-        tile_matrix[i] = (Tile_t *) malloc(sizeof(Tile_t)*(n_tiles_width+1));
-        for ( j = 0; j < n_tiles_width+1; ++j ) {
-            tile_matrix[i][j].bottom_row = hcpp::ddf_create();
-            tile_matrix[i][j].right_column = hcpp::ddf_create();
-            tile_matrix[i][j].bottom_right = hcpp::ddf_create();
+        if ( argc < 5 ) {
+            fprintf(stderr, "Usage: %s fileName1 fileName2 tileWidth tileHeight\n", argv[0]);
+            exit(1);
         }
-    }
 
-    fprintf(stdout, "Allocated tile matrix\n");
+        signed char* string_1;
+        signed char* string_2;
 
-    int* allocated = (int*)malloc(sizeof(int));
-    allocated[0] = 0;
-    hcpp::ddf_put(tile_matrix[0][0].bottom_right, allocated);
+        char* file_name_1 = argv[1];
+        char* file_name_2 = argv[2];
 
-    for ( j = 1; j < n_tiles_width + 1; ++j ) {
-        allocated = (int*)malloc(sizeof(int)*tile_width);
-        for( i = 0; i < tile_width ; ++i ) {
-            allocated[i] = GAP_PENALTY*((j-1)*tile_width+i+1);
-        }
-        hcpp::ddf_put(tile_matrix[0][j].bottom_row, allocated);
+        FILE* file_1 = fopen(file_name_1, "r");
+        if (!file_1) { fprintf(stderr, "could not open file %s\n",file_name_1); exit(1); }
+        size_t n_char_in_file_1 = 0;
+        string_1 = read_file(file_1, &n_char_in_file_1);
+        fprintf(stdout, "Size of input string 1 is %u\n", n_char_in_file_1 );
 
-        allocated = (int*)malloc(sizeof(int));
-        allocated[0] = GAP_PENALTY*(j*tile_width); //sagnak: needed to handle tilesize 2
-        hcpp::ddf_put(tile_matrix[0][j].bottom_right, allocated);
-    }
+        FILE* file_2 = fopen(file_name_2, "r");
+        if (!file_2) { fprintf(stderr, "could not open file %s\n",file_name_2); exit(1); }
+        size_t n_char_in_file_2 = 0;
+        string_2 = read_file(file_2, &n_char_in_file_2);
+        fprintf(stdout, "Size of input string 2 is %u\n", n_char_in_file_2 );
 
-    for ( i = 1; i < n_tiles_height + 1; ++i ) {
-        allocated = (int*)malloc(sizeof(int)*tile_height);
-        for ( j = 0; j < tile_height ; ++j ) {
-            allocated[j] = GAP_PENALTY*((i-1)*tile_height+j+1);
-        }
-        hcpp::ddf_put(tile_matrix[i][0].right_column, allocated);
+        fprintf(stdout, "Tile width is %d\n", tile_width);
+        fprintf(stdout, "Tile height is %d\n", tile_height);
 
-        allocated = (int*)malloc(sizeof(int));
-        allocated[0] = GAP_PENALTY*(i*tile_height); //sagnak: needed to handle tilesize 2
-        hcpp::ddf_put(tile_matrix[i][0].bottom_right, allocated);
-    }
+        n_tiles_width = n_char_in_file_1/tile_width;
+        n_tiles_height = n_char_in_file_2/tile_height;
 
+        fprintf(stdout, "Imported %d x %d tiles.\n", n_tiles_width, n_tiles_height);
 
-    struct timeval begin,end;
-    gettimeofday(&begin,0);
+        fprintf(stdout, "Allocating tile matrix\n");
 
-    hcpp::finish([=]() {
-        for (int i = 1; i < n_tiles_height+1; ++i ) {
-            for (int j = 1; j < n_tiles_width+1; ++j ) {
-	        hcpp::asyncAwait(tile_matrix[i][j-1].right_column, tile_matrix[i-1][j].bottom_row, tile_matrix[i-1][j-1].bottom_right, [=]() {
-                    int index, ii, jj;
-                    int* above_tile_bottom_row = (int *) hcpp::ddf_get(tile_matrix[i-1][j  ].bottom_row);
-                    int* left_tile_right_column = (int *) hcpp::ddf_get(tile_matrix[  i][j-1].right_column); 
-                    int* diagonal_tile_bottom_right = (int *) hcpp::ddf_get(tile_matrix[i-1][j-1].bottom_right);
-
-                    int  * curr_tile_tmp = (int*) malloc(sizeof(int)*(1+tile_width)*(1+tile_height));
-                    int ** curr_tile = (int**) malloc(sizeof(int*)*(1+tile_height));
-                    for (index = 0; index < tile_height+1; ++index) {
-                        curr_tile[index] = &curr_tile_tmp[index*(1+tile_width)];
-                    }
-
-                    curr_tile[0][0] = diagonal_tile_bottom_right[0];
-                    for ( index = 1; index < tile_height+1; ++index ) {
-                        curr_tile[index][0] = left_tile_right_column[index-1];
-                    }
-
-                    for ( index = 1; index < tile_width+1; ++index ) {
-                        curr_tile[0][index] = above_tile_bottom_row[index-1];
-                    }
-
-                    for ( ii = 1; ii < tile_height+1; ++ii ) {
-                        for ( jj = 1; jj < tile_width+1; ++jj ) {
-                            signed char char_from_1 = string_1[(j-1)*tile_width+(jj-1)];
-                            signed char char_from_2 = string_2[(i-1)*tile_height+(ii-1)];
-
-                            int diag_score = curr_tile[ii-1][jj-1] + alignment_score_matrix[char_from_2][char_from_1];
-                            int left_score = curr_tile[ii  ][jj-1] + alignment_score_matrix[char_from_1][GAP];
-                            int  top_score = curr_tile[ii-1][jj  ] + alignment_score_matrix[GAP][char_from_2];
-
-                            int bigger_of_left_top = (left_score > top_score) ? left_score : top_score;
-                            curr_tile[ii][jj] = (bigger_of_left_top > diag_score) ? bigger_of_left_top : diag_score;
-                        }
-                    }
-
-                    int* curr_bottom_right = (int*)malloc(sizeof(int));
-                    curr_bottom_right[0] = curr_tile[tile_height][tile_width];
-                    hcpp::ddf_put(tile_matrix[i][j].bottom_right, curr_bottom_right);
-
-                    int* curr_right_column = (int*)malloc(sizeof(int)*tile_height);
-                    for ( index = 0; index < tile_height; ++index ) {
-                        curr_right_column[index] = curr_tile[index+1][tile_width];
-                    }
-                    hcpp::ddf_put(tile_matrix[i][j].right_column, curr_right_column);
-
-                    int* curr_bottom_row = (int*)malloc(sizeof(int)*tile_width);
-                    for ( index = 0; index < tile_width; ++index ) {
-                        curr_bottom_row[index] = curr_tile[tile_height][index+1];
-                    }
-                    hcpp::ddf_put(tile_matrix[i][j].bottom_row, curr_bottom_row);
-
-                    free(curr_tile);
-                    free(curr_tile_tmp);
-                });
+        // sagnak: all workers allocate their own copy of tile matrix
+        Tile_t** tile_matrix = (Tile_t **) malloc(sizeof(Tile_t*)*(n_tiles_height+1)); 
+        for ( i = 0; i < n_tiles_height+1; ++i ) {
+            tile_matrix[i] = (Tile_t *) malloc(sizeof(Tile_t)*(n_tiles_width+1));
+            for ( j = 0; j < n_tiles_width+1; ++j ) {
+                tile_matrix[i][j].bottom_row = hclib::ddf_create();
+                tile_matrix[i][j].right_column = hclib::ddf_create();
+                tile_matrix[i][j].bottom_right = hclib::ddf_create();
             }
         }
+
+        fprintf(stdout, "Allocated tile matrix\n");
+
+        int* allocated = (int*)malloc(sizeof(int));
+        allocated[0] = 0;
+        hclib::ddf_put(tile_matrix[0][0].bottom_right, allocated);
+
+        for ( j = 1; j < n_tiles_width + 1; ++j ) {
+            allocated = (int*)malloc(sizeof(int)*tile_width);
+            for( i = 0; i < tile_width ; ++i ) {
+                allocated[i] = GAP_PENALTY*((j-1)*tile_width+i+1);
+            }
+            hclib::ddf_put(tile_matrix[0][j].bottom_row, allocated);
+
+            allocated = (int*)malloc(sizeof(int));
+            allocated[0] = GAP_PENALTY*(j*tile_width); //sagnak: needed to handle tilesize 2
+            hclib::ddf_put(tile_matrix[0][j].bottom_right, allocated);
+        }
+
+        for ( i = 1; i < n_tiles_height + 1; ++i ) {
+            allocated = (int*)malloc(sizeof(int)*tile_height);
+            for ( j = 0; j < tile_height ; ++j ) {
+                allocated[j] = GAP_PENALTY*((i-1)*tile_height+j+1);
+            }
+            hclib::ddf_put(tile_matrix[i][0].right_column, allocated);
+
+            allocated = (int*)malloc(sizeof(int));
+            allocated[0] = GAP_PENALTY*(i*tile_height); //sagnak: needed to handle tilesize 2
+            hclib::ddf_put(tile_matrix[i][0].bottom_right, allocated);
+        }
+
+
+        struct timeval begin,end;
+        gettimeofday(&begin,0);
+
+        hclib::finish([=]() {
+            for (int i = 1; i < n_tiles_height+1; ++i ) {
+                for (int j = 1; j < n_tiles_width+1; ++j ) {
+                hclib::asyncAwait(tile_matrix[i][j-1].right_column, tile_matrix[i-1][j].bottom_row, tile_matrix[i-1][j-1].bottom_right, [=]() {
+                        int index, ii, jj;
+                        int* above_tile_bottom_row = (int *) hclib::ddf_get(tile_matrix[i-1][j  ].bottom_row);
+                        int* left_tile_right_column = (int *) hclib::ddf_get(tile_matrix[  i][j-1].right_column); 
+                        int* diagonal_tile_bottom_right = (int *) hclib::ddf_get(tile_matrix[i-1][j-1].bottom_right);
+
+                        int  * curr_tile_tmp = (int*) malloc(sizeof(int)*(1+tile_width)*(1+tile_height));
+                        int ** curr_tile = (int**) malloc(sizeof(int*)*(1+tile_height));
+                        for (index = 0; index < tile_height+1; ++index) {
+                            curr_tile[index] = &curr_tile_tmp[index*(1+tile_width)];
+                        }
+
+                        curr_tile[0][0] = diagonal_tile_bottom_right[0];
+                        for ( index = 1; index < tile_height+1; ++index ) {
+                            curr_tile[index][0] = left_tile_right_column[index-1];
+                        }
+
+                        for ( index = 1; index < tile_width+1; ++index ) {
+                            curr_tile[0][index] = above_tile_bottom_row[index-1];
+                        }
+
+                        for ( ii = 1; ii < tile_height+1; ++ii ) {
+                            for ( jj = 1; jj < tile_width+1; ++jj ) {
+                                signed char char_from_1 = string_1[(j-1)*tile_width+(jj-1)];
+                                signed char char_from_2 = string_2[(i-1)*tile_height+(ii-1)];
+
+                                int diag_score = curr_tile[ii-1][jj-1] + alignment_score_matrix[char_from_2][char_from_1];
+                                int left_score = curr_tile[ii  ][jj-1] + alignment_score_matrix[char_from_1][GAP];
+                                int  top_score = curr_tile[ii-1][jj  ] + alignment_score_matrix[GAP][char_from_2];
+
+                                int bigger_of_left_top = (left_score > top_score) ? left_score : top_score;
+                                curr_tile[ii][jj] = (bigger_of_left_top > diag_score) ? bigger_of_left_top : diag_score;
+                            }
+                        }
+
+                        int* curr_bottom_right = (int*)malloc(sizeof(int));
+                        curr_bottom_right[0] = curr_tile[tile_height][tile_width];
+                        hclib::ddf_put(tile_matrix[i][j].bottom_right, curr_bottom_right);
+
+                        int* curr_right_column = (int*)malloc(sizeof(int)*tile_height);
+                        for ( index = 0; index < tile_height; ++index ) {
+                            curr_right_column[index] = curr_tile[index+1][tile_width];
+                        }
+                        hclib::ddf_put(tile_matrix[i][j].right_column, curr_right_column);
+
+                        int* curr_bottom_row = (int*)malloc(sizeof(int)*tile_width);
+                        for ( index = 0; index < tile_width; ++index ) {
+                            curr_bottom_row[index] = curr_tile[tile_height][index+1];
+                        }
+                        hclib::ddf_put(tile_matrix[i][j].bottom_row, curr_bottom_row);
+
+                        free(curr_tile);
+                        free(curr_tile_tmp);
+                    });
+                }
+            }
+        });
+
+        gettimeofday(&end,0);
+        fprintf(stdout, "The computation took %f seconds\n",((end.tv_sec - begin.tv_sec)*1000000+(end.tv_usec - begin.tv_usec))*1.0/1000000);
+
+        int score = ((int *)hclib::ddf_get(tile_matrix[n_tiles_height][n_tiles_width].bottom_row))[tile_width-1];
+        fprintf(stdout, "score: %d\n", score);
     });
 
-    gettimeofday(&end,0);
-    fprintf(stdout, "The computation took %f seconds\n",((end.tv_sec - begin.tv_sec)*1000000+(end.tv_usec - begin.tv_usec))*1.0/1000000);
-
-    int score = ((int *)hcpp::ddf_get(tile_matrix[n_tiles_height][n_tiles_width].bottom_row))[tile_width-1];
-    fprintf(stdout, "score: %d\n", score);
-
-    hcpp::finalize();
     return 0;
 }

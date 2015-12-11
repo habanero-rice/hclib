@@ -103,7 +103,7 @@ void hclib_ddf_init(hclib_ddf_t* ddf);
  * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
  * @return A contiguous array of DDFs
  */
-hclib_ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated);
+hclib_ddf_t **hclib_ddf_create_n(size_t nb_ddfs, int null_terminated);
 
 /**
  * @brief Destruct a DDF.

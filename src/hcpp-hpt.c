@@ -150,7 +150,7 @@ place_t* hc_get_current_place() {
     return ws->current->pl;
 }
 
-int hc_get_num_places(short type) {
+int hclib_get_num_places(short type) {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     int np = ws->context->nplaces;
@@ -161,7 +161,7 @@ int hc_get_num_places(short type) {
     return num;
 }
 
-void hc_get_places(place_t ** pls, short type) {
+void hclib_get_places(place_t ** pls, short type) {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     int np = ws->context->nplaces;

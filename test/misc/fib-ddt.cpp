@@ -37,15 +37,15 @@ void fib(int n, hclib::ddf_t* res) {
 }
 
 int main(int argc, char** argv) {
-  hclib::init(&argc, argv);
-  int n = argc == 1 ? 30 : atoi(argv[1]);
-  threshold = argc == 2 ? 10 : atoi(argv[2]);
-  hclib::ddf_t* ddf = hclib::ddf_create();
-  hclib::start_finish();
-  fib(n, ddf);
-  hclib::end_finish();
-  int res = *((int*)hclib::ddf_get(ddf));
-  cout << "Fib(" << n << ") = " << res << endl;
-  hclib::finalize();
-  return 0;
+    hclib::launch(&argc, argv, [&]() {
+        int n = argc == 1 ? 30 : atoi(argv[1]);
+        threshold = argc == 2 ? 10 : atoi(argv[2]);
+        hclib::ddf_t* ddf = hclib::ddf_create();
+        hclib::start_finish();
+        fib(n, ddf);
+        hclib::end_finish();
+        int res = *((int*)hclib::ddf_get(ddf));
+        cout << "Fib(" << n << ") = " << res << endl;
+    });
+    return 0;
 }

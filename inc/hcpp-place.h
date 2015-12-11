@@ -37,8 +37,8 @@ typedef struct place_t {
 } place_t ;
 
 /** PLACES API **/
-int hc_get_num_places(short type);
-void hc_get_places(place_t ** pls, short type);
+int hclib_get_num_places(short type);
+void hclib_get_places(place_t ** pls, short type);
 place_t * hc_get_place(short type);
 
 place_t * hc_get_root_place();

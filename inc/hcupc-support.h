@@ -83,7 +83,7 @@ inline void execute_remoteAsyncAny_task(T lambda) {
 
 template <typename T>
 inline void execute_hcupc_lambda(T* lambda) {
-	const int wid = get_hc_wid();
+	const int wid = get_current_worker();
 	if(wid != 0) {
 		// only computation workers can enter
 		MARK_BUSY(wid);

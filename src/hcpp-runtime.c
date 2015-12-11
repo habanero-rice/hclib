@@ -810,17 +810,13 @@ void hclib_end_finish() {
     HC_FREE(current_finish);
 }
 
-int numWorkers() {
+int hclib_num_workers() {
 	return hcpp_context->nworkers;
-}
-
-int get_hc_wid() {
-	return get_current_worker();
 }
 
 void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind) {
 	int asyncPush=0, steals=0, asyncCommPush=total_push_outd;
-	for(int i=0; i<numWorkers(); i++) {
+	for(int i=0; i<hclib_num_workers(); i++) {
 		asyncPush += total_push_ind[i];
 		steals += total_steals[i];
 	}
@@ -837,7 +833,7 @@ double mysecond() {
 
 void runtime_statistics(double duration) {
 	int asyncPush=0, steals=0, asyncCommPush=total_push_outd;
-	for(int i=0; i<numWorkers(); i++) {
+	for(int i=0; i<hclib_num_workers(); i++) {
 		asyncPush += total_push_ind[i];
 		steals += total_steals[i];
 	}

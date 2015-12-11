@@ -75,26 +75,26 @@ long get_usecs (void)
 
 int main(int argc, char* argv[])
 {
-  hclib::init(&argc, argv);
-  int n = 12;
-  int i, j;
-     
-  if(argc > 1) n = atoi(argv[1]);
-     
-  double dur = 0;
-  int* a = (int*) malloc(sizeof(int));
-  atomic = (int*) malloc(sizeof(int));;
-  atomic[0]=0;
-  long start = get_usecs();
-  hclib::start_finish();
-  nqueens_kernel(a, 0, n);  
-  hclib::end_finish();
-  long end = get_usecs();
-  dur = ((double)(end-start))/1000000;
-  verify_queens(n);  
-  free((void*)atomic);
-  printf("NQueens(%d) Time = %fsec\n",n,dur);
+  hclib::launch(&argc, argv, [&]() {
+      int n = 12;
+      int i, j;
+         
+      if(argc > 1) n = atoi(argv[1]);
+         
+      double dur = 0;
+      int* a = (int*) malloc(sizeof(int));
+      atomic = (int*) malloc(sizeof(int));;
+      atomic[0]=0;
+      long start = get_usecs();
+      hclib::start_finish();
+      nqueens_kernel(a, 0, n);  
+      hclib::end_finish();
+      long end = get_usecs();
+      dur = ((double)(end-start))/1000000;
+      verify_queens(n);  
+      free((void*)atomic);
+      printf("NQueens(%d) Time = %fsec\n",n,dur);
+  });
 
-  hclib::finalize();
   return 0;
 }

@@ -87,7 +87,7 @@ hclib_ddf_t * hclib_ddf_create() {
 /**
  * Allocate 'nb_ddfs' DDFs in contiguous memory.
  */
-hclib_ddf_t ** ddf_create_n(size_t nb_ddfs, int null_terminated) {
+hclib_ddf_t **hclib_ddf_create_n(size_t nb_ddfs, int null_terminated) {
 	hclib_ddf_t ** ddfs = (hclib_ddf_t **) malloc((sizeof(hclib_ddf_t*) * nb_ddfs));
 	int i = 0;
 	int lg = (null_terminated) ? nb_ddfs-1 : nb_ddfs;

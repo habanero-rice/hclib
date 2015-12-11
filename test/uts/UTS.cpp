@@ -13,7 +13,7 @@
  *
  */
 
-#include "hcpp.h"
+#include "hclib_cpp.h"
 #include <string.h>
 #include <float.h>
 
@@ -82,47 +82,47 @@ static void parTreeSearch();
 using namespace std;
 
 int main(int argc, char *argv[]) {
-	hcpp::init(&argc, argv);
+	hclib::launch(&argc, argv, [&]() {
 
-	double t1, t2;
-	/* initialize stealstacks and comm. layer */
-	ss_init(&argc, &argv);
+        double t1, t2;
+        /* initialize stealstacks and comm. layer */
+        ss_init(&argc, &argv);
 
-	/* determine benchmark parameters */
-	uts_parseParams(argc, argv);
+        /* determine benchmark parameters */
+        uts_parseParams(argc, argv);
 
-	/* show parameter settings */
-	uts_printParams();
+        /* show parameter settings */
+        uts_printParams();
 
-	ss_start(sizeof(Node), chunkSize);
+        ss_start(sizeof(Node), chunkSize);
 
-	/* time parallel search */
-	t1 = uts_wctime();
+        /* time parallel search */
+        t1 = uts_wctime();
 
-	hcpp::start_finish();
-	hcpp::async([=]() {
-		int wid = hcpp::get_hc_wid();
-		/* initialize root node and push on thread 0 stack */
-		StealStack *s = threadStealStacks[wid];
-		s->root = 1;
-		Node *root = &(s->stack[s->stack_head]);
-		uts_initRoot(root, type);
-		s->stack_head++;
-		s->localWork++;
-		s->maxStackDepth = max(s->localWork, s->maxStackDepth);
+        hclib::start_finish();
+        hclib::async([=]() {
+            int wid = hclib::current_worker();
+            /* initialize root node and push on thread 0 stack */
+            StealStack *s = threadStealStacks[wid];
+            s->root = 1;
+            Node *root = &(s->stack[s->stack_head]);
+            uts_initRoot(root, type);
+            s->stack_head++;
+            s->localWork++;
+            s->maxStackDepth = max(s->localWork, s->maxStackDepth);
 
-		parTreeSearch();
-	});
-	hcpp::end_finish();
+            parTreeSearch();
+        });
+        hclib::end_finish();
 
-	t2 = uts_wctime();
+        t2 = uts_wctime();
 
-	/* display results */
-	showStats(t2 - t1);
+        /* display results */
+        showStats(t2 - t1);
 
-	ss_finalize();
+        ss_finalize();
 
-	hcpp::finalize();
+    });
 
 	return 0;
 }
@@ -135,7 +135,7 @@ void ss_error(char *str, int error)
 }
 
 void push_surplusNodes(const Node* work) {
-	int wid = hcpp::get_hc_wid();
+	int wid = hclib::current_worker();
 	StealStack *ss = threadStealStacks[wid];
 	ss->localWork = chunkSize;
 	ss->stack_head = chunkSize;
@@ -198,7 +198,7 @@ void genChildren(Node * parent, int wid) {
 					memcpy(work, &(ss->stack[ss->stack_tail]), work_chunk_size);
 					ss->stack_tail += chunkSize;
 					ss->localWork -= chunkSize;
-					hcpp::async([work]() {
+					hclib::async([work]() {
 						push_surplusNodes(work);
 					});
 				}
@@ -217,7 +217,7 @@ void genChildren(Node * parent, int wid) {
  */
 
 static void parTreeSearch() {
-	int wid = hcpp::get_hc_wid();
+	int wid = hclib::current_worker();
 	StealStack *ss = threadStealStacks[wid];
 	int root = ss->root;
 	Node parent;
@@ -324,7 +324,7 @@ int ss_get_num_threads()
 void ss_init(int *argc, char ***argv)
 {
 	int i;
-	nthreads = hcpp::numWorkers();
+	nthreads = hclib::num_workers();
 
 	/* Worker specific init */
 	threadStealStacks = (StealStack **)malloc(sizeof(StealStack**) * nthreads);

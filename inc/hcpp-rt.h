@@ -74,14 +74,14 @@ typedef struct hc_workerState {
 } hc_workerState;
 
 #ifdef HC_ASSERTION_CHECK
-#define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", get_hc_wid()); assert(cond); }
+#define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", get_current_worker()); assert(cond); }
 #else
 #define HASSERT(cond)       // Do Nothing
 #endif
 
 #define CURRENT_WS_INTERNAL ((hc_workerState *) pthread_getspecific(ws_key))
 
-int get_hc_wid();
+int get_current_worker();
 hc_workerState* current_ws();
 
 #define HC_MALLOC(msize)	malloc(msize)
@@ -92,7 +92,7 @@ typedef void (*generic_framePtr)(void*);
 #include "hcpp-ddf.h"
 #include "hcpp-place.h"
 
-int  hclib_numWorkers();
+int  hclib_num_workers();
 void hclib_start_finish();
 void hclib_end_finish();
 void hclib_user_harness_timer(double dur);

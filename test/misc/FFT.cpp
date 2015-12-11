@@ -3205,20 +3205,20 @@ void test_speed(long size)
 
 int main(int argc, char *argv[])
 {
-     hclib::init(&argc, argv);
-     int correctness=0;
-     int n = 2048;
-     
-     if(argc > 1) n = atoi(argv[1]);
-     
-     long size;
+     hclib::launch(&argc, argv, [&]() {
+         int correctness=0;
+         int n = 2048;
+         
+         if (argc > 1) n = atoi(argv[1]);
+         
+         long size;
 
-     /* standard benchmark options */
-     size = n * n;
-     if (correctness)
-	test_correctness();
-     else
-	test_speed(size);
-     hclib::finalize();
+         /* standard benchmark options */
+         size = n * n;
+         if (correctness)
+        test_correctness();
+         else
+        test_speed(size);
+    });
     return 0;
 }

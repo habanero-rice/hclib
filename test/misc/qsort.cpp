@@ -65,34 +65,35 @@ long get_usecs (void)
 }
 
 int main(int argc, char **argv) {
-	hclib::init(&argc, argv);
-	int N = argc>1 ? atoi(argv[1]) : 10000000; // 1 million
-        int threshold = argc>2 ? atoi(argv[2]) : (int)(0.001*N);
-	printf("Sorting %d size array with threshold of %d\n",N,threshold);
-  	ELEMENT_T* data = new ELEMENT_T[N];
+	hclib::launch(&argc, argv, [&]() {
+        int N = argc>1 ? atoi(argv[1]) : 10000000; // 1 million
+            int threshold = argc>2 ? atoi(argv[2]) : (int)(0.001*N);
+        printf("Sorting %d size array with threshold of %d\n",N,threshold);
+        ELEMENT_T* data = new ELEMENT_T[N];
 
-	srand(1);
-	for(int i=0; i<N; i++) {
-		data[i] = (ELEMENT_T)rand();
-	}	
-	
-	long start = get_usecs();
-	sort(data, 0, N-1, threshold);
-  	long end = get_usecs();
-  	double dur = ((double)(end-start))/1000000;
-	
-	ELEMENT_T a =0, b;
-	bool ok= true;
+        srand(1);
+        for(int i=0; i<N; i++) {
+            data[i] = (ELEMENT_T)rand();
+        }	
+        
+        long start = get_usecs();
+        sort(data, 0, N-1, threshold);
+        long end = get_usecs();
+        double dur = ((double)(end-start))/1000000;
+        
+        ELEMENT_T a =0, b;
+        bool ok= true;
         for (int k=0; k<N; k++) {
-        	b = data[k];
-                ok &= (a <= b);
-                a = b;
+        b = data[k];
+        ok &= (a <= b);
+        a = b;
         }
         if(ok){
-               printf("QuickSort passed, Time = %f\n",dur);
+            printf("QuickSort passed, Time = %f\n",dur);
         }
         else{
-               printf("QuickSort failed, Time = %f\n",dur);
+            printf("QuickSort failed, Time = %f\n",dur);
         }
-	hclib::finalize();
+    });
+    return 0;
 }

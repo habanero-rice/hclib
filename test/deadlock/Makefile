@@ -1,8 +1,8 @@
 TARGET := deadlock
 
 $(TARGET): $(TARGET).c
-	@ [ -d "${HCLIB_ROOT}" ] || (echo Need to set HCLIB_ROOT; exit 1)
-	gcc $^ -o$@ -pthread -std=gnu99 -I${HCLIB_ROOT}/include ${HCLIB_ROOT}/lib/libhclib.a
+	@ [ -d "${HCPP_ROOT}" ] || (echo Need to set HCPP_ROOT; exit 1)
+	gcc $^ -o$@ -pthread -std=gnu99 -I${HCPP_ROOT}/include ${HCPP_ROOT}/lib/libhcpp.a -lxml2 -L${LIBXML2_LIBS}
 
 NPROC ?= 4
 
