@@ -572,26 +572,10 @@ void find_and_run_task(hc_workerState* ws) {
 #if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
-    LiteCtx *main_thread = ctx->prev;
-
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
-    /*
-     * If we are the main thread, then simply switch back to the main
-     * application thread. If we are a worker thread, switch back to the pthread
-     * entrypoint worker_routine instead. If a worker thread ends up picking up
-     * this continuation, that implies the main thread is currently off
-     * somewhere in core_work_loop and will be signalled by hcpp_signal_join
-     * causing it to jump back to root_ctx (which for the main thread is
-     * equivalent to main_thread here).
-     */
-    if (get_current_worker() == 0) {
-        LiteCtx_swap(ctx, main_thread, "_hclib_finalize_ctx");
-    } else {
-        LiteCtx_swap(get_curr_lite_ctx(), CURRENT_WS_INTERNAL->root_ctx,
-                "core_work_loop");
-    }
+    LiteCtx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, "_hclib_finalize_ctx");
     assert(0); // Should never return here
 }
 
