@@ -572,22 +572,10 @@ void find_and_run_task(hc_workerState* ws) {
 #if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
     set_curr_lite_ctx(ctx);
-    LiteCtx *main_thread = ctx->prev;
-
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
-    /*
-     * If we are the main thread, then simply switch back to the main
-     * application thread. If we are a worker thread, switch back to the pthread
-     * entrypoint worker_routine instead. If a worker thread ends up picking up
-     * this continuation, that implies the main thread is currently off
-     * somewhere in core_work_loop and will be signalled by hcpp_signal_join
-     * causing it to jump back to root_ctx (which for the main thread is
-     * equivalent to main_thread here).
-     */
-    LiteCtx_swap(get_curr_lite_ctx(), CURRENT_WS_INTERNAL->root_ctx,
-            "core_work_loop");
+    LiteCtx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, "_hclib_finalize_ctx");
     assert(0); // Should never return here
 }
 
@@ -653,7 +641,7 @@ static void* worker_routine(void * args) {
 #endif
 
     // free resources
-    LiteCtx_destroy(newCtx);
+    LiteCtx_destroy(currentCtx->prev);
     LiteCtx_proxy_destroy(currentCtx);
     return NULL;
 }
@@ -679,11 +667,6 @@ void teardown() {
 
 #if HCLIB_LITECTX_STRATEGY
 static void _finish_ctx_resume(void *arg) {
-    /*
-     * TODO I believe we will leak currentCtx here, we may want to add a flag on
-     * switching contexts that says to destroy the previous context, and set it
-     * here.
-     */
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
     LiteCtx_swap(currentCtx, finishCtx, "_finish_ctx_resume");
@@ -757,8 +740,9 @@ void help_finish(finish_t * finish) {
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
         LiteCtx_swap(currentCtx, newCtx, "help_finish");
-        // free resources
-        // LiteCtx_destroy(newCtx);
+        // destroy the context that resumed this one since it's now defunct
+        // (there are no other handles to it, and it will never be resumed)
+        LiteCtx_destroy(currentCtx->prev);
         hclib_ddf_free(finish_deps[0]);
     }
 #else /* default (broken) strategy */
@@ -899,8 +883,8 @@ static void hclib_finalize() {
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
     LiteCtx_swap(finalize_ctx, finish_ctx, "hclib_finalize");
     // free resources
-    LiteCtx_destroy(finish_ctx);
-    // LiteCtx_proxy_destroy(finalize_ctx);
+    LiteCtx_destroy(finalize_ctx->prev);
+    LiteCtx_proxy_destroy(finalize_ctx);
 #else /* default (broken) strategy */
     hclib_end_finish();
     hcpp_signal_join(hcpp_context->nworkers);
