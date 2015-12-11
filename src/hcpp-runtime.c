@@ -641,7 +641,7 @@ static void* worker_routine(void * args) {
 #endif
 
     // free resources
-    LiteCtx_destroy(newCtx);
+    LiteCtx_destroy(currentCtx->prev);
     LiteCtx_proxy_destroy(currentCtx);
     return NULL;
 }
@@ -667,11 +667,6 @@ void teardown() {
 
 #if HCLIB_LITECTX_STRATEGY
 static void _finish_ctx_resume(void *arg) {
-    /*
-     * TODO I believe we will leak currentCtx here, we may want to add a flag on
-     * switching contexts that says to destroy the previous context, and set it
-     * here.
-     */
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
     LiteCtx_swap(currentCtx, finishCtx, "_finish_ctx_resume");
@@ -745,8 +740,9 @@ void help_finish(finish_t * finish) {
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
         LiteCtx_swap(currentCtx, newCtx, "help_finish");
-        // free resources
-        // LiteCtx_destroy(newCtx);
+        // destroy the context that resumed this one since it's now defunct
+        // (there are no other handles to it, and it will never be resumed)
+        LiteCtx_destroy(currentCtx->prev);
         hclib_ddf_free(finish_deps[0]);
     }
 #else /* default (broken) strategy */
@@ -887,8 +883,8 @@ static void hclib_finalize() {
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
     LiteCtx_swap(finalize_ctx, finish_ctx, "hclib_finalize");
     // free resources
-    LiteCtx_destroy(finish_ctx);
-    // LiteCtx_proxy_destroy(finalize_ctx);
+    LiteCtx_destroy(finalize_ctx->prev);
+    LiteCtx_proxy_destroy(finalize_ctx);
 #else /* default (broken) strategy */
     hclib_end_finish();
     hcpp_signal_join(hcpp_context->nworkers);
