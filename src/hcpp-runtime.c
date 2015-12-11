@@ -118,12 +118,11 @@ static LiteCtx *get_curr_lite_ctx() {
 
 static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
         const char *lbl) {
-    LiteCtx *new_current = LiteCtx_swap(current, next, lbl);
-    /*
-     * When we reach this code, we have returned from swapping out current for
-     * next, and someone else has swapped back in current.
-     */
-    set_curr_lite_ctx(new_current);
+    // switching to new context
+    set_curr_lite_ctx(next);
+    LiteCtx_swap(current, next, lbl);
+    // switched back to this context
+    set_curr_lite_ctx(current);
 }
 
 hc_workerState* current_ws() {
@@ -521,7 +520,6 @@ void find_and_run_task(hc_workerState* ws) {
 
 #if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
-    set_curr_lite_ctx(ctx);
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
@@ -544,7 +542,6 @@ static void core_work_loop() {
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
-    set_curr_lite_ctx(ctx);
     LiteCtx *original = ctx->prev;
     core_work_loop();
     /*
@@ -629,8 +626,6 @@ static void _finish_ctx_resume(void *arg) {
 void crt_work_loop(LiteCtx *ctx);
 
 static void _help_finish_ctx(LiteCtx *ctx) {
-    // Remember the current context
-    set_curr_lite_ctx(ctx);
     // Set up previous context to be stolen when the finish completes
     // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
     // finish_t *finish = ((volatile LiteCtx * volatile)ctx)->arg;
