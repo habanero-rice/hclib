@@ -116,59 +116,9 @@ static LiteCtx *get_curr_lite_ctx() {
     return CURRENT_WS_INTERNAL->curr_ctx;
 }
 
-/**
- * current - current context pointer
- * next - target context pointer
- * return - pointer to the current context,
- *   with the prev field set to the source context's pointer
- *
- * LiteCtx_swap is used to either swap in a newly created context on the current
- * thread (with an entrypoint function specified) or to switch back to a
- * previously created context.
- *
- * Swapping to a new context occurs in the following scenarios:
- *   1. When creating an initial new lite context as part of hclib_finalize,
- *      under which we perform the global hclib_end_finish.
- *   2. At the entrypoint of each worker thread, to create a lite context for
- *      all worker thread async and finishes to be performed under.
- *   3. From help_finish (called by end_finish), which creates a new lite
- *      context to switch to so that the current stack can be set aside as a
- *      continuation.
- *
- * Swapping back to a previously created context occurs in the following
- * scenarios:
- *   1. At the end of _hclib_finalize_ctx, as cleanup of the temporary lite
- *      context created for hclib_finalize.
- *   2. At the end of crt_work_loop, we switch back to the lite context that
- *      created the current lite context.
- *   3. In the escaping async created that is dependent on each finish, its only
- *      task is to swap out the current stack to the context for the
- *      continuation.
- *
- * NOTE: It is important to know that the boost::context library is designed so
- * that a fiber exiting its main entrypoint function will immediately call
- * exit(0). Therefore, it is important to be careful at the end of a fiber
- * entrypoint to always know what context to switch back to. If you do not swap
- * in another context, the entrypoint will exit and then your application will
- * exit silently with an exit code of zero. This can be hugely painful to debug.
- * It is good practice to end any function that acts as the entrypoint for a
- * fiber with an 'assert(0)' to ensure that if you do hit this case you get a
- * more sensible error message.
- */
-static __inline__ void LiteCtx_swap(LiteCtx *current, LiteCtx *next,
+static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
         const char *lbl) {
-#ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap[%s]: wid=%d current=%p(%p) next=%p(%p)\n",
-            lbl, get_current_worker(), current, current->_fctx.sp, next,
-            next->_fctx.sp);
-#endif
-    next->prev = current;
-    LiteCtx *new_current = jump_fcontext(&current->_fctx, next->_fctx, next,
-            false);
-#ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap: swapped back in %p(%p)\n", new_current,
-            new_current->_fctx.sp);
-#endif
+    LiteCtx *new_current = LiteCtx_swap(current, next, lbl);
     /*
      * When we reach this code, we have returned from swapping out current for
      * next, and someone else has swapped back in current.
@@ -575,7 +525,7 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
-    LiteCtx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, "_hclib_finalize_ctx");
+    ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, "_hclib_finalize_ctx");
     assert(0); // Should never return here
 }
 
@@ -590,7 +540,7 @@ static void core_work_loop() {
     // Jump back to the context for worker_routine
     hc_workerState *ws = CURRENT_WS_INTERNAL;
     assert(ws->root_ctx);
-    LiteCtx_swap(get_curr_lite_ctx(), ws->root_ctx, "core_work_loop");
+    ctx_swap(get_curr_lite_ctx(), ws->root_ctx, "core_work_loop");
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
@@ -602,7 +552,7 @@ static void crt_work_loop(LiteCtx *ctx) {
      * the main entrypoint of a worker thread (worker_routine) or a thread that
      * hit an end finish.
      */
-    LiteCtx_swap(ctx, original, "crt_work_loop");
+    ctx_swap(ctx, original, "crt_work_loop");
     assert(0); // Should never return here
 }
 
@@ -633,7 +583,7 @@ static void* worker_routine(void * args) {
     newCtx->arg = args;
 
     // Swap in the newCtx lite context
-    LiteCtx_swap(currentCtx, newCtx, "worker_routine");
+    ctx_swap(currentCtx, newCtx, "worker_routine");
 
 #ifdef VERBOSE
     fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
@@ -669,7 +619,7 @@ void teardown() {
 static void _finish_ctx_resume(void *arg) {
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
-    LiteCtx_swap(currentCtx, finishCtx, "_finish_ctx_resume");
+    ctx_swap(currentCtx, finishCtx, "_finish_ctx_resume");
 
     fprintf(stderr, "Should not have reached here, currentCtx=%p "
             "finishCtx=%p\n", currentCtx, finishCtx);
@@ -739,7 +689,7 @@ void help_finish(finish_t * finish) {
         assert(currentCtx);
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
-        LiteCtx_swap(currentCtx, newCtx, "help_finish");
+        ctx_swap(currentCtx, newCtx, "help_finish");
         // destroy the context that resumed this one since it's now defunct
         // (there are no other handles to it, and it will never be resumed)
         LiteCtx_destroy(currentCtx->prev);
@@ -881,7 +831,7 @@ static void hclib_finalize() {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create("hclib_finalize");
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
-    LiteCtx_swap(finalize_ctx, finish_ctx, "hclib_finalize");
+    ctx_swap(finalize_ctx, finish_ctx, "hclib_finalize");
     // free resources
     LiteCtx_destroy(finalize_ctx->prev);
     LiteCtx_proxy_destroy(finalize_ctx);
