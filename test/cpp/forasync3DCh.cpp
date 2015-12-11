@@ -54,28 +54,27 @@ void init_ran(int *ran, int size) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib::init(&argc, argv);
-    int i = 0;
     int *ran=(int *)malloc(H1*H2*H3*sizeof(int));
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
+    hclib::launch(&argc, argv, [=]() {
+        int i = 0;
+        // This is ok to have these on stack because this
+        // code is alive until the end of the program.
 
-    init_ran(ran, H1*H2*H3);
-    hclib::finish([=]() {
-        loop_domain_t loop0 = {0,H1,1,T1};
-        loop_domain_t loop1 = {0,H2,1,T2};
-        loop_domain_t loop2 = {0,H3,1,T3};
-        loop_domain_t loop[3] = {loop0, loop1, loop2};
-        hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
-                assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
-                ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3; },
-                FORASYNC_MODE_FLAT);
+        init_ran(ran, H1*H2*H3);
+        hclib::finish([=]() {
+            loop_domain_t loop0 = {0,H1,1,T1};
+            loop_domain_t loop1 = {0,H2,1,T2};
+            loop_domain_t loop2 = {0,H3,1,T3};
+            loop_domain_t loop[3] = {loop0, loop1, loop2};
+            hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
+                    assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
+                    ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3; },
+                    FORASYNC_MODE_FLAT);
+        });
     });
 
-    printf("Call Finalize\n");
-    hclib::finalize();
     printf("Check results: ");
-    i=0;
+    int i = 0;
     while(i < H1*H2*H3) {
         assert(ran[i] == i);
         i++;

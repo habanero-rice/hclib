@@ -42,12 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int ran[NB_ASYNC];
 
-void async_fct(void * arg) {
-    int idx = *((int *) arg);
-    assert(ran[idx] == -1);
-    ran[idx] = idx;
-}
-
 void init_ran(int *ran, int size) {
     while (size >= 0) {
         ran[size] = -1;
@@ -57,23 +51,27 @@ void init_ran(int *ran, int size) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib::init(&argc, argv);
-    int i = 0;
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
-    int indices [NB_ASYNC];
-    init_ran(ran, NB_ASYNC);
-    while(i < NB_ASYNC) {
-        indices[i] = i;
-        //Note: Forcefully pass the address we want to write to as a void **
-        hclib::async([=](){ int index = indices[i]; assert(ran[index] == -1);
-                ran[index] = index; });
-        i++;
-    }
-    printf("Call Finalize\n");
-    hclib::finalize();
+    hclib::launch(&argc, argv, []() {
+        // This is ok to have these on stack because this
+        // code is alive until the end of the program.
+        hclib::finish([]() {
+            int i = 0;
+            int indices [NB_ASYNC];
+            init_ran(ran, NB_ASYNC);
+
+            while (i < NB_ASYNC) {
+                indices[i] = i;
+                hclib::async([=](){
+                    int index = indices[i];
+                    assert(ran[index] == -1);
+                    ran[index] = index;
+                });
+                i++;
+            }
+        });
+    });
     printf("Check results: ");
-    i=0;
+    int i = 0;
     while(i < NB_ASYNC) {
         assert(ran[i] == i);
         i++;

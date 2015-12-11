@@ -41,10 +41,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int ran = 0;
 
 int main (int argc, char ** argv) {
-    hclib::init(&argc, argv);
-    printf("Hello\n");
-    hclib::async([=](){ ran = 1; });
-    hclib::finalize();
+    hclib::launch(&argc, argv, []() {
+        hclib::finish([]() {
+            printf("Hello\n");
+            hclib::async([=](){ ran = 1; });
+        });
+    });
     assert(ran == 1);
+    printf("Exiting...\n");
     return 0;
 }

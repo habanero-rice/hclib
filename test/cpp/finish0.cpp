@@ -57,18 +57,29 @@ void assert_done(int start, int end) {
 }
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib::init(&argc, argv);
     int mid = NB_ASYNC/2;
-    int i = 0;
-    int indices [NB_ASYNC];
+    hclib::launch(&argc, argv, [&mid]() {
+        int i = 0;
+        int indices [NB_ASYNC];
 
-    hclib::finish([=, &i, &indices]() {
+        hclib::finish([=, &i, &indices]() {
 
-        // This is ok to have these on stack because this
-        // code is alive until the end of the program.
-        init_ran(ran, NB_ASYNC);
-        printf("Go over [%d:%d]\n", i, mid);
-        while(i < mid) {
+            // This is ok to have these on stack because this
+            // code is alive until the end of the program.
+            init_ran(ran, NB_ASYNC);
+            printf("Go over [%d:%d]\n", i, mid);
+            while(i < mid) {
+                indices[i] = i;
+                hclib::async([=]() { int index = indices[i];
+                    assert(ran[index] == -1); ran[index] = index; });
+                i++;
+            }
+        });
+
+        printf("Midway\n");
+        assert_done(0, mid);
+        printf("Go over [%d:%d]\n", i, NB_ASYNC);
+        while(i < NB_ASYNC) {
             indices[i] = i;
             //Note: Forcefully pass the address we want to write to as a void **
             hclib::async([=]() { int index = indices[i];
@@ -76,19 +87,6 @@ int main (int argc, char ** argv) {
             i++;
         }
     });
-
-    printf("Midway\n");
-    assert_done(0, mid);
-    printf("Go over [%d:%d]\n", i, NB_ASYNC);
-    while(i < NB_ASYNC) {
-        indices[i] = i;
-        //Note: Forcefully pass the address we want to write to as a void **
-        hclib::async([=]() { int index = indices[i];
-            assert(ran[index] == -1); ran[index] = index; });
-        i++;
-    }
-    printf("Call Finalize\n");
-    hclib::finalize();
     printf("Check results: ");
     assert_done(mid, NB_ASYNC);
     printf("OK\n");

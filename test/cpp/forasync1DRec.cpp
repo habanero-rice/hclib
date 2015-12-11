@@ -50,22 +50,21 @@ void init_ran(int *ran, int size) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib::init(&argc, argv);
-    int i = 0;
     int *ran=(int *)malloc(H1*sizeof(int));
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
+    hclib::launch(&argc, argv, [=]() {
+        int i = 0;
+        // This is ok to have these on stack because this
+        // code is alive until the end of the program.
 
-    init_ran(ran, H1);
-    hclib::finish([=]() {
-        loop_domain_t loop = {0,H1,1,T1};
-        hclib::forasync1D(&loop, [=](int idx) { assert(ran[idx] == -1); ran[idx] = idx; });
+        init_ran(ran, H1);
+        hclib::finish([=]() {
+            loop_domain_t loop = {0,H1,1,T1};
+            hclib::forasync1D(&loop, [=](int idx) { assert(ran[idx] == -1); ran[idx] = idx; });
+        });
     });
 
-    printf("Call Finalize\n");
-    hclib::finalize();
     printf("Check results: ");
-    i=0;
+    int i = 0;
     while(i < H1) {
         assert(ran[i] == i);
         i++;
