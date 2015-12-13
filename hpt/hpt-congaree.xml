@@ -79,9 +79,9 @@
         </place>
       </place>
     </place>
-    <!--place num="1" type="nvgpu" info="NVIDIA Corporation, Quadro K2000">
+    <place num="1" type="nvgpu" info="NVIDIA Corporation, Quadro K2000">
     </place>
     <place num="1" type="nvgpu" info="NVIDIA Corporation, Tesla K20c">
-    </place-->
+    </place>
   </place>
 </HPT>
