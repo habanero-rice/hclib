@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-internal.h"
 
 place_t * read_hpt(place_t *** all_places, int * num_pl, int * nproc, hc_workerState *** all_workers, int * num_wk);
-void freeHPT(place_t * hpt);
+void free_hpt(place_t * hpt);
 void hc_hpt_init(hc_context * context);
 void hc_hpt_cleanup(hc_context * context);
 void hc_hpt_dev_init(hc_context * context);

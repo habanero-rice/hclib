@@ -43,3 +43,19 @@ int hclib::get_num_places(hclib::place_type_t type) {
 void hclib::get_places(hclib::place_t **pls, hclib::place_type_t type) {
     hclib_get_places(pls, type);
 }
+
+place_t *hclib::get_current_place() {
+    return hclib_get_current_place();
+}
+
+place_t **hclib::get_children_of_place(place_t *pl, int *num_children) {
+    return hclib_get_children_of_place(pl, num_children);
+}
+
+place_t *hclib::get_root_place() {
+    return hclib_get_root_place();
+}
+
+void *hclib::allocate_at(place_t *pl, size_t nbytes, int flags) {
+    return hclib_allocate_at(pl, nbytes, flags);
+}

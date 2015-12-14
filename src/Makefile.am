@@ -22,6 +22,7 @@ endif
 
 if HC_CUDA
 HC_FLAGS_3 = -DHC_CUDA
+INCLUDES_DIR += ${CUDA_HOME}/include
 else
 HC_FLAGS_3 = 
 endif

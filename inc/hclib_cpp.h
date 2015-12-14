@@ -33,6 +33,11 @@ int current_worker();
 int num_workers();
 int get_num_places(place_type_t type);
 void get_places(place_t **pls, place_type_t type);
+place_t *get_current_place();
+place_t **get_children_of_place(place_t *pl, int *num_children);
+place_t *get_root_place();
+
+void *allocate_at(place_t *pl, size_t nbytes, int flags);
 
 }
 

@@ -6,3 +6,8 @@ ifdef TBB_MALLOC
   PROJECT_LDFLAGS+=-L$(TBB_MALLOC)
   PROJECT_LDLIBS+=-ltbbmalloc_proxy
 endif
+ifdef HC_CUDA_FLAGS
+  PROJECT_LDFLAGS+=-L$(CUDA_HOME)
+  PROJECT_LDLIBS+=-lcudart
+endif
+

@@ -34,18 +34,28 @@ typedef struct place_t {
 	int level; /* Level in the HPT tree. Logical root is level 0. */
 	int nChildren;
 	short type;
+#ifdef HC_CUDA
+    int cuda_id;
+#endif
 } place_t ;
+
+typedef enum place_alloc_flags {
+    NONE = 0,
+    PHYSICAL
+} place_alloc_flags_t;
 
 /** PLACES API **/
 int hclib_get_num_places(short type);
 void hclib_get_places(place_t ** pls, short type);
 place_t * hc_get_place(short type);
 
-place_t * hc_get_root_place();
-place_t * hc_get_current_place();
-place_t * hc_get_child_place();
-place_t * hc_get_parent_place();
-place_t ** hc_get_children_places(int * numChildren);
-place_t ** hc_get_children_of_place(place_t * pl, int * numChildren);
+place_t * hclib_get_root_place();
+place_t * hclib_get_current_place();
+place_t * hclib_get_child_place();
+place_t * hclib_get_parent_place();
+place_t ** hclib_get_children_places(int * numChildren);
+place_t ** hclib_get_children_of_place(place_t * pl, int * numChildren);
+
+void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
 
 #endif /* HCPP_PLACE_H_ */

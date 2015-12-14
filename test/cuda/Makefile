@@ -1,0 +1,13 @@
+include $(HCPP_ROOT)/include/hcpp.mak
+
+TARGETS=allocate
+
+FLAGS=-g -std=c++11
+
+all: $(TARGETS)
+
+%: %.cpp
+	g++ ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+
+clean:
+	rm -f $(TARGETS)

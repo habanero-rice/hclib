@@ -44,11 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-internal.h"
 #include "hcpp-atomics.h"
 #include "hcupc-support.h"
+#include "hcpp-cuda.h"
 
 // #define VERBOSE
 
 inline hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
-void freeHPT(place_t * hpt);
+void free_hpt(place_t * hpt);
+static const char *place_type_to_str(short type);
 
 /**
  * HPT: Try to steal a frame from another worker.
@@ -135,7 +137,8 @@ inline short is_cpu_place(place_t * pl) {
 #ifdef TODO
 inline short is_device_place(place_t * pl) {
     HASSERT(pl);
-    return (pl->type == NVGPU_PLACE || pl->type == AMGPU_PLACE || pl->type == FPGA_PLACE );
+    return (pl->type == NVGPU_PLACE || pl->type == AMGPU_PLACE ||
+            pl->type == FPGA_PLACE );
 }
 #endif
 
@@ -146,7 +149,7 @@ inline short is_nvgpu_place(place_t * pl) {
 }
 #endif
 
-place_t* hc_get_current_place() {
+place_t* hclib_get_current_place() {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     HASSERT(ws->current->pl != NULL);
     return ws->current->pl;
@@ -184,19 +187,19 @@ place_t * hc_get_place(short type) {
     return NULL;
 }
 
-place_t * hc_get_root_place() {
+place_t *hclib_get_root_place() {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t ** all_places = ws->context->places;
     return all_places[0];
 }
 
-inline place_t * get_ancestor_place(hc_workerState * ws) {
+inline place_t *get_ancestor_place(hc_workerState * ws) {
     place_t * parent = ws->pl;
     while (parent->parent != NULL) parent = parent->parent;
     return parent;
 }
 
-place_t * hc_get_child_place() {
+place_t *hclib_get_child_place() {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t * pl = ws->current->pl;
     HASSERT(pl != NULL);
@@ -204,7 +207,7 @@ place_t * hc_get_child_place() {
     return ws->hpt_path[pl->level + 1];
 }
 
-place_t * hc_get_parent_place() {
+place_t *hclib_get_parent_place() {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     place_t * pl = ws->current->pl;
     HASSERT(pl != NULL);
@@ -212,13 +215,13 @@ place_t * hc_get_parent_place() {
     return ws->hpt_path[pl->level - 1];
 }
 
-place_t ** hc_get_children_places(int * numChildren) {
-    place_t * pl = hc_get_current_place();
+place_t **hclib_get_children_places(int * numChildren) {
+    place_t * pl = hclib_get_current_place();
     *numChildren = pl->nChildren;
     return pl->children;
 }
 
-place_t ** hc_get_children_of_place(place_t * pl, int * numChildren) {
+place_t **hclib_get_children_of_place(place_t * pl, int * numChildren) {
     *numChildren = pl->nChildren;
     return pl->children;
 }
@@ -227,17 +230,17 @@ place_t ** hc_get_children_of_place(place_t * pl, int * numChildren) {
  * Return my own deque that is in place pl,
  * if pl == NULL, return the current deque of the worker
  */
-inline hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl) {
+inline hc_deque_t *get_deque_place(hc_workerState * ws, place_t * pl) {
     if (pl == NULL) return ws->current;
     return &(pl->deques[ws->id]);
 }
 
-hc_deque_t * get_deque(hc_workerState * ws) {
+hc_deque_t *get_deque(hc_workerState * ws) {
     return NULL;
 }
 
 /* get the first owned deque from HPT that starts with place pl upward */
-hc_deque_t * get_deque_hpt(hc_workerState * ws, place_t * pl) {
+hc_deque_t *get_deque_hpt(hc_workerState * ws, place_t * pl) {
     return NULL;
 
 }
@@ -277,12 +280,50 @@ inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
 #endif
 }
 
-/*Initialize deq's buffer (data + capacity)*/
-void init_deq_buffer(hc_workerState * ws, deque_t * deq, int capacity) {
-    //TODO: in our current design this does not makes sense
+void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
+    if (is_cpu_place(pl)) {
+#ifdef HC_CUDA
+        if (flags & PHYSICAL) {
+            void *ptr;
+            const cudaError_t alloc_err = cudaMallocHost((void **)&ptr, nbytes);
+            if (alloc_err != cudaSuccess) {
+#ifdef VERBOSE
+                fprintf(stderr, "Physical allocation at CPU place failed with "
+                        "reason \"%s\"\n", cudaGetErrorString(alloc_err));
+#endif
+                return NULL;
+            } else {
+                return ptr;
+            }
+        }
+#else
+        HASSERT(flags == NONE);
+#endif
+        return malloc(nbytes);
+#ifdef HC_CUDA
+    } else if (is_nvgpu_place(pl)) {
+        HASSERT(flags == NONE);
+        void *ptr;
+        HASSERT(pl->cuda_id >= 0);
+        CHECK_CUDA(cudaSetDevice(pl->cuda_id));
+        const cudaError_t alloc_err = cudaMalloc((void **)&ptr, nbytes);
+        if (alloc_err != cudaSuccess) {
+#ifdef VERBOSE
+            fprintf(stderr, "Allocation at NVGPU place failed with reason "
+                    "\"%s\"\n", cudaGetErrorString(alloc_err));
+#endif
+            return NULL;
+        } else {
+            return ptr;
+        }
+#endif
+    } else {
+        fprintf(stderr, "Unsupported place type %s\n",
+                place_type_to_str(pl->type));
+        exit(1);
+    }
 }
 
-#ifdef VERBOSE
 static const char *MEM_PLACE_STR   = "MEM_PLACE";
 static const char *CACHE_PLACE_STR = "CACHE_PLACE";
 static const char *NVGPU_PLACE_STR = "NVGPU_PLACE";
@@ -309,7 +350,6 @@ static const char *place_type_to_str(short type) {
             exit(5);
     }
 }
-#endif
 
 /* init the hpt and place deques */
 void hc_hpt_init(hc_context * context) {
@@ -359,6 +399,24 @@ void hc_hpt_init(hc_context * context) {
      * this does make lookups of the deque in a place for a given worker
      * constant time based on offset in place->deques.
      */
+#ifdef HC_CUDA
+    int ngpus = -1;
+    int gpu_counter = 0;
+    if (ngpus == -1) {
+        CHECK_CUDA(cudaGetDeviceCount(&ngpus));
+    }
+    for (i = 0; i < context->nplaces; i++) {
+        place_t *pl = context->places[i];
+        pl->cuda_id = -1;
+#ifdef HC_CUDA
+        if (is_nvgpu_place(pl)) {
+            pl->cuda_id = gpu_counter++;
+        } 
+#endif
+    }
+    HASSERT(gpu_counter == ngpus);
+
+#endif
     for (i = 0; i < context->nworkers; i++) {
         hc_workerState * ws = context->workers[i];
         const int id = ws->id;
@@ -371,6 +429,7 @@ void hc_hpt_init(hc_context * context) {
             } else if (is_nvgpu_place(pl)) {
                 hc_deque_t *hc_deq = &(pl->deques[id]);
                 hc_deq->ws = ws;
+
 #endif
             } else {
                 /* unhandled or ignored situation */
@@ -439,7 +498,7 @@ void hc_hpt_cleanup(hc_context * context) {
         free(pl->deques);
     }
     /* clean up the HPT, places and workers */
-    freeHPT(context->hpt);
+    free_hpt(context->hpt);
 }
 
 /*
@@ -606,12 +665,12 @@ place_t * parseHPTDoc(xmlNode * hptNode) {
 typedef struct place_node {
     place_t * data;
     struct place_node * next;
-}place_node_t;
+} place_node_t;
 
 typedef struct worker_node {
     hc_workerState *data;
     struct worker_node * next;
-}worker_node_t;
+} worker_node_t;
 
 /*
  * Generate two lists for all places and workers below the place pl in the HPT:
@@ -661,7 +720,8 @@ void setup_worker_hpt_path(hc_workerState * worker, place_t * pl);
  *   <worker/>
  *   <worker/>
  *
- * to represent two cores sharing a place in the cache hierarchy, we can simply write:
+ * to represent two cores sharing a place in the cache hierarchy, we can simply
+ * write:
  *
  *   <worker num="2"/>
  *
@@ -1038,7 +1098,7 @@ place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
     return hpt;
 }
 
-void freeHPT(place_t * hpt) {
+void free_hpt(place_t * hpt) {
     place_node_t * start = NULL;
     place_node_t * end = NULL;
     place_node_t * tmp;
