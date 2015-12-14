@@ -14,6 +14,11 @@ int main(int argc, char **argv) {
             if (toplevel[i]->type == NVGPU_PLACE) {
                 std::cout << "Found GPU place" << std::endl;
                 void *d_ptr = hclib::allocate_at(toplevel[i], 10, 0);
+                HASSERT(d_ptr);
+            } else {
+                std::cout << "Found CPU place" << std::endl;
+                void *h_ptr = hclib::allocate_at(toplevel[i], 10, PHYSICAL);
+                HASSERT(h_ptr);
             }
         }
     });
