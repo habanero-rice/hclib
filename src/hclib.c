@@ -425,6 +425,12 @@ void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,
     assert(phased_clause == NULL && "Limitation: forasync does not support phaser clause yet");
     assert(accumed == NULL);
 
+#ifdef HC_CUDA
+    printf("HC_CUDA is defined!\n");
+#else
+    printf("HC_CUDA is not defined!\n");
+#endif
+
     forasync_internal(forasync_fct, argv, accumed, dim, domain, mode);
 }
 

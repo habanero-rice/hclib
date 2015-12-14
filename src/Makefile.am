@@ -9,15 +9,21 @@ CXXFLAGS = -Wall -g -O3 -std=c++11
 LDFLAGS = -lpthread
 
 if DIST_WS
-HUPCPP_FLAGS_1 = -DDIST_WS
+HC_FLAGS_1 = -DDIST_WS
 else
-HUPCPP_FLAGS_1 =
+HC_FLAGS_1 =
 endif
 
 if HUPCPP
-HUPCPP_FLAGS_2 = -DHUPCPP -DHCPP_COMM_WORKER
+HC_FLAGS_2 = -DHUPCPP -DHC_COMM_WORKER
 else
-HUPCPP_FLAGS_2 =
+HC_FLAGS_2 =
+endif
+
+if HC_CUDA
+HC_FLAGS_3 = -DHC_CUDA
+else
+HC_FLAGS_3 = 
 endif
 
 if PRODUCTION_SETTINGS
@@ -34,8 +40,8 @@ lib_LTLIBRARIES = libhcpp.la
 noinst_LTLIBRARIES =
 libhcpp_la_LIBADD =
 
-AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) \
-			  -I$(LIBXML2_INCLUDE)
+AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) \
+			  $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
 libhcpp_la_SOURCES = hcpp-runtime.c hcpp-deque.c hcpp-hpt.c hcpp-thread-bind.c \
 					 hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c
 

@@ -137,7 +137,9 @@ inline short is_device_place(place_t * pl) {
     HASSERT(pl);
     return (pl->type == NVGPU_PLACE || pl->type == AMGPU_PLACE || pl->type == FPGA_PLACE );
 }
+#endif
 
+#ifdef HC_CUDA
 inline short is_nvgpu_place(place_t * pl) {
     HASSERT(pl);
     return (pl->type == NVGPU_PLACE);
@@ -365,6 +367,11 @@ void hc_hpt_init(hc_context * context) {
             if (is_cpu_place(pl)) {
                 hc_deque_t *hc_deq = &(pl->deques[id]);
                 hc_deq->ws = ws;
+#ifdef HC_CUDA
+            } else if (is_nvgpu_place(pl)) {
+                hc_deque_t *hc_deq = &(pl->deques[id]);
+                hc_deq->ws = ws;
+#endif
             } else {
                 /* unhandled or ignored situation */
                 assert(0);

@@ -79,6 +79,20 @@ AS_IF([test "x$with_hupcpp" != xno],
 AM_CONDITIONAL(HUPCPP, test "x$with_hupcpp" != xno)
 ### End hupcpp
 
+### SUPPORT CUDA-accelerated forasyncs
+AC_ARG_ENABLE(cuda,
+    AS_HELP_STRING([--enable-cuda],
+    [support CUDA-accelerated forasyncs (Default is false)]),
+    [with_cuda=$enableval],
+    [with_cuda=no;])
+
+AS_IF([test "x$with_cuda" != xno],
+      [ AC_MSG_NOTICE([Enabled CUDA support]) ],
+      [ AC_MSG_NOTICE([Disabled CUDA support]) ])
+
+AM_CONDITIONAL(HC_CUDA, test "x$with_cuda" != xno)
+### End cuda
+
 ### ENABLE PRODUCTION SETTINGS
 AC_ARG_ENABLE(production,
     AS_HELP_STRING([--enable-production],

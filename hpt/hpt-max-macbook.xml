@@ -30,4 +30,6 @@
       </place>
     </place>
   </place>
+  <place num="1" type="nvgpu" info="NVIDIA Corporation">
+  </place>
 </HPT>

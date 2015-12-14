@@ -61,7 +61,7 @@ mkdir -p ${COMPTREE}
 
 cd ${COMPTREE}
 
-../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCPP_FLAGS}
+../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCPP_FLAGS} ${HC_CUDA_FLAGS}
 check_error "$?" "Configure failed";
 
 #

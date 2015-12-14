@@ -51,7 +51,7 @@ static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
 
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
 semiConcDeque_t * comm_worker_out_deque;
 #endif
 
@@ -162,7 +162,7 @@ void hcpp_global_init() {
         hcpp_context->done_flags[i].flag = 1;
     }
 
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
     comm_worker_out_deque = (semiConcDeque_t *)malloc(sizeof(semiConcDeque_t));
     HASSERT(comm_worker_out_deque);
     semiConcDequeInit(comm_worker_out_deque, NULL);
@@ -231,7 +231,7 @@ void hcpp_entrypoint() {
      */
     hcpp_global_init();
 
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
     const int have_comm_worker = 1;
 #else
     const int have_comm_worker = 0;
@@ -319,7 +319,7 @@ static inline void execute_task(task_t* task) {
 
 static inline void rt_schedule_async(task_t* async_task, int comm_task) {
     if(comm_task) {
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
         // push on comm_worker out_deq if this is a communication task
         semiConcDequeLockedPush(comm_worker_out_deque, async_task);
 #endif
@@ -447,7 +447,7 @@ void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 }
 
 void spawn_commTask(task_t * task) {
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
@@ -482,7 +482,7 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 	}
 }
 
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
 inline void master_worker_routine(finish_t* finish) {
 	semiConcDeque_t *deque = comm_worker_out_deque;
 	while(finish->counter > 0) {
@@ -652,7 +652,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 }
 #else /* default (broken) strategy */
 static void _help_finish(finish_t * finish) {
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
 	if(CURRENT_WS_INTERNAL->id == 0) {
 		master_worker_routine(finish);
 	}
