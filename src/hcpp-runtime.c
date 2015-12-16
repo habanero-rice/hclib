@@ -485,7 +485,7 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 #ifdef HCPP_COMM_WORKER
 inline void master_worker_routine(finish_t* finish) {
 	semiConcDeque_t *deque = comm_worker_out_deque;
-	while(finish->counter > 0) {
+	while (finish->counter > 0) {
 		// try to pop
 		task_t* task = semiConcDequeNonLockedPop(deque);
 		// Comm worker cannot steal
@@ -570,6 +570,13 @@ static void* worker_routine(void * args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
     hc_workerState* ws = CURRENT_WS_INTERNAL;
+
+#ifdef HCPP_COMM_WORKER
+    if (wid == 0) {
+        master_worker_routine(ws->current_finish);
+        return NULL;
+    }
+#endif
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create("worker_routine");
