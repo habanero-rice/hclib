@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "hcpp-asyncStruct.h"
+#include "hclib.h"
 
 #ifndef HCUPC_SUPPORT_H_
 #define HCUPC_SUPPORT_H_
@@ -161,7 +162,9 @@ void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
 int totalPendingLocalAsyncs();
 void display_runtime();
 volatile int* start_finish_special();
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(hclib_ddf_t**));
+void hclib_upc_launch(int * argc, char ** argv,
+        void (*_dddf_register_callback)(hclib_ddf_t**),
+        asyncFct_t fct_ptr, void * arg);
 #endif
 
 #ifdef DIST_WS

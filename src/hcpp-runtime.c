@@ -118,12 +118,11 @@ static LiteCtx *get_curr_lite_ctx() {
 
 static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
         const char *lbl) {
-    LiteCtx *new_current = LiteCtx_swap(current, next, lbl);
-    /*
-     * When we reach this code, we have returned from swapping out current for
-     * next, and someone else has swapped back in current.
-     */
-    set_curr_lite_ctx(new_current);
+    // switching to new context
+    set_curr_lite_ctx(next);
+    LiteCtx_swap(current, next, lbl);
+    // switched back to this context
+    set_curr_lite_ctx(current);
 }
 
 hc_workerState* current_ws() {
@@ -131,7 +130,10 @@ hc_workerState* current_ws() {
 }
 
 // FWD declaration for pthread_create
-static void* worker_routine(void * args);
+static void *worker_routine(void * args);
+#ifdef HCPP_COMM_WORKER
+static void *communication_worker_routine(void* finish);
+#endif
 
 /*
  * Main initialization function for the hcpp_context object.
@@ -182,29 +184,9 @@ void hcpp_global_init() {
  * final worker. See worker_routine for a description of worker initialization.
  */
 void hcpp_create_worker_threads(int nb_workers) {
-    /* setting current thread as worker 0 */
-    // Launch the worker threads
-    if (hcpp_stats) {
-        printf("Using %d worker threads (including main thread)\n", nb_workers);
-    }
-
-    // Start workers
-    for (int i = 1; i < nb_workers; i++) {
-        pthread_attr_t attr;
-        if (pthread_attr_init(&attr) != 0) {
-            fprintf(stderr, "Error in pthread_attr_init\n");
-            exit(3);
-        }
-        if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
-                &hcpp_context->workers[i]->id) != 0) {
-            fprintf(stderr, "Error launching thread\n");
-            exit(4);
-        }
-    }
-    set_current_worker(0);
 }
 
-static void display_runtime() {
+void display_runtime() {
 	printf("---------HCPP_RUNTIME_INFO-----------\n");
 	printf(">>> HCPP_WORKERS\t= %s\n", getenv("HCPP_WORKERS"));
 	printf(">>> HCPP_HPT_FILE\t= %s\n", getenv("HCPP_HPT_FILE"));
@@ -253,11 +235,42 @@ void hcpp_entrypoint() {
      * them on. */
     pthread_setconcurrency(hcpp_context->nworkers);
 
-    /* Create all worker threads, running worker_routine */
-    hcpp_create_worker_threads(hcpp_context->nworkers);
+    // Launch the worker threads
+    if (hcpp_stats) {
+        printf("Using %d worker threads (including main thread)\n",
+                hcpp_context->nworkers);
+    }
+
+    // Start workers
+    pthread_attr_t attr;
+    if (pthread_attr_init(&attr) != 0) {
+        fprintf(stderr, "Error in pthread_attr_init\n");
+        exit(3);
+    }
+    int starting_worker = 1;
+#ifdef HCPP_COMM_WORKER
+    starting_worker = 2;
+#endif
+    for (int i = starting_worker; i < hcpp_context->nworkers; i++) {
+        if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
+                &hcpp_context->workers[i]->id) != 0) {
+            fprintf(stderr, "Error launching thread\n");
+            exit(4);
+        }
+    }
+    set_current_worker(0);
 
     // allocate root finish
     hclib_start_finish();
+
+#ifdef HCPP_COMM_WORKER
+    if (pthread_create(&hcpp_context->workers[1]->t, &attr,
+                communication_worker_routine,
+                CURRENT_WS_INTERNAL->current_finish) != 0) {
+        fprintf(stderr, "Error launching communication worker\n");
+        exit(5);
+    }
+#endif
 }
 
 void hcpp_signal_join(int nb_workers) {
@@ -463,7 +476,10 @@ void spawn_commTask(task_t * task) {
 }
 
 #ifdef HCPP_COMM_WORKER
-inline void master_worker_routine(finish_t* finish) {
+void *communication_worker_routine(void* finish_ptr) {
+    finish_t *finish = (finish_t *)finish_ptr;
+    set_current_worker(1);
+
 	semiConcDeque_t *deque = comm_worker_out_deque;
 	while (finish->counter > 0) {
 		// try to pop
@@ -476,6 +492,7 @@ inline void master_worker_routine(finish_t* finish) {
 			execute_task(task);
 		}
 	}
+    return NULL;
 }
 #endif
 
@@ -501,15 +518,15 @@ void find_and_run_task(hc_workerState* ws) {
 
 #if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
-    set_curr_lite_ctx(ctx);
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hcpp_signal_join(hcpp_context->nworkers);
-    ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, "_hclib_finalize_ctx");
+    // Jump back to the system thread context for this worker
+    ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, __func__);
     assert(0); // Should never return here
 }
 
-static void core_work_loop() {
+static void core_work_loop(void) {
     uint64_t wid;
     do {
         hc_workerState *ws = CURRENT_WS_INTERNAL;
@@ -517,22 +534,15 @@ static void core_work_loop() {
         find_and_run_task(ws);
     } while (hcpp_context->done_flags[wid].flag);
 
-    // Jump back to the context for worker_routine
+    // Jump back to the system thread context for this worker
     hc_workerState *ws = CURRENT_WS_INTERNAL;
     assert(ws->root_ctx);
-    ctx_swap(get_curr_lite_ctx(), ws->root_ctx, "core_work_loop");
+    ctx_swap(get_curr_lite_ctx(), ws->root_ctx, __func__);
+    assert(0); // Should never return here
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
-    set_curr_lite_ctx(ctx);
-    LiteCtx *original = ctx->prev;
-    core_work_loop();
-    /*
-     * switch back to whichever thread created this work loop context, either
-     * the main entrypoint of a worker thread (worker_routine) or a thread that
-     * hit an end finish.
-     */
-    ctx_swap(ctx, original, "crt_work_loop");
+    core_work_loop(); // this function never returns
     assert(0); // Should never return here
 }
 
@@ -553,13 +563,13 @@ static void* worker_routine(void * args) {
 
 #ifdef HCPP_COMM_WORKER
     if (wid == 0) {
-        master_worker_routine(ws->current_finish);
+        communication_worker_routine(ws->current_finish);
         return NULL;
     }
 #endif
 
     // Create proxy original context to switch from
-    LiteCtx *currentCtx = LiteCtx_proxy_create("worker_routine");
+    LiteCtx *currentCtx = LiteCtx_proxy_create(__func__);
     ws->root_ctx = currentCtx;
 
     /*
@@ -570,7 +580,7 @@ static void* worker_routine(void * args) {
     newCtx->arg = args;
 
     // Swap in the newCtx lite context
-    ctx_swap(currentCtx, newCtx, "worker_routine");
+    ctx_swap(currentCtx, newCtx, __func__);
 
 #ifdef VERBOSE
     fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
@@ -582,6 +592,7 @@ static void* worker_routine(void * args) {
     LiteCtx_proxy_destroy(currentCtx);
     return NULL;
 }
+
 #else /* default (broken) strategy */
 
 static void* worker_routine(void * args) {
@@ -606,7 +617,7 @@ void teardown() {
 static void _finish_ctx_resume(void *arg) {
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
-    ctx_swap(currentCtx, finishCtx, "_finish_ctx_resume");
+    ctx_swap(currentCtx, finishCtx, __func__);
 
     fprintf(stderr, "Should not have reached here, currentCtx=%p "
             "finishCtx=%p\n", currentCtx, finishCtx);
@@ -616,8 +627,6 @@ static void _finish_ctx_resume(void *arg) {
 void crt_work_loop(LiteCtx *ctx);
 
 static void _help_finish_ctx(LiteCtx *ctx) {
-    // Remember the current context
-    set_curr_lite_ctx(ctx);
     // Set up previous context to be stolen when the finish completes
     // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
     // finish_t *finish = ((volatile LiteCtx * volatile)ctx)->arg;
@@ -634,8 +643,8 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 
     // keep workstealing until this context gets swapped out and destroyed
     check_out_finish(finish);
-    core_work_loop();
-    assert(0); // This is the entrypoint of a fiber, so we should never return here.
+    core_work_loop(); // this function never returns
+    assert(0); // we should never return here
 }
 #else /* default (broken) strategy */
 
@@ -667,7 +676,7 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 static void _help_finish(finish_t * finish) {
 #ifdef HC_COMM_WORKER
 	if(CURRENT_WS_INTERNAL->id == 0) {
-		master_worker_routine(finish);
+		communication_worker_routine(finish);
 	}
 	else {
 		slave_worker_finishHelper_routine(finish);
@@ -702,7 +711,7 @@ void help_finish(finish_t * finish) {
         assert(currentCtx);
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
-        ctx_swap(currentCtx, newCtx, "help_finish");
+        ctx_swap(currentCtx, newCtx, __func__);
         // destroy the context that resumed this one since it's now defunct
         // (there are no other handles to it, and it will never be resumed)
         LiteCtx_destroy(currentCtx->prev);
@@ -841,10 +850,10 @@ static void hclib_init(int* argc, char** argv) {
 
 static void hclib_finalize() {
 #if HCLIB_LITECTX_STRATEGY
-    LiteCtx *finalize_ctx = LiteCtx_proxy_create("hclib_finalize");
+    LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
-    ctx_swap(finalize_ctx, finish_ctx, "hclib_finalize");
+    ctx_swap(finalize_ctx, finish_ctx, __func__);
     // free resources
     LiteCtx_destroy(finalize_ctx->prev);
     LiteCtx_proxy_destroy(finalize_ctx);
