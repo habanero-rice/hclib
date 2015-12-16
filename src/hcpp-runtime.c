@@ -462,6 +462,23 @@ void spawn_commTask(task_t * task) {
 #endif
 }
 
+#ifdef HCPP_COMM_WORKER
+inline void master_worker_routine(finish_t* finish) {
+	semiConcDeque_t *deque = comm_worker_out_deque;
+	while (finish->counter > 0) {
+		// try to pop
+		task_t* task = semiConcDequeNonLockedPop(deque);
+		// Comm worker cannot steal
+		if(task) {
+#ifdef HC_COMM_WORKER_STATS
+			increment_asyncComm_counter();
+#endif
+			execute_task(task);
+		}
+	}
+}
+#endif
+
 void find_and_run_task(hc_workerState* ws) {
     task_t* task = hpt_pop_task(ws);
     if (!task) {
@@ -533,6 +550,13 @@ static void* worker_routine(void * args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
     hc_workerState* ws = CURRENT_WS_INTERNAL;
+
+#ifdef HCPP_COMM_WORKER
+    if (wid == 0) {
+        master_worker_routine(ws->current_finish);
+        return NULL;
+    }
+#endif
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create("worker_routine");
@@ -614,23 +638,6 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     assert(0); // This is the entrypoint of a fiber, so we should never return here.
 }
 #else /* default (broken) strategy */
-
-#ifdef HC_COMM_WORKER
-inline void master_worker_routine(finish_t* finish) {
-	semiConcDeque_t *deque = comm_worker_out_deque;
-	while (finish->counter > 0) {
-		// try to pop
-		task_t* task = semiConcDequeNonLockedPop(deque);
-		// Comm worker cannot steal
-		if(task) {
-#ifdef HC_COMM_WORKER_STATS
-			increment_asyncComm_counter();
-#endif
-			execute_task(task);
-		}
-	}
-}
-#endif
 
 static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
