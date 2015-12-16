@@ -131,7 +131,10 @@ hc_workerState* current_ws() {
 }
 
 // FWD declaration for pthread_create
-static void* worker_routine(void * args);
+static void *worker_routine(void * args);
+#ifdef HCPP_COMM_WORKER
+static void *communication_worker_routine(void* finish);
+#endif
 
 /*
  * Main initialization function for the hcpp_context object.
@@ -179,29 +182,9 @@ void hcpp_global_init() {
  * final worker. See worker_routine for a description of worker initialization.
  */
 void hcpp_create_worker_threads(int nb_workers) {
-    /* setting current thread as worker 0 */
-    // Launch the worker threads
-    if (hcpp_stats) {
-        printf("Using %d worker threads (including main thread)\n", nb_workers);
-    }
-
-    // Start workers
-    for (int i = 1; i < nb_workers; i++) {
-        pthread_attr_t attr;
-        if (pthread_attr_init(&attr) != 0) {
-            fprintf(stderr, "Error in pthread_attr_init\n");
-            exit(3);
-        }
-        if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
-                &hcpp_context->workers[i]->id) != 0) {
-            fprintf(stderr, "Error launching thread\n");
-            exit(4);
-        }
-    }
-    set_current_worker(0);
 }
 
-static void display_runtime() {
+void display_runtime() {
 	printf("---------HCPP_RUNTIME_INFO-----------\n");
 	printf(">>> HCPP_WORKERS\t= %s\n", getenv("HCPP_WORKERS"));
 	printf(">>> HCPP_HPT_FILE\t= %s\n", getenv("HCPP_HPT_FILE"));
@@ -250,11 +233,42 @@ void hcpp_entrypoint() {
      * them on. */
     pthread_setconcurrency(hcpp_context->nworkers);
 
-    /* Create all worker threads, running worker_routine */
-    hcpp_create_worker_threads(hcpp_context->nworkers);
+    // Launch the worker threads
+    if (hcpp_stats) {
+        printf("Using %d worker threads (including main thread)\n",
+                hcpp_context->nworkers);
+    }
+
+    // Start workers
+    pthread_attr_t attr;
+    if (pthread_attr_init(&attr) != 0) {
+        fprintf(stderr, "Error in pthread_attr_init\n");
+        exit(3);
+    }
+    int starting_worker = 1;
+#ifdef HCPP_COMM_WORKER
+    starting_worker = 2;
+#endif
+    for (int i = starting_worker; i < hcpp_context->nworkers; i++) {
+        if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
+                &hcpp_context->workers[i]->id) != 0) {
+            fprintf(stderr, "Error launching thread\n");
+            exit(4);
+        }
+    }
+    set_current_worker(0);
 
     // allocate root finish
     hclib_start_finish();
+
+#ifdef HCPP_COMM_WORKER
+    if (pthread_create(&hcpp_context->workers[1]->t, &attr,
+                communication_worker_routine,
+                CURRENT_WS_INTERNAL->current_finish) != 0) {
+        fprintf(stderr, "Error launching communication worker\n");
+        exit(5);
+    }
+#endif
 }
 
 void hcpp_signal_join(int nb_workers) {
@@ -483,7 +497,10 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 }
 
 #ifdef HCPP_COMM_WORKER
-inline void master_worker_routine(finish_t* finish) {
+void *communication_worker_routine(void* finish_ptr) {
+    finish_t *finish = (finish_t *)finish_ptr;
+    set_current_worker(1);
+
 	semiConcDeque_t *deque = comm_worker_out_deque;
 	while (finish->counter > 0) {
 		// try to pop
@@ -496,6 +513,7 @@ inline void master_worker_routine(finish_t* finish) {
 			execute_task(task);
 		}
 	}
+    return NULL;
 }
 #endif
 
@@ -573,7 +591,7 @@ static void* worker_routine(void * args) {
 
 #ifdef HCPP_COMM_WORKER
     if (wid == 0) {
-        master_worker_routine(ws->current_finish);
+        communication_worker_routine(ws->current_finish);
         return NULL;
     }
 #endif
@@ -602,6 +620,7 @@ static void* worker_routine(void * args) {
     LiteCtx_proxy_destroy(currentCtx);
     return NULL;
 }
+
 #else /* default (broken) strategy */
 
 static void* worker_routine(void * args) {
@@ -661,7 +680,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 static void _help_finish(finish_t * finish) {
 #ifdef HCPP_COMM_WORKER
 	if(CURRENT_WS_INTERNAL->id == 0) {
-		master_worker_routine(finish);
+		communication_worker_routine(finish);
 	}
 	else {
 		slave_worker_finishHelper_routine(finish);

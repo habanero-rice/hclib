@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hcpp-internal.h"
 #include "hcpp-atomics.h"
+#include "hcupc-support.h"
 
 #if defined(HUPCPP) && defined(DIST_WS)
 
@@ -304,14 +305,16 @@ int totalPendingLocalAsyncs() {
 #endif
 }
 
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(hclib_ddf_t**)) {
+void hclib_upc_launch(int * argc, char ** argv,
+        void (*_dddf_register_callback)(hclib_ddf_t**),
+        asyncFct_t fct_ptr, void * arg) {
 	assert(_dddf_register_callback);
 	dddf_register_callback = _dddf_register_callback;
-	init(argc, argv);
+    hclib_launch(argc, argv, fct_ptr, arg);
 }
 
 volatile int* start_finish_special() {
-	start_finish();
+	hclib_start_finish();
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	return &(ws->current_finish->counter);
 }
