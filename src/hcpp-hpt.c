@@ -525,16 +525,14 @@ void hc_hpt_init(hc_context * context) {
     for (i = 0; i < context->nplaces; i++) {
         place_t *pl = context->places[i];
         pl->cuda_id = -1;
-#ifdef HC_CUDA
         if (is_nvgpu_place(pl)) {
             pl->cuda_id = gpu_counter++;
             CHECK_CUDA(cudaStreamCreate(&pl->cuda_stream));
         } 
-#endif
     }
     HASSERT(gpu_counter == ngpus);
-
 #endif
+
     for (i = 0; i < context->nworkers; i++) {
         hc_workerState * ws = context->workers[i];
         const int id = ws->id;
