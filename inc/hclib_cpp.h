@@ -38,6 +38,9 @@ place_t **get_children_of_place(place_t *pl, int *num_children);
 place_t *get_root_place();
 
 void *allocate_at(place_t *pl, size_t nbytes, int flags);
+void free_at(place_t *pl, void *ptr);
+ddf_t *async_copy(place_t *dst_pl, void *dst, place_t *src_pl, void *src,
+        size_t nbytes);
 
 }
 

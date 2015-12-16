@@ -44,7 +44,7 @@ libhcpp_la_LIBADD =
 AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) \
 			  $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
 libhcpp_la_SOURCES = hcpp-runtime.c hcpp-deque.c hcpp-hpt.c hcpp-thread-bind.c \
-					 hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c
+					 hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c hcpp-tree.c
 
 if X86
 if OSX

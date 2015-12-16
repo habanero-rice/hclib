@@ -109,7 +109,7 @@ void * hclib_ddf_get(hclib_ddf_t * ddf) {
 	if (ddf->datum == UNINITIALIZED_DDF_DATA_PTR) {
 		return NULL;
 	}
-	return (void *) ddf->datum;
+	return (void *)ddf->datum;
 }
 
 /**

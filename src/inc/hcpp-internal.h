@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdarg.h>
 #include <stdint.h>
+#include "hcpp-tree.h"
 #include "hcpp-deque.h"
 #include "hcpp.h"
 #include "litectx.h"
@@ -96,6 +97,10 @@ typedef struct hc_context {
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
+#ifdef HC_CUDA
+    hclib_memory_tree_node *pinned_host_allocs;
+    cudaStream_t stream;
+#endif
 } hc_context;
 
 #include "hcpp-finish.h"

@@ -7,6 +7,8 @@
 #ifndef HCPP_PLACE_H_
 #define HCPP_PLACE_H_
 
+#include "hcpp-cuda.h"
+
 struct hc_deque_t;
 
 typedef enum place_type {
@@ -36,6 +38,7 @@ typedef struct place_t {
 	short type;
 #ifdef HC_CUDA
     int cuda_id;
+    cudaStream_t cuda_stream;
 #endif
 } place_t ;
 
@@ -45,17 +48,20 @@ typedef enum place_alloc_flags {
 } place_alloc_flags_t;
 
 /** PLACES API **/
-int hclib_get_num_places(short type);
-void hclib_get_places(place_t ** pls, short type);
-place_t * hc_get_place(short type);
+extern int hclib_get_num_places(short type);
+extern void hclib_get_places(place_t ** pls, short type);
+extern place_t * hc_get_place(short type);
 
-place_t * hclib_get_root_place();
-place_t * hclib_get_current_place();
-place_t * hclib_get_child_place();
-place_t * hclib_get_parent_place();
-place_t ** hclib_get_children_places(int * numChildren);
-place_t ** hclib_get_children_of_place(place_t * pl, int * numChildren);
+extern place_t *hclib_get_root_place();
+extern place_t *hclib_get_current_place();
+extern place_t *hclib_get_child_place();
+extern place_t *hclib_get_parent_place();
+extern place_t **hclib_get_children_places(int * numChildren);
+extern place_t **hclib_get_children_of_place(place_t * pl, int * numChildren);
 
-void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
+extern void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
+extern void hclib_free_at(place_t *pl, void *ptr);
+extern hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst,
+        place_t *src_pl, void *src, size_t nbytes);
 
 #endif /* HCPP_PLACE_H_ */

@@ -59,3 +59,12 @@ place_t *hclib::get_root_place() {
 void *hclib::allocate_at(place_t *pl, size_t nbytes, int flags) {
     return hclib_allocate_at(pl, nbytes, flags);
 }
+
+void hclib::free_at(place_t *pl, void *ptr) {
+    return hclib_free_at(pl, ptr);
+}
+
+hclib::ddf_t *hclib::async_copy(hclib::place_t *dst_pl, void *dst,
+        hclib::place_t *src_pl, void *src, size_t nbytes) {
+    return hclib_async_copy(dst_pl, dst, src_pl, src, nbytes);
+}

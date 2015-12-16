@@ -1,6 +1,6 @@
 include $(HCPP_ROOT)/include/hcpp.mak
 
-TARGETS=allocate
+TARGETS=allocate copy
 
 FLAGS=-g -std=c++11
 

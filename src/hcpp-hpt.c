@@ -46,11 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcupc-support.h"
 #include "hcpp-cuda.h"
 
-// #define VERBOSE
+#define VERBOSE
 
 inline hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
 void free_hpt(place_t * hpt);
 static const char *place_type_to_str(short type);
+
+extern hc_context* hcpp_context;
 
 /**
  * HPT: Try to steal a frame from another worker.
@@ -280,7 +282,21 @@ inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
 #endif
 }
 
+static void unsupported_place_type_err(place_t *pl) {
+    fprintf(stderr, "Unsupported place type %s\n", place_type_to_str(pl->type));
+    exit(1);
+}
+
 void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
+#ifdef VERBOSE
+    fprintf(stderr, "hclib_allocate_at: pl=%p nbytes=%lu flags=%d, is_cpu? %s",
+            pl, nbytes, flags, is_cpu_place(pl) ? "true" : "false");
+#ifdef HC_CUDA
+    fprintf(stderr, ", is_nvgpu? %s", is_nvgpu_place(pl) ? "true" : "false");
+#endif
+    fprintf(stderr, "\n");
+#endif
+
     if (is_cpu_place(pl)) {
 #ifdef HC_CUDA
         if (flags & PHYSICAL) {
@@ -293,6 +309,8 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
 #endif
                 return NULL;
             } else {
+                hclib_memory_tree_insert(ptr, nbytes,
+                        &hcpp_context->pinned_host_allocs);
                 return ptr;
             }
         }
@@ -305,6 +323,9 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
         HASSERT(flags == NONE);
         void *ptr;
         HASSERT(pl->cuda_id >= 0);
+#ifdef VERBOSE
+        fprintf(stderr, "hclib_allocate_at: cuda_id=%d\n", pl->cuda_id);
+#endif
         CHECK_CUDA(cudaSetDevice(pl->cuda_id));
         const cudaError_t alloc_err = cudaMalloc((void **)&ptr, nbytes);
         if (alloc_err != cudaSuccess) {
@@ -318,10 +339,106 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
         }
 #endif
     } else {
-        fprintf(stderr, "Unsupported place type %s\n",
-                place_type_to_str(pl->type));
-        exit(1);
+        unsupported_place_type_err(pl);
+        return NULL; // will never reach here
     }
+}
+
+static int is_pinned_cpu_mem(void *ptr) {
+    return hclib_memory_tree_contains(ptr, &hcpp_context->pinned_host_allocs);
+}
+
+void hclib_free_at(place_t *pl, void *ptr) {
+    if (is_cpu_place(pl)) {
+        if (is_pinned_cpu_mem(ptr)) {
+            hclib_memory_tree_remove(ptr, &hcpp_context->pinned_host_allocs);
+            CHECK_CUDA(cudaFreeHost(ptr));
+        } else {
+            free(ptr);
+        }
+#ifdef HC_CUDA
+    } else if (is_nvgpu_place(pl)) {
+        CHECK_CUDA(cudaFree(ptr));
+#endif
+    } else {
+        unsupported_place_type_err(pl);
+    }
+}
+
+static void copy_finished(cudaStream_t stream, cudaError_t status, void *ddf_ptr) {
+    assert(status == cudaSuccess);
+
+    hclib_ddf_t *ddf = (hclib_ddf_t *)ddf_ptr;
+    void *dst = (void *)(ddf + 1);
+
+#ifdef VERBOSE
+    fprintf(stderr, "copy_finished: putting value %p on DDF %p\n", dst, ddf);
+#endif
+
+    hclib_ddf_put(ddf, dst);
+}
+
+hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
+        void *src, size_t nbytes) {
+    hclib_ddf_t *buf = (hclib_ddf_t *)malloc(sizeof(hclib_ddf_t) +
+            sizeof(void *));
+    assert(buf);
+
+    hclib_ddf_init(buf);
+    *((void **)(buf + 1)) = dst;
+
+    if (is_cpu_place(dst_pl)) {
+        if (is_cpu_place(src_pl)) {
+            // CPU -> CPU
+            memcpy(dst, src, nbytes);
+            hclib_ddf_put(buf, dst);
+        } else if (is_nvgpu_place(src_pl)) {
+            // GPU -> CPU
+#ifdef VERBOSE
+            fprintf(stderr, "hclib_async_copy: is dst pinned? %s\n",
+                    is_pinned_cpu_mem(dst) ? "true" : "false");
+#endif
+            if (is_pinned_cpu_mem(dst)) {
+                CHECK_CUDA(cudaMemcpyAsync(dst, src, nbytes,
+                            cudaMemcpyDeviceToHost, src_pl->cuda_stream));
+                CHECK_CUDA(cudaStreamAddCallback(src_pl->cuda_stream,
+                            copy_finished, buf, 0));
+            } else {
+                CHECK_CUDA(cudaMemcpy(dst, src, nbytes,
+                            cudaMemcpyDeviceToHost));
+                hclib_ddf_put(buf, dst);
+            }
+        } else {
+            unsupported_place_type_err(src_pl);
+        }
+    } else if (is_nvgpu_place(dst_pl)) {
+        if (is_cpu_place(src_pl)) {
+            // CPU -> GPU
+#ifdef VERBOSE
+            fprintf(stderr, "hclib_async_copy: is src pinned? %s\n",
+                    is_pinned_cpu_mem(src) ? "true" : "false");
+#endif
+            if (is_pinned_cpu_mem(src)) {
+                CHECK_CUDA(cudaMemcpyAsync(dst, src, nbytes,
+                            cudaMemcpyHostToDevice, dst_pl->cuda_stream));
+                CHECK_CUDA(cudaStreamAddCallback(dst_pl->cuda_stream,
+                            copy_finished, buf, 0));
+            } else {
+                CHECK_CUDA(cudaMemcpy(dst, src, nbytes, cudaMemcpyHostToDevice));
+                hclib_ddf_put(buf, dst);
+            }
+        } else if (is_nvgpu_place(src_pl)) {
+            // GPU -> GPU
+            CHECK_CUDA(cudaMemcpyAsync(dst, src, nbytes,
+                        cudaMemcpyDeviceToDevice, dst_pl->cuda_stream));
+        } else {
+            unsupported_place_type_err(src_pl);
+        }
+    } else {
+        unsupported_place_type_err(dst_pl);
+    }
+
+    return buf;
 }
 
 static const char *MEM_PLACE_STR   = "MEM_PLACE";
@@ -411,6 +528,7 @@ void hc_hpt_init(hc_context * context) {
 #ifdef HC_CUDA
         if (is_nvgpu_place(pl)) {
             pl->cuda_id = gpu_counter++;
+            CHECK_CUDA(cudaStreamCreate(&pl->cuda_stream));
         } 
 #endif
     }

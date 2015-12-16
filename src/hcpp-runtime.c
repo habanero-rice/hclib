@@ -150,6 +150,9 @@ void hcpp_global_init() {
     }
     hcpp_context->done_flags = (worker_done_t *)malloc(
             hcpp_context->nworkers * sizeof(worker_done_t));
+#ifdef HC_CUDA
+    hcpp_context->pinned_host_allocs = NULL;
+#endif
 
     total_push_outd = 0;
     total_steals = (int *)malloc(hcpp_context->nworkers * sizeof(int));
@@ -318,10 +321,12 @@ static inline void execute_task(task_t* task) {
 }
 
 static inline void rt_schedule_async(task_t* async_task, int comm_task) {
-    if(comm_task) {
+    if (comm_task) {
 #ifdef HC_COMM_WORKER
         // push on comm_worker out_deq if this is a communication task
         semiConcDequeLockedPush(comm_worker_out_deque, async_task);
+#else
+        assert(0);
 #endif
     } else {
         // push on worker deq
@@ -456,48 +461,6 @@ void spawn_commTask(task_t * task) {
 	assert(0);
 #endif
 }
-
-static inline void slave_worker_finishHelper_routine(finish_t* finish) {
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-	int wid = ws->id;
-
-	while(finish->counter > 0) {
-		// try to pop
-		task_t* task = hpt_pop_task(ws);
-		if (!task) {
-			while(finish->counter > 0) {
-				// try to steal
-				task = hpt_steal_task(ws);
-				if (task) {
-#ifdef HC_COMM_WORKER_STATS
-					increment_steals_counter(wid);
-#endif
-					break;
-				}
-			}
-		}
-		if(task) {
-			execute_task(task);
-		}
-	}
-}
-
-#ifdef HC_COMM_WORKER
-inline void master_worker_routine(finish_t* finish) {
-	semiConcDeque_t *deque = comm_worker_out_deque;
-	while(finish->counter > 0) {
-		// try to pop
-		task_t* task = semiConcDequeNonLockedPop(deque);
-		// Comm worker cannot steal
-		if(task) {
-#ifdef HC_COMM_WORKER_STATS
-			increment_asyncComm_counter();
-#endif
-			execute_task(task);
-		}
-	}
-}
-#endif
 
 void find_and_run_task(hc_workerState* ws) {
     task_t* task = hpt_pop_task(ws);
@@ -651,6 +614,49 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     assert(0); // This is the entrypoint of a fiber, so we should never return here.
 }
 #else /* default (broken) strategy */
+
+#ifdef HC_COMM_WORKER
+inline void master_worker_routine(finish_t* finish) {
+	semiConcDeque_t *deque = comm_worker_out_deque;
+	while (finish->counter > 0) {
+		// try to pop
+		task_t* task = semiConcDequeNonLockedPop(deque);
+		// Comm worker cannot steal
+		if(task) {
+#ifdef HC_COMM_WORKER_STATS
+			increment_asyncComm_counter();
+#endif
+			execute_task(task);
+		}
+	}
+}
+#endif
+
+static inline void slave_worker_finishHelper_routine(finish_t* finish) {
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
+	int wid = ws->id;
+
+	while(finish->counter > 0) {
+		// try to pop
+		task_t* task = hpt_pop_task(ws);
+		if (!task) {
+			while(finish->counter > 0) {
+				// try to steal
+				task = hpt_steal_task(ws);
+				if (task) {
+#ifdef HC_COMM_WORKER_STATS
+					increment_steals_counter(wid);
+#endif
+					break;
+				}
+			}
+		}
+		if(task) {
+			execute_task(task);
+		}
+	}
+}
+
 static void _help_finish(finish_t * finish) {
 #ifdef HC_COMM_WORKER
 	if(CURRENT_WS_INTERNAL->id == 0) {
