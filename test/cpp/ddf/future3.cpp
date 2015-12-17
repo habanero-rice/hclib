@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hclib_cpp.h"
 
-#define H1 512
+#define H1 256
 #define T1 33
 
 //user written code
