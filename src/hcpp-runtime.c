@@ -112,7 +112,7 @@ static void set_curr_lite_ctx(LiteCtx *ctx) {
     CURRENT_WS_INTERNAL->curr_ctx = ctx;
 }
 
-LiteCtx *get_curr_lite_ctx() {
+static LiteCtx *get_curr_lite_ctx() {
     return CURRENT_WS_INTERNAL->curr_ctx;
 }
 
@@ -548,7 +548,7 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
     assert(0); // Should never return here
 }
 
-void core_work_loop(void) {
+static void core_work_loop(void) {
     uint64_t wid;
     do {
         hc_workerState *ws = CURRENT_WS_INTERNAL;
@@ -636,7 +636,7 @@ void teardown() {
 }
 
 #if HCLIB_LITECTX_STRATEGY
-void _finish_ctx_resume(void *arg) {
+static void _finish_ctx_resume(void *arg) {
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
     ctx_swap(currentCtx, finishCtx, __func__);

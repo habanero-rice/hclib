@@ -86,7 +86,7 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
 /*
  * Spawn an async that automatically puts a DDF on termination.
  */
-hclib_ddf_t *hclib_async_future(generic_framePtr fp, void *arg,
+hclib_ddf_t *hclib_async_future(asyncFct_t fp, void *arg,
         hclib_ddf_t **ddf_list, struct _phased_t *phased_clause,
         int property);
 

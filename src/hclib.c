@@ -52,14 +52,13 @@ static void future_caller(void *in) {
 hclib_ddf_t *hclib_async_future(generic_framePtr fp, void *arg,
         hclib_ddf_t** ddf_list, struct _phased_t * phased_clause,
         int property) {
-    future_args_wrapper *wrapper = (future_args_wrapper *)malloc(
-            sizeof(future_args_wrapper));
+    future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_ddf_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
     hclib_async(future_caller, wrapper, ddf_list, phased_clause, property);
 
-    return (hclib_ddf_t *)wrapper;
+    return wrapper;
 }
 
 /*** END ASYNC IMPLEMENTATION ***/

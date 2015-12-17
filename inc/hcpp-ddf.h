@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * NOTE: Terminology
  *   DDF = data-driven future
- *   DDT = data-driven task (a task that triggers DDF objects)
+ *   DDT = data-driven task (a task that waits on DDF objects)
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Ported from hclib

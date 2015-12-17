@@ -126,7 +126,4 @@ int iterate_ddt_frontier(ddt_t * ddt);
 ddt_t * rt_async_task_to_ddt(task_t * async_task);
 void try_schedule_async(task_t * async_task, int comm_task);
 
-extern void _help_wait(LiteCtx *ctx);
-extern LiteCtx *get_curr_lite_ctx();
-
 #endif /* HCPP_INTERNAL_H_ */
