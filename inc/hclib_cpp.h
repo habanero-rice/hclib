@@ -27,6 +27,7 @@ ddf_t *ddf_create();
 void ddf_free(ddf_t *ddf);
 void ddf_put(ddf_t *ddf, void *datum);
 void *ddf_get(ddf_t *ddf);
+void *ddf_wait(ddf_t *ddf);
 
 hc_workerState *current_ws();
 int current_worker();

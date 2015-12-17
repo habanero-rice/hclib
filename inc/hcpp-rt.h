@@ -59,16 +59,18 @@ struct hc_deque_t;
 struct finish_t;
 
 typedef struct hc_workerState {
-        pthread_t t; /* the pthread associated */
+        pthread_t t; // the pthread associated
         struct finish_t* current_finish;
-        struct place_t * pl; /* the directly attached place */
-        struct place_t ** hpt_path; /* Path from root to worker's leaf place. Array of places. */
+        struct place_t * pl; // the directly attached place
+        // Path from root to worker's leaf place. Array of places.
+        struct place_t ** hpt_path;
         struct hc_context * context;
-        struct hc_workerState * next_worker; /* the link of other ws in the same place */
-        struct hc_deque_t * current; /* the current deque/place worker is on */
+        // the link of other ws in the same place
+        struct hc_workerState * next_worker;
+        struct hc_deque_t * current; // the current deque/place worker is on
         struct hc_deque_t * deques;
-        int id; /* The id, identify a worker */
-        int did; /* the mapping device id */
+        int id; // The id, identify a worker
+        int did; // the mapping device id
         LiteCtx *curr_ctx;
         LiteCtx *root_ctx;
 } hc_workerState;
