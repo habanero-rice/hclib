@@ -11,11 +11,12 @@
 
 #include "hclib.h"
 
-void async_fct(void *arg) {
+void *async_fct(void *arg) {
     int *count_ptr = (int *)arg;
 
     printf("Running async with count = %d\n", *count_ptr);
     *count_ptr = *count_ptr + 1;
+    return NULL;
 }
 
 void entrypoint(void *arg) {

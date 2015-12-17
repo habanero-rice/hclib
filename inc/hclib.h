@@ -58,7 +58,8 @@ struct _phased_t;
  * @brief Function prototype executable by an async.
  * @param[in] arg           Arguments to the function
  */
-typedef void (*asyncFct_t) (void * arg);
+typedef void (*asyncFct_t)(void * arg);
+typedef void *(*futureFct_t)(void *arg);
 
 void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
 
@@ -84,9 +85,10 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
         int property);
 
 /*
- * Spawn an async that automatically puts a DDF on termination.
+ * Spawn an async that automatically puts a DDF on termination. It is the user's
+ * responsibility to call hclib_ddf_free on the returned ddf_t.
  */
-hclib_ddf_t *hclib_async_future(asyncFct_t fp, void *arg,
+hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
         hclib_ddf_t **ddf_list, struct _phased_t *phased_clause,
         int property);
 
