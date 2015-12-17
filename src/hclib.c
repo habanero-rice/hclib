@@ -407,7 +407,6 @@ void forasync3D_flat(void * forasync_arg) {
 }
 
 static void forasync_internal(void* user_fct_ptr, void * user_arg,
-        void *accumed /* accumed_t * accumed */ ,
         int dim, loop_domain_t * loop_domain, forasync_mode_t mode) {
     // All the sub-asyncs share async_def
 
@@ -417,10 +416,6 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     user_def->_fp = user_fct_ptr;
     user_def->args = user_arg;
     user_def->ddf_list = NULL;
-
-    // if (accumed != NULL) {
-    //     accum_register(accumed->accums, accumed->count);
-    // }
 
     assert(dim>0 && dim<4);
     // TODO put those somewhere as static
@@ -442,24 +437,18 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
 }
 
 void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,
-        struct _phased_t * phased_clause,
-        void *accumed /* struct _accumed_t * accumed */ , int dim,
-        loop_domain_t * domain, forasync_mode_t mode) {
+        int dim, loop_domain_t *domain, forasync_mode_t mode) {
     assert(ddf_list == NULL && "Limitation: forasync does not support DDFs yet");
-    assert(phased_clause == NULL && "Limitation: forasync does not support phaser clause yet");
-    assert(accumed == NULL);
 
-    forasync_internal(forasync_fct, argv, accumed, dim, domain, mode);
+    forasync_internal(forasync_fct, argv, dim, domain, mode);
 }
 
 hclib_ddf_t *hclib_forasync_future(void* forasync_fct, void * argv,
-        hclib_ddf_t** ddf_list, struct _phased_t * phased_clause,
-        void *accumed /* struct _accumed_t * accumed */ , int dim,
-        loop_domain_t * domain, forasync_mode_t mode) {
+        hclib_ddf_t **ddf_list, int dim, loop_domain_t *domain,
+        forasync_mode_t mode) {
 
     hclib_start_finish();
-    hclib_forasync(forasync_fct, argv, ddf_list, phased_clause, accumed, dim,
-            domain, mode);
+    hclib_forasync(forasync_fct, argv, ddf_list, dim, domain, mode);
     return hclib_end_finish_nonblocking();
 }
 

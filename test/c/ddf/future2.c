@@ -70,7 +70,7 @@ void entrypoint(void *arg) {
     loop_domain_t loop = {0, H1, 1, T1};
 
     hclib_start_finish();
-    hclib_forasync(forasync_fct1, (void*)ran, NULL, NULL, NULL, 1, &loop,
+    hclib_forasync(forasync_fct1, (void*)ran, NULL, 1, &loop,
             FORASYNC_MODE_FLAT);
     hclib_ddf_t *event = hclib_end_finish_nonblocking();
 

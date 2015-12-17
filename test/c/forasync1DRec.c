@@ -65,7 +65,7 @@ void entrypoint(void *arg) {
     init_ran(ran, H1);
     loop_domain_t loop = {0,H1,1,T1};
     hclib_start_finish();
-    hclib_forasync(forasync_fct1,(void*)(ran),NULL, NULL,NULL,1,&loop,FORASYNC_MODE_RECURSIVE);
+    hclib_forasync(forasync_fct1,(void*)(ran),NULL, 1,&loop,FORASYNC_MODE_RECURSIVE);
     hclib_end_finish();
 
     printf("Call Finalize\n");

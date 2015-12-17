@@ -72,7 +72,7 @@ void entrypoint(void *arg) {
     loop_domain_t loop[2] = {loop0, loop1};
 
     hclib_start_finish();
-    hclib_forasync(forasync_fct2, (void*)(ran), NULL, NULL, NULL, 2, loop,
+    hclib_forasync(forasync_fct2, (void*)(ran), NULL, 2, loop,
             FORASYNC_MODE_RECURSIVE);
     hclib_end_finish();
 

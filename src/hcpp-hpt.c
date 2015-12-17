@@ -276,6 +276,7 @@ void *unsupported_place_type_err(place_t *pl) {
     exit(1);
 }
 
+#ifdef HC_CUDA
 void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
 #ifdef VERBOSE
     fprintf(stderr, "hclib_allocate_at: pl=%p nbytes=%lu flags=%d, is_cpu? %s",
@@ -333,7 +334,6 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
     }
 }
 
-#ifdef HC_CUDA
 int is_pinned_cpu_mem(void *ptr) {
     return hclib_memory_tree_contains(ptr, &hcpp_context->pinned_host_allocs);
 }

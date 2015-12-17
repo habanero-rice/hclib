@@ -43,13 +43,13 @@ int main(int argc, char *argv[])
 
         }
         //Add the elements of arrays b and c and store them in a
-        hclib::start_finish();
+        hclib::finish([=]() {
             hclib::loop_domain_t loop[2] = {{0, num_iters1, 1, tilesize1}, {0, num_iters2, 1, tilesize2}} ;
             hclib::forasync2D(loop, [=](int i, int j) {
                    a[i*num_iters2+j]=b[i*num_iters2+j]+c[i*num_iters2+j];
             }, FORASYNC_MODE_RECURSIVE);
             //}, FORASYNC_MODE_FLAT);
-            hclib::end_finish();
+        });
 
         check(a,101,num_iters1*num_iters2);
         printf("Test passed\n");
