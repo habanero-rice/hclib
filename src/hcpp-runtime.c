@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-hpt.h"
 #include "hcupc-support.h"
 
+// #define VERBOSE
+
 static double benchmark_start_time_stats = 0;
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
@@ -305,7 +307,6 @@ static inline void check_out_finish(finish_t * finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            // finish_deps will be NULL on the root finish
             hclib_ddf_put(finish->finish_deps[0], finish);
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
@@ -800,6 +801,28 @@ void hclib_end_finish() {
 
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
     HC_FREE(current_finish);
+}
+
+hclib_ddf_t *hclib_end_finish_nonblocking() {
+    finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+
+    HASSERT(current_finish->counter > 0);
+
+    // Based on help_finish
+    hclib_ddf_t *event = hclib_ddf_create();
+    hclib_ddf_t **finish_deps = malloc(2 * sizeof(hclib_ddf_t *));
+    finish_deps[0] = event;
+    finish_deps[1] = NULL;
+    current_finish->finish_deps = finish_deps;
+
+    // Check out this "task" from the current finish
+    check_out_finish(current_finish);
+
+    // Check out the current finish from its parent
+    check_out_finish(current_finish->parent);
+    CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
+
+    return event;
 }
 
 int hclib_num_workers() {

@@ -22,6 +22,7 @@ void launch(int *argc, char **argv, T lambda) {
 
 void start_finish();
 void end_finish();
+ddf_t *end_finish_nonblocking();
 
 ddf_t *ddf_create();
 void ddf_free(ddf_t *ddf);

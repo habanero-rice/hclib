@@ -8,6 +8,10 @@ void hclib::end_finish() {
     hclib_end_finish();
 }
 
+hclib::ddf_t *hclib::end_finish_nonblocking() {
+    return hclib_end_finish_nonblocking();
+}
+
 hclib::ddf_t *hclib::ddf_create() {
     return hclib_ddf_create();
 }
