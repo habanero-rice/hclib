@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, Rice University
+/* Copyright (c) 2015, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
