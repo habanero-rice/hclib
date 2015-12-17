@@ -42,17 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define H1 1024
 #define T1 33
 
-//user written code
-void forasync_fct1(void *argv, int idx) {
-    int *ran = (int *)argv;
-
-    sleep(1);
-
-    assert(ran[idx] == -1);
-    ran[idx] = idx;
-    printf("finished %d / %d\n", idx, H1);
-}
-
 void init_ran(int *ran, int size) {
     while (size > 0) {
         ran[size-1] = -1;
@@ -71,14 +60,18 @@ int main (int argc, char ** argv) {
             // code is alive until the end of the program.
 
             init_ran(ran, H1);
-            loop_domain_t loop = {0, H1, 1, T1};
 
-            hclib::finish([=]() {
-                hclib_forasync(forasync_fct1, (void*)ran, NULL, NULL, NULL, 1, &loop,
-                        FORASYNC_MODE_FLAT);
-            hclib_ddf_t *event = hclib_end_finish_nonblocking();
+            hclib::ddf_t *event = hclib::nonblocking_finish([=]() {
+                loop_domain_t loop = {0, H1, 1, T1};
+                hclib::forasync1D(&loop, [=](int idx) {
+                        sleep(1);
+                        assert(ran[idx] == -1);
+                        ran[idx] = idx;
+                        printf("finished %d / %d\n", idx, H1);
+                    }, FORASYNC_MODE_FLAT);
+            });
 
-            hclib_ddf_wait(event);
+            hclib::ddf_wait(event);
             printf("Call Finalize\n");
         });
 

@@ -37,22 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <unistd.h>
 
-#include "hclib.h"
+#include "hclib_cpp.h"
 
 #define H1 1024
 #define T1 33
 
 //user written code
-void forasync_fct1(void *argv, int idx) {
-    int *ran = (int *)argv;
-
-    sleep(1);
-
-    assert(ran[idx] == -1);
-    ran[idx] = idx;
-    printf("finished %d / %d\n", idx, H1);
-}
-
 void init_ran(int *ran, int size) {
     while (size > 0) {
         ran[size-1] = -1;
@@ -60,28 +50,30 @@ void init_ran(int *ran, int size) {
     }
 }
 
-void entrypoint(void *arg) {
-    int *ran = (int *)arg;
-    int i = 0;
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
-
-    init_ran(ran, H1);
-    loop_domain_t loop = {0, H1, 1, T1};
-
-    hclib_ddf_t *event = hclib_forasync_future(forasync_fct1, (void*)ran, NULL,
-            NULL, NULL, 1, &loop, FORASYNC_MODE_FLAT);
-
-    hclib_ddf_wait(event);
-    printf("Call Finalize\n");
-}
-
 int main (int argc, char ** argv) {
     printf("Call Init\n");
     int *ran=(int *)malloc(H1*sizeof(int));
     assert(ran);
 
-    hclib_launch(&argc, argv, entrypoint, ran);
+    hclib::launch(&argc, argv, [=]() {
+            int i = 0;
+            // This is ok to have these on stack because this
+            // code is alive until the end of the program.
+
+            init_ran(ran, H1);
+            loop_domain_t loop = {0, H1, 1, T1};
+
+            hclib::ddf_t *event = hclib::forasync1D_future(&loop,
+                    [=](int idx) {
+                        sleep(1);
+                        assert(ran[idx] == -1);
+                        ran[idx] = idx;
+                        printf("finished %d / %d\n", idx, H1);
+                    }, FORASYNC_MODE_FLAT);
+
+            hclib::ddf_wait(event);
+            printf("Call Finalize\n");
+        });
 
     printf("Check results: ");
     int i = 0;
