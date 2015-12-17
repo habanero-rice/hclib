@@ -28,7 +28,7 @@ int main(int argc, char ** argv) {
                     assert(ddf_list);
                     ddf_list[0] = prev;
                     ddf_list[1] = NULL;
-                    prev = hclib::asyncFuture([=]() {
+                    prev = hclib::asyncFutureAwait(ddf_list, [=]() {
                             printf("Running async with count = %d\n", *count);
                             *count = *count + 1;
                         });
