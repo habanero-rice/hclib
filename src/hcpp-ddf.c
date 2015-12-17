@@ -230,7 +230,7 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut) {
             // DDT eligible to scheduling
             task_t * async_task = rt_ddt_to_async_task(currDDT);
             if (DEBUG_DDF) { printf("ddf: async_task %p\n", async_task); }
-            try_schedule_async(async_task, 0);
+            try_schedule_async(async_task, 0, 0);
         }
         currDDT = nextDDT;
         iter_count++;

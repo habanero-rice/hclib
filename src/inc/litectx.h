@@ -102,9 +102,8 @@ static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
 static __inline__ LiteCtx *LiteCtx_swap(LiteCtx *current, LiteCtx *next,
         const char *lbl) {
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap[%s]: wid=%d current=%p(%p) next=%p(%p)\n",
-            lbl, get_current_worker(), current, current->_fctx.sp, next,
-            next->_fctx.sp);
+    fprintf(stderr, "LiteCtx_swap[%s]: current=%p(%p) next=%p(%p)\n",
+            lbl, current, current->_fctx.sp, next, next->_fctx.sp);
 #endif
     next->prev = current;
     LiteCtx *new_current = (LiteCtx *)jump_fcontext(&current->_fctx,

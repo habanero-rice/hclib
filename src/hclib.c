@@ -19,7 +19,7 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
     assert(phased_clause == NULL);
 
     if (ddf_list) {
-        hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
+        hcpp_task_t *task = malloc(sizeof(hcpp_task_t));
         task->async_task._fp = fp;
         task->async_task.is_asyncAnyType = 0;
         task->async_task.ddf_list = NULL;
@@ -27,7 +27,7 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
 
         spawn_await((task_t *)task, ddf_list);
     } else {
-        task_t *task = (task_t *)malloc(sizeof(task_t));
+        task_t *task = malloc(sizeof(task_t));
         task->_fp = fp;
         task->is_asyncAnyType = 0;
         task->ddf_list = NULL;
@@ -448,12 +448,6 @@ void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,
     assert(ddf_list == NULL && "Limitation: forasync does not support DDFs yet");
     assert(phased_clause == NULL && "Limitation: forasync does not support phaser clause yet");
     assert(accumed == NULL);
-
-#ifdef HC_CUDA
-    printf("HC_CUDA is defined!\n");
-#else
-    printf("HC_CUDA is not defined!\n");
-#endif
 
     forasync_internal(forasync_fct, argv, accumed, dim, domain, mode);
 }

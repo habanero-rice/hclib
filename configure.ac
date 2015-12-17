@@ -93,6 +93,20 @@ AS_IF([test "x$with_cuda" != xno],
 AM_CONDITIONAL(HC_CUDA, test "x$with_cuda" != xno)
 ### End cuda
 
+### Turn on runtime verbosity
+AC_ARG_ENABLE(verbose,
+    AS_HELP_STRING([--enable-verbose],
+    [turn on HC runtime verbosity (Default is false)]),
+    [with_verbose=$enableval],
+    [with_verbose=no;])
+
+AS_IF([test "x$with_verbose" != xno],
+      [ AC_MSG_NOTICE([Enabled verbose HC runtime]) ],
+      [ AC_MSG_NOTICE([Disabled verbose HC runtime]) ])
+
+AM_CONDITIONAL(HC_VERBOSE, test "x$with_verbose" != xno)
+### End verbose
+
 ### ENABLE PRODUCTION SETTINGS
 AC_ARG_ENABLE(production,
     AS_HELP_STRING([--enable-production],

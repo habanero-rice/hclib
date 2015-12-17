@@ -53,11 +53,11 @@ typedef struct deque_t {
     volatile task_t* data[INIT_DEQUE_CAPACITY];
 } deque_t;
 
-void deque_init(deque_t * deq, void * initValue);
-int deque_push(deque_t* deq, void* entry);
-task_t* deque_pop(deque_t * deq);
-task_t* deque_steal(deque_t * deq);
-void deque_destroy(deque_t* deq);
+void deque_init(deque_t *deq, void *initValue);
+int deque_push(deque_t *deq, void *entry);
+task_t* deque_pop(deque_t *deq);
+task_t* deque_steal(deque_t *deq);
+void deque_destroy(deque_t *deq);
 
 /****************************************************/
 /* Semi Concurrent DEQUE API                        */

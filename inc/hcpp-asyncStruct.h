@@ -32,6 +32,7 @@ void spawn(task_t * task);
 void spawn_at_hpt(place_t* pl, task_t * task);
 void spawn_await(task_t * task, hclib_ddf_t** ddf_list);
 void spawn_commTask(task_t * task);
+void spawn_gpu_task(task_t *task);
 
 #ifdef __cplusplus
 }

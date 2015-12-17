@@ -7,7 +7,9 @@
 #ifndef HCPP_PLACE_H_
 #define HCPP_PLACE_H_
 
-#include "hcpp-cuda.h"
+#ifdef HC_CUDA
+#include <driver_types.h>
+#endif
 
 struct hc_deque_t;
 
@@ -61,7 +63,9 @@ extern place_t **hclib_get_children_of_place(place_t * pl, int * numChildren);
 
 extern void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
 extern void hclib_free_at(place_t *pl, void *ptr);
+#ifdef HC_CUDA
 extern hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst,
-        place_t *src_pl, void *src, size_t nbytes);
+        place_t *src_pl, void *src, size_t nbytes, void *user_arg);
+#endif
 
 #endif /* HCPP_PLACE_H_ */
