@@ -368,18 +368,45 @@ inline void forasync3D_internal(const _loop_domain_t loop[3], T lambda, int mode
 }
 
 template <typename T>
-inline void forasync1D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RECURSIVE) {
-		forasync1D_internal<T>(loop, lambda, mode);
+inline void forasync1D(_loop_domain_t* loop, T lambda,
+        int mode=FORASYNC_MODE_RECURSIVE) {
+    forasync1D_internal<T>(loop, lambda, mode);
 }
 
 template <typename T>
-inline void forasync2D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RECURSIVE) {
-		forasync2D_internal<T>(loop, lambda, mode);
+inline void forasync2D(_loop_domain_t* loop, T lambda,
+        int mode=FORASYNC_MODE_RECURSIVE) {
+    forasync2D_internal<T>(loop, lambda, mode);
 }
 
 template <typename T>
-inline void forasync3D(_loop_domain_t* loop, T lambda, int mode=FORASYNC_MODE_RECURSIVE) {
-		forasync3D_internal<T>(loop, lambda, mode);
+inline void forasync3D(_loop_domain_t* loop, T lambda,
+        int mode=FORASYNC_MODE_RECURSIVE) {
+    forasync3D_internal<T>(loop, lambda, mode);
+}
+
+template <typename T>
+inline hclib_ddf_t *forasync1D_future(_loop_domain_t* loop, T lambda,
+        int mode=FORASYNC_MODE_RECURSIVE) {
+    hclib_start_finish();
+    forasync1D_internal<T>(loop, lambda, mode);
+    return hclib_end_finish_nonblocking();
+}
+
+template <typename T>
+inline hclib_ddf_t *forasync2D_future(_loop_domain_t* loop, T lambda,
+        int mode=FORASYNC_MODE_RECURSIVE) {
+    hclib_start_finish();
+    forasync2D_internal<T>(loop, lambda, mode);
+    return hclib_end_finish_nonblocking();
+}
+
+template <typename T>
+inline hclib_ddf_t *forasync3D_future(_loop_domain_t* loop, T lambda,
+        int mode=FORASYNC_MODE_RECURSIVE) {
+    hclib_start_finish();
+    forasync3D_internal<T>(loop, lambda, mode);
+    return hclib_end_finish_nonblocking();
 }
 
 }

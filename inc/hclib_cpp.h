@@ -20,9 +20,6 @@ void launch(int *argc, char **argv, T lambda) {
     hclib_launch(argc, argv, (generic_framePtr)spawn, user_task);
 }
 
-void start_finish();
-void end_finish();
-
 ddf_t *ddf_create();
 void ddf_free(ddf_t *ddf);
 void ddf_put(ddf_t *ddf, void *datum);
