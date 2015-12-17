@@ -202,7 +202,6 @@ hclib_ddf_t *asyncFutureAwait(hclib_ddf_t **ddf_list, T lambda) {
     return event;
 }
 
-
 inline void finish(std::function<void()> lambda) {
     hclib_start_finish();
     lambda();
