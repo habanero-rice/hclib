@@ -168,6 +168,23 @@ inline void asyncComm(T lambda) {
 	spawn_commTask(task);
 }
 
+template <typename T>
+hclib_ddf_t *asyncFuture(T lambda) {
+    hclib_ddf_t *event = hclib_ddf_create();
+    /*
+     * TODO creating this closure may be inefficient. While the capture list is
+     * precise, if the user-provided lambda is large then copying it by value
+     * will also take extra time.
+     */
+    auto wrapper = [event, lambda]() {
+        lambda();
+        hclib_ddf_put(event, NULL);
+    };
+    task_t* task = _allocate_async(wrapper, false);
+    spawn(task);
+    return event;
+}
+
 inline void finish(std::function<void()> lambda) {
     hclib_start_finish();
     lambda();

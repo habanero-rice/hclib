@@ -74,7 +74,7 @@ task_t* hpt_steal_task(hc_workerState* ws) {
         for (int i=1; i<nb_deq; i++) {
             int victim = ((ws->id + i) % nb_deq);
             hc_deque_t* d = &deqs[victim];
-            task_t* buff = dequeSteal(&(d->deque));
+            task_t* buff = deque_steal(&(d->deque));
             if (buff) { /* steal succeeded */
                 ws->current = get_deque_place(ws, pl);
                 hcupc_check_if_asyncAny_stolen(buff, victim, ws->id);
@@ -107,7 +107,7 @@ task_t* hpt_pop_task(hc_workerState * ws) {
     short downward = 1;
 
     while (current != NULL) {
-        task_t* buff = dequePop(&current->deque);
+        task_t* buff = deque_pop(&current->deque);
         if (buff) {
 #ifdef VERBOSE
             printf("hpt_pop_task: worker %d successful pop from deque %p, pl %p, level "
@@ -263,7 +263,7 @@ int deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
 
 inline task_t* deque_pop_place(hc_workerState *ws, place_t * pl) {
     hc_deque_t * deq = get_deque_place(ws, pl);
-    return dequePop(&deq->deque);
+    return deque_pop(&deq->deque);
 }
 
 /**

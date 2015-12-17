@@ -46,13 +46,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-hpt.h"
 #include "hcupc-support.h"
 
+static const int communication_worker_id = 1;
+static const int gpu_worker_id = 2;
 static double benchmark_start_time_stats = 0;
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
 
 #ifdef HC_COMM_WORKER
-semiConcDeque_t * comm_worker_out_deque;
+semi_conc_deque_t *comm_worker_out_deque;
+#endif
+#ifdef HC_CUDA
+semi_conc_deque_t *gpu_worker_deque;
 #endif
 
 hc_context* 		hcpp_context;
@@ -131,7 +136,7 @@ hc_workerState* current_ws() {
 
 // FWD declaration for pthread_create
 static void *worker_routine(void * args);
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
 static void *communication_worker_routine(void* finish);
 #endif
 
@@ -168,9 +173,14 @@ void hcpp_global_init() {
     }
 
 #ifdef HC_COMM_WORKER
-    comm_worker_out_deque = (semiConcDeque_t *)malloc(sizeof(semiConcDeque_t));
+    comm_worker_out_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
     HASSERT(comm_worker_out_deque);
-    semiConcDequeInit(comm_worker_out_deque, NULL);
+    semi_conc_deque_init(comm_worker_out_deque, NULL);
+#endif
+#ifdef HC_CUDA
+    gpu_worker_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
+    HASSERT(gpu_worker_deque);
+    semi_conc_deque_init(gpu_worker_deque, NULL);
 #endif
 
     init_hcupc_related_datastructures(hcpp_context->nworkers);
@@ -248,15 +258,17 @@ void hcpp_entrypoint() {
         exit(3);
     }
 
-    int starting_worker = 1;
-#ifdef HCPP_COMM_WORKER
-    /*
-     * If running with a thread dedicated to network communication (e.g. through
-     * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
-     */
-    starting_worker += 1;
+    for (int i = 1; i < hcpp_context->nworkers; i++) {
+#ifdef HC_COMM_WORKER
+        /*
+         * If running with a thread dedicated to network communication (e.g. through
+         * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
+         */
+        assert(communication_worker_id > 0);
+        if (i == communication_worker_id) {
+            continue;
+        }
 #endif
-    for (int i = starting_worker; i < hcpp_context->nworkers; i++) {
         if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
                 &hcpp_context->workers[i]->id) != 0) {
             fprintf(stderr, "Error launching thread\n");
@@ -268,9 +280,9 @@ void hcpp_entrypoint() {
     // allocate root finish
     hclib_start_finish();
 
-#ifdef HCPP_COMM_WORKER
+#ifdef HC_COMM_WORKER
     // Kick off a dedicated communication thread
-    if (pthread_create(&hcpp_context->workers[1]->t, &attr,
+    if (pthread_create(&hcpp_context->workers[communication_worker_id]->t, &attr,
                 communication_worker_routine,
                 CURRENT_WS_INTERNAL->current_finish) != 0) {
         fprintf(stderr, "Error launching communication worker\n");
@@ -343,14 +355,14 @@ static inline void rt_schedule_async(task_t* async_task, int comm_task) {
     if (comm_task) {
 #ifdef HC_COMM_WORKER
         // push on comm_worker out_deq if this is a communication task
-        semiConcDequeLockedPush(comm_worker_out_deque, async_task);
+        semi_conc_deque_locked_push(comm_worker_out_deque, async_task);
 #else
         assert(0);
 #endif
     } else {
         // push on worker deq
         const int wid = get_current_worker();
-        if (!dequePush(&(hcpp_context->workers[wid]->current->deque),
+        if (!deque_push(&(hcpp_context->workers[wid]->current->deque),
                     async_task)) {
             // TODO: deque is full, so execute in place
             printf("WARNING: deque full, local execution\n");
@@ -481,15 +493,31 @@ void spawn_commTask(task_t * task) {
 #endif
 }
 
-#ifdef HCPP_COMM_WORKER
-void *communication_worker_routine(void* finish_ptr) {
-    finish_t *finish = (finish_t *)finish_ptr;
-    set_current_worker(1);
+#ifdef HC_CUDA
+void *gpu_worker_routine(void *finish_ptr) {
+    finish_t *finish = finish_ptr;
+    set_current_worker(gpu_worker_id);
 
-	semiConcDeque_t *deque = comm_worker_out_deque;
+    // semi_conc_deque_t *deque = gpu_worker_deque;
+    while (finish->counter > 0) {
+        // gpu_task_t *task = semi_conc_deque_non_locked_pop(deque);
+        // if (task) {
+        //     // TODO
+        // }
+    }
+    return NULL;
+}
+#endif
+
+#ifdef HC_COMM_WORKER
+void *communication_worker_routine(void* finish_ptr) {
+    finish_t *finish = finish_ptr;
+    set_current_worker(communication_worker_id);
+
+	semi_conc_deque_t *deque = comm_worker_out_deque;
 	while (finish->counter > 0) {
 		// try to pop
-		task_t* task = semiConcDequeNonLockedPop(deque);
+		task_t* task = semi_conc_deque_non_locked_pop(deque);
 		// Comm worker cannot steal
 		if(task) {
 #ifdef HC_COMM_WORKER_STATS
@@ -567,8 +595,8 @@ static void* worker_routine(void * args) {
     set_current_worker(wid);
     hc_workerState* ws = CURRENT_WS_INTERNAL;
 
-#ifdef HCPP_COMM_WORKER
-    if (wid == 0) {
+#ifdef HC_COMM_WORKER
+    if (wid == communication_worker_id) {
         communication_worker_routine(ws->current_finish);
         return NULL;
     }
@@ -632,10 +660,45 @@ static void _finish_ctx_resume(void *arg) {
 
 void crt_work_loop(LiteCtx *ctx);
 
+// Based on _help_finish_ctx
+void _help_wait(LiteCtx *ctx) {
+    hclib_ddf_t **continuation_deps = ctx->arg;
+    LiteCtx *wait_ctx = ctx->prev;
+
+    hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
+    task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
+    task->async_task.is_asyncAnyType = 0;
+    task->async_task.ddf_list = NULL;
+    task->async_task.args = wait_ctx;
+
+    spawn_escaping((task_t *)task, continuation_deps);
+
+    core_work_loop();
+    assert(0);
+}
+
+void *hclib_ddf_wait(hclib_ddf_t *ddf) {
+	if (ddf->datum != UNINITIALIZED_DDF_DATA_PTR) {
+        return (void *)ddf->datum;
+    }
+    hclib_ddf_t *continuation_deps[] = { ddf, NULL };
+    LiteCtx *currentCtx = get_curr_lite_ctx();
+    assert(currentCtx);
+    LiteCtx *newCtx = LiteCtx_create(_help_wait);
+    newCtx->arg = continuation_deps;
+    ctx_swap(currentCtx, newCtx, __func__);
+    LiteCtx_destroy(currentCtx->prev);
+
+    assert(ddf->datum != UNINITIALIZED_DDF_DATA_PTR);
+    return (void *)ddf->datum;
+}
+
 static void _help_finish_ctx(LiteCtx *ctx) {
-    // Set up previous context to be stolen when the finish completes
-    // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
-    // finish_t *finish = ((volatile LiteCtx * volatile)ctx)->arg;
+    /*
+     * Set up previous context to be stolen when the finish completes (note that
+     * the async must ESCAPE, otherwise this finish scope will deadlock on
+     * itself).
+     */
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
@@ -645,10 +708,19 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     task->async_task.ddf_list = NULL;
     task->async_task.args = hclib_finish_ctx;
 
+    /*
+     * Create an async to handle the continuation after the finish, whose state
+     * is captured in hclib_finish_ctx and whose execution is pending on
+     * finish->finish_deps.
+     */
     spawn_escaping((task_t *)task, finish->finish_deps);
 
-    // keep workstealing until this context gets swapped out and destroyed
+    /*
+     * The main thread is now exiting the finish (albeit in a separate context),
+     * so check it out.
+     */
     check_out_finish(finish);
+    // keep workstealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     assert(0); // we should never return here
 }
@@ -681,7 +753,7 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 
 static void _help_finish(finish_t * finish) {
 #ifdef HC_COMM_WORKER
-	if(CURRENT_WS_INTERNAL->id == 0) {
+	if(CURRENT_WS_INTERNAL->id == communication_worker_id) {
 		communication_worker_routine(finish);
 	}
 	else {

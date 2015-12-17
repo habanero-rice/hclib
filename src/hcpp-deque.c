@@ -39,108 +39,108 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hcpp-internal.h"
 #include "hcpp-atomics.h"
 
-void dequeInit(deque_t * deq, void * init_value) {
-	deq->head = 0;
-	deq->tail = 0;
+void deque_init(deque_t * deq, void * init_value) {
+    deq->head = 0;
+    deq->tail = 0;
 }
 
 /*
  * push an entry onto the tail of the deque
  */
-int dequePush(deque_t* deq, void* entry) {
-	int size = deq->tail - deq->head;
-	if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
-		/* may not grow the deque if some interleaving steal occur */
-		// std::cout<<getenv("PMI_RANK") <<": Deque full for worker-"<<current_ws()->id << std::endl;
-		// HASSERT("DEQUE full, increase deque's size " && 0);
-		return 0;
-	}
-	int n = (deq->tail) % INIT_DEQUE_CAPACITY;
-	deq->data[n] = (task_t*) entry;
-	deq->tail++;
-	return 1;
+int deque_push(deque_t* deq, void* entry) {
+    int size = deq->tail - deq->head;
+    if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
+        /* may not grow the deque if some interleaving steal occur */
+        // std::cout<<getenv("PMI_RANK") <<": Deque full for worker-"<<current_ws()->id << std::endl;
+        // HASSERT("DEQUE full, increase deque's size " && 0);
+        return 0;
+    }
+    int n = (deq->tail) % INIT_DEQUE_CAPACITY;
+    deq->data[n] = (task_t*) entry;
+    deq->tail++;
+    return 1;
 }
 
-void dequeDestroy(deque_t* deq) {
-	free(deq);
+void deque_destroy(deque_t* deq) {
+    free(deq);
 }
 
 /*
  * the steal protocol
  */
-task_t* dequeSteal(deque_t * deq) {
-	int head;
-	/* Cannot read deq->data[head] here
-	 * Can happen that head=tail=0, then the owner of the deq pushes
-	 * a new task when stealer is here in the code, resulting in head=0, tail=1
-	 * All other checks down-below will be valid, but the old value of the buffer head
-	 * would be returned by the steal rather than the new pushed value.
-	 */
-	int tail;
+task_t* deque_steal(deque_t * deq) {
+    int head;
+    /* Cannot read deq->data[head] here
+     * Can happen that head=tail=0, then the owner of the deq pushes
+     * a new task when stealer is here in the code, resulting in head=0, tail=1
+     * All other checks down-below will be valid, but the old value of the buffer head
+     * would be returned by the steal rather than the new pushed value.
+     */
+    int tail;
 
-	head = deq->head;
-	hc_mfence();
-	tail = deq->tail;
-	if ((tail - head) <= 0) {
-		return NULL;
-	}
+    head = deq->head;
+    hc_mfence();
+    tail = deq->tail;
+    if ((tail - head) <= 0) {
+        return NULL;
+    }
 
-	task_t* t = (task_t*) deq->data[head % INIT_DEQUE_CAPACITY];
-	/* compete with other thieves and possibly the owner (if the size == 1) */
-	if (hc_cas(&deq->head, head, head + 1)) { /* competing */
-		return t;
-	}
-	return NULL;
+    task_t* t = (task_t*) deq->data[head % INIT_DEQUE_CAPACITY];
+    /* compete with other thieves and possibly the owner (if the size == 1) */
+    if (hc_cas(&deq->head, head, head + 1)) { /* competing */
+        return t;
+    }
+    return NULL;
 }
 
 /*
  * pop the task out of the deque from the tail
  */
-task_t* dequePop(deque_t * deq) {
-	hc_mfence();
-	int tail = deq->tail;
-	tail--;
-	deq->tail = tail;
-	hc_mfence();
-	int head = deq->head;
+task_t* deque_pop(deque_t * deq) {
+    hc_mfence();
+    int tail = deq->tail;
+    tail--;
+    deq->tail = tail;
+    hc_mfence();
+    int head = deq->head;
 
-	int size = tail - head;
-	if (size < 0) {
-		deq->tail = deq->head;
-		return NULL;
-	}
-	task_t* t = (task_t*) deq->data[(tail) % INIT_DEQUE_CAPACITY];
+    int size = tail - head;
+    if (size < 0) {
+        deq->tail = deq->head;
+        return NULL;
+    }
+    task_t* t = (task_t*) deq->data[(tail) % INIT_DEQUE_CAPACITY];
 
-	if (size > 0) {
-		return t;
-	}
+    if (size > 0) {
+        return t;
+    }
 
-	/* now size == 1, I need to compete with the thieves */
-	if (!hc_cas(&deq->head, head, head + 1)) {
-		t = NULL;
-	}
+    /* now size == 1, I need to compete with the thieves */
+    if (!hc_cas(&deq->head, head, head + 1)) {
+        t = NULL;
+    }
 
-	/* now the deque is empty */
-	deq->tail = deq->head;
-	return t;
+    /* now the deque is empty */
+    deq->tail = deq->head;
+    return t;
 }
 
 /******************************************************/
 /* Semi Concurrent DEQUE                              */
 /******************************************************/
 
-void semiConcDequeInit(semiConcDeque_t* semiDeq, void * initValue) {
+void semi_conc_deque_init(semi_conc_deque_t* semiDeq, void * initValue) {
 	deque_t* deq = &semiDeq->deque;
 	deq->head = 0;
 	deq->tail = 0;
 	semiDeq->lock = 0;
 }
 
-void semiConcDequeDestroy(semiConcDeque_t* semiDeq) {
+void semi_conc_deque_destroy(semi_conc_deque_t* semiDeq) {
 	free(semiDeq);
 }
 
-void semiConcDequeLockedPush(semiConcDeque_t* semiDeq, void* entry) {
+void semi_conc_deque_locked_push(semi_conc_deque_t* semiDeq, void* entry) {
 	deque_t* deq = &semiDeq->deque;
 	int success = 0;
 	while (!success) {
@@ -160,7 +160,7 @@ void semiConcDequeLockedPush(semiConcDeque_t* semiDeq, void* entry) {
 	}
 }
 
-task_t* semiConcDequeNonLockedPop(semiConcDeque_t * semiDeq) {
+task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * semiDeq) {
 	deque_t* deq = &semiDeq->deque;
 	int head = deq->head;
 	int tail = deq->tail;

@@ -49,10 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // For 'headDDTWaitList' when a DDF has been satisfied
 #define DDF_SATISFIED NULL
 
-// Default value of a DDF datum
-// #define UNINITIALIZED_DDF_DATA_PTR NULL
-#define UNINITIALIZED_DDF_DATA_PTR ((void *) -1)
-
 // For waiting frontier (last element of the list)
 #define UNINITIALIZED_DDF_WAITLIST_PTR ((ddt_t *) -1)
 #define EMPTY_DDF_WAITLIST_PTR NULL
@@ -146,15 +142,22 @@ __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
             /* waitListOfDDF can not be EMPTY_DDF_WAITLIST_PTR in here*/
             wrapperTask->nextDDTWaitingOnSameDDF = waitListOfDDF;
 
-            success = __sync_bool_compare_and_swap(&(ddfToCheck -> headDDTWaitList), waitListOfDDF, wrapperTask);
+            success = __sync_bool_compare_and_swap(
+                    &(ddfToCheck -> headDDTWaitList), waitListOfDDF,
+                    wrapperTask);
             /* printf("task:%p registered to DDF:%p\n", pollingTask,ddfToCheck); */
 
-            /* may have failed because either some other task tried to be the head or a put occurred. */
-            if ( !success ) {
-                waitListOfDDF = ( ddt_t* ) ddfToCheck -> headDDTWaitList;
-                /* if waitListOfDDF was set to EMPTY_DDF_WAITLIST_PTR, the loop condition will handle that
-                 * if another task was added, now try to add in front of that
-                 * */
+            /*
+             * may have failed because either some other task tried to be the
+             * head or a put occurred.
+             */
+            if (!success) {
+                waitListOfDDF = (ddt_t*)ddfToCheck->headDDTWaitList;
+                /*
+                 * if waitListOfDDF was set to EMPTY_DDF_WAITLIST_PTR, the loop
+                 * condition will handle that if another task was added, now try
+                 * to add in front of that
+                 */
             }
         }
 
@@ -197,37 +200,39 @@ ddt_t * rt_async_task_to_ddt(task_t * async_task) {
  * DDF's frontier to try to advance DDTs that were waiting on this DDF.
  */
 void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut) {
-	HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR && EMPTY_DATUM_ERROR_MSG);
-	HASSERT (ddfToBePut != NULL && "can not put into NULL DDF");
-	HASSERT (ddfToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR && "violated single assignment property for DDFs");
+    HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR && EMPTY_DATUM_ERROR_MSG);
+    HASSERT (ddfToBePut != NULL && "can not put into NULL DDF");
+    HASSERT (ddfToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR &&
+            "violated single assignment property for DDFs");
 
-	volatile ddt_t* waitListOfDDF = NULL;
-	ddt_t* currDDT = NULL;
-	ddt_t* nextDDT = NULL;
+    volatile ddt_t* waitListOfDDF = NULL;
+    ddt_t* currDDT = NULL;
+    ddt_t* nextDDT = NULL;
 
-	ddfToBePut-> datum = datumToBePut;
-	waitListOfDDF = ddfToBePut->headDDTWaitList;
-	/*seems like I can not avoid a CAS here*/
-	while ( !__sync_bool_compare_and_swap( &(ddfToBePut -> headDDTWaitList), waitListOfDDF, EMPTY_DDF_WAITLIST_PTR)) {
-		waitListOfDDF = ddfToBePut -> headDDTWaitList;
-	}
+    ddfToBePut-> datum = datumToBePut;
+    waitListOfDDF = ddfToBePut->headDDTWaitList;
+    /*seems like I can not avoid a CAS here*/
+    while (!__sync_bool_compare_and_swap( &(ddfToBePut -> headDDTWaitList),
+                waitListOfDDF, EMPTY_DDF_WAITLIST_PTR)) {
+        waitListOfDDF = ddfToBePut -> headDDTWaitList;
+    }
 
-	currDDT = (ddt_t*)waitListOfDDF;
+    currDDT = (ddt_t*)waitListOfDDF;
 
     int iter_count = 0;
-	/* printf("DDF:%p was put:%p with value:%d\n", ddfToBePut, datumToBePut,*((int*)datumToBePut)); */
-	while (currDDT != UNINITIALIZED_DDF_WAITLIST_PTR) {
+    /* printf("DDF:%p was put:%p with value:%d\n", ddfToBePut, datumToBePut,*((int*)datumToBePut)); */
+    while (currDDT != UNINITIALIZED_DDF_WAITLIST_PTR) {
 
-		nextDDT = currDDT->nextDDTWaitingOnSameDDF;
-		if (iterate_ddt_frontier(currDDT) ) {
-			/* printf("pushed:%p\n", currDDT); */
-			/*deque_push_default(currFrame);*/
-			// DDT eligible to scheduling
-			task_t * async_task = rt_ddt_to_async_task(currDDT);
-			if (DEBUG_DDF) { printf("ddf: async_task %p\n", async_task); }
-			try_schedule_async(async_task, 0);
-		}
-		currDDT = nextDDT;
+        nextDDT = currDDT->nextDDTWaitingOnSameDDF;
+        if (iterate_ddt_frontier(currDDT)) {
+            /* printf("pushed:%p\n", currDDT); */
+            /*deque_push_default(currFrame);*/
+            // DDT eligible to scheduling
+            task_t * async_task = rt_ddt_to_async_task(currDDT);
+            if (DEBUG_DDF) { printf("ddf: async_task %p\n", async_task); }
+            try_schedule_async(async_task, 0);
+        }
+        currDDT = nextDDT;
         iter_count++;
-	}
+    }
 }

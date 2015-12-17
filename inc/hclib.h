@@ -58,7 +58,8 @@ struct _phased_t;
  * @brief Function prototype executable by an async.
  * @param[in] arg           Arguments to the function
  */
-typedef void (*asyncFct_t) (void * arg);
+typedef void (*asyncFct_t)(void * arg);
+typedef void *(*futureFct_t)(void *arg);
 
 void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
 
@@ -84,6 +85,14 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
         int property);
 
 /*
+ * Spawn an async that automatically puts a DDF on termination. It is the user's
+ * responsibility to call hclib_ddf_free on the returned ddf_t.
+ */
+hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
+        hclib_ddf_t **ddf_list, struct _phased_t *phased_clause,
+        int property);
+
+/*
  * Forasync definition and API
  */
 
@@ -102,7 +111,7 @@ typedef int forasync_mode_t;
  * @param[in] arg               Argument to the loop iteration
  * @param[in] index             Current iteration index
  */
-typedef void (*forasync1D_Fct_t) (void * arg,int index);
+typedef void (*forasync1D_Fct_t)(void *arg, int index);
 
 /**
  * @brief Function prototype for a 2-dimensions forasync.
@@ -110,7 +119,7 @@ typedef void (*forasync1D_Fct_t) (void * arg,int index);
  * @param[in] index_outer       Current outer iteration index
  * @param[in] index_inner       Current inner iteration index
  */
-typedef void (*forasync2D_Fct_t) (void * arg,int index_outer,int index_inner);
+typedef void (*forasync2D_Fct_t)(void *arg, int index_outer, int index_inner);
 
 /**
  * @brief Function prototype for a 3-dimensions forasync.
@@ -119,7 +128,8 @@ typedef void (*forasync2D_Fct_t) (void * arg,int index_outer,int index_inner);
  * @param[in] index_mid         Current intermediate iteration index
  * @param[in] index_inner       Current inner iteration index
  */
-typedef void (*forasync3D_Fct_t) (void * arg,int index_outer,int index_mid,int index_inner);
+typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
+        int index_inner);
 
 /**
  * @brief Parallel for loop 'forasync' (up to 3 dimensions).
@@ -136,8 +146,9 @@ typedef void (*forasync3D_Fct_t) (void * arg,int index_outer,int index_mid,int i
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
-void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t ** ddf_list, struct _phased_t * phased_clause, 
-            void *accumed_placeholder, int dim, loop_domain_t * domain, forasync_mode_t mode);
+void hclib_forasync(void *forasync_fct, void *argv, hclib_ddf_t **ddf_list,
+        struct _phased_t *phased_clause, void *accumed_placeholder, int dim,
+        loop_domain_t *domain, forasync_mode_t mode);
 
 /**
  * @brief starts a new finish scope

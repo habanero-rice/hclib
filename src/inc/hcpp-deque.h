@@ -53,11 +53,11 @@ typedef struct deque_t {
     volatile task_t* data[INIT_DEQUE_CAPACITY];
 } deque_t;
 
-void dequeInit(deque_t * deq, void * initValue);
-int dequePush(deque_t* deq, void* entry);
-task_t* dequePop(deque_t * deq);
-task_t* dequeSteal(deque_t * deq);
-void dequeDestroy(deque_t* deq);
+void deque_init(deque_t * deq, void * initValue);
+int deque_push(deque_t* deq, void* entry);
+task_t* deque_pop(deque_t * deq);
+task_t* deque_steal(deque_t * deq);
+void deque_destroy(deque_t* deq);
 
 /****************************************************/
 /* Semi Concurrent DEQUE API                        */
@@ -65,11 +65,11 @@ void dequeDestroy(deque_t* deq);
 typedef struct {
     deque_t deque;
     volatile int lock;
-} semiConcDeque_t;
+} semi_conc_deque_t;
 
-void semiConcDequeInit(semiConcDeque_t* deq, void * initValue);
-void semiConcDequeLockedPush(semiConcDeque_t* deq, void* entry);
-task_t* semiConcDequeNonLockedPop(semiConcDeque_t * deq);
-void semiConcDequeDestroy(semiConcDeque_t * deq);
+void semi_conc_deque_init(semi_conc_deque_t* deq, void * initValue);
+void semi_conc_deque_locked_push(semi_conc_deque_t* deq, void* entry);
+task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * deq);
+void semi_conc_deque_destroy(semi_conc_deque_t * deq);
 
 #endif /* HCPP_DEQUE_H_ */
