@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hclib_cpp.h"
 
-#define H1 1024
+#define H1 512
 #define T1 33
 
 void init_ran(int *ran, int size) {
