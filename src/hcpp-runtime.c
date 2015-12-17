@@ -319,9 +319,15 @@ void hcpp_signal_join(int nb_workers) {
 
 void hcpp_join(int nb_workers) {
     // Join the workers
-    for(int i=1;i< nb_workers; i++) {
+#ifdef VERBOSE
+    fprintf(stderr, "hcpp_join: nb_workers = %d\n", nb_workers);
+#endif
+    for (int i = 1;i < nb_workers; i++) {
         pthread_join(hcpp_context->workers[i]->t, NULL);
     }
+#ifdef VERBOSE
+    fprintf(stderr, "hcpp_join: finished\n");
+#endif
 }
 
 void hcpp_cleanup() {
@@ -629,12 +635,16 @@ static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
 }
 
 void *gpu_worker_routine(void *finish_ptr) {
-    finish_t *finish = finish_ptr;
     set_current_worker(gpu_worker_id);
+    worker_done_t *done_flag = hcpp_context->done_flags + gpu_worker_id;
 
     semi_conc_deque_t *deque = gpu_worker_deque;
-    while (finish->counter > 0) {
+    while (done_flag->flag) {
         gpu_task_t *task = (gpu_task_t *)semi_conc_deque_non_locked_pop(deque);
+#ifdef VERBOSE
+        fprintf(stderr, "gpu_worker: done flag=%lu task=%p\n",
+                done_flag->flag, task);
+#endif
         if (task) {
 #ifdef VERBOSE
             fprintf(stderr, "gpu_worker: picked up task %p\n", task);
@@ -675,7 +685,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                 hclib_ddf_put(task->ddf_to_put, task->arg_to_put);
             }
 
-            HC_FREE(task);
+            // HC_FREE(task);
         }
 
         /*
@@ -712,11 +722,11 @@ void *gpu_worker_routine(void *finish_ptr) {
 
 #ifdef HC_COMM_WORKER
 void *communication_worker_routine(void* finish_ptr) {
-    finish_t *finish = finish_ptr;
     set_current_worker(communication_worker_id);
+    worker_done_t *done_flag = hcpp_context->done_flags + gpu_worker_id;
 
 	semi_conc_deque_t *deque = comm_worker_out_deque;
-	while (finish->counter > 0) {
+	while (done_flag->flag) {
 		// try to pop
 		task_t* task = semi_conc_deque_non_locked_pop(deque);
 		// Comm worker cannot steal
@@ -1000,8 +1010,10 @@ void help_finish(finish_t * finish) {
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
         ctx_swap(currentCtx, newCtx, __func__);
-        // destroy the context that resumed this one since it's now defunct
-        // (there are no other handles to it, and it will never be resumed)
+        /*
+         * destroy the context that resumed this one since it's now defunct
+         * (there are no other handles to it, and it will never be resumed)
+         */
         LiteCtx_destroy(currentCtx->prev);
         hclib_ddf_free(finish_deps[0]);
     }

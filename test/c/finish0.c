@@ -74,7 +74,7 @@ void entrypoint(void *out_mid) {
     printf("Go over [%d:%d]\n", i, mid);
     while(i < mid) {
         indices[i] = i;
-        //Note: Forcefully pass the address we want to write to as a void **
+        //Note: Forcefully pass the address we want to write to as a void *
         hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
@@ -87,7 +87,7 @@ void entrypoint(void *out_mid) {
     printf("Go over [%d:%d]\n", i, NB_ASYNC);
     while(i < NB_ASYNC) {
         indices[i] = i;
-        //Note: Forcefully pass the address we want to write to as a void **
+        //Note: Forcefully pass the address we want to write to as a void *
         hclib_async(async_fct, (void*) (indices+i), NULL, NULL, NO_PROP);
         i++;
     }
