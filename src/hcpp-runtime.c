@@ -247,9 +247,14 @@ void hcpp_entrypoint() {
         fprintf(stderr, "Error in pthread_attr_init\n");
         exit(3);
     }
+
     int starting_worker = 1;
 #ifdef HCPP_COMM_WORKER
-    starting_worker = 2;
+    /*
+     * If running with a thread dedicated to network communication (e.g. through
+     * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
+     */
+    starting_worker += 1;
 #endif
     for (int i = starting_worker; i < hcpp_context->nworkers; i++) {
         if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
@@ -264,6 +269,7 @@ void hcpp_entrypoint() {
     hclib_start_finish();
 
 #ifdef HCPP_COMM_WORKER
+    // Kick off a dedicated communication thread
     if (pthread_create(&hcpp_context->workers[1]->t, &attr,
                 communication_worker_routine,
                 CURRENT_WS_INTERNAL->current_finish) != 0) {
