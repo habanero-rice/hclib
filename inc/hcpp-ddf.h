@@ -31,6 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
  * hcpp-ddf.h
+ *
+ * NOTE: Terminology
+ *   DDF = data-driven future
+ *   DDT = data-driven task (a task that triggers DDF objects)
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Ported from hclib
@@ -67,15 +71,17 @@ typedef enum DDF_Kind {
 
 /**
  * DDT data-structure to associate DDTs and DDFs.
- * This is exposed so that the runtime know the size of the struct.
+ * This is exposed so that the runtime knows the size of the struct.
  */
 typedef struct ddt_st {
     // NULL-terminated list of DDFs the DDT is registered on
     struct hclib_ddf_st ** waitingFrontier;
-    // This allows us to chain all DDTs waiting on a same DDF
-    // Whenever a DDT wants to register on a DDF, and that DDF is
-    // not ready, we chain the current DDT and the DDF's headDDTWaitList
-    // and try to cas on the DDF's headDDTWaitList, with the current DDT.
+    /*
+     * This allows us to chain all DDTs waiting on a same DDF. Whenever a DDT
+     * wants to register on a DDF, and that DDF is not ready, we chain the
+     * current DDT and the DDF's headDDTWaitList and try to cas on the DDF's
+     * headDDTWaitList, with the current DDT.
+     */
     struct ddt_st * nextDDTWaitingOnSameDDF;
 } ddt_t;
 
@@ -131,6 +137,12 @@ void * hclib_ddf_get(hclib_ddf_t * ddf);
  * @param[in] datum 			The datum to be put in the DDF
  */
 void hclib_ddf_put(hclib_ddf_t * ddf, void * datum);
+
+/*
+ * Block the currently executing task on the provided DDF. Returns the datum
+ * that was put on ddf.
+ */
+void *hclib_ddf_wait(hclib_ddf_t *ddf);
 
 /*
  * Some extras

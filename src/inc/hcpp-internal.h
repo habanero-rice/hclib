@@ -71,6 +71,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CACHE_LINE_L1 8
 
+// Default value of a DDF datum
+#define UNINITIALIZED_DDF_DATA_PTR ((void *)-1)
+
 typedef struct {
     volatile uint64_t flag;
     void * pad[CACHE_LINE_L1-1];
@@ -122,5 +125,8 @@ int get_current_worker();
 int iterate_ddt_frontier(ddt_t * ddt);
 ddt_t * rt_async_task_to_ddt(task_t * async_task);
 void try_schedule_async(task_t * async_task, int comm_task);
+
+extern void _help_wait(LiteCtx *ctx);
+extern LiteCtx *get_curr_lite_ctx();
 
 #endif /* HCPP_INTERNAL_H_ */
