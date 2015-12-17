@@ -37,6 +37,30 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
     }
 }
 
+typedef struct _future_args_wrapper {
+    hclib_ddf_t event;
+    futureFct_t fp;
+    void *actual_in;
+} future_args_wrapper;
+
+static void future_caller(void *in) {
+    future_args_wrapper *args = in;
+    void *user_result = (args->fp)(args->actual_in);
+    hclib_ddf_put(&args->event, user_result);
+}
+
+hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
+        hclib_ddf_t** ddf_list, struct _phased_t * phased_clause,
+        int property) {
+    future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
+    hclib_ddf_init(&wrapper->event);
+    wrapper->fp = fp;
+    wrapper->actual_in = arg;
+    hclib_async(future_caller, wrapper, ddf_list, phased_clause, property);
+
+    return (hclib_ddf_t *)wrapper;
+}
+
 /*** END ASYNC IMPLEMENTATION ***/
 
 /*** START FORASYNC IMPLEMENTATION ***/

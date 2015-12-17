@@ -648,10 +648,45 @@ static void _finish_ctx_resume(void *arg) {
 
 void crt_work_loop(LiteCtx *ctx);
 
+// Based on _help_finish_ctx
+void _help_wait(LiteCtx *ctx) {
+    hclib_ddf_t **continuation_deps = ctx->arg;
+    LiteCtx *wait_ctx = ctx->prev;
+
+    hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
+    task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
+    task->async_task.is_asyncAnyType = 0;
+    task->async_task.ddf_list = NULL;
+    task->async_task.args = wait_ctx;
+
+    spawn_escaping((task_t *)task, continuation_deps);
+
+    core_work_loop();
+    assert(0);
+}
+
+void *hclib_ddf_wait(hclib_ddf_t *ddf) {
+	if (ddf->datum != UNINITIALIZED_DDF_DATA_PTR) {
+        return (void *)ddf->datum;
+    }
+    hclib_ddf_t *continuation_deps[] = { ddf, NULL };
+    LiteCtx *currentCtx = get_curr_lite_ctx();
+    assert(currentCtx);
+    LiteCtx *newCtx = LiteCtx_create(_help_wait);
+    newCtx->arg = continuation_deps;
+    ctx_swap(currentCtx, newCtx, __func__);
+    LiteCtx_destroy(currentCtx->prev);
+
+    assert(ddf->datum != UNINITIALIZED_DDF_DATA_PTR);
+    return (void *)ddf->datum;
+}
+
 static void _help_finish_ctx(LiteCtx *ctx) {
-    // Set up previous context to be stolen when the finish completes
-    // (note that the async must ESCAPE, otherwise this finish scope will deadlock on itself)
-    // finish_t *finish = ((volatile LiteCtx * volatile)ctx)->arg;
+    /*
+     * Set up previous context to be stolen when the finish completes (note that
+     * the async must ESCAPE, otherwise this finish scope will deadlock on
+     * itself).
+     */
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
@@ -661,10 +696,19 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     task->async_task.ddf_list = NULL;
     task->async_task.args = hclib_finish_ctx;
 
+    /*
+     * Create an async to handle the continuation after the finish, whose state
+     * is captured in hclib_finish_ctx and whose execution is pending on
+     * finish->finish_deps.
+     */
     spawn_escaping((task_t *)task, finish->finish_deps);
 
-    // keep workstealing until this context gets swapped out and destroyed
+    /*
+     * The main thread is now exiting the finish (albeit in a separate context),
+     * so check it out.
+     */
     check_out_finish(finish);
+    // keep workstealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     assert(0); // we should never return here
 }

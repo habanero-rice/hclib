@@ -43,3 +43,7 @@ int hclib::get_num_places(hclib::place_type_t type) {
 void hclib::get_places(hclib::place_t **pls, hclib::place_type_t type) {
     hclib_get_places(pls, type);
 }
+
+void *hclib::ddf_wait(hclib::ddf_t *ddf) {
+    return hclib_ddf_wait(ddf);
+}
