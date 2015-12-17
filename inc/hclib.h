@@ -150,6 +150,15 @@ void hclib_forasync(void *forasync_fct, void *argv, hclib_ddf_t **ddf_list,
         struct _phased_t *phased_clause, void *accumed_placeholder, int dim,
         loop_domain_t *domain, forasync_mode_t mode);
 
+/*
+ * Semantically equivalent to hclib_forasync, but returns a DDF that is
+ * triggered when all tasks belonging to this forasync have finished.
+ */
+hclib_ddf_t *hclib_forasync_future(void *forasync_fct, void *argv,
+        hclib_ddf_t **ddf_list, struct _phased_t *phased_clause,
+        void *accumed_placeholder, int dim, loop_domain_t *domain,
+        forasync_mode_t mode);
+
 /**
  * @brief starts a new finish scope
  */
@@ -159,6 +168,12 @@ void hclib_start_finish();
  * @brief ends the current finish scope
  */
 void hclib_end_finish();
+
+/*
+ * Get a DDF that is triggered when all tasks inside this finish scope have
+ * finished, but return immediately.
+ */
+hclib_ddf_t *hclib_end_finish_nonblocking();
 
 /**
  * @}

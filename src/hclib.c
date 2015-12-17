@@ -452,6 +452,18 @@ void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,
     forasync_internal(forasync_fct, argv, accumed, dim, domain, mode);
 }
 
+hclib_ddf_t *hclib_forasync_future(void* forasync_fct, void * argv,
+        hclib_ddf_t** ddf_list, struct _phased_t * phased_clause,
+        void *accumed /* struct _accumed_t * accumed */ , int dim,
+        loop_domain_t * domain, forasync_mode_t mode) {
+
+    hclib_start_finish();
+    hclib_forasync(forasync_fct, argv, ddf_list, phased_clause, accumed, dim,
+            domain, mode);
+    return hclib_end_finish_nonblocking();
+}
+
+
 /*** END FORASYNC IMPLEMENTATION ***/
 
 #ifdef __cplusplus

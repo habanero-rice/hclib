@@ -208,6 +208,12 @@ inline void finish(std::function<void()> lambda) {
     hclib_end_finish();
 }
 
+inline hclib_ddf_t *nonblocking_finish(std::function<void()> lambda) {
+    hclib_start_finish();
+    lambda();
+    return hclib_end_finish_nonblocking();
+}
+
 }
 
 #endif /* HCPP_ASYNC_H_ */
