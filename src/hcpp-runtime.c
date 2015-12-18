@@ -680,9 +680,14 @@ void *gpu_worker_routine(void *finish_ptr) {
                     op = do_gpu_memset(memset_task->pl, memset_task->ptr,
                             memset_task->val, memset_task->nbytes,
                             task->ddf_to_put, task->arg_to_put);
+                    break;
                 }
                 case (GPU_COMPUTE_TASK): {
-                    // Run a GPU compute task
+                    gpu_compute_task_t *compute_task =
+                        &task->gpu_task_def.compute_task;
+                    (compute_task->kernel_launcher->functor_caller)(
+                            compute_task->niters, compute_task->tile_size,
+                            compute_task->kernel_launcher->functor_on_heap);
                     break;
                 }
                 default:

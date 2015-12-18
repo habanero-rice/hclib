@@ -23,6 +23,12 @@ class test_functor {
         }
 };
 
+void validate(int *arr, int N) {
+    for (int i = 0; i < N; i++) {
+        assert(arr[i] == i);
+    }
+}
+
 int main(int argc, char **argv) {
     hclib::launch(&argc, argv, []() {
         hclib::place_t *root_pl = hclib::get_root_place();
@@ -51,11 +57,13 @@ int main(int argc, char **argv) {
         hclib::ddf_wait(cpu_memset_event);
 
         loop_domain_t loop = {0, N, 1, 33};
-        test_functor kernel(arr);
+        test_functor cpu_kernel(arr);
         hclib::ddf_t *cpu_kernel_event = hclib::forasync1D_future_(
-                (loop_domain_t *)&loop, kernel, FORASYNC_MODE_FLAT, cpu_place);
+                (loop_domain_t *)&loop, cpu_kernel, FORASYNC_MODE_FLAT, cpu_place);
 
         hclib::ddf_wait(cpu_kernel_event);
+
+        validate(arr, N);
 
         int *d_arr = (int *)hclib::allocate_at(gpu_place, N * sizeof(int), 0);
         assert(d_arr);
@@ -64,13 +72,16 @@ int main(int argc, char **argv) {
                 0, N * sizeof(int), d_arr);
         hclib::ddf_wait(gpu_memset_event);
 
+        test_functor gpu_kernel(d_arr);
         hclib::ddf_t *gpu_kernel_event = hclib::forasync1D_future_(
-                (loop_domain_t *)&loop, kernel, FORASYNC_MODE_FLAT, gpu_place);
+                (loop_domain_t *)&loop, gpu_kernel, FORASYNC_MODE_FLAT, gpu_place);
         hclib::ddf_wait(gpu_kernel_event);
+        
+        hclib::ddf_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
+                d_arr, N * sizeof(int), arr);
+        hclib::ddf_wait(copy_event);
 
-        for (int i = 0; i < N; i++) {
-            assert(arr[i] == i);
-        }
+        validate(arr, N);
 
         printf("Passed!\n");
     });

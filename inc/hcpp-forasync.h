@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HCPP_FORASYNC_H_
 
 #include "hcpp-place.h"
+#include "hcpp-cuda.h"
 
 /*
  * Forasync mode to perform static chunking of the iteration space.
@@ -472,6 +473,27 @@ inline void forasync1D_(_loop_domain_t *loop, const functor_type &functor,
     }
 }
 
+#ifdef __CUDACC__
+template<typename functor_type>
+static __global__ void driver_kernel(functor_type functor, unsigned niters) {
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < niters) {
+        functor.call(tid);
+    }
+}
+
+template <typename functor_type>
+inline void call_gpu_functor(unsigned niters, unsigned tile_size,
+        void* functor) {
+    functor_type *actual = (functor_type *)functor;
+
+    const unsigned block_size = tile_size;
+    const unsigned nblocks = (niters + block_size - 1) / block_size;
+
+    driver_kernel<<<nblocks, block_size>>>(*actual, niters);
+}
+#endif
+
 template<class functor_type>
 inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
         const functor_type &functor, int mode = FORASYNC_MODE_RECURSIVE,
@@ -481,7 +503,45 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
                 [functor](int idx) { ((functor_type)functor).call(idx); },
                 mode, place);
     } else if (is_nvgpu_place(place)) {
+#ifdef __CUDACC__
+        assert(loop->stride == 1);
+        assert(loop->low == 0);
+        assert(loop->tile > 0);
+        assert(loop->high > 0);
+
+        functor_type *functor_on_heap = (functor_type *)malloc(
+                sizeof(functor_type));
+        assert(functor_on_heap);
+        memcpy(functor_on_heap, &functor, sizeof(functor_type));
+
+        gpu_functor_wrapper *wrapper = (gpu_functor_wrapper *)malloc(
+                sizeof(gpu_functor_wrapper));
+        wrapper->functor_on_heap = functor_on_heap;
+        wrapper->functor_caller = call_gpu_functor<functor_type>;
+
+        gpu_task_t *task = (gpu_task_t *)malloc(sizeof(gpu_task_t));
+        assert(task);
+        task->t._fp = NULL;
+        task->t.is_asyncAnyType = 0;
+        task->t.ddf_list = NULL;
+        task->t.args = NULL;
+
+        hclib_ddf_t *ddf = hclib_ddf_create();
+        task->gpu_type = GPU_COMPUTE_TASK;
+        task->ddf_to_put = ddf;
+        task->arg_to_put = NULL;
+        task->gpu_task_def.compute_task.niters = loop->high;
+        task->gpu_task_def.compute_task.tile_size = loop->tile;
+        task->gpu_task_def.compute_task.cuda_id = place->cuda_id;
+        task->gpu_task_def.compute_task.kernel_launcher = wrapper;
+
+        spawn_gpu_task((task_t *)task);
+        return ddf;
+#else
+        fprintf(stderr, "Application code must be compiled with nvcc to "
+                "support GPU tasks\n");
         assert(0);
+#endif
     } else {
         fprintf(stderr, "Unrecognized place type %d\n", place->type);
         exit(1);
