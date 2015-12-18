@@ -54,16 +54,4 @@ task_t* hpt_pop_task(hc_workerState * ws);
 task_t* hpt_steal_task(hc_workerState* ws);
 int deque_push_place(hc_workerState *ws, place_t * pl, void * ele);
 
-inline short is_cpu_place(place_t * pl) {
-    HASSERT(pl);
-    return (pl->type == MEM_PLACE || pl->type == CACHE_PLACE);
-}
-
-#ifdef HC_CUDA
-inline short is_nvgpu_place(place_t * pl) {
-    HASSERT(pl);
-    return (pl->type == NVGPU_PLACE);
-}
-#endif
-
 #endif /* HCPP_HPT_H_ */

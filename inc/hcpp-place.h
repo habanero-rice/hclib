@@ -66,6 +66,20 @@ extern void hclib_free_at(place_t *pl, void *ptr);
 #ifdef HC_CUDA
 extern hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst,
         place_t *src_pl, void *src, size_t nbytes, void *user_arg);
+extern hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val,
+        size_t nbytes, void *user_arg);
+#endif
+
+inline short is_cpu_place(place_t * pl) {
+    HASSERT(pl);
+    return (pl->type == MEM_PLACE || pl->type == CACHE_PLACE);
+}
+
+#ifdef HC_CUDA
+inline short is_nvgpu_place(place_t * pl) {
+    HASSERT(pl);
+    return (pl->type == NVGPU_PLACE);
+}
 #endif
 
 #endif /* HCPP_PLACE_H_ */

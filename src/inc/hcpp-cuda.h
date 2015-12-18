@@ -24,6 +24,7 @@
  */
 typedef enum {
     GPU_COMM_TASK,
+    GPU_MEMSET_TASK,
     GPU_COMPUTE_TASK
 } gpu_task_type_t;
 
@@ -40,6 +41,16 @@ typedef struct _gpu_comm_task_t {
     void *src, *dst;
     size_t nbytes;
 } gpu_comm_task_t;
+
+/*
+ * Definition of a task that clears the target buffer to val.
+ */
+typedef struct _gpu_memset_task_t {
+    place_t *pl;
+    void *ptr;
+    int val;
+    size_t nbytes;
+} gpu_memset_task_t;
 
 /*
  * The definition of a GPU compute task. TODO Currently incomplete.
@@ -60,6 +71,7 @@ typedef struct _gpu_task_t {
     void *arg_to_put;
     union {
         gpu_comm_task_t comm_task;
+        gpu_memset_task_t memset_task;
         gpu_compute_task_t compute_task;
     } gpu_task_def;
 } gpu_task_t;

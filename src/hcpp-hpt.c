@@ -387,6 +387,34 @@ hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
 
     return ddf;
 }
+
+hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
+        void *user_arg) {
+    gpu_task_t *task = malloc(sizeof(gpu_task_t));
+    task->t._fp = NULL;
+    task->t.is_asyncAnyType = 0;
+    task->t.ddf_list = NULL;
+    task->t.args = NULL;
+
+    hclib_ddf_t *ddf = hclib_ddf_create();
+    task->gpu_type = GPU_MEMSET_TASK;
+    task->ddf_to_put = ddf;
+    task->arg_to_put = user_arg;
+
+    task->gpu_task_def.memset_task.pl = pl;
+    task->gpu_task_def.memset_task.ptr = ptr;
+    task->gpu_task_def.memset_task.val = val;
+    task->gpu_task_def.memset_task.nbytes = nbytes;
+
+#ifdef VERBOSE
+    fprintf(stderr, "hclib_async_copy: dst_pl=%p dst=%p src_pl=%p src=%p "
+            "nbytes=%lu\n", dst_pl, dst, src_pl, src, nbytes);
+#endif
+
+    spawn_gpu_task((task_t *)task);
+
+    return ddf;
+}
 #endif
 
 static const char *MEM_PLACE_STR   = "MEM_PLACE";

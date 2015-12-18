@@ -569,6 +569,22 @@ static void enqueue_pending_cuda_op(pending_cuda_op *op) {
     op->next = NULL;
 }
 
+static pending_cuda_op *do_gpu_memset(place_t *pl, void *ptr, int val,
+        size_t nbytes, hclib_ddf_t *to_put, void *arg_to_put) {
+    if (is_cpu_place(pl)) {
+        memset(ptr, val, nbytes);
+        return NULL;
+    } else if (is_nvgpu_place(pl)) {
+        CHECK_CUDA(cudaMemsetAsync(ptr, val, nbytes, pl->cuda_stream));
+        pending_cuda_op *op = create_pending_cuda_op(to_put,
+                arg_to_put);
+        CHECK_CUDA(cudaEventRecord(op->event, pl->cuda_stream));
+        return op;
+    } else {
+        return unsupported_place_type_err(pl);
+    }
+}
+
 static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
         void *src, size_t nbytes, hclib_ddf_t *to_put, void *arg_to_put) {
     assert(to_put);
@@ -657,6 +673,13 @@ void *gpu_worker_routine(void *finish_ptr) {
                             comm_task->dst, comm_task->src, comm_task->nbytes,
                             task->ddf_to_put, task->arg_to_put);
                     break;
+                }
+                case (GPU_MEMSET_TASK): {
+                    gpu_memset_task_t *memset_task =
+                        &task->gpu_task_def.memset_task;
+                    op = do_gpu_memset(memset_task->pl, memset_task->ptr,
+                            memset_task->val, memset_task->nbytes,
+                            task->ddf_to_put, task->arg_to_put);
                 }
                 case (GPU_COMPUTE_TASK): {
                     // Run a GPU compute task
