@@ -43,7 +43,7 @@ void entrypoint(void *arg) {
         argv[1] = (void *)(ddf_list[index*2]);
         printf("Creating async %d await on %p will enable %p\n", index,
                 &(ddf_list[(index-1)*2]), &(ddf_list[index*2]));
-        hclib_async(async_fct, argv, &(ddf_list[(index-1)*2]), NULL, NO_PROP);
+        hclib_async(async_fct, argv, &(ddf_list[(index-1)*2]), NULL, NULL, NO_PROP);
     }
     printf("Putting in DDF 0\n");
     hclib_ddf_put(ddf_list[0], NO_DATUM);

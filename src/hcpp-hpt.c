@@ -383,7 +383,7 @@ hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
 #endif
 
     if (ddf_list) {
-        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, 0);
+        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, NULL, 0);
     } else {
         spawn_gpu_task((task_t *)task);
     }
@@ -416,7 +416,7 @@ hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
 #endif
 
     if (ddf_list) {
-        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, 0);
+        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, NULL, 0);
     } else {
         spawn_gpu_task((task_t *)task);
     }

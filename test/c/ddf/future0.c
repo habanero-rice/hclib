@@ -37,9 +37,10 @@ void entrypoint(void *arg) {
             ddf_list[0] = prev;
             ddf_list[1] = NULL;
             prev = hclib_async_future(async_fct, count, ddf_list, NULL,
-                    NO_PROP);
+                    NULL, NO_PROP);
         } else {
-            prev = hclib_async_future(async_fct, count, NULL, NULL, NO_PROP);
+            prev = hclib_async_future(async_fct, count, NULL, NULL, NULL,
+                    NO_PROP);
         }
     }
     hclib_end_finish();

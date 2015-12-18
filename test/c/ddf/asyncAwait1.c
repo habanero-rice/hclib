@@ -49,7 +49,7 @@ void entrypoint(void *arg) {
         // Pass down the whole ddf_list, and async uses index*2 to resolve ddfs it needs
         argv[1] = (void *)ddf_list;
         printf("Creating async %d await on %p will enable %p\n", index, ddf_list, &(ddf_list[index*2]));
-        hclib_async(async_fct, argv, &(ddf_list[(index-1)*2]), NULL, NO_PROP);
+        hclib_async(async_fct, argv, &(ddf_list[(index-1)*2]), NULL, NULL, NO_PROP);
     }
 
     int * value = (int *) malloc(sizeof(int));

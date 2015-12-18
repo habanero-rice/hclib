@@ -164,6 +164,13 @@ inline void _asyncAwait(hclib_ddf_t ** ddf_list, T lambda) {
 }
 
 template <typename T>
+inline void asyncAwaitAt(hclib_ddf_t **ddf_list, place_t *pl, T lambda) {
+	MARK_OVH(current_ws()->id);
+	task_t* task = _allocate_async<T>(lambda, true);
+	spawn_await_at(task, ddf_list, pl);
+}
+
+template <typename T>
 inline void asyncComm(T lambda) {
 	task_t* task = _allocate_async<T>(lambda, false);
 	spawn_commTask(task);

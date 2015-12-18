@@ -53,7 +53,7 @@ int main (int argc, char ** argv) {
     // spawn asyncs all contributing to the accumulator
     int i;
     for(i=0;i<N;i++) {
-        async(async_fct, accum, NULL, NULL, NO_PROP);
+        async(async_fct, accum, NULL, NULL, NULL, NO_PROP);
     }
     end_finish();
     int res = accum_get_int(accum);

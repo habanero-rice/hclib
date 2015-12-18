@@ -35,8 +35,8 @@ void entrypoint(void *arg) {
     hclib_start_finish();
 
     hclib_ddf_t *event = hclib_ddf_create();
-    hclib_async(consumer, event, NULL, NULL, NO_PROP);
-    hclib_async(producer, event, NULL, NULL, NO_PROP);
+    hclib_async(consumer, event, NULL, NULL, NULL, NO_PROP);
+    hclib_async(producer, event, NULL, NULL, NULL, NO_PROP);
 
     hclib_end_finish();
 }

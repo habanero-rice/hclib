@@ -14,7 +14,7 @@ extern "C" {
 /*** START ASYNC IMPLEMENTATION ***/
 
 void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
-        struct _phased_t * phased_clause, int property) {
+        struct _phased_t * phased_clause, place_t *place, int property) {
     assert(property == 0);
     assert(phased_clause == NULL);
 
@@ -26,7 +26,11 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
         task->async_task.args = arg;
         task->async_task.place = NULL;
 
-        spawn_await((task_t *)task, ddf_list);
+        if (place) {
+            spawn_await_at((task_t *)task, ddf_list, place);
+        } else {
+            spawn_await((task_t *)task, ddf_list);
+        }
     } else {
         task_t *task = malloc(sizeof(task_t));
         task->_fp = fp;
@@ -35,7 +39,11 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
         task->args = arg;
         task->place = NULL;
 
-        spawn(task);
+        if (place) {
+            spawn_at_hpt(place, task);
+        } else {
+            spawn(task);
+        }
     }
 }
 
@@ -53,12 +61,13 @@ static void future_caller(void *in) {
 
 hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
         hclib_ddf_t** ddf_list, struct _phased_t * phased_clause,
-        int property) {
+        place_t *place, int property) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_ddf_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, ddf_list, phased_clause, property);
+    hclib_async(future_caller, wrapper, ddf_list, phased_clause, place,
+            property);
 
     return (hclib_ddf_t *)wrapper;
 }

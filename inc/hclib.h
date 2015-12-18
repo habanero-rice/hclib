@@ -82,7 +82,7 @@ struct hclib_ddf_st;
  */
 void hclib_async(asyncFct_t fct_ptr, void * arg,
         struct hclib_ddf_st ** ddf_list, struct _phased_t * phased_clause,
-        int property);
+        place_t *place, int property);
 
 /*
  * Spawn an async that automatically puts a DDF on termination. It is the user's
@@ -90,7 +90,7 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
  */
 hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
         hclib_ddf_t **ddf_list, struct _phased_t *phased_clause,
-        int property);
+        place_t *place, int property);
 
 /*
  * Forasync definition and API

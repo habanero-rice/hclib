@@ -445,135 +445,93 @@ void try_schedule_async(task_t * async_task, int comm_task, int gpu_task,
     }
 }
 
+void spawn_handler(task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
+        int escaping, int comm, int gpu) {
+    assert(task);
+#ifndef HC_CUDA
+    assert(!gpu);
+#endif
+#ifndef HC_COMM_WORKER
+    assert(!comm);
+#endif
+    /*
+     * check if this is DDDf_t (remote or owner) and do callback to
+     * HabaneroUPC++ for implementation.
+     *
+     * TODO not sure exactly what this does, just copy-pasted. Ask Kumar
+     */
+    check_if_hcupc_dddf(ddf_list);
+
+    hc_workerState* ws = CURRENT_WS_INTERNAL;
+    if (!escaping) {
+        check_in_finish(ws->current_finish);
+        set_current_finish(task, ws->current_finish);
+    } else {
+        // If escaping task, don't register with current finish
+        set_current_finish(task, NULL);
+    }
+
+    if (pl) {
+        task->place = pl;
+    }
+
+    if (ddf_list) {
+        set_ddf_list(task, ddf_list);
+        hcpp_task_t *t = (hcpp_task_t*) task;
+        ddt_init(&(t->ddt), ddf_list);
+    }
+
+#ifdef VERBOSE
+    fprintf(stderr, "spawn_handler: task=%p\n", task);
+#endif
+
+    try_schedule_async(task, comm, gpu, ws);
+
+#ifdef HC_COMM_WORKER_STATS
+    const int wid = get_current_worker();
+    increment_async_counter(wid);
+#endif
+}
+
 void spawn_at_hpt(place_t* pl, task_t * task) {
-	// get current worker
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-	check_in_finish(ws->current_finish);
-	set_current_finish(task, ws->current_finish);
+    // get current worker
+    hc_workerState* ws = CURRENT_WS_INTERNAL;
+    check_in_finish(ws->current_finish);
+    set_current_finish(task, ws->current_finish);
     task->place = pl;
     try_schedule_async(task, 0, 0, ws);
 #ifdef HC_COMM_WORKER_STATS
-	const int wid = get_current_worker();
-	increment_async_counter(wid);
+    const int wid = get_current_worker();
+    increment_async_counter(wid);
 #endif
 }
 
 void spawn(task_t * task) {
-    // get current worker
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
-    check_in_finish(ws->current_finish);
-    set_current_finish(task, ws->current_finish);
-
-#ifdef VERBOSE
-    fprintf(stderr, "spawn: task=%p\n", task);
-#endif
-    try_schedule_async(task, 0, 0, ws);
-#ifdef HC_COMM_WORKER_STATS
-    const int wid = get_current_worker();
-    increment_async_counter(wid);
-#endif
+    spawn_handler(task, NULL, NULL, 0, 0, 0);
 }
 
 void spawn_escaping(task_t *task, hclib_ddf_t **ddf_list) {
-    // get current worker
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-    set_current_finish(task, NULL);
-
-#ifdef VERBOSE
-    fprintf(stderr, "spawn_escaping: task=%p\n", task);
-#endif
-    set_ddf_list(task, ddf_list);
-    hcpp_task_t *t = (hcpp_task_t*) task;
-    ddt_init(&(t->ddt), ddf_list);
-    try_schedule_async(task, 0, 0, ws);
-#ifdef HC_COMM_WORKER_STATS
-    const int wid = get_current_worker();
-    increment_async_counter(wid);
-#endif
+    spawn_handler(task, NULL, ddf_list, 1, 0, 0);
 }
 
 void spawn_escaping_at(place_t *pl, task_t *task, hclib_ddf_t **ddf_list) {
-    // get current worker
-    set_current_finish(task, NULL);
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-
-    set_ddf_list(task, ddf_list);
-    hcpp_task_t *t = (hcpp_task_t*) task;
-    ddt_init(&(t->ddt), ddf_list);
-	deque_push_place(ws, pl, task);
-#ifdef HC_COMM_WORKER_STATS
-    const int wid = get_current_worker();
-    increment_async_counter(wid);
-#endif
+    spawn_handler(task, pl, ddf_list, 1, 0, 0);
 }
 
 void spawn_await_at(task_t * task, hclib_ddf_t** ddf_list, place_t *pl) {
-	/*
-     * check if this is DDDf_t (remote or owner) and do callback to
-     * HabaneroUPC++ for implementation
-     */
-	check_if_hcupc_dddf(ddf_list);
-	// get current worker
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-	check_in_finish(ws->current_finish);
-	set_current_finish(task, ws->current_finish);
-
-	set_ddf_list(task, ddf_list);
-	hcpp_task_t *t = (hcpp_task_t*) task;
-	ddt_init(&(t->ddt), ddf_list);
-    if (pl) {
-    } else {
-        try_schedule_async(task, 0, 0, ws);
-    }
-#ifdef HC_COMM_WORKER_STATS
-	const int wid = get_current_worker();
-	increment_async_counter(wid);
-#endif
+    spawn_handler(task, pl, ddf_list, 0, 0, 0);
 }
 
-
 void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
-	/*
-     * check if this is DDDf_t (remote or owner) and do callback to
-     * HabaneroUPC++ for implementation
-     */
-	check_if_hcupc_dddf(ddf_list);
-	// get current worker
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-	check_in_finish(ws->current_finish);
-	set_current_finish(task, ws->current_finish);
-
-	set_ddf_list(task, ddf_list);
-	hcpp_task_t *t = (hcpp_task_t*) task;
-	ddt_init(&(t->ddt), ddf_list);
-	try_schedule_async(task, 0, 0, ws);
-#ifdef HC_COMM_WORKER_STATS
-	const int wid = get_current_worker();
-	increment_async_counter(wid);
-#endif
-
+    spawn_await_at(task, ddf_list, NULL);
 }
 
 void spawn_commTask(task_t * task) {
-#ifdef HC_COMM_WORKER
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
-    check_in_finish(ws->current_finish);
-    set_current_finish(task, ws->current_finish);
-    try_schedule_async(task, 1, 0, ws);
-#else
-    assert(0);
-#endif
+    spawn_handler(task, NULL, NULL, 0, 1, 0);
 }
 
 void spawn_gpu_task(task_t *task) {
-#ifdef HC_CUDA
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
-    check_in_finish(ws->current_finish);
-    set_current_finish(task, ws->current_finish);
-    try_schedule_async(task, 0, 1, ws);
-#else
-    assert(0);
-#endif
+    spawn_handler(task, NULL, NULL, 0, 0, 1);
 }
 
 #ifdef HC_CUDA
@@ -1284,6 +1242,6 @@ static void hclib_finalize() {
 void hclib_launch(int * argc, char ** argv, generic_framePtr fct_ptr,
         void * arg) {
     hclib_init(argc, argv);
-    hclib_async(fct_ptr, arg, NO_DDF, NO_PHASER, NO_PROP);
+    hclib_async(fct_ptr, arg, NO_DDF, NO_PHASER, NULL, NO_PROP);
     hclib_finalize();
 }
