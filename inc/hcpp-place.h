@@ -65,9 +65,10 @@ extern void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
 extern void hclib_free_at(place_t *pl, void *ptr);
 #ifdef HC_CUDA
 extern hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst,
-        place_t *src_pl, void *src, size_t nbytes, void *user_arg);
+        place_t *src_pl, void *src, size_t nbytes, hclib_ddf_t **ddf_list,
+        void *user_arg);
 extern hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val,
-        size_t nbytes, void *user_arg);
+        size_t nbytes, hclib_ddf_t **ddf_list, void *user_arg);
 #endif
 
 inline short is_cpu_place(place_t * pl) {

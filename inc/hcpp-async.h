@@ -108,6 +108,7 @@ inline void initialize_task(task_t *t, Function lambda_caller,
     t->args = args;
     t->is_asyncAnyType = 0;
     t->ddf_list = NULL;
+    t->place = NULL;
 }
 
 template <typename T>

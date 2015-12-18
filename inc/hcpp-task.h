@@ -23,7 +23,7 @@
  */
 typedef struct _task_t {
     void *args;
-    struct finish_t* current_finish;
+    struct finish_t *current_finish;
     generic_framePtr _fp;
     /*
      * Boolean flag specific to HabaneroUPC++ only.
@@ -31,7 +31,8 @@ typedef struct _task_t {
      * and locality flexible asyncAny
      */
     int is_asyncAnyType;
-    hclib_ddf_t ** ddf_list; // Null terminated list
+    hclib_ddf_t **ddf_list; // Null terminated list
+    place_t *place;
 } task_t;
 
 /*
@@ -66,17 +67,13 @@ typedef struct {
     task_t *user;
 } forasync_t;
 
-typedef struct _forasync_task_t {
-    task_t forasync_task;
-} forasync_task_t;
-
 typedef struct {
     forasync_t base;
     loop_domain_t loop0;
 } forasync1D_t;
 
 typedef struct _forasync_1D_task_t {
-    forasync_task_t task;
+    task_t forasync_task;
     forasync1D_t def;
 } forasync1D_task_t;
 
@@ -87,7 +84,7 @@ typedef struct {
 } forasync2D_t;
 
 typedef struct _forasync_2D_task_t {
-    forasync_task_t task;
+    task_t forasync_task;
     forasync2D_t def;
 } forasync2D_task_t;
 
@@ -99,7 +96,7 @@ typedef struct {
 } forasync3D_t;
 
 typedef struct _forasync_3D_task_t {
-    forasync_task_t task;
+    task_t forasync_task;
     forasync3D_t def;
 } forasync3D_task_t;
 

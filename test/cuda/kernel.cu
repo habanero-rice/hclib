@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         assert(arr);
 
         hclib_ddf_t *cpu_memset_event = hclib::async_memset(cpu_place, arr, 0,
-                N * sizeof(int), arr);
+                N * sizeof(int), NULL, arr);
         hclib::ddf_wait(cpu_memset_event);
 
         loop_domain_t loop = {0, N, 1, 33};
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
         assert(d_arr);
 
         hclib::ddf_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
-                0, N * sizeof(int), d_arr);
+                0, N * sizeof(int), NULL, d_arr);
         hclib::ddf_wait(gpu_memset_event);
 
         test_functor gpu_kernel(d_arr);
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
         hclib::ddf_wait(gpu_kernel_event);
         
         hclib::ddf_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
-                d_arr, N * sizeof(int), arr);
+                d_arr, N * sizeof(int), NULL, arr);
         hclib::ddf_wait(copy_event);
 
         validate(arr, N);

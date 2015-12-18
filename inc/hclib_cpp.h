@@ -39,9 +39,9 @@ place_t *get_root_place();
 void *allocate_at(place_t *pl, size_t nbytes, int flags);
 void free_at(place_t *pl, void *ptr);
 ddf_t *async_copy(place_t *dst_pl, void *dst, place_t *src_pl, void *src,
-        size_t nbytes, void *user_arg);
+        size_t nbytes, hclib_ddf_t **ddf_list, void *user_arg);
 ddf_t *async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
-        void *user_arg);
+        hclib_ddf_t **ddf_list, void *user_arg);
 #endif
 
 }

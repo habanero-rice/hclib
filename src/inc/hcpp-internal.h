@@ -129,6 +129,7 @@ int get_current_worker();
 // ddf
 int iterate_ddt_frontier(ddt_t * ddt);
 ddt_t * rt_async_task_to_ddt(task_t * async_task);
-void try_schedule_async(task_t * async_task, int comm_task, int gpu_task);
+void try_schedule_async(task_t * async_task, int comm_task, int gpu_task,
+        hc_workerState *ws);
 
 #endif /* HCPP_INTERNAL_H_ */

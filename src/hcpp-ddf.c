@@ -132,20 +132,20 @@ void hclib_ddf_free(hclib_ddf_t * ddf) {
 }
 
 __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
-        hclib_ddf_t* ddfToCheck ) {
+        hclib_ddf_t* ddfToCheck) {
     int success = 0;
     ddt_t* waitListOfDDF = (ddt_t*)ddfToCheck->headDDTWaitList;
 
     if (waitListOfDDF != EMPTY_DDF_WAITLIST_PTR) {
 
         while (waitListOfDDF != EMPTY_DDF_WAITLIST_PTR && !success) {
-            /* waitListOfDDF can not be EMPTY_DDF_WAITLIST_PTR in here*/
+            // waitListOfDDF can not be EMPTY_DDF_WAITLIST_PTR in here
             wrapperTask->nextDDTWaitingOnSameDDF = waitListOfDDF;
 
             success = __sync_bool_compare_and_swap(
                     &(ddfToCheck -> headDDTWaitList), waitListOfDDF,
                     wrapperTask);
-            /* printf("task:%p registered to DDF:%p\n", pollingTask,ddfToCheck); */
+            // printf("task:%p registered to DDF:%p\n", pollingTask,ddfToCheck);
 
             /*
              * may have failed because either some other task tried to be the
@@ -160,7 +160,6 @@ __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
                  */
             }
         }
-
     }
 
     return success;
@@ -199,8 +198,9 @@ ddt_t * rt_async_task_to_ddt(task_t * async_task) {
  * Close down registration of DDTs on this DDF and iterate over the
  * DDF's frontier to try to advance DDTs that were waiting on this DDF.
  */
-void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut) {
-    HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR && EMPTY_DATUM_ERROR_MSG);
+void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void *datumToBePut) {
+    HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR &&
+            EMPTY_DATUM_ERROR_MSG);
     HASSERT (ddfToBePut != NULL && "can not put into NULL DDF");
     HASSERT (ddfToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR &&
             "violated single assignment property for DDFs");
@@ -220,7 +220,6 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut) {
     currDDT = (ddt_t*)waitListOfDDF;
 
     int iter_count = 0;
-    /* printf("DDF:%p was put:%p with value:%d\n", ddfToBePut, datumToBePut,*((int*)datumToBePut)); */
     while (currDDT != UNINITIALIZED_DDF_WAITLIST_PTR) {
 
         nextDDT = currDDT->nextDDTWaitingOnSameDDF;
@@ -228,9 +227,9 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void * datumToBePut) {
             /* printf("pushed:%p\n", currDDT); */
             /*deque_push_default(currFrame);*/
             // DDT eligible to scheduling
-            task_t * async_task = rt_ddt_to_async_task(currDDT);
+            task_t *async_task = rt_ddt_to_async_task(currDDT);
             if (DEBUG_DDF) { printf("ddf: async_task %p\n", async_task); }
-            try_schedule_async(async_task, 0, 0);
+            try_schedule_async(async_task, 0, 0, CURRENT_WS_INTERNAL);
         }
         currDDT = nextDDT;
         iter_count++;

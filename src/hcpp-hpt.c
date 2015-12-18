@@ -237,17 +237,8 @@ hc_deque_t *get_deque_hpt(hc_workerState * ws, place_t * pl) {
 }
 
 int deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
-#ifdef TODO
-    if (is_device_place(pl)) {
-        hcqueue_enqueue(ws, pl->hcque, ele); // TODO
-        return 1;
-    } else {
-#endif
-        hc_deque_t * deq = get_deque_place(ws, pl);
-        return deque_push(&deq->deque, ele);
-#ifdef TODO
-    }
-#endif
+    hc_deque_t * deq = get_deque_place(ws, pl);
+    return deque_push(&deq->deque, ele);
 }
 
 inline task_t* deque_pop_place(hc_workerState *ws, place_t * pl) {
@@ -355,17 +346,24 @@ void hclib_free_at(place_t *pl, void *ptr) {
     }
 }
 
+// Used to wrap the creation of an async copy task that is dependent on some DDFs
+static void async_gpu_task_launcher(void *arg) {
+    gpu_task_t *task = (gpu_task_t *)arg;
+    spawn_gpu_task((task_t *)task);
+}
+
 /*
  * TODO Currently doesn't support await on other DDFs, nor do communication
  * tasks
  */
 hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, void *user_arg) {
+        void *src, size_t nbytes, hclib_ddf_t **ddf_list, void *user_arg) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
     task->t.ddf_list = NULL;
     task->t.args = NULL;
+    task->t.place = NULL;
 
     hclib_ddf_t *ddf = hclib_ddf_create();
     task->gpu_type = GPU_COMM_TASK;
@@ -380,21 +378,27 @@ hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
 
 #ifdef VERBOSE
     fprintf(stderr, "hclib_async_copy: dst_pl=%p dst=%p src_pl=%p src=%p "
-            "nbytes=%lu\n", dst_pl, dst, src_pl, src, nbytes);
+            "nbytes=%lu ddf_list=%p\n", dst_pl, dst, src_pl, src, nbytes,
+            ddf_list);
 #endif
 
-    spawn_gpu_task((task_t *)task);
+    if (ddf_list) {
+        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, 0);
+    } else {
+        spawn_gpu_task((task_t *)task);
+    }
 
     return ddf;
 }
 
 hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
-        void *user_arg) {
+        hclib_ddf_t **ddf_list, void *user_arg) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
     task->t.ddf_list = NULL;
     task->t.args = NULL;
+    task->t.place = NULL;
 
     hclib_ddf_t *ddf = hclib_ddf_create();
     task->gpu_type = GPU_MEMSET_TASK;
@@ -411,7 +415,11 @@ hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
             "nbytes=%lu\n", dst_pl, dst, src_pl, src, nbytes);
 #endif
 
-    spawn_gpu_task((task_t *)task);
+    if (ddf_list) {
+        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, 0);
+    } else {
+        spawn_gpu_task((task_t *)task);
+    }
 
     return ddf;
 }

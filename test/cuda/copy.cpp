@@ -40,7 +40,7 @@ void run_copy_test(hclib::place_t *dst_pl, int *dst, hclib::place_t *src_pl,
     }
 
     hclib::ddf_t *event = hclib::async_copy(dst_pl, dst, src_pl, src, nbytes,
-            dst);
+            NULL, dst);
     void *result = hclib::ddf_wait(event);
     if (result != dst) {
         fprintf(stderr, "Expected %p, got %p\n", dst, result);

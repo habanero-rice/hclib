@@ -58,13 +58,15 @@ void hclib::free_at(place_t *pl, void *ptr) {
 }
 
 hclib::ddf_t *hclib::async_copy(hclib::place_t *dst_pl, void *dst,
-        hclib::place_t *src_pl, void *src, size_t nbytes, void *user_arg) {
-    return hclib_async_copy(dst_pl, dst, src_pl, src, nbytes, user_arg);
+        hclib::place_t *src_pl, void *src, size_t nbytes,
+        hclib_ddf_t **ddf_list, void *user_arg) {
+    return hclib_async_copy(dst_pl, dst, src_pl, src, nbytes, ddf_list,
+            user_arg);
 }
 
 hclib::ddf_t *hclib::async_memset(place_t *pl, void *ptr, int val,
-        size_t nbytes, void *user_arg) {
-    return hclib_async_memset(pl, ptr, val, nbytes, user_arg);
+        size_t nbytes, hclib_ddf_t **ddf_list, void *user_arg) {
+    return hclib_async_memset(pl, ptr, val, nbytes, ddf_list, user_arg);
 }
 #endif
 

@@ -376,7 +376,7 @@ static inline void execute_task(task_t* task) {
 }
 
 static inline void rt_schedule_async(task_t *async_task, int comm_task,
-        int gpu_task) {
+        int gpu_task, hc_workerState *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p comm_task=%d "
             "gpu_task=%d\n", async_task, comm_task, gpu_task);
@@ -398,12 +398,16 @@ static inline void rt_schedule_async(task_t *async_task, int comm_task,
 #endif
     } else {
         // push on worker deq
-        const int wid = get_current_worker();
-        if (!deque_push(&(hcpp_context->workers[wid]->current->deque),
-                    async_task)) {
-            // TODO: deque is full, so execute in place
-            printf("WARNING: deque full, local execution\n");
-            execute_task(async_task);
+        if (async_task->place) {
+            deque_push_place(ws, async_task->place, async_task);
+        } else {
+            const int wid = get_current_worker();
+            if (!deque_push(&(hcpp_context->workers[wid]->current->deque),
+                        async_task)) {
+                // TODO: deque is full, so execute in place
+                printf("WARNING: deque full, local execution\n");
+                execute_task(async_task);
+            }
         }
     }
 }
@@ -422,7 +426,7 @@ inline int is_eligible_to_schedule(task_t * async_task) {
             async_task, async_task->ddf_list);
 #endif
     if (async_task->ddf_list != NULL) {
-    	ddt_t * ddt = (ddt_t *)rt_async_task_to_ddt(async_task);
+    	ddt_t *ddt = (ddt_t *)rt_async_task_to_ddt(async_task);
         return iterate_ddt_frontier(ddt);
     } else {
         return 1;
@@ -434,9 +438,10 @@ inline int is_eligible_to_schedule(task_t * async_task) {
  * runtime. See is_eligible_to_schedule to understand when a task is or isn't
  * eligible for scheduling.
  */
-void try_schedule_async(task_t * async_task, int comm_task, int gpu_task) {
+void try_schedule_async(task_t * async_task, int comm_task, int gpu_task,
+        hc_workerState *ws) {
     if (is_eligible_to_schedule(async_task)) {
-        rt_schedule_async(async_task, comm_task, gpu_task);
+        rt_schedule_async(async_task, comm_task, gpu_task, ws);
     }
 }
 
@@ -445,7 +450,8 @@ void spawn_at_hpt(place_t* pl, task_t * task) {
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	check_in_finish(ws->current_finish);
 	set_current_finish(task, ws->current_finish);
-	deque_push_place(ws, pl, task);
+    task->place = pl;
+    try_schedule_async(task, 0, 0, ws);
 #ifdef HC_COMM_WORKER_STATS
 	const int wid = get_current_worker();
 	increment_async_counter(wid);
@@ -461,7 +467,7 @@ void spawn(task_t * task) {
 #ifdef VERBOSE
     fprintf(stderr, "spawn: task=%p\n", task);
 #endif
-    try_schedule_async(task, 0, 0);
+    try_schedule_async(task, 0, 0, ws);
 #ifdef HC_COMM_WORKER_STATS
     const int wid = get_current_worker();
     increment_async_counter(wid);
@@ -470,6 +476,7 @@ void spawn(task_t * task) {
 
 void spawn_escaping(task_t *task, hclib_ddf_t **ddf_list) {
     // get current worker
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
     set_current_finish(task, NULL);
 
 #ifdef VERBOSE
@@ -478,7 +485,7 @@ void spawn_escaping(task_t *task, hclib_ddf_t **ddf_list) {
     set_ddf_list(task, ddf_list);
     hcpp_task_t *t = (hcpp_task_t*) task;
     ddt_init(&(t->ddt), ddf_list);
-    try_schedule_async(task, 0, 0);
+    try_schedule_async(task, 0, 0, ws);
 #ifdef HC_COMM_WORKER_STATS
     const int wid = get_current_worker();
     increment_async_counter(wid);
@@ -498,8 +505,32 @@ void spawn_escaping_at(place_t *pl, task_t *task, hclib_ddf_t **ddf_list) {
     const int wid = get_current_worker();
     increment_async_counter(wid);
 #endif
-
 }
+
+void spawn_await_at(task_t * task, hclib_ddf_t** ddf_list, place_t *pl) {
+	/*
+     * check if this is DDDf_t (remote or owner) and do callback to
+     * HabaneroUPC++ for implementation
+     */
+	check_if_hcupc_dddf(ddf_list);
+	// get current worker
+	hc_workerState* ws = CURRENT_WS_INTERNAL;
+	check_in_finish(ws->current_finish);
+	set_current_finish(task, ws->current_finish);
+
+	set_ddf_list(task, ddf_list);
+	hcpp_task_t *t = (hcpp_task_t*) task;
+	ddt_init(&(t->ddt), ddf_list);
+    if (pl) {
+    } else {
+        try_schedule_async(task, 0, 0, ws);
+    }
+#ifdef HC_COMM_WORKER_STATS
+	const int wid = get_current_worker();
+	increment_async_counter(wid);
+#endif
+}
+
 
 void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 	/*
@@ -515,7 +546,7 @@ void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
 	set_ddf_list(task, ddf_list);
 	hcpp_task_t *t = (hcpp_task_t*) task;
 	ddt_init(&(t->ddt), ddf_list);
-	try_schedule_async(task, 0, 0);
+	try_schedule_async(task, 0, 0, ws);
 #ifdef HC_COMM_WORKER_STATS
 	const int wid = get_current_worker();
 	increment_async_counter(wid);
@@ -528,7 +559,7 @@ void spawn_commTask(task_t * task) {
     hc_workerState* ws = CURRENT_WS_INTERNAL;
     check_in_finish(ws->current_finish);
     set_current_finish(task, ws->current_finish);
-    try_schedule_async(task, 1, 0);
+    try_schedule_async(task, 1, 0, ws);
 #else
     assert(0);
 #endif
@@ -539,7 +570,7 @@ void spawn_gpu_task(task_t *task) {
     hc_workerState* ws = CURRENT_WS_INTERNAL;
     check_in_finish(ws->current_finish);
     set_current_finish(task, ws->current_finish);
-    try_schedule_async(task, 0, 1);
+    try_schedule_async(task, 0, 1, ws);
 #else
     assert(0);
 #endif
@@ -923,6 +954,7 @@ void _help_wait(LiteCtx *ctx) {
     task->async_task.is_asyncAnyType = 0;
     task->async_task.ddf_list = NULL;
     task->async_task.args = wait_ctx;
+    task->async_task.place = NULL;
 
     spawn_escaping((task_t *)task, continuation_deps);
 
@@ -960,6 +992,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     task->async_task.is_asyncAnyType = 0;
     task->async_task.ddf_list = NULL;
     task->async_task.args = hclib_finish_ctx;
+    task->async_task.place = NULL;
 
     /*
      * Create an async to handle the continuation after the finish, whose state
