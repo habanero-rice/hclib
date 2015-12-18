@@ -484,13 +484,13 @@ static __global__ void driver_kernel(functor_type functor, unsigned niters) {
 
 template <typename functor_type>
 inline void call_gpu_functor(unsigned niters, unsigned tile_size,
-        void* functor) {
+        cudaStream_t stream, void* functor) {
     functor_type *actual = (functor_type *)functor;
 
     const unsigned block_size = tile_size;
     const unsigned nblocks = (niters + block_size - 1) / block_size;
 
-    driver_kernel<<<nblocks, block_size>>>(*actual, niters);
+    driver_kernel<<<nblocks, block_size, 0, stream>>>(*actual, niters);
 }
 #endif
 
@@ -532,6 +532,7 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
         task->arg_to_put = NULL;
         task->gpu_task_def.compute_task.niters = loop->high;
         task->gpu_task_def.compute_task.tile_size = loop->tile;
+        task->gpu_task_def.compute_task.stream = place->cuda_stream;
         task->gpu_task_def.compute_task.cuda_id = place->cuda_id;
         task->gpu_task_def.compute_task.kernel_launcher = wrapper;
 

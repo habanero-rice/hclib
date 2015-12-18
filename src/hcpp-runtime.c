@@ -685,9 +685,18 @@ void *gpu_worker_routine(void *finish_ptr) {
                 case (GPU_COMPUTE_TASK): {
                     gpu_compute_task_t *compute_task =
                         &task->gpu_task_def.compute_task;
+                    /*
+                     * Assume that functor_caller enqueues a kernel in
+                     * compute_task->stream
+                     */
                     (compute_task->kernel_launcher->functor_caller)(
                             compute_task->niters, compute_task->tile_size,
+                            compute_task->stream,
                             compute_task->kernel_launcher->functor_on_heap);
+                    op = create_pending_cuda_op(task->ddf_to_put,
+                            task->arg_to_put);
+                    CHECK_CUDA(cudaEventRecord(op->event,
+                                compute_task->stream));
                     break;
                 }
                 default:

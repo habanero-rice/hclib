@@ -56,12 +56,13 @@ typedef struct _gpu_memset_task_t {
  * The definition of a GPU compute task. TODO Currently incomplete.
  */
 typedef struct _gpu_functor_wrapper {
-    void (*functor_caller)(unsigned, unsigned, void *);
+    void (*functor_caller)(unsigned, unsigned, cudaStream_t stream, void *);
     void *functor_on_heap;
 } gpu_functor_wrapper;
 
 typedef struct _gpu_compute_task_t {
     unsigned niters, tile_size;
+    cudaStream_t stream;
     int cuda_id;
     gpu_functor_wrapper *kernel_launcher;
 } gpu_compute_task_t;

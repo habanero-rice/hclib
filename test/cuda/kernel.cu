@@ -49,6 +49,8 @@ int main(int argc, char **argv) {
         assert(gpu_place && cpu_place);
 
         const int N = 1024;
+
+        /******* Test on the CPU *******/
         int *arr = (int *)hclib::allocate_at(cpu_place, N * sizeof(int), 0);
         assert(arr);
 
@@ -65,6 +67,7 @@ int main(int argc, char **argv) {
 
         validate(arr, N);
 
+        /******* Test on the GPU using functors *******/
         int *d_arr = (int *)hclib::allocate_at(gpu_place, N * sizeof(int), 0);
         assert(d_arr);
 
