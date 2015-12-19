@@ -144,9 +144,9 @@ inline task_t* _allocate_async_hcpp(T lambda, bool await) {
  */
 template <typename T>
 inline void asyncAtHpt(place_t* pl, T lambda) {
-	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async<T>(lambda, false);
-	spawn_at_hpt(pl, task);
+    MARK_OVH(current_ws()->id);
+    task_t* task = _allocate_async<T>(lambda, false);
+    spawn_at_hpt(pl, task);
 }
 
 template <typename T>

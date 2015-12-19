@@ -108,11 +108,8 @@ inline void forasync1D_recursive(_loop_domain_t* loop, T lambda,
             _loop_domain_t ld = {mid, high, stride, tile};
             forasync1D_recursive<T>(&ld, lambda, place, ddf_list);
         };
-        if (place) {
-            hclib::asyncAtHpt(place, lambda_wrapper);
-        } else {
-            hclib::async(lambda_wrapper);
-        }
+
+        hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
 		// update lower-half
 		//continue to work on the half task
 		_loop_domain_t ld = {low, mid, stride, tile};
@@ -166,11 +163,9 @@ inline void forasync2D_recursive(const _loop_domain_t loop[2], T lambda,
         auto lambda_wrapper = [=]() {
             forasync2D_recursive<T>(new_loop, lambda, place, ddf_list);
         };
-        if (place) {
-            hclib::asyncAtHpt(place, lambda_wrapper);
-        } else {
-            hclib::async(lambda_wrapper);
-        }
+
+        hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
+
 		//continue to work on the half task
 		loop_domain_t new_loop_lower_half[2] = {
 				{low0, high0, stride0, tile0},
@@ -241,11 +236,8 @@ inline void forasync3D_recursive(const _loop_domain_t loop[3], T lambda,
         auto lambda_wrapper = [=]() {
 			forasync3D_recursive<T>(new_loop, lambda, place, ddf_list);
 		};
-        if (place) {
-            hclib::asyncAtHpt(place, lambda_wrapper);
-        } else {
-            hclib::async(lambda_wrapper);
-        }
+
+        hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
 
 		//continue to work on the half task
 		loop_domain_t new_loop_lower_half[3] = {
@@ -270,11 +262,8 @@ inline void forasync1D_flat(_loop_domain_t* loop, T lambda, place_t *place, hcli
 			_loop_domain_t ld = {low0, low0+tile, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		};
-        if (place) {
-            hclib::asyncAtHpt(place, lambda_wrapper);
-        } else {
-            hclib::async(lambda_wrapper);
-        }
+
+        hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
 	}
 	// handling leftover
 	if (size < high) {
@@ -316,11 +305,8 @@ inline void forasync2D_flat(const _loop_domain_t loop[2], T lambda,
             auto lambda_wrapper = [=]() {
 				forasync2D_runner<T>(new_loop, lambda);
 			};
-            if (place) {
-                hclib::asyncAtHpt(place, lambda_wrapper);
-            } else {
-                hclib::async(lambda_wrapper);
-            }
+
+            hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
 		}
 	}
 }
@@ -360,11 +346,8 @@ inline void forasync3D_flat(const _loop_domain_t loop[3], T lambda,
                 auto lambda_wrapper = [=]() {
 					forasync3D_runner<T>(new_loop, lambda);
 				};
-                if (place) {
-                    hclib::asyncAtHpt(place, lambda_wrapper);
-                } else {
-                    hclib::async(lambda_wrapper);
-                }
+
+                hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
 			}
 		}
 	}
