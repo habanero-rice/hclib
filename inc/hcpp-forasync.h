@@ -271,11 +271,7 @@ inline void forasync1D_flat(_loop_domain_t* loop, T lambda, place_t *place, hcli
 			_loop_domain_t ld = {low0, high, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		};
-        if (place) {
-            hclib::asyncAtHpt(place, lambda_wrapper);
-        } else {
-            hclib::async(lambda_wrapper);
-        }
+        hclib::asyncAwaitAt(ddf_list, place, lambda_wrapper);
 	}
 }
 
@@ -454,7 +450,7 @@ inline void forasync1D_(_loop_domain_t *loop, const functor_type &functor,
     if (place == NULL || is_cpu_place(place)) {
         forasync1D(loop,
                 [functor](int idx) { ((functor_type)functor).call(idx); }, mode,
-                place);
+                place, ddf_list);
     } else if (is_nvgpu_place(place)) {
         assert(0);
     } else {
@@ -491,7 +487,7 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
     if (place == NULL || is_cpu_place(place)) {
         return forasync1D_future(loop,
                 [functor](int idx) { ((functor_type)functor).call(idx); },
-                mode, place);
+                mode, place, ddf_list);
     } else if (is_nvgpu_place(place)) {
 #ifdef __CUDACC__
         assert(loop->stride == 1);
@@ -526,7 +522,13 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
         task->gpu_task_def.compute_task.cuda_id = place->cuda_id;
         task->gpu_task_def.compute_task.kernel_launcher = wrapper;
 
-        spawn_gpu_task((task_t *)task);
+        if (ddf_list) {
+            hclib::_asyncAwait(ddf_list,
+                    [task]() { spawn_gpu_task((task_t *)task); });
+        } else {
+            spawn_gpu_task((task_t *)task);
+        }
+
         return ddf;
 #else
         fprintf(stderr, "Application code must be compiled with nvcc to "
