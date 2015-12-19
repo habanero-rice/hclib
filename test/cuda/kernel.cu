@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
         cpu_kernel_deps[0] = cpu_memset_event; cpu_kernel_deps[1] = NULL;
         loop_domain_t loop = {0, N, 1, 33};
         test_functor cpu_kernel(arr);
-        hclib::ddf_t *cpu_kernel_event = hclib::forasync1D_future_(
+        hclib::ddf_t *cpu_kernel_event = hclib::forasync1D_future(
                 (loop_domain_t *)&loop, cpu_kernel, FORASYNC_MODE_FLAT, cpu_place, cpu_kernel_deps);
 
         hclib::ddf_wait(cpu_kernel_event);
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
                 2 * sizeof(hclib::ddf_t *));
         gpu_kernel_deps[0] = gpu_memset_event; gpu_kernel_deps[1] = NULL;
         test_functor gpu_kernel(d_arr);
-        hclib::ddf_t *gpu_kernel_event = hclib::forasync1D_future_(
+        hclib::ddf_t *gpu_kernel_event = hclib::forasync1D_future(
                 (loop_domain_t *)&loop, gpu_kernel, FORASYNC_MODE_FLAT,
                 gpu_place, gpu_kernel_deps);
 

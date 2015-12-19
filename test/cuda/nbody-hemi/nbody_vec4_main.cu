@@ -123,7 +123,7 @@ int main(int argc, char **argv)
             2 * sizeof(hclib::ddf_t *));
     compute_deps[0] = bodies_copy_event; compute_deps[1] = NULL;
     accumulate_force_functor forces_functor(d_forceVectors, d_bodies, N);
-    hclib::ddf_t *compute_event = hclib::forasync1D_future_(
+    hclib::ddf_t *compute_event = hclib::forasync1D_future(
             (loop_domain_t *)&loop, forces_functor, FORASYNC_MODE_FLAT, gpu_pl,
             compute_deps);
     // allPairsForcesCuda(d_forceVectors, d_bodies, N, false);

@@ -394,54 +394,6 @@ inline void forasync3D_internal(const _loop_domain_t loop[3], T lambda,
 	}
 }
 
-template <typename T>
-inline void forasync1D(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    forasync1D_internal<T>(loop, lambda, mode, place, ddf_list);
-}
-
-template <typename T>
-inline void forasync2D(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    forasync2D_internal<T>(loop, lambda, mode, place, ddf_list);
-}
-
-template <typename T>
-inline void forasync3D(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    forasync3D_internal<T>(loop, lambda, mode, place, ddf_list);
-}
-
-template <typename T>
-inline hclib_ddf_t *forasync1D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    hclib_start_finish();
-    forasync1D_internal<T>(loop, lambda, mode, place, ddf_list);
-    return hclib_end_finish_nonblocking();
-}
-
-template <typename T>
-inline hclib_ddf_t *forasync2D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    hclib_start_finish();
-    forasync2D_internal<T>(loop, lambda, mode, place, ddf_list);
-    return hclib_end_finish_nonblocking();
-}
-
-template <typename T>
-inline hclib_ddf_t *forasync3D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    hclib_start_finish();
-    forasync3D_internal<T>(loop, lambda, mode, place, ddf_list);
-    return hclib_end_finish_nonblocking();
-}
-
 #ifdef HC_CUDA
 
 #ifdef __CUDACC__
@@ -520,19 +472,7 @@ inline hclib_ddf_t *forasync1D_cuda_internal(_loop_domain_t *loop,
 #endif
 }
 
-template<class functor_type>
-inline void forasync1D_(_loop_domain_t *loop, const functor_type functor,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    if (place == NULL || is_cpu_place(place)) {
-        forasync1D(loop, functor, mode, place, ddf_list);
-    } else if (is_nvgpu_place(place)) {
-        forasync1D_cuda_internal(loop, functor, mode, place, ddf_list);
-    } else {
-        fprintf(stderr, "Unrecognized place type %d\n", place->type);
-        exit(1);
-    }
-}
+#endif
 
 /*
  * NOTE: We tried to get this API to support passing device lambdas. However,
@@ -543,22 +483,78 @@ inline void forasync1D_(_loop_domain_t *loop, const functor_type functor,
  * some equivalent), which is not what we want here. If NVIDIA's lambda support
  * improves in the future, this API would theoretically work out-of-the-box with
  * lambdas, but for now it doesn't seem reasonable to support them.
+ *
+ * As a result, if a GPU place is specified the lambda argument should not
+ * actually be a C++11 lambda, but rather a C++ functor with the () operator
+ * overloaded.
+ *
+ * The same is true for forasync1D_future.
  */
-template<class functor_type>
-inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
-        functor_type functor, int mode = FORASYNC_MODE_RECURSIVE,
-        place_t *place = NULL, hclib_ddf_t **ddf_list = NULL) {
+template <typename T>
+inline void forasync1D(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
     if (place == NULL || is_cpu_place(place)) {
-        return forasync1D_future(loop, functor,
-                mode, place, ddf_list);
+        forasync1D_internal<T>(loop, lambda, mode, place, ddf_list);
+#ifdef HC_CUDA
     } else if (is_nvgpu_place(place)) {
-        return forasync1D_cuda_internal(loop, functor, mode, place, ddf_list);
+        forasync1D_cuda_internal(loop, lambda, mode, place, ddf_list);
+#endif
     } else {
         fprintf(stderr, "Unrecognized place type %d\n", place->type);
         exit(1);
     }
 }
+
+template <typename T>
+inline void forasync2D(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
+    forasync2D_internal<T>(loop, lambda, mode, place, ddf_list);
+}
+
+template <typename T>
+inline void forasync3D(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
+    forasync3D_internal<T>(loop, lambda, mode, place, ddf_list);
+}
+
+template <typename T>
+inline hclib_ddf_t *forasync1D_future(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
+    if (place == NULL || is_cpu_place(place)) {
+        hclib_start_finish();
+        forasync1D_internal<T>(loop, lambda, mode, place, ddf_list);
+        return hclib_end_finish_nonblocking();
+#ifdef HC_CUDA
+    } else if (is_nvgpu_place(place)) {
+        return forasync1D_cuda_internal(loop, lambda, mode, place, ddf_list);
 #endif
+    } else {
+        fprintf(stderr, "Unrecognized place type %d\n", place->type);
+        exit(1);
+    }
+}
+
+template <typename T>
+inline hclib_ddf_t *forasync2D_future(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
+    hclib_start_finish();
+    forasync2D_internal<T>(loop, lambda, mode, place, ddf_list);
+    return hclib_end_finish_nonblocking();
+}
+
+template <typename T>
+inline hclib_ddf_t *forasync3D_future(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
+    hclib_start_finish();
+    forasync3D_internal<T>(loop, lambda, mode, place, ddf_list);
+    return hclib_end_finish_nonblocking();
+}
 
 }
 
