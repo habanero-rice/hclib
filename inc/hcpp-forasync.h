@@ -464,7 +464,7 @@ template<typename functor_type>
 static __global__ void driver_kernel(functor_type functor, unsigned niters) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor.call(tid);
+        functor(tid);
     }
 }
 
@@ -478,15 +478,25 @@ inline void call_gpu_functor(unsigned niters, unsigned tile_size,
 
     driver_kernel<<<nblocks, block_size, 0, stream>>>(*actual, niters);
 }
+
 #endif
 
+/*
+ * NOTE: We tried to get this API to support passing device lambdas. However,
+ * despite some indications in the CUDA docs that they support
+ * __host__ __device__ lambdas, this does not seem to be the case. Because of
+ * this, supporting lambdas that are only __device__ would restrict the
+ * flexibility of this API and require a dedicated forasync_gpu function (or
+ * some equivalent), which is not what we want here. If NVIDIA's lambda support
+ * improves in the future, this API would theoretically work out-of-the-box with
+ * lambdas, but for now it doesn't seem reasonable to support them.
+ */
 template<class functor_type>
 inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
-        const functor_type &functor, int mode = FORASYNC_MODE_RECURSIVE,
+        functor_type functor, int mode = FORASYNC_MODE_RECURSIVE,
         place_t *place = NULL, hclib_ddf_t **ddf_list = NULL) {
     if (place == NULL || is_cpu_place(place)) {
-        return forasync1D_future(loop,
-                [functor](int idx) { ((functor_type)functor).call(idx); },
+        return forasync1D_future(loop, functor,
                 mode, place, ddf_list);
     } else if (is_nvgpu_place(place)) {
 #ifdef __CUDACC__

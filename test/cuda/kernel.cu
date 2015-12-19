@@ -18,7 +18,8 @@ class test_functor {
         int *arr;
     public:
         test_functor(int *set_arr) : arr(set_arr) { }
-        __host__ __device__ void call(int idx) {
+
+        __host__ __device__ void operator()(int idx) {
             arr[idx] = idx;
         }
 };
@@ -34,6 +35,7 @@ void validate(int *arr, int N) {
 }
 
 int main(int argc, char **argv) {
+
     hclib::launch(&argc, argv, []() {
         hclib::place_t *root_pl = hclib::get_root_place();
 
