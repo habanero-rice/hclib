@@ -72,29 +72,29 @@ int main(int argc, char **argv) {
 
         validate(arr, N);
 
-        // /******* Test on the GPU using functors *******/
-        // int *d_arr = (int *)hclib::allocate_at(gpu_place, N * sizeof(int), 0);
-        // assert(d_arr);
+        /******* Test on the GPU using functors *******/
+        int *d_arr = (int *)hclib::allocate_at(gpu_place, N * sizeof(int), 0);
+        assert(d_arr);
 
-        // hclib::ddf_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
-        //         0, N * sizeof(int), NULL, d_arr);
+        hclib::ddf_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
+                0, N * sizeof(int), NULL, d_arr);
 
-        // hclib::ddf_t **gpu_kernel_deps = (hclib::ddf_t **)malloc(
-        //         2 * sizeof(hclib::ddf_t *));
-        // gpu_kernel_deps[0] = gpu_memset_event; gpu_kernel_deps[1] = NULL;
-        // test_functor gpu_kernel(d_arr);
-        // hclib::ddf_t *gpu_kernel_event = hclib::forasync1D_future_(
-        //         (loop_domain_t *)&loop, gpu_kernel, FORASYNC_MODE_FLAT,
-        //         gpu_place, gpu_kernel_deps);
+        hclib::ddf_t **gpu_kernel_deps = (hclib::ddf_t **)malloc(
+                2 * sizeof(hclib::ddf_t *));
+        gpu_kernel_deps[0] = gpu_memset_event; gpu_kernel_deps[1] = NULL;
+        test_functor gpu_kernel(d_arr);
+        hclib::ddf_t *gpu_kernel_event = hclib::forasync1D_future_(
+                (loop_domain_t *)&loop, gpu_kernel, FORASYNC_MODE_FLAT,
+                gpu_place, gpu_kernel_deps);
 
-        // hclib::ddf_t **gpu_copy_deps = (hclib::ddf_t **)malloc(
-        //         2 * sizeof(hclib::ddf_t *));
-        // gpu_copy_deps[0] = gpu_kernel_event; gpu_copy_deps[1] = NULL;
-        // hclib::ddf_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
-        //         d_arr, N * sizeof(int), gpu_copy_deps, arr);
-        // hclib::ddf_wait(copy_event);
+        hclib::ddf_t **gpu_copy_deps = (hclib::ddf_t **)malloc(
+                2 * sizeof(hclib::ddf_t *));
+        gpu_copy_deps[0] = gpu_kernel_event; gpu_copy_deps[1] = NULL;
+        hclib::ddf_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
+                d_arr, N * sizeof(int), gpu_copy_deps, arr);
+        hclib::ddf_wait(copy_event);
 
-        // validate(arr, N);
+        validate(arr, N);
 
         printf("Passed!\n");
     });
