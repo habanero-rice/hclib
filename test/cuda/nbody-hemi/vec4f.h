@@ -9,18 +9,20 @@ struct Vec4f
 {
   float x, y, z, w;
 
-  inline Vec4f() {};
+  inline __host__ __device__ Vec4f() {};
 
   inline __host__ __device__ Vec4f(float xx, float yy, float zz, float ww) : x(xx), y(yy), z(zz), w(ww) {}
 
-  inline Vec4f(const Vec4f& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+  inline __host__ __device__ Vec4f(const Vec4f& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
 
-  inline __host__ __device__ Vec4f& operator=(const Vec4f& v) { 
-    x = v.x; y = v.y; z = v.z; w = v.w; 
-    return *this;
+  inline __host__ __device__ void operator=(const Vec4f& v) { 
+    x = v.x;
+    y = v.y;
+    z = v.z;
+    w = v.w; 
   }
 
-  inline Vec4f operator+(const Vec4f& v) const { 
+  inline __host__ __device__ Vec4f operator+(const Vec4f& v) const { 
     return Vec4f(x+v.x, y+v.y, z+v.z, w+v.w); 
   }
 
@@ -28,7 +30,7 @@ struct Vec4f
     return Vec4f(x-v.x, y-v.y, z-v.z, w-v.w); 
   }
 
-  inline Vec4f operator-() const {
+  inline __host__ __device__ Vec4f operator-() const {
     return Vec4f(-x, -y, -z, -w); 
   }
 
@@ -45,27 +47,27 @@ struct Vec4f
     return *this;
   }
 
-  inline Vec4f& operator-=(const Vec4f& v) {
+  inline __host__ __device__ Vec4f& operator-=(const Vec4f& v) {
     x -= v.x; y -= v.y; z -= v.z; w -= v.w;
     return *this;
   }
 
-  inline Vec4f& operator*=(const Vec4f& v) {
+  inline __host__ __device__ Vec4f& operator*=(const Vec4f& v) {
     x *= v.x; y *= v.y; z *= v.z; w *= v.w;
     return *this;
   }
 
-  inline Vec4f& operator/=(const Vec4f& v) {
+  inline __host__ __device__ Vec4f& operator/=(const Vec4f& v) {
     x /= v.x; y /= v.y; z /= v.z; w /= v.w;
     return *this;
   }
 
-  inline Vec4f& operator*=(float s) {
+  inline __host__ __device__ Vec4f& operator*=(float s) {
     x *= s; y *= s; z *= s; w *= s;
     return *this;
   }
 
-  inline Vec4f& operator/=(float s) {
+  inline __host__ __device__ Vec4f& operator/=(float s) {
     x /= s; y /= s; z /= s; w /= s;
     return *this;
   }
@@ -78,16 +80,12 @@ struct Vec4f
     return this->dot(*this);
   }
 
-  inline float length() const {
+  inline __host__ __device__ float length() const {
     return sqrt(lengthSqr());
   }
 
   inline __host__ __device__ float inverseLength(float softening = 0.0f) const {
-// #ifdef HEMI_DEV_CODE
-//     return rsqrtf(lengthSqr() + softening);
-// #else
-    return 1.0f / sqrtf(lengthSqr() + softening);
-// #endif
+    return rsqrtf(lengthSqr() + softening);
   }
 };
 

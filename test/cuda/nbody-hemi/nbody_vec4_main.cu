@@ -67,8 +67,12 @@ int main(int argc, char **argv)
     Vec4f *bodies = hclib::allocate_at<Vec4f>(hclib::get_current_place(), N, 0);
     Vec4f *forceVectors = hclib::allocate_at<Vec4f>(hclib::get_current_place(), N,
             0);
+
+    printf("sizeof(Vec4f) = %lu, sizeof(void *) = %lu, sizeof(functor) = %lu\n",
+            sizeof(Vec4f), sizeof(void *), sizeof(accumulate_force_functor));
     
     randomizeBodies(bodies, N);
+    memset(forceVectors, 0x00, N * sizeof(Vec4f));
 
     // Call a host function defined in a .cu compilation unit
     // that uses host/device shared class member functions
@@ -84,7 +88,7 @@ int main(int argc, char **argv)
     start_time = get_clock_gettime();
     allPairsForcesSequential(forceVectors, bodies, N);
     
-    printf("CPU: Force vector 0: (%0.3f, %0.3f, %0.3f), %d: (%0.3f, %0.3f, %0.3f)\n", 
+    printf("CPU: Force vector 0: (%0.7f, %0.7f, %0.7f), %d: (%0.7f, %0.7f, %0.7f)\n", 
            forceVectors[0].x, 
            forceVectors[0].y, 
            forceVectors[0].z,
@@ -116,17 +120,20 @@ int main(int argc, char **argv)
     // Transfer in
     hclib::ddf_t *bodies_copy_event = hclib::async_copy(gpu_pl, d_bodies,
             hclib::get_current_place(), bodies, N, NULL, NULL);
+    hclib::ddf_t *clear_event = hclib::async_memset(gpu_pl, d_forceVectors,
+            0x00, N, NULL, NULL);
 
     // Kernel
     loop_domain_t loop = {0, N, 1, 128};
     hclib::ddf_t **compute_deps = (hclib::ddf_t **)malloc(
-            2 * sizeof(hclib::ddf_t *));
-    compute_deps[0] = bodies_copy_event; compute_deps[1] = NULL;
+            3 * sizeof(hclib::ddf_t *));
+    compute_deps[0] = bodies_copy_event;
+    compute_deps[1] = clear_event;
+    compute_deps[2] = NULL;
     accumulate_force_functor forces_functor(d_forceVectors, d_bodies, N);
     hclib::ddf_t *compute_event = hclib::forasync1D_future(
             (loop_domain_t *)&loop, forces_functor, FORASYNC_MODE_FLAT, gpu_pl,
             compute_deps);
-    // allPairsForcesCuda(d_forceVectors, d_bodies, N, false);
 
     // Transfer out
     hclib::ddf_t **out_deps = (hclib::ddf_t **)malloc(2 * sizeof(hclib::ddf_t *));
@@ -138,7 +145,7 @@ int main(int argc, char **argv)
     // Wait
     hclib::ddf_wait(forces_copy_event);
       
-    printf("GPU: Force vector 0: (%0.3f, %0.3f, %0.3f), %d: (%0.3f, %0.3f, %0.3f)\n", 
+    printf("GPU: Force vector 0: (%0.7f, %0.7f, %0.7f), %d: (%0.7f, %0.7f, %0.7f)\n", 
            forceVectors[0].x, 
            forceVectors[0].y, 
            forceVectors[0].z,
@@ -154,25 +161,6 @@ int main(int argc, char **argv)
     hclib::free_at<Vec4f>(hclib::get_current_place(), forceVectors);
     hclib::free_at<Vec4f>(gpu_pl, d_bodies);
     hclib::free_at<Vec4f>(gpu_pl, d_forceVectors);
-/* 
-    StartTimer();
-    
-    // Call a different device function defined in a .cu compilation unit
-    // that uses the same host/device shared functions and class member functions 
-    // as above
-    printf("GPU: Computing optimized all-pairs gravitational forces on %d bodies\n", N);
-      
-    allPairsForcesCuda(forceVectors.writeOnlyDevicePtr(), bodies.readOnlyDevicePtr(), N, true);
-      
-    printf("GPU: Force vector 0: (%0.3f, %0.3f, %0.3f)\n", 
-           forceVectors.readOnlyHostPtr()[0].x, 
-           forceVectors.readOnlyHostPtr()[0].y, 
-           forceVectors.readOnlyHostPtr()[0].z);
-    
-    ms = GetTimer();
-    
-    printf("GPU+shared: %f ms\n", ms);
-*/
   });
   
   return 0;

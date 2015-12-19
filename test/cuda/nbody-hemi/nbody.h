@@ -11,12 +11,11 @@ __host__ __device__ Vec4f accumulateForce(const Vec4f &target,
         const Vec4f *bodies, int N);
 
 class accumulate_force_functor {
-    private:
+    public:
         Vec4f *forceVectors;
         Vec4f *bodies;
         int N;
 
-    public:
         accumulate_force_functor(Vec4f *set_forceVectors, Vec4f *set_bodies,
                 int set_N);
 

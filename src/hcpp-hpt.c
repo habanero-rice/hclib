@@ -306,11 +306,13 @@ inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
 
 #ifdef HC_CUDA
 void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
+    assert(pl); assert(nbytes > 0);
 #ifdef VERBOSE
     fprintf(stderr, "hclib_allocate_at: pl=%p nbytes=%lu flags=%d, is_cpu? %s",
             pl, nbytes, flags, is_cpu_place(pl) ? "true" : "false");
 #ifdef HC_CUDA
-    fprintf(stderr, ", is_nvgpu? %s", is_nvgpu_place(pl) ? "true" : "false");
+    fprintf(stderr, ", is_nvgpu? %s, cuda_id=%d",
+            is_nvgpu_place(pl) ? "true" : "false", pl->cuda_id);
 #endif
     fprintf(stderr, "\n");
 #endif
@@ -341,9 +343,6 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
         HASSERT(flags == NONE);
         void *ptr;
         HASSERT(pl->cuda_id >= 0);
-#ifdef VERBOSE
-        fprintf(stderr, "hclib_allocate_at: cuda_id=%d\n", pl->cuda_id);
-#endif
         CHECK_CUDA(cudaSetDevice(pl->cuda_id));
         const cudaError_t alloc_err = cudaMalloc((void **)&ptr, nbytes);
         if (alloc_err != cudaSuccess) {
@@ -448,8 +447,8 @@ hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
     task->gpu_task_def.memset_task.nbytes = nbytes;
 
 #ifdef VERBOSE
-    fprintf(stderr, "hclib_async_copy: dst_pl=%p dst=%p src_pl=%p src=%p "
-            "nbytes=%lu\n", dst_pl, dst, src_pl, src, nbytes);
+    fprintf(stderr, "hclib_async_memset: pl=%p ptr=%p nbytes=%lu\n", pl, ptr,
+            nbytes);
 #endif
 
     if (ddf_list) {

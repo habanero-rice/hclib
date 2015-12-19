@@ -524,6 +524,10 @@ template <typename T>
 inline hclib_ddf_t *forasync1D_future(_loop_domain_t* loop, T lambda,
         int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
         hclib_ddf_t **ddf_list = NULL) {
+#ifdef VERBOSE
+    fprintf(stderr, "forasync1D_future: place=%p cuda_id=%d\n", place,
+            place ? place->cuda_id : -1);
+#endif
     if (place == NULL || is_cpu_place(place)) {
         hclib_start_finish();
         forasync1D_internal<T>(loop, lambda, mode, place, ddf_list);
