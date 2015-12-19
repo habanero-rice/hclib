@@ -443,21 +443,6 @@ inline hclib_ddf_t *forasync3D_future(_loop_domain_t* loop, T lambda,
 }
 
 #ifdef HC_CUDA
-template<class functor_type>
-inline void forasync1D_(_loop_domain_t *loop, const functor_type &functor,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_ddf_t **ddf_list = NULL) {
-    if (place == NULL || is_cpu_place(place)) {
-        forasync1D(loop,
-                [functor](int idx) { ((functor_type)functor).call(idx); }, mode,
-                place, ddf_list);
-    } else if (is_nvgpu_place(place)) {
-        assert(0);
-    } else {
-        fprintf(stderr, "Unrecognized place type %d\n", place->type);
-        exit(1);
-    }
-}
 
 #ifdef __CUDACC__
 template<typename functor_type>
@@ -481,6 +466,74 @@ inline void call_gpu_functor(unsigned niters, unsigned tile_size,
 
 #endif
 
+template<class functor_type>
+inline hclib_ddf_t *forasync1D_cuda_internal(_loop_domain_t *loop,
+        functor_type functor, int mode, place_t *place,
+        hclib_ddf_t **ddf_list) {
+#ifdef __CUDACC__
+    assert(loop->stride == 1);
+    assert(loop->low == 0);
+    assert(loop->tile > 0);
+    assert(loop->high > 0);
+    assert(mode == FORASYNC_MODE_FLAT);
+
+    functor_type *functor_on_heap = (functor_type *)malloc(
+            sizeof(functor_type));
+    assert(functor_on_heap);
+    memcpy(functor_on_heap, &functor, sizeof(functor_type));
+
+    gpu_functor_wrapper *wrapper = (gpu_functor_wrapper *)malloc(
+            sizeof(gpu_functor_wrapper));
+    wrapper->functor_on_heap = functor_on_heap;
+    wrapper->functor_caller = call_gpu_functor<functor_type>;
+
+    gpu_task_t *task = (gpu_task_t *)malloc(sizeof(gpu_task_t));
+    assert(task);
+    task->t._fp = NULL;
+    task->t.is_asyncAnyType = 0;
+    task->t.ddf_list = NULL;
+    task->t.args = NULL;
+
+    hclib_ddf_t *ddf = hclib_ddf_create();
+    task->gpu_type = GPU_COMPUTE_TASK;
+    task->ddf_to_put = ddf;
+    task->arg_to_put = NULL;
+    task->gpu_task_def.compute_task.niters = loop->high;
+    task->gpu_task_def.compute_task.tile_size = loop->tile;
+    task->gpu_task_def.compute_task.stream = place->cuda_stream;
+    task->gpu_task_def.compute_task.cuda_id = place->cuda_id;
+    task->gpu_task_def.compute_task.kernel_launcher = wrapper;
+
+    if (ddf_list) {
+        hclib::_asyncAwait(ddf_list,
+                [task]() { spawn_gpu_task((task_t *)task); });
+    } else {
+        spawn_gpu_task((task_t *)task);
+    }
+
+    return ddf;
+#else
+    fprintf(stderr, "Application code must be compiled with nvcc to "
+            "support GPU tasks. The functor declaration and the forasync "
+            "call site must also be in a .cu file\n");
+    assert(0);
+#endif
+}
+
+template<class functor_type>
+inline void forasync1D_(_loop_domain_t *loop, const functor_type functor,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib_ddf_t **ddf_list = NULL) {
+    if (place == NULL || is_cpu_place(place)) {
+        forasync1D(loop, functor, mode, place, ddf_list);
+    } else if (is_nvgpu_place(place)) {
+        forasync1D_cuda_internal(loop, functor, mode, place, ddf_list);
+    } else {
+        fprintf(stderr, "Unrecognized place type %d\n", place->type);
+        exit(1);
+    }
+}
+
 /*
  * NOTE: We tried to get this API to support passing device lambdas. However,
  * despite some indications in the CUDA docs that they support
@@ -499,54 +552,7 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
         return forasync1D_future(loop, functor,
                 mode, place, ddf_list);
     } else if (is_nvgpu_place(place)) {
-#ifdef __CUDACC__
-        assert(loop->stride == 1);
-        assert(loop->low == 0);
-        assert(loop->tile > 0);
-        assert(loop->high > 0);
-        assert(mode == FORASYNC_MODE_FLAT);
-
-        functor_type *functor_on_heap = (functor_type *)malloc(
-                sizeof(functor_type));
-        assert(functor_on_heap);
-        memcpy(functor_on_heap, &functor, sizeof(functor_type));
-
-        gpu_functor_wrapper *wrapper = (gpu_functor_wrapper *)malloc(
-                sizeof(gpu_functor_wrapper));
-        wrapper->functor_on_heap = functor_on_heap;
-        wrapper->functor_caller = call_gpu_functor<functor_type>;
-
-        gpu_task_t *task = (gpu_task_t *)malloc(sizeof(gpu_task_t));
-        assert(task);
-        task->t._fp = NULL;
-        task->t.is_asyncAnyType = 0;
-        task->t.ddf_list = NULL;
-        task->t.args = NULL;
-
-        hclib_ddf_t *ddf = hclib_ddf_create();
-        task->gpu_type = GPU_COMPUTE_TASK;
-        task->ddf_to_put = ddf;
-        task->arg_to_put = NULL;
-        task->gpu_task_def.compute_task.niters = loop->high;
-        task->gpu_task_def.compute_task.tile_size = loop->tile;
-        task->gpu_task_def.compute_task.stream = place->cuda_stream;
-        task->gpu_task_def.compute_task.cuda_id = place->cuda_id;
-        task->gpu_task_def.compute_task.kernel_launcher = wrapper;
-
-        if (ddf_list) {
-            hclib::_asyncAwait(ddf_list,
-                    [task]() { spawn_gpu_task((task_t *)task); });
-        } else {
-            spawn_gpu_task((task_t *)task);
-        }
-
-        return ddf;
-#else
-        fprintf(stderr, "Application code must be compiled with nvcc to "
-                "support GPU tasks. The functor declaration and the forasync "
-                "call site must also be in a .cu file\n");
-        assert(0);
-#endif
+        return forasync1D_cuda_internal(loop, functor, mode, place, ddf_list);
     } else {
         fprintf(stderr, "Unrecognized place type %d\n", place->type);
         exit(1);
