@@ -604,7 +604,7 @@ void hc_hpt_cleanup(hc_context * context) {
 /*
  * Interfaces to read the xml files and parse correctly to generate the place data-structures
  */
-hc_workerState * parseWorkerElement(xmlNode * wkNode) {
+hc_workerState * parse_worker_element(xmlNode * wkNode) {
     hc_workerState * wk = (hc_workerState *) malloc(sizeof(hc_workerState));
     xmlChar * num = xmlGetProp(wkNode, xmlCharStrdup("num"));
     xmlChar * didStr = xmlGetProp(wkNode, xmlCharStrdup("did"));
@@ -629,7 +629,7 @@ hc_workerState * parseWorkerElement(xmlNode * wkNode) {
     return wk;
 }
 
-place_t * parsePlaceElement(xmlNode * plNode) {
+place_t * parse_place_element(xmlNode * plNode) {
     int num = 1;
     int did = 0;
     place_t * pl = (place_t *) malloc(sizeof(place_t));
@@ -666,7 +666,7 @@ place_t * parsePlaceElement(xmlNode * plNode) {
         } else if (!xmlStrcmp(typeStr, (const xmlChar *) "pgas")) {
             type = PGAS_PLACE;
         } else {
-            /* warnning, unknown type specified */
+            /* warning, unknown type specified */
         }
     } else {
         /* default to be cache type */
@@ -701,22 +701,28 @@ place_t * parsePlaceElement(xmlNode * plNode) {
     place_t * pllast = NULL;
     hc_workerState * wslast = NULL;
 
+    unsigned nchildren = 0;
     while (child != NULL) {
         if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
-            place_t * tmp = parsePlaceElement(child);
+            place_t * tmp = parse_place_element(child);
             tmp->parent = pl;
             if (pl->child == NULL) pl->child = tmp;
             else pllast->nnext = tmp;
             pllast = tmp;
+            nchildren++;
         } else if (!xmlStrcmp(child->name, (const xmlChar *) "worker")) {
-            hc_workerState * tmp = parseWorkerElement(child);
+            hc_workerState * tmp = parse_worker_element(child);
             tmp->pl = pl;
             if (pl->workers == NULL) pl->workers = tmp;
             else wslast->next_worker = tmp;
             wslast = tmp;
+            nchildren++;
         }
         child = child->next;
     }
+
+    if (type == NVGPU_PLACE) assert(nchildren == 0);
+
     return pl;
 }
 
@@ -747,7 +753,7 @@ place_t * parseHPTDoc(xmlNode * hptNode) {
     // Iterative over top-level place nodes in the XML file
     while (child != NULL) {
         if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
-            place_t * tmp = parsePlaceElement(child);
+            place_t * tmp = parse_place_element(child);
             tmp->parent = NULL;
             if (hpt == NULL) {
                 hpt = tmp;

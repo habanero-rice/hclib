@@ -61,9 +61,23 @@ extern place_t *hclib_get_parent_place();
 extern place_t **hclib_get_children_places(int * numChildren);
 extern place_t **hclib_get_children_of_place(place_t * pl, int * numChildren);
 
+/*
+ * hclib_allocate_at allocates a chunk of memory at a given place.
+ * hclib_allocate_at is a blocking call, it does not offload the actual
+ * allocation to the place specified. This allocation is run on the current
+ * worker thread.
+ */
+
 extern void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
+/*
+ * hclib_free_at releases the memory in place pl designated by memory alocation
+ * ptr. Like hclib_allocate_at, this is a blocking call that runs on the current
+ * thread.
+ */
 extern void hclib_free_at(place_t *pl, void *ptr);
+
 #ifdef HC_CUDA
+
 extern hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst,
         place_t *src_pl, void *src, size_t nbytes, hclib_ddf_t **ddf_list,
         void *user_arg);

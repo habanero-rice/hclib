@@ -678,6 +678,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                      * Assume that functor_caller enqueues a kernel in
                      * compute_task->stream
                      */
+                    CHECK_CUDA(cudaSetDevice(compute_task->cuda_id));
                     (compute_task->kernel_launcher->functor_caller)(
                             compute_task->niters, compute_task->tile_size,
                             compute_task->stream,
