@@ -550,7 +550,7 @@ void hc_hpt_init(hc_context * context) {
             pl->cuda_id = gpu_counter++;
             CHECK_CUDA(cudaSetDevice(pl->cuda_id));
             CHECK_CUDA(cudaStreamCreate(&pl->cuda_stream));
-        } 
+        }
     }
     HASSERT(gpu_counter == ngpus);
 #endif

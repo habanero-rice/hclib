@@ -5,6 +5,11 @@
 
 // #define VERBOSE
 
+/*
+ * This self-balancing tree implementation is used to efficiently track pinned
+ * memory ranges allocated for HClib GPU programs.
+ */
+
 static hclib_memory_tree_node *create_memory_tree_node(void *address,
         size_t length) {
     hclib_memory_tree_node *node = (hclib_memory_tree_node *)malloc(
