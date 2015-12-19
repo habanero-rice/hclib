@@ -39,7 +39,7 @@ void run_copy_test(hclib::place_t *dst_pl, int *dst, hclib::place_t *src_pl,
         memset(dst, 0x00, nbytes);
     }
 
-    hclib::ddf_t *event = hclib::async_copy(dst_pl, dst, src_pl, src, nbytes,
+    hclib::ddf_t *event = hclib::async_copy(dst_pl, dst, src_pl, src, nelems,
             NULL, dst);
     void *result = hclib::ddf_wait(event);
     if (result != dst) {
@@ -83,14 +83,13 @@ int main(int argc, char **argv) {
         assert(cpu_place && gpu_place);
 
         const size_t nelems = 10;
-        const size_t nbytes = nelems * sizeof(int);
 
-        int *h_ptr_normal = (int *)hclib::allocate_at(cpu_place, nbytes, NONE);
+        int *h_ptr_normal = hclib::allocate_at<int>(cpu_place, nelems, NONE);
         assert(h_ptr_normal);
-        int *h_ptr_physical = (int *)hclib::allocate_at(cpu_place, nbytes,
+        int *h_ptr_physical = hclib::allocate_at<int>(cpu_place, nelems,
                 PHYSICAL);
         assert(h_ptr_physical);
-        int *d_ptr = (int *)hclib::allocate_at(gpu_place, nbytes, NONE);
+        int *d_ptr = hclib::allocate_at<int>(gpu_place, nelems, NONE);
         assert(d_ptr);
 
         init_contents(h_ptr_normal, nelems);

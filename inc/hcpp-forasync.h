@@ -504,6 +504,7 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
         assert(loop->low == 0);
         assert(loop->tile > 0);
         assert(loop->high > 0);
+        assert(mode == FORASYNC_MODE_FLAT);
 
         functor_type *functor_on_heap = (functor_type *)malloc(
                 sizeof(functor_type));
@@ -542,7 +543,8 @@ inline hclib_ddf_t *forasync1D_future_(_loop_domain_t *loop,
         return ddf;
 #else
         fprintf(stderr, "Application code must be compiled with nvcc to "
-                "support GPU tasks\n");
+                "support GPU tasks. The functor declaration and the forasync "
+                "call site must also be in a .cu file\n");
         assert(0);
 #endif
     } else {

@@ -34,14 +34,34 @@ void get_places(place_t **pls, place_type_t type);
 place_t *get_current_place();
 place_t **get_children_of_place(place_t *pl, int *num_children);
 place_t *get_root_place();
+place_t **get_nvgpu_places(int *n_nvgpu_places);
+char *get_place_name(place_t *pl);
 
 #ifdef HC_CUDA
-void *allocate_at(place_t *pl, size_t nbytes, int flags);
-void free_at(place_t *pl, void *ptr);
-ddf_t *async_copy(place_t *dst_pl, void *dst, place_t *src_pl, void *src,
-        size_t nbytes, hclib_ddf_t **ddf_list, void *user_arg);
-ddf_t *async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
-        hclib_ddf_t **ddf_list, void *user_arg);
+template<typename T>
+T *allocate_at(place_t *pl, size_t nitems, int flags) {
+    return (T *)hclib_allocate_at(pl, nitems * sizeof(T), flags);
+}
+
+template<typename T>
+void free_at(place_t *pl, T *ptr) {
+    return hclib_free_at(pl, ptr);
+}
+
+template<typename T>
+ddf_t *async_copy(place_t *dst_pl, T *dst,
+        place_t *src_pl, T *src, size_t nitems,
+        hclib_ddf_t **ddf_list, void *user_arg) {
+    return hclib_async_copy(dst_pl, dst, src_pl, src, nitems * sizeof(T),
+            ddf_list, user_arg);
+}
+
+template<typename T>
+ddf_t *async_memset(place_t *pl, T *ptr, int val,
+        size_t nitems, hclib_ddf_t **ddf_list, void *user_arg) {
+    return hclib_async_memset(pl, ptr, val, nitems * sizeof(T), ddf_list,
+            user_arg);
+}
 #endif
 
 }

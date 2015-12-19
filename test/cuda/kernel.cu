@@ -57,11 +57,11 @@ int main(int argc, char **argv) {
         const int N = 1024;
 
         /******* Test on the CPU *******/
-        int *arr = (int *)hclib::allocate_at(cpu_place, N * sizeof(int), 0);
+        int *arr = hclib::allocate_at<int>(cpu_place, N, 0);
         assert(arr);
 
         hclib_ddf_t *cpu_memset_event = hclib::async_memset(cpu_place, arr, 0,
-                N * sizeof(int), NULL, arr);
+                N, NULL, arr);
 
         hclib::ddf_t **cpu_kernel_deps = (hclib::ddf_t **)malloc(2 * sizeof(hclib::ddf_t *));
         cpu_kernel_deps[0] = cpu_memset_event; cpu_kernel_deps[1] = NULL;
@@ -75,11 +75,11 @@ int main(int argc, char **argv) {
         validate(arr, N);
 
         /******* Test on the GPU using functors *******/
-        int *d_arr = (int *)hclib::allocate_at(gpu_place, N * sizeof(int), 0);
+        int *d_arr = hclib::allocate_at<int>(gpu_place, N, 0);
         assert(d_arr);
 
         hclib::ddf_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
-                0, N * sizeof(int), NULL, d_arr);
+                0, N, NULL, d_arr);
 
         hclib::ddf_t **gpu_kernel_deps = (hclib::ddf_t **)malloc(
                 2 * sizeof(hclib::ddf_t *));
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
                 2 * sizeof(hclib::ddf_t *));
         gpu_copy_deps[0] = gpu_kernel_event; gpu_copy_deps[1] = NULL;
         hclib::ddf_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
-                d_arr, N * sizeof(int), gpu_copy_deps, arr);
+                d_arr, N, gpu_copy_deps, arr);
         hclib::ddf_wait(copy_event);
 
         validate(arr, N);

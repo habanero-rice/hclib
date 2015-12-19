@@ -55,6 +55,11 @@ static const char *place_type_to_str(short type);
 
 extern hc_context* hcpp_context;
 
+void *unsupported_place_type_err(place_t *pl) {
+    fprintf(stderr, "Unsupported place type %s\n", place_type_to_str(pl->type));
+    exit(1);
+}
+
 /**
  * HPT: Try to steal a frame from another worker.
  * 1) First look for work in current place worker deques
@@ -132,18 +137,55 @@ task_t* hpt_pop_task(hc_workerState * ws) {
     return NULL;
 }
 
-#ifdef TODO
-inline short is_device_place(place_t * pl) {
-    HASSERT(pl);
-    return (pl->type == NVGPU_PLACE || pl->type == AMGPU_PLACE ||
-            pl->type == FPGA_PLACE );
-}
-#endif
-
 place_t* hclib_get_current_place() {
     hc_workerState * ws = CURRENT_WS_INTERNAL;
     HASSERT(ws->current->pl != NULL);
     return ws->current->pl;
+}
+
+#ifdef HC_CUDA
+place_t **hclib_get_nvgpu_places(int *n_nvgpu_places) {
+    place_t *root_pl = hclib_get_root_place();
+
+    int num_toplevel;
+    place_t **toplevel = hclib_get_children_of_place(root_pl, &num_toplevel);
+
+    int num_gpus = 0;
+    int i;
+    for (i = 0; i < num_toplevel; i++) {
+        if (toplevel[i]->type == NVGPU_PLACE) {
+            num_gpus++;
+        }
+    }
+
+    num_gpus = 0;
+    place_t **gpu_places = malloc(num_gpus * sizeof(place_t *));
+    for (i = 0; i < num_toplevel; i++) {
+        if (toplevel[i]->type == NVGPU_PLACE) {
+            gpu_places[num_gpus++] = toplevel[i];
+        }
+    }
+
+    *n_nvgpu_places = num_gpus;
+    return gpu_places;
+}
+#endif
+
+const char *cpu_place_name = "CPU";
+char *hclib_get_place_name(place_t *pl) {
+    if (is_cpu_place(pl)) {
+        return (char *)cpu_place_name;
+#ifdef HC_CUDA
+    } else if (is_nvgpu_place(pl)) {
+        struct cudaDeviceProp props;
+        CHECK_CUDA(cudaGetDeviceProperties(&props, pl->cuda_id));
+        char *gpu_name = (char *)malloc(sizeof(props.name));
+        memcpy(gpu_name, props.name, sizeof(props.name));
+        return gpu_name;
+#endif
+    } else {
+        return unsupported_place_type_err(pl);
+    }
 }
 
 int hclib_get_num_places(short type) {
@@ -260,11 +302,6 @@ inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
     hcdeq->deque.thief = 0;
     hcdeq->deque.staleMaps = NULL;
 #endif
-}
-
-void *unsupported_place_type_err(place_t *pl) {
-    fprintf(stderr, "Unsupported place type %s\n", place_type_to_str(pl->type));
-    exit(1);
 }
 
 #ifdef HC_CUDA
@@ -511,6 +548,7 @@ void hc_hpt_init(hc_context * context) {
         pl->cuda_id = -1;
         if (is_nvgpu_place(pl)) {
             pl->cuda_id = gpu_counter++;
+            CHECK_CUDA(cudaSetDevice(pl->cuda_id));
             CHECK_CUDA(cudaStreamCreate(&pl->cuda_stream));
         } 
     }

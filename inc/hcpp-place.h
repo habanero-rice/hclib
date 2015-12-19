@@ -60,6 +60,8 @@ extern place_t *hclib_get_child_place();
 extern place_t *hclib_get_parent_place();
 extern place_t **hclib_get_children_places(int * numChildren);
 extern place_t **hclib_get_children_of_place(place_t * pl, int * numChildren);
+extern place_t **hclib_get_nvgpu_places(int *n_nvgpu_places);
+extern char *hclib_get_place_name(place_t *pl);
 
 /*
  * hclib_allocate_at allocates a chunk of memory at a given place.
