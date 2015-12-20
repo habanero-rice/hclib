@@ -308,7 +308,7 @@ int totalPendingLocalAsyncs() {
 void hclib_upc_launch(int * argc, char ** argv,
         void (*_dddf_register_callback)(hclib_ddf_t**),
         asyncFct_t fct_ptr, void * arg) {
-	assert(_dddf_register_callback);
+	HASSERT(_dddf_register_callback);
 	dddf_register_callback = _dddf_register_callback;
     hclib_launch(argc, argv, fct_ptr, arg);
 }

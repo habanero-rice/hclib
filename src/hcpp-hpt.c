@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
-#include <assert.h>
 
 #include "hcpp-hpt.h"
 #include "hcpp-internal.h"
@@ -306,7 +305,7 @@ inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
 
 #ifdef HC_CUDA
 void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
-    assert(pl); assert(nbytes > 0);
+    HASSERT(pl); HASSERT(nbytes > 0);
 #ifdef VERBOSE
     fprintf(stderr, "hclib_allocate_at: pl=%p nbytes=%lu flags=%d, is_cpu? %s",
             pl, nbytes, flags, is_cpu_place(pl) ? "true" : "false");
@@ -500,7 +499,7 @@ void hc_hpt_init(hc_context * context) {
         place_t * pl = context->places[i];
         int nworkers = pl->ndeques;
         pl->deques = malloc(sizeof(hc_deque_t) * nworkers);
-        assert(pl->deques);
+        HASSERT(pl->deques);
         for (j = 0; j < nworkers; j++) {
             hc_deque_t * deq = &(pl->deques[j]);
             init_hc_deque_t(deq, pl);
@@ -570,7 +569,7 @@ void hc_hpt_init(hc_context * context) {
 #endif
             } else {
                 /* unhandled or ignored situation */
-                assert(0);
+                HASSERT(0);
             }
         }
 
@@ -711,7 +710,7 @@ place_t * parse_place_element(xmlNode * plNode) {
     }
 
     // Not supported yet
-    assert(type != AMGPU_PLACE && type != FPGA_PLACE);
+    HASSERT(type != AMGPU_PLACE && type != FPGA_PLACE);
 
     xmlFree(numStr);
     xmlFree(didStr);
@@ -758,7 +757,7 @@ place_t * parse_place_element(xmlNode * plNode) {
         child = child->next;
     }
 
-    if (type == NVGPU_PLACE) assert(nchildren == 0);
+    if (type == NVGPU_PLACE) HASSERT(nchildren == 0);
 
     return pl;
 }

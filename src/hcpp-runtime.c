@@ -272,11 +272,11 @@ void hcpp_entrypoint() {
          * If running with a thread dedicated to network communication (e.g. through
          * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
          */
-        assert(communication_worker_id > 0);
+        HASSERT(communication_worker_id > 0);
         if (i == communication_worker_id) continue;
 #endif
 #ifdef HC_CUDA
-        assert(gpu_worker_id > 0);
+        HASSERT(gpu_worker_id > 0);
         if (i == gpu_worker_id) continue;
 #endif
 
@@ -383,18 +383,18 @@ static inline void rt_schedule_async(task_t *async_task, int comm_task,
 #endif
 
     if (comm_task) {
-        assert(!gpu_task);
+        HASSERT(!gpu_task);
 #ifdef HC_COMM_WORKER
         // push on comm_worker out_deq if this is a communication task
         semi_conc_deque_locked_push(comm_worker_out_deque, async_task);
 #else
-        assert(0);
+        HASSERT(0);
 #endif
     } else if (gpu_task) {
 #ifdef HC_CUDA
         semi_conc_deque_locked_push(gpu_worker_deque, async_task);
 #else
-        assert(0);
+        HASSERT(0);
 #endif
     } else {
         // push on worker deq
@@ -447,12 +447,12 @@ void try_schedule_async(task_t * async_task, int comm_task, int gpu_task,
 
 void spawn_handler(task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
         int escaping, int comm, int gpu) {
-    assert(task);
+    HASSERT(task);
 #ifndef HC_CUDA
-    assert(!gpu);
+    HASSERT(!gpu);
 #endif
 #ifndef HC_COMM_WORKER
-    assert(!comm);
+    HASSERT(!comm);
 #endif
     /*
      * check if this is DDDf_t (remote or owner) and do callback to
@@ -548,10 +548,10 @@ static pending_cuda_op *create_pending_cuda_op(hclib_ddf_t *ddf, void *arg) {
 
 static void enqueue_pending_cuda_op(pending_cuda_op *op) {
     if (pending_cuda_ops_head) {
-        assert(pending_cuda_ops_tail);
+        HASSERT(pending_cuda_ops_tail);
         pending_cuda_ops_tail->next = op;
     } else {
-        assert(pending_cuda_ops_tail == NULL);
+        HASSERT(pending_cuda_ops_tail == NULL);
         pending_cuda_ops_head = op;
     }
     pending_cuda_ops_tail = op;
@@ -576,7 +576,7 @@ static pending_cuda_op *do_gpu_memset(place_t *pl, void *ptr, int val,
 
 static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
         void *src, size_t nbytes, hclib_ddf_t *to_put, void *arg_to_put) {
-    assert(to_put);
+    HASSERT(to_put);
 
     if (is_cpu_place(dst_pl)) {
         if (is_cpu_place(src_pl)) {
@@ -794,7 +794,7 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
     hcpp_signal_join(hcpp_context->nworkers);
     // Jump back to the system thread context for this worker
     ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, __func__);
-    assert(0); // Should never return here
+    HASSERT(0); // Should never return here
 }
 
 static void core_work_loop(void) {
@@ -807,14 +807,14 @@ static void core_work_loop(void) {
 
     // Jump back to the system thread context for this worker
     hc_workerState *ws = CURRENT_WS_INTERNAL;
-    assert(ws->root_ctx);
+    HASSERT(ws->root_ctx);
     ctx_swap(get_curr_lite_ctx(), ws->root_ctx, __func__);
-    assert(0); // Should never return here
+    HASSERT(0); // Should never return here
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
     core_work_loop(); // this function never returns
-    assert(0); // Should never return here
+    HASSERT(0); // Should never return here
 }
 
 /*
@@ -898,7 +898,7 @@ static void _finish_ctx_resume(void *arg) {
 
     fprintf(stderr, "Should not have reached here, currentCtx=%p "
             "finishCtx=%p\n", currentCtx, finishCtx);
-    assert(0);
+    HASSERT(0);
 }
 
 void crt_work_loop(LiteCtx *ctx);
@@ -918,7 +918,7 @@ void _help_wait(LiteCtx *ctx) {
     spawn_escaping((task_t *)task, continuation_deps);
 
     core_work_loop();
-    assert(0);
+    HASSERT(0);
 }
 
 void *hclib_ddf_wait(hclib_ddf_t *ddf) {
@@ -927,13 +927,13 @@ void *hclib_ddf_wait(hclib_ddf_t *ddf) {
     }
     hclib_ddf_t *continuation_deps[] = { ddf, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
-    assert(currentCtx);
+    HASSERT(currentCtx);
     LiteCtx *newCtx = LiteCtx_create(_help_wait);
     newCtx->arg = continuation_deps;
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
-    assert(ddf->datum != UNINITIALIZED_DDF_DATA_PTR);
+    HASSERT(ddf->datum != UNINITIALIZED_DDF_DATA_PTR);
     return (void *)ddf->datum;
 }
 
@@ -967,7 +967,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     check_out_finish(finish);
     // keep workstealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
-    assert(0); // we should never return here
+    HASSERT(0); // we should never return here
 }
 #else /* default (broken) strategy */
 
@@ -1034,7 +1034,7 @@ void help_finish(finish_t * finish) {
         finish->finish_deps = finish_deps;
         // TODO - should only switch contexts after actually finding work
         LiteCtx *currentCtx = get_curr_lite_ctx();
-        assert(currentCtx);
+        HASSERT(currentCtx);
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
         ctx_swap(currentCtx, newCtx, __func__);
@@ -1049,7 +1049,7 @@ void help_finish(finish_t * finish) {
     _help_finish(finish);
 #endif /* HCLIB_???_STRATEGY */
 
-    assert(finish->counter == 0);
+    HASSERT(finish->counter == 0);
 }
 
 /*
@@ -1177,8 +1177,8 @@ void showStatsFooter() {
  * the user program before any HC actions are performed.
  */
 static void hclib_init(int* argc, char** argv) {
-    assert(hcpp_stats == NULL);
-    assert(bind_threads == -1);
+    HASSERT(hcpp_stats == NULL);
+    HASSERT(bind_threads == -1);
     hcpp_stats = getenv("HCPP_STATS");
     bind_threads = (getenv("HCPP_BIND_THREADS") != NULL);
 

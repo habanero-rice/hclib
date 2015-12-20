@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <string.h>
 
 #include "hclib.h"
@@ -15,8 +14,8 @@ extern "C" {
 
 void hclib_async(generic_framePtr fp, void *arg, hclib_ddf_t** ddf_list,
         struct _phased_t * phased_clause, place_t *place, int property) {
-    assert(property == 0);
-    assert(phased_clause == NULL);
+    HASSERT(property == 0);
+    HASSERT(phased_clause == NULL);
 
     if (ddf_list) {
         hcpp_task_t *task = malloc(sizeof(hcpp_task_t));
@@ -81,7 +80,7 @@ hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
 forasync1D_task_t * allocate_forasync1D_task() {
     forasync1D_task_t *forasync_task = (forasync1D_task_t *) malloc(
             sizeof(forasync1D_task_t));
-    assert(forasync_task && "malloc failed");
+    HASSERT(forasync_task && "malloc failed");
     forasync_task->forasync_task.place = NULL;
     return forasync_task;
 }
@@ -89,7 +88,7 @@ forasync1D_task_t * allocate_forasync1D_task() {
 forasync2D_task_t * allocate_forasync2D_task() {
     forasync2D_task_t * forasync_task = (forasync2D_task_t *) malloc(
             sizeof(forasync2D_task_t));
-    assert(forasync_task && "malloc failed");
+    HASSERT(forasync_task && "malloc failed");
     forasync_task->forasync_task.place = NULL;
     return forasync_task;
 }
@@ -97,7 +96,7 @@ forasync2D_task_t * allocate_forasync2D_task() {
 forasync3D_task_t * allocate_forasync3D_task() {
     forasync3D_task_t * forasync_task = (forasync3D_task_t *) malloc(
             sizeof(forasync3D_task_t));
-    assert(forasync_task && "malloc failed");
+    HASSERT(forasync_task && "malloc failed");
     forasync_task->forasync_task.place = NULL;
     return forasync_task;
 }
@@ -426,13 +425,13 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
 
     // The user loop code to execute
     task_t *user_def = (task_t *)malloc(sizeof(task_t));
-    assert(user_def);
+    HASSERT(user_def);
     user_def->_fp = user_fct_ptr;
     user_def->args = user_arg;
     user_def->ddf_list = NULL;
     user_def->place = NULL;
 
-    assert(dim>0 && dim<4);
+    HASSERT(dim>0 && dim<4);
     // TODO put those somewhere as static
     asyncFct_t fct_ptr_rec[3] = { forasync1D_recursive, forasync2D_recursive,
         forasync3D_recursive };
@@ -453,7 +452,7 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
 
 void hclib_forasync(void* forasync_fct, void * argv, hclib_ddf_t** ddf_list,
         int dim, loop_domain_t *domain, forasync_mode_t mode) {
-    assert(ddf_list == NULL && "Limitation: forasync does not support DDFs yet");
+    HASSERT(ddf_list == NULL && "Limitation: forasync does not support DDFs yet");
 
     forasync_internal(forasync_fct, argv, dim, domain, mode);
 }

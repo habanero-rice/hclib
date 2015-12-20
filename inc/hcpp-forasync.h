@@ -423,15 +423,15 @@ inline hclib_ddf_t *forasync1D_cuda_internal(_loop_domain_t *loop,
         functor_type functor, int mode, place_t *place,
         hclib_ddf_t **ddf_list) {
 #ifdef __CUDACC__
-    assert(loop->stride == 1);
-    assert(loop->low == 0);
-    assert(loop->tile > 0);
-    assert(loop->high > 0);
-    assert(mode == FORASYNC_MODE_FLAT);
+    HASSERT(loop->stride == 1);
+    HASSERT(loop->low == 0);
+    HASSERT(loop->tile > 0);
+    HASSERT(loop->high > 0);
+    HASSERT(mode == FORASYNC_MODE_FLAT);
 
     functor_type *functor_on_heap = (functor_type *)malloc(
             sizeof(functor_type));
-    assert(functor_on_heap);
+    HASSERT(functor_on_heap);
     memcpy(functor_on_heap, &functor, sizeof(functor_type));
 
     gpu_functor_wrapper *wrapper = (gpu_functor_wrapper *)malloc(
@@ -440,7 +440,7 @@ inline hclib_ddf_t *forasync1D_cuda_internal(_loop_domain_t *loop,
     wrapper->functor_caller = call_gpu_functor<functor_type>;
 
     gpu_task_t *task = (gpu_task_t *)malloc(sizeof(gpu_task_t));
-    assert(task);
+    HASSERT(task);
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
     task->t.ddf_list = NULL;
@@ -468,7 +468,7 @@ inline hclib_ddf_t *forasync1D_cuda_internal(_loop_domain_t *loop,
     fprintf(stderr, "Application code must be compiled with nvcc to "
             "support GPU tasks. The functor declaration and the forasync "
             "call site must also be in a .cu file\n");
-    assert(0);
+    HASSERT(0);
 #endif
 }
 

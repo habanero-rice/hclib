@@ -75,7 +75,7 @@ void hclib_ddf_init(hclib_ddf_t* ddf) {
  */
 hclib_ddf_t * hclib_ddf_create() {
     hclib_ddf_t * ddf = (hclib_ddf_t *) malloc(sizeof(hclib_ddf_t));
-    assert(ddf);
+    HASSERT(ddf);
     hclib_ddf_init(ddf);
     return ddf;
 }

@@ -1,7 +1,6 @@
 #include "hcpp-tree.h"
 
 #include <stdio.h>
-#include <assert.h>
 
 // #define VERBOSE
 
@@ -14,7 +13,7 @@ static hclib_memory_tree_node *create_memory_tree_node(void *address,
         size_t length) {
     hclib_memory_tree_node *node = (hclib_memory_tree_node *)malloc(
             sizeof(hclib_memory_tree_node));
-    assert(node);
+    HASSERT(node);
 
     node->start_address = address;
     node->length = length;
@@ -108,7 +107,7 @@ void hclib_memory_tree_insert(void *address, size_t length,
     if (root == NULL) {
         *rootp = create_memory_tree_node(address, length);
     } else {
-        assert(c_address < root->start_address ||
+        HASSERT(c_address < root->start_address ||
                 c_address >= root->start_address + root->length);
         if (c_address < root->start_address) {
             hclib_memory_tree_insert(address, length, &root->children[LEFT]);
@@ -123,7 +122,7 @@ void hclib_memory_tree_remove(void *address,
         hclib_memory_tree_node **rootp) {
     hclib_memory_tree_node *root = *rootp;
     unsigned char *c_address = (unsigned char *)address;
-    assert(root != NULL);
+    HASSERT(root != NULL);
 
 #ifdef VERBOSE
     fprintf(stderr, "hclib_memory_tree_remove: root=%p address=%p\n", root,

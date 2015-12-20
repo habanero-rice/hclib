@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sched.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <assert.h>
 /** Platform specific thread binding implementations -- > ONLY FOR LINUX **/
 
 #ifdef __linux
@@ -69,16 +68,16 @@ void bind_thread_with_mask(int * mask, int lg) {
 		if (res != 0) {
 			printf("ERROR: ");
 			if (errno == ESRCH) {
-				assert("THREADBINDING ERROR: ESRCH: Process not found!\n");
+				HASSERT("THREADBINDING ERROR: ESRCH: Process not found!\n");
 			}
 			if (errno == EINVAL) {
-				assert("THREADBINDING ERROR: EINVAL: CPU mask does not contain any actual physical processor\n");
+				HASSERT("THREADBINDING ERROR: EINVAL: CPU mask does not contain any actual physical processor\n");
 			}
 			if (errno == EFAULT) {
-				assert("THREADBINDING ERROR: EFAULT: memory address was invalid\n");
+				HASSERT("THREADBINDING ERROR: EFAULT: memory address was invalid\n");
 			}
 			if (errno == EPERM) {
-				assert("THREADBINDING ERROR: EPERM: process does not have appropriate privileges\n");
+				HASSERT("THREADBINDING ERROR: EPERM: process does not have appropriate privileges\n");
 			}
 		}
 	}
@@ -108,7 +107,8 @@ void bind_thread(int worker_id, int *bind_map, int bind_map_size) {
 	} else if (bind_map_size > 0 && bind_map != NULL) {
 		bind_thread_map(worker_id, bind_map, bind_map_size);
 	} else {
-		assert("ERROR: unknown thread binding strategy\n");
+		fprintf(stderr, "ERROR: unknown thread binding strategy\n");
+        HASSERT(0);
 	}
 }
 #else

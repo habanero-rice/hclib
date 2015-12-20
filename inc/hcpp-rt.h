@@ -76,7 +76,12 @@ typedef struct hc_workerState {
 } hc_workerState;
 
 #ifdef HC_ASSERTION_CHECK
-#define HASSERT(cond) if(!(cond)){ printf("W%d: assertion failure\n", get_current_worker()); assert(cond); }
+#define HASSERT(cond) { \
+    if (!(cond)) { \
+        fprintf(stderr, "W%d: assertion failure\n", get_current_worker()); \
+        assert(cond); \
+    } \
+}
 #else
 #define HASSERT(cond)       // Do Nothing
 #endif
