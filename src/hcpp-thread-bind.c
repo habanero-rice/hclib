@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 /** Platform specific thread binding implementations -- > ONLY FOR LINUX **/
 
+#include "hcpp-rt.h"
+
 #ifdef __linux
 int get_nb_cpus() {
 	int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
