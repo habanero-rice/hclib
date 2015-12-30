@@ -751,18 +751,18 @@ void *communication_worker_routine(void* finish_ptr) {
     set_current_worker(communication_worker_id);
     worker_done_t *done_flag = hcpp_context->done_flags + gpu_worker_id;
 
-	semi_conc_deque_t *deque = comm_worker_out_deque;
-	while (done_flag->flag) {
-		// try to pop
-		task_t* task = semi_conc_deque_non_locked_pop(deque);
-		// Comm worker cannot steal
-		if(task) {
+    semi_conc_deque_t *deque = comm_worker_out_deque;
+    while (done_flag->flag) {
+        // try to pop
+        task_t* task = semi_conc_deque_non_locked_pop(deque);
+        // Comm worker cannot steal
+        if(task) {
 #ifdef HC_COMM_WORKER_STATS
-			increment_asyncComm_counter();
+            increment_asyncComm_counter();
 #endif
-			execute_task(task);
-		}
-	}
+            execute_task(task);
+        }
+    }
     return NULL;
 }
 #endif
