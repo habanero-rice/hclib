@@ -125,23 +125,23 @@ inline void execute_hcupc_lambda(T* lambda) {
 }
 
 template <typename T>
-inline task_t* _allocate_async_hcupc(T lambda, bool await) {
-	const size_t hcpp_task_size = !await ? sizeof(task_t) : sizeof(hcpp_task_t);
-	task_t* task = (task_t*) HC_MALLOC(hcpp_task_size);
+inline hclib_task_t* _allocate_async_hcupc(T lambda, bool await) {
+	const size_t hcpp_task_size = !await ? sizeof(hclib_task_t) : sizeof(hcpp_task_t);
+	hclib_task_t* task = (hclib_task_t*) HC_MALLOC(hcpp_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);
-	task_t t = task_t(execute_hcupc_lambda<T>, lambda_onHeap);
-	memcpy(task, &t, sizeof(task_t));
+	hclib_task_t t = hclib_task_t(execute_hcupc_lambda<T>, lambda_onHeap);
+	memcpy(task, &t, sizeof(hclib_task_t));
 	return task;
 }
 
-void spawn_asyncAnyTask(task_t * task);
+void spawn_asyncAnyTask(hclib_task_t * task);
 
 template <typename T>
 inline void asyncAny(T lambda) {
 	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async_hcupc<T>(lambda, false);
+	hclib_task_t* task = _allocate_async_hcupc<T>(lambda, false);
 	spawn_asyncAnyTask(task);
 }
 #endif	/* defined(HUPCPP) && defined(DIST_WS) */
@@ -153,9 +153,9 @@ void init_hcupc_related_datastructures(int w);
 void free_hcupc_related_datastructures();
 void check_if_hcupc_dddf(hclib_ddf_t** ddf_list);
 void hcupc_reset_asyncAnyInfo(int id);
-void hcupc_check_if_asyncAny_stolen(task_t* buff, int victim, int id);
+void hcupc_check_if_asyncAny_stolen(hclib_task_t* buff, int victim, int id);
 void hcupc_inform_failedSteal(int id);
-void hcupc_check_if_asyncAny_pop(task_t* buff, int id);
+void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id);
 
 #ifdef HUPCPP
 void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);

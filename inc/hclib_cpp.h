@@ -10,17 +10,19 @@
 namespace hclib {
 
 typedef hclib_ddf_t ddf_t;
+typedef hclib_ddt_t ddt_t;
 typedef loop_domain_t loop_domain_t;
 typedef place_t place_t;
 typedef place_type_t place_type_t;
 
 template <typename T>
 void launch(int *argc, char **argv, T lambda) {
-    task_t *user_task = _allocate_async(lambda, false);
+    hclib_task_t *user_task = _allocate_async(lambda, false);
     hclib_launch(argc, argv, (generic_framePtr)spawn, user_task);
 }
 
 ddf_t *ddf_create();
+ddf_t **ddf_create_n(size_t nb_ddfs, int null_terminated);
 void ddf_free(ddf_t *ddf);
 void ddf_put(ddf_t *ddf, void *datum);
 void *ddf_get(ddf_t *ddf);
@@ -62,6 +64,10 @@ ddf_t *async_memset(place_t *pl, T *ptr, int val,
     return hclib_async_memset(pl, ptr, val, nitems * sizeof(T), ddf_list,
             user_arg);
 }
+#endif
+
+#ifdef HUPCPP
+int total_pending_local_asyncs();
 #endif
 
 }

@@ -50,13 +50,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DDF_SATISFIED NULL
 
 // For waiting frontier (last element of the list)
-#define UNINITIALIZED_DDF_WAITLIST_PTR ((ddt_t *) -1)
+#define UNINITIALIZED_DDF_WAITLIST_PTR ((hclib_ddt_t *) -1)
 #define EMPTY_DDF_WAITLIST_PTR NULL
 
 /**
  * Associate a DDT to a DDF list.
  */
-void ddt_init(ddt_t * ddt, hclib_ddf_t ** ddf_list) {
+void hclib_ddt_init(hclib_ddt_t * ddt, hclib_ddf_t ** ddf_list) {
 	ddt->waitingFrontier = ddf_list;
 	ddt->nextDDTWaitingOnSameDDF = NULL;
 }
@@ -131,10 +131,10 @@ void hclib_ddf_free(hclib_ddf_t * ddf) {
 	free(ddf);
 }
 
-__inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
+__inline__ int __registerIfDDFnotReady_AND(hclib_ddt_t* wrapperTask,
         hclib_ddf_t* ddfToCheck) {
     int success = 0;
-    ddt_t* waitListOfDDF = (ddt_t*)ddfToCheck->headDDTWaitList;
+    hclib_ddt_t* waitListOfDDF = (hclib_ddt_t*)ddfToCheck->headDDTWaitList;
 
     if (waitListOfDDF != EMPTY_DDF_WAITLIST_PTR) {
 
@@ -152,7 +152,7 @@ __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
              * head or a put occurred.
              */
             if (!success) {
-                waitListOfDDF = (ddt_t*)ddfToCheck->headDDTWaitList;
+                waitListOfDDF = (hclib_ddt_t*)ddfToCheck->headDDTWaitList;
                 /*
                  * if waitListOfDDF was set to EMPTY_DDF_WAITLIST_PTR, the loop
                  * condition will handle that if another task was added, now try
@@ -169,7 +169,7 @@ __inline__ int __registerIfDDFnotReady_AND(ddt_t* wrapperTask,
  * Runtime interface to DDTs.
  * Returns '1' if all ddf dependencies have been satisfied.
  */
-int iterate_ddt_frontier(ddt_t* wrapperTask) {
+int iterate_ddt_frontier(hclib_ddt_t* wrapperTask) {
 	hclib_ddf_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
 
     while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND(wrapperTask,
@@ -184,13 +184,13 @@ int iterate_ddt_frontier(ddt_t* wrapperTask) {
 // Task conversion Implementation
 //
 
-task_t * rt_ddt_to_async_task(ddt_t * ddt) {
-	task_t* t = &(((task_t *)ddt)[-1]);
+hclib_task_t * rt_ddt_to_async_task(hclib_ddt_t * ddt) {
+	hclib_task_t* t = &(((hclib_task_t *)ddt)[-1]);
 	return t;
 }
 
-ddt_t * rt_async_task_to_ddt(task_t * async_task) {
-	return &(((hcpp_task_t*) async_task)->ddt);
+hclib_ddt_t * rt_async_task_to_ddt(hclib_task_t * async_task) {
+	return &(((hclib_dependent_task_t*) async_task)->ddt);
 }
 
 /**
@@ -205,9 +205,9 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void *datumToBePut) {
     HASSERT (ddfToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR &&
             "violated single assignment property for DDFs");
 
-    volatile ddt_t* waitListOfDDF = NULL;
-    ddt_t* currDDT = NULL;
-    ddt_t* nextDDT = NULL;
+    volatile hclib_ddt_t* waitListOfDDF = NULL;
+    hclib_ddt_t* currDDT = NULL;
+    hclib_ddt_t* nextDDT = NULL;
 
     ddfToBePut-> datum = datumToBePut;
     waitListOfDDF = ddfToBePut->headDDTWaitList;
@@ -217,7 +217,7 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void *datumToBePut) {
         waitListOfDDF = ddfToBePut -> headDDTWaitList;
     }
 
-    currDDT = (ddt_t*)waitListOfDDF;
+    currDDT = (hclib_ddt_t*)waitListOfDDF;
 
     int iter_count = 0;
     while (currDDT != UNINITIALIZED_DDF_WAITLIST_PTR) {
@@ -227,7 +227,7 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void *datumToBePut) {
             /* printf("pushed:%p\n", currDDT); */
             /*deque_push_default(currFrame);*/
             // DDT eligible to scheduling
-            task_t *async_task = rt_ddt_to_async_task(currDDT);
+            hclib_task_t *async_task = rt_ddt_to_async_task(currDDT);
             if (DEBUG_DDF) { printf("ddf: async_task %p\n", async_task); }
             try_schedule_async(async_task, 0, 0, CURRENT_WS_INTERNAL);
         }

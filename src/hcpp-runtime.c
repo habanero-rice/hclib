@@ -357,7 +357,7 @@ static inline void check_out_finish(finish_t * finish) {
     }
 }
 
-static inline void execute_task(task_t* task) {
+static inline void execute_task(hclib_task_t* task) {
     finish_t* current_finish = get_current_finish(task);
     /*
      * Update the current finish of this worker to be inherited from the
@@ -375,7 +375,7 @@ static inline void execute_task(task_t* task) {
     HC_FREE(task);
 }
 
-static inline void rt_schedule_async(task_t *async_task, int comm_task,
+static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
         int gpu_task, hc_workerState *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p comm_task=%d "
@@ -420,13 +420,13 @@ static inline void rt_schedule_async(task_t *async_task, int comm_task,
  * registered on each, and it is only placed in a work deque once all DDFs have
  * been satisfied.
  */
-inline int is_eligible_to_schedule(task_t * async_task) {
+inline int is_eligible_to_schedule(hclib_task_t * async_task) {
 #ifdef VERBOSE
     fprintf(stderr, "is_eligible_to_schedule: async_task=%p ddf_list=%p\n",
             async_task, async_task->ddf_list);
 #endif
     if (async_task->ddf_list != NULL) {
-    	ddt_t *ddt = (ddt_t *)rt_async_task_to_ddt(async_task);
+    	hclib_ddt_t *ddt = (hclib_ddt_t *)rt_async_task_to_ddt(async_task);
         return iterate_ddt_frontier(ddt);
     } else {
         return 1;
@@ -438,14 +438,14 @@ inline int is_eligible_to_schedule(task_t * async_task) {
  * runtime. See is_eligible_to_schedule to understand when a task is or isn't
  * eligible for scheduling.
  */
-void try_schedule_async(task_t * async_task, int comm_task, int gpu_task,
+void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
         hc_workerState *ws) {
     if (is_eligible_to_schedule(async_task)) {
         rt_schedule_async(async_task, comm_task, gpu_task, ws);
     }
 }
 
-void spawn_handler(task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
+void spawn_handler(hclib_task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
         int escaping, int comm, int gpu) {
     HASSERT(task);
 #ifndef HC_CUDA
@@ -477,8 +477,8 @@ void spawn_handler(task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
 
     if (ddf_list) {
         set_ddf_list(task, ddf_list);
-        hcpp_task_t *t = (hcpp_task_t*) task;
-        ddt_init(&(t->ddt), ddf_list);
+        hclib_dependent_task_t *t = (hclib_dependent_task_t*) task;
+        hclib_ddt_init(&(t->ddt), ddf_list);
     }
 
 #ifdef VERBOSE
@@ -493,7 +493,7 @@ void spawn_handler(task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
 #endif
 }
 
-void spawn_at_hpt(place_t* pl, task_t * task) {
+void spawn_at_hpt(place_t* pl, hclib_task_t * task) {
     // get current worker
     hc_workerState* ws = CURRENT_WS_INTERNAL;
     check_in_finish(ws->current_finish);
@@ -506,31 +506,31 @@ void spawn_at_hpt(place_t* pl, task_t * task) {
 #endif
 }
 
-void spawn(task_t * task) {
+void spawn(hclib_task_t * task) {
     spawn_handler(task, NULL, NULL, 0, 0, 0);
 }
 
-void spawn_escaping(task_t *task, hclib_ddf_t **ddf_list) {
+void spawn_escaping(hclib_task_t *task, hclib_ddf_t **ddf_list) {
     spawn_handler(task, NULL, ddf_list, 1, 0, 0);
 }
 
-void spawn_escaping_at(place_t *pl, task_t *task, hclib_ddf_t **ddf_list) {
+void spawn_escaping_at(place_t *pl, hclib_task_t *task, hclib_ddf_t **ddf_list) {
     spawn_handler(task, pl, ddf_list, 1, 0, 0);
 }
 
-void spawn_await_at(task_t * task, hclib_ddf_t** ddf_list, place_t *pl) {
+void spawn_await_at(hclib_task_t * task, hclib_ddf_t** ddf_list, place_t *pl) {
     spawn_handler(task, pl, ddf_list, 0, 0, 0);
 }
 
-void spawn_await(task_t * task, hclib_ddf_t** ddf_list) {
+void spawn_await(hclib_task_t * task, hclib_ddf_t** ddf_list) {
     spawn_await_at(task, ddf_list, NULL);
 }
 
-void spawn_commTask(task_t * task) {
+void spawn_commTask(hclib_task_t * task) {
     spawn_handler(task, NULL, NULL, 0, 1, 0);
 }
 
-void spawn_gpu_task(task_t *task) {
+void spawn_gpu_task(hclib_task_t *task) {
     spawn_handler(task, NULL, NULL, 0, 0, 1);
 }
 
@@ -695,7 +695,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                     exit(1);
             }
 
-            check_out_finish(get_current_finish((task_t *)task));
+            check_out_finish(get_current_finish((hclib_task_t *)task));
 
             if (op) {
 #ifdef VERBOSE
@@ -754,7 +754,7 @@ void *communication_worker_routine(void* finish_ptr) {
     semi_conc_deque_t *deque = comm_worker_out_deque;
     while (done_flag->flag) {
         // try to pop
-        task_t* task = semi_conc_deque_non_locked_pop(deque);
+        hclib_task_t* task = semi_conc_deque_non_locked_pop(deque);
         // Comm worker cannot steal
         if(task) {
 #ifdef HC_COMM_WORKER_STATS
@@ -768,7 +768,7 @@ void *communication_worker_routine(void* finish_ptr) {
 #endif
 
 void find_and_run_task(hc_workerState* ws) {
-    task_t* task = hpt_pop_task(ws);
+    hclib_task_t* task = hpt_pop_task(ws);
     if (!task) {
         while (hcpp_context->done_flags[ws->id].flag) {
             // try to steal
@@ -908,14 +908,14 @@ void _help_wait(LiteCtx *ctx) {
     hclib_ddf_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
-    hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
+    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
     task->async_task.is_asyncAnyType = 0;
     task->async_task.ddf_list = NULL;
     task->async_task.args = wait_ctx;
     task->async_task.place = NULL;
 
-    spawn_escaping((task_t *)task, continuation_deps);
+    spawn_escaping((hclib_task_t *)task, continuation_deps);
 
     core_work_loop();
     HASSERT(0);
@@ -946,7 +946,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
-    hcpp_task_t *task = (hcpp_task_t *)malloc(sizeof(hcpp_task_t));
+    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.is_asyncAnyType = 0;
     task->async_task.ddf_list = NULL;
@@ -958,7 +958,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * is captured in hclib_finish_ctx and whose execution is pending on
      * finish->finish_deps.
      */
-    spawn_escaping((task_t *)task, finish->finish_deps);
+    spawn_escaping((hclib_task_t *)task, finish->finish_deps);
 
     /*
      * The main thread is now exiting the finish (albeit in a separate context),
@@ -977,7 +977,7 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 
 	while(finish->counter > 0) {
 		// try to pop
-		task_t* task = hpt_pop_task(ws);
+		hclib_task_t* task = hpt_pop_task(ws);
 		if (!task) {
 			while(finish->counter > 0) {
 				// try to steal

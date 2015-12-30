@@ -50,13 +50,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct deque_t {
     volatile int head;
     volatile int tail;
-    volatile task_t* data[INIT_DEQUE_CAPACITY];
+    volatile hclib_task_t* data[INIT_DEQUE_CAPACITY];
 } deque_t;
 
 void deque_init(deque_t *deq, void *initValue);
 int deque_push(deque_t *deq, void *entry);
-task_t* deque_pop(deque_t *deq);
-task_t* deque_steal(deque_t *deq);
+hclib_task_t* deque_pop(deque_t *deq);
+hclib_task_t* deque_steal(deque_t *deq);
 void deque_destroy(deque_t *deq);
 
 /****************************************************/
@@ -69,7 +69,7 @@ typedef struct {
 
 void semi_conc_deque_init(semi_conc_deque_t* deq, void * initValue);
 void semi_conc_deque_locked_push(semi_conc_deque_t* deq, void* entry);
-task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * deq);
+hclib_task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * deq);
 void semi_conc_deque_destroy(semi_conc_deque_t * deq);
 
 #endif /* HCPP_DEQUE_H_ */

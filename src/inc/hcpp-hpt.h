@@ -50,8 +50,8 @@ void hc_hpt_cleanup(hc_context * context);
 void hc_hpt_dev_init(hc_context * context);
 void hc_hpt_dev_cleanup(hc_context * context);
 hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
-task_t* hpt_pop_task(hc_workerState * ws);
-task_t* hpt_steal_task(hc_workerState* ws);
+hclib_task_t* hpt_pop_task(hc_workerState * ws);
+hclib_task_t* hpt_steal_task(hc_workerState* ws);
 int deque_push_place(hc_workerState *ws, place_t * pl, void * ele);
 
 #endif /* HCPP_HPT_H_ */

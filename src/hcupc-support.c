@@ -59,7 +59,7 @@ int totalAsyncAnyAvailable() {
 	return total_asyncany;
 }
 
-void spawn_asyncAnyTask(task_t* task) {
+void spawn_asyncAnyTask(hclib_task_t* task) {
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	spawn(task);
 	asyncAnyInfo_forWorker[ws->id].asyncAny_pushed++;
@@ -102,7 +102,7 @@ void inform_HCUPC_myStatus(int wid, bool status) {
 
 #ifdef HPT_VERSION
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
-	task_t buff;
+	hclib_task_t buff;
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	place_t * pl = ws->pl;
 	while (pl != NULL) {
@@ -115,10 +115,10 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 			int victim = ((ws->id+i)%nb_deq);
 			if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
 			hc_deque_t* d = &deqs[victim];
-			task_t* t = dequeSteal(&(d->deque));
+			hclib_task_t* t = dequeSteal(&(d->deque));
 			if (t) { /* steal succeeded */
 				HASSERT(t->ddf_list == NULL); //TODO DDF not supported inside asyncAny
-				memcpy(&buff, t, sizeof(task_t));
+				memcpy(&buff, t, sizeof(hclib_task_t));
 				/*
 				 * decrement the finish counter associated with this task
 				 * as this task is going to complete at remote place
@@ -177,7 +177,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
  * in this version comm_worker simply try to steal by choosing victims in sequential order
  */
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
-	task_t buff;
+	hclib_task_t buff;
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	const hc_context* context = ws->context;
 	const int nworkers = context->nworkers;
@@ -185,10 +185,10 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 		hc_workerState* ws_i = context->workers[i];
 		int victim = ws_i->id;
 		if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
-		task_t* t = dequeSteal(&(ws_i->current->deque));
+		hclib_task_t* t = dequeSteal(&(ws_i->current->deque));
 		if (t) { /* steal succeeded */
 			HASSERT(t->ddf_list == NULL); //TODO DDF not supported inside asyncAny
-			memcpy(&buff, t, sizeof(task_t));
+			memcpy(&buff, t, sizeof(hclib_task_t));
 			/*
 			 * decrement the finish counter associated with this task
 			 * as this task is going to complete at remote place
@@ -250,7 +250,7 @@ void hcupc_reset_asyncAnyInfo(int id) {
 #endif
 }
 
-void hcupc_check_if_asyncAny_stolen(task_t* buff, int victim, int id) {
+void hcupc_check_if_asyncAny_stolen(hclib_task_t* buff, int victim, int id) {
 #ifdef DIST_WS
 	if(buff->is_asyncAnyTask()) {
 		hc_atomic_inc(&(asyncAnyInfo_forWorker[victim].asyncAny_stolen));
@@ -267,7 +267,7 @@ void hcupc_inform_failedSteal(int id) {
 #endif
 }
 
-void hcupc_check_if_asyncAny_pop(task_t* buff, int id) {
+void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id) {
 #ifdef DIST_WS
 	if(buff->is_asyncAnyTask()) asyncAnyInfo_forWorker[id].asyncAny_pushed--;
 #endif

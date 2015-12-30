@@ -73,7 +73,7 @@ typedef enum DDF_Kind {
  * DDT data-structure to associate DDTs and DDFs.
  * This is exposed so that the runtime knows the size of the struct.
  */
-typedef struct ddt_st {
+typedef struct hclib_ddt_st {
     // NULL-terminated list of DDFs the DDT is registered on
     struct hclib_ddf_st ** waitingFrontier;
     /*
@@ -82,14 +82,14 @@ typedef struct ddt_st {
      * current DDT and the DDF's headDDTWaitList and try to cas on the DDF's
      * headDDTWaitList, with the current DDT.
      */
-    struct ddt_st * nextDDTWaitingOnSameDDF;
-} ddt_t;
+    struct hclib_ddt_st * nextDDTWaitingOnSameDDF;
+} hclib_ddt_t;
 
 // We define a typedef in this unit for convenience
 typedef struct hclib_ddf_st {
 	int kind;
     volatile void * datum;
-    volatile ddt_t * headDDTWaitList;
+    volatile hclib_ddt_t * headDDTWaitList;
 } hclib_ddf_t;
 
 /**
@@ -147,6 +147,6 @@ void *hclib_ddf_wait(hclib_ddf_t *ddf);
 /*
  * Some extras
  */
-void ddt_init(ddt_t * ddt, hclib_ddf_t ** ddf_list);
+void hclib_ddt_init(hclib_ddt_t * ddt, hclib_ddf_t ** ddf_list);
 
 #endif /* HCPP_DDF_H_ */

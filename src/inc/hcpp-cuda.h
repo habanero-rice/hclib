@@ -72,7 +72,7 @@ typedef struct _gpu_compute_task_t {
  * semi_conc_deque_t.
  */
 typedef struct _gpu_task_t {
-    task_t t;
+    hclib_task_t t;
     gpu_task_type_t gpu_type;
     // DDF to put when this task completes
     hclib_ddf_t *ddf_to_put;

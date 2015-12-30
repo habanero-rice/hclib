@@ -100,7 +100,7 @@ void lambda_wrapper(void *args) {
  * Initialize a task_t for the C++ APIs, using a user-provided lambda.
  */
 template<typename Function, typename T1>
-inline void initialize_task(task_t *t, Function lambda_caller,
+inline void initialize_task(hclib_task_t *t, Function lambda_caller,
         T1 *lambda_on_heap) {
     async_arguments<Function, T1 *> *args =
         new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
@@ -112,10 +112,10 @@ inline void initialize_task(task_t *t, Function lambda_caller,
 }
 
 template <typename T>
-inline task_t* _allocate_async_hcpp(T lambda, bool await) {
-	const size_t hcpp_task_size = await ? sizeof(hcpp_task_t) : sizeof(task_t);
+inline hclib_task_t* _allocate_async_hcpp(T lambda, bool await) {
+	const size_t hcpp_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
     // create off-stack storage for this task
-	task_t* task = (task_t*)HC_MALLOC(hcpp_task_size);
+	hclib_task_t* task = (hclib_task_t*)HC_MALLOC(hcpp_task_size);
 	const size_t lambda_size = sizeof(T);
     /*
      * create off-stack storage for the lambda object (including its captured
@@ -124,9 +124,9 @@ inline task_t* _allocate_async_hcpp(T lambda, bool await) {
 	T* lambda_on_heap = (T*)HC_MALLOC(lambda_size);
 	memcpy(lambda_on_heap, &lambda, lambda_size);
 
-    task_t t;
+    hclib_task_t t;
     initialize_task(&t, call_lambda<T>, lambda_on_heap);
-	memcpy(task, &t, sizeof(task_t));
+	memcpy(task, &t, sizeof(hclib_task_t));
 	return task;
 }
 
@@ -145,34 +145,34 @@ inline task_t* _allocate_async_hcpp(T lambda, bool await) {
 template <typename T>
 inline void asyncAtHpt(place_t* pl, T lambda) {
     MARK_OVH(current_ws()->id);
-    task_t* task = _allocate_async<T>(lambda, false);
+    hclib_task_t* task = _allocate_async<T>(lambda, false);
     spawn_at_hpt(pl, task);
 }
 
 template <typename T>
 inline void async(T lambda) {
 	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async<T>(lambda, false);
+	hclib_task_t* task = _allocate_async<T>(lambda, false);
 	spawn(task);
 }
 
 template <typename T>
 inline void _asyncAwait(hclib_ddf_t ** ddf_list, T lambda) {
 	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async<T>(lambda, true);
+	hclib_task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await(task, ddf_list);
 }
 
 template <typename T>
 inline void asyncAwaitAt(hclib_ddf_t **ddf_list, place_t *pl, T lambda) {
 	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async<T>(lambda, true);
+	hclib_task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await_at(task, ddf_list, pl);
 }
 
 template <typename T>
 inline void asyncComm(T lambda) {
-	task_t* task = _allocate_async<T>(lambda, false);
+	hclib_task_t* task = _allocate_async<T>(lambda, false);
 	spawn_commTask(task);
 }
 
@@ -188,7 +188,7 @@ hclib_ddf_t *asyncFuture(T lambda) {
         lambda();
         hclib_ddf_put(event, NULL);
     };
-    task_t* task = _allocate_async(wrapper, false);
+    hclib_task_t* task = _allocate_async(wrapper, false);
     spawn(task);
     return event;
 }
@@ -205,7 +205,7 @@ hclib_ddf_t *asyncFutureAwait(hclib_ddf_t **ddf_list, T lambda) {
         lambda();
         hclib_ddf_put(event, NULL);
     };
-    task_t* task = _allocate_async(wrapper, true);
+    hclib_task_t* task = _allocate_async(wrapper, true);
     spawn_await(task, ddf_list);
     return event;
 }

@@ -21,7 +21,7 @@
  *   5) ddf_list: a null-terminated list of pointers to the DDFs that this task
  *      depends on to execute, and which it will wait on before running.
  */
-typedef struct _task_t {
+typedef struct _hclib_task_t {
     void *args;
     struct finish_t *current_finish;
     generic_framePtr _fp;
@@ -33,21 +33,21 @@ typedef struct _task_t {
     int is_asyncAnyType;
     hclib_ddf_t **ddf_list; // Null terminated list
     place_t *place;
-} task_t;
+} hclib_task_t;
 
 /*
  * A representation of a task whose execution is dependent on prior tasks
  * through a list of DDF objects.
  */
-typedef struct hcpp_task_t {
-	task_t async_task; 	// the actual task
+typedef struct hclib_dependent_task_t {
+	hclib_task_t async_task; // the actual task
     /*
      * ddt meta-information, tasks that this task is blocked on for execution.
      * ddt.waitingFrontier is generally equal to async_task.ddf_list. TODO can
      * we factor out this redundant storage of data?
      */
-	ddt_t ddt;
-} hcpp_task_t;
+	hclib_ddt_t ddt;
+} hclib_dependent_task_t;
 
 /** @struct loop_domain_t
  * @brief Describe loop domain when spawning a forasync.
@@ -64,7 +64,7 @@ typedef struct _loop_domain_t {
 } loop_domain_t;
 
 typedef struct {
-    task_t *user;
+    hclib_task_t *user;
 } forasync_t;
 
 typedef struct {
@@ -73,7 +73,7 @@ typedef struct {
 } forasync1D_t;
 
 typedef struct _forasync_1D_task_t {
-    task_t forasync_task;
+    hclib_task_t forasync_task;
     forasync1D_t def;
 } forasync1D_task_t;
 
@@ -84,7 +84,7 @@ typedef struct {
 } forasync2D_t;
 
 typedef struct _forasync_2D_task_t {
-    task_t forasync_task;
+    hclib_task_t forasync_task;
     forasync2D_t def;
 } forasync2D_task_t;
 
@@ -96,20 +96,20 @@ typedef struct {
 } forasync3D_t;
 
 typedef struct _forasync_3D_task_t {
-    task_t forasync_task;
+    hclib_task_t forasync_task;
     forasync3D_t def;
 } forasync3D_task_t;
 
-inline struct finish_t* get_current_finish(task_t *t) {
+inline struct finish_t* get_current_finish(hclib_task_t *t) {
     return t->current_finish;
 }
 
-inline void set_current_finish(task_t *t,
+inline void set_current_finish(hclib_task_t *t,
         struct finish_t* finish) {
     t->current_finish = finish;
 }
 
-inline void set_ddf_list(task_t *t, hclib_ddf_t ** ddf) {
+inline void set_ddf_list(hclib_task_t *t, hclib_ddf_t ** ddf) {
     t->ddf_list = ddf;
 }
 

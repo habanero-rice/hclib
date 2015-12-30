@@ -65,7 +65,7 @@ void *unsupported_place_type_err(place_t *pl) {
  * 2) If unsuccessful, start over at step 1) in the parent
  *    place all to the hpt top.
  */
-task_t* hpt_steal_task(hc_workerState* ws) {
+hclib_task_t* hpt_steal_task(hc_workerState* ws) {
     MARK_SEARCH(ws->id); // Set the state of this worker for timing
 
     hcupc_reset_asyncAnyInfo(ws->id);
@@ -79,7 +79,7 @@ task_t* hpt_steal_task(hc_workerState* ws) {
         for (int i=1; i<nb_deq; i++) {
             int victim = ((ws->id + i) % nb_deq);
             hc_deque_t* d = &deqs[victim];
-            task_t* buff = deque_steal(&(d->deque));
+            hclib_task_t* buff = deque_steal(&(d->deque));
             if (buff) { /* steal succeeded */
                 ws->current = get_deque_place(ws, pl);
                 hcupc_check_if_asyncAny_stolen(buff, victim, ws->id);
@@ -105,14 +105,14 @@ task_t* hpt_steal_task(hc_workerState* ws) {
  * 2) if nothing found, try to pop downward from worker's child deque.
  * 3) If nothing found down to the bottom, look upward starting from Q.
  */
-task_t* hpt_pop_task(hc_workerState * ws) {
+hclib_task_t* hpt_pop_task(hc_workerState * ws) {
     // go HPT downward and then upward of my own deques
     hc_deque_t * current = ws->current;
     hc_deque_t * pivot = current;
     short downward = 1;
 
     while (current != NULL) {
-        task_t* buff = deque_pop(&current->deque);
+        hclib_task_t* buff = deque_pop(&current->deque);
         if (buff) {
 #ifdef VERBOSE
             printf("hpt_pop_task: worker %d successful pop from deque %p, pl %p, level "
@@ -282,7 +282,7 @@ int deque_push_place(hc_workerState *ws, place_t * pl, void * ele) {
     return deque_push(&deq->deque, ele);
 }
 
-inline task_t* deque_pop_place(hc_workerState *ws, place_t * pl) {
+inline hclib_task_t* deque_pop_place(hc_workerState *ws, place_t * pl) {
     hc_deque_t * deq = get_deque_place(ws, pl);
     return deque_pop(&deq->deque);
 }
@@ -384,7 +384,7 @@ void hclib_free_at(place_t *pl, void *ptr) {
 // Used to wrap the creation of an async copy task that is dependent on some DDFs
 static void async_gpu_task_launcher(void *arg) {
     gpu_task_t *task = (gpu_task_t *)arg;
-    spawn_gpu_task((task_t *)task);
+    spawn_gpu_task((hclib_task_t *)task);
 }
 
 /*
@@ -420,7 +420,7 @@ hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
     if (ddf_list) {
         hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, NULL, 0);
     } else {
-        spawn_gpu_task((task_t *)task);
+        spawn_gpu_task((hclib_task_t *)task);
     }
 
     return ddf;
@@ -453,7 +453,7 @@ hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
     if (ddf_list) {
         hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, NULL, 0);
     } else {
-        spawn_gpu_task((task_t *)task);
+        spawn_gpu_task((hclib_task_t *)task);
     }
 
     return ddf;

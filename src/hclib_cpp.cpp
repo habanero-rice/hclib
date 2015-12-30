@@ -4,6 +4,10 @@ hclib::ddf_t *hclib::ddf_create() {
     return hclib_ddf_create();
 }
 
+hclib::ddf_t **hclib::ddf_create_n(size_t nb_ddfs, int null_terminated) {
+    return hclib_ddf_create_n(nb_ddfs, null_terminated);
+}
+
 void hclib::ddf_free(hclib::ddf_t *ddf) {
     hclib_ddf_free(ddf);
 }
@@ -59,3 +63,9 @@ char *hclib::get_place_name(place_t *pl) {
 void *hclib::ddf_wait(hclib::ddf_t *ddf) {
     return hclib_ddf_wait(ddf);
 }
+
+#ifdef HUPCPP
+int hclib::total_pending_local_asyncs() {
+    return totalPendingLocalAsyncs();
+}
+#endif
