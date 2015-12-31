@@ -21,8 +21,8 @@ static inline void echo_worker(const char *taskName) {
     printf("Task %s run by worker %d\n", taskName, get_current_worker());
 }
 
-hclib_ddf_t **ddf_list;
-hclib_ddf_t *ddf;
+hclib_promise_t **promise_list;
+hclib_promise_t *promise;
 int data;
 
 void taskSleep(void *args) {
@@ -36,14 +36,14 @@ void taskA(void *args) {
         hclib_async(taskSleep, taskA, NO_DDF, NO_PHASER, NO_PROP);
         DELAY(2);
     }
-    printf("%p <- %p\n", ddf, &data);
-    hclib_ddf_put(ddf, &data);
+    printf("%p <- %p\n", promise, &data);
+    hclib_promise_put(promise, &data);
 }
 
 void taskB(void *args) {
     echo_worker("B");
     FINISH {
-        hclib_async(taskSleep, NULL, ddf_list, NO_PHASER, NO_PROP);
+        hclib_async(taskSleep, NULL, promise_list, NO_PHASER, NO_PROP);
     }
 }
 
@@ -55,9 +55,9 @@ void taskC(void *args) {
 }
 
 void taskMain(void *args) {
-    ddf_list = hclib_ddf_create_n(1, true);
-    ddf = hclib_ddf_create();
-    ddf_list[0] = ddf;
+    promise_list = hclib_promise_create_n(1, true);
+    promise = hclib_promise_create();
+    promise_list[0] = promise;
 
     hclib_async(&taskA, NULL, NO_DDF, NO_PHASER, NO_PROP);
     hclib_async(&taskC, NULL, NO_DDF, NO_PHASER, NO_PROP);

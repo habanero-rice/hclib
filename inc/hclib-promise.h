@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hclib-ddf.h
+ * hclib-promise.h
  *
  * NOTE: Terminology
  *   DDF = data-driven future
@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * @brief Opaque type for DDFs.
  */
-struct hclib_ddf_st;
+struct hclib_promise_st;
 
 typedef enum DDF_Kind {
 	DDF_KIND_UNKNOWN=0,
@@ -75,7 +75,7 @@ typedef enum DDF_Kind {
  */
 typedef struct hclib_ddt_st {
     // NULL-terminated list of DDFs the DDT is registered on
-    struct hclib_ddf_st ** waitingFrontier;
+    struct hclib_promise_st ** waitingFrontier;
     /*
      * This allows us to chain all DDTs waiting on a same DDF. Whenever a DDT
      * wants to register on a DDF, and that DDF is not ready, we chain the
@@ -86,67 +86,67 @@ typedef struct hclib_ddt_st {
 } hclib_ddt_t;
 
 // We define a typedef in this unit for convenience
-typedef struct hclib_ddf_st {
+typedef struct hclib_promise_st {
 	int kind;
     volatile void * datum;
     volatile hclib_ddt_t * headDDTWaitList;
-} hclib_ddf_t;
+} hclib_promise_t;
 
 /**
  * @brief Allocate and initialize a DDF.
  * @return A DDF.
  */
-hclib_ddf_t *hclib_ddf_create();
+hclib_promise_t *hclib_promise_create();
 
 /**
  * Initialize a pre-Allocated DDF.
  */
-void hclib_ddf_init(hclib_ddf_t* ddf);
+void hclib_promise_init(hclib_promise_t* promise);
 
 /**
  * @brief Allocate and initialize an array of DDFs.
- * @param[in] nb_ddfs 				Size of the DDF array
- * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
+ * @param[in] nb_promises 				Size of the DDF array
+ * @param[in] null_terminated 		If true, create nb_promises-1 and set the last element to NULL.
  * @return A contiguous array of DDFs
  */
-hclib_ddf_t **hclib_ddf_create_n(size_t nb_ddfs, int null_terminated);
+hclib_promise_t **hclib_promise_create_n(size_t nb_promises, int null_terminated);
 
 /**
  * @brief Destruct a DDF.
- * @param[in] nb_ddfs 				Size of the DDF array
- * @param[in] null_terminated 		If true, create nb_ddfs-1 and set the last element to NULL.
- * @param[in] ddf 				The DDF to destruct
+ * @param[in] nb_promises 				Size of the DDF array
+ * @param[in] null_terminated 		If true, create nb_promises-1 and set the last element to NULL.
+ * @param[in] promise 				The DDF to destruct
  */
-void hclib_ddf_free_n(hclib_ddf_t ** ddf,  size_t nb_ddfs, int null_terminated);
+void hclib_promise_free_n(hclib_promise_t ** promise,  size_t nb_promises, int null_terminated);
 
 /**
  * @brief Destruct a DDF.
- * @param[in] ddf 				The DDF to destruct
+ * @param[in] promise 				The DDF to destruct
  */
-void hclib_ddf_free(hclib_ddf_t * ddf);
+void hclib_promise_free(hclib_promise_t * promise);
 
 /**
  * @brief Get the value of a DDF.
- * @param[in] ddf 				The DDF to get a value from
+ * @param[in] promise 				The DDF to get a value from
  */
-void * hclib_ddf_get(hclib_ddf_t * ddf);
+void * hclib_promise_get(hclib_promise_t * promise);
 
 /**
  * @brief Put a value in a DDF.
- * @param[in] ddf 				The DDF to get a value from
+ * @param[in] promise 				The DDF to get a value from
  * @param[in] datum 			The datum to be put in the DDF
  */
-void hclib_ddf_put(hclib_ddf_t * ddf, void * datum);
+void hclib_promise_put(hclib_promise_t * promise, void * datum);
 
 /*
  * Block the currently executing task on the provided DDF. Returns the datum
- * that was put on ddf.
+ * that was put on promise.
  */
-void *hclib_ddf_wait(hclib_ddf_t *ddf);
+void *hclib_promise_wait(hclib_promise_t *promise);
 
 /*
  * Some extras
  */
-void hclib_ddt_init(hclib_ddt_t * ddt, hclib_ddf_t ** ddf_list);
+void hclib_ddt_init(hclib_ddt_t * ddt, hclib_promise_t ** promise_list);
 
 #endif /* HCLIB_DDF_H_ */

@@ -56,85 +56,85 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Associate a DDT to a DDF list.
  */
-void hclib_ddt_init(hclib_ddt_t * ddt, hclib_ddf_t ** ddf_list) {
-	ddt->waitingFrontier = ddf_list;
+void hclib_ddt_init(hclib_ddt_t * ddt, hclib_promise_t ** promise_list) {
+	ddt->waitingFrontier = promise_list;
 	ddt->nextDDTWaitingOnSameDDF = NULL;
 }
 
 /**
  * Initialize a pre-Allocated DDF.
  */
-void hclib_ddf_init(hclib_ddf_t* ddf) {
-    ddf->kind = DDF_KIND_SHARED;
-    ddf->datum = UNINITIALIZED_DDF_DATA_PTR;
-    ddf->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
+void hclib_promise_init(hclib_promise_t* promise) {
+    promise->kind = DDF_KIND_SHARED;
+    promise->datum = UNINITIALIZED_DDF_DATA_PTR;
+    promise->headDDTWaitList = UNINITIALIZED_DDF_WAITLIST_PTR;
 }
 
 /**
  * Allocate a DDF and initializes it.
  */
-hclib_ddf_t * hclib_ddf_create() {
-    hclib_ddf_t * ddf = (hclib_ddf_t *) malloc(sizeof(hclib_ddf_t));
-    HASSERT(ddf);
-    hclib_ddf_init(ddf);
-    return ddf;
+hclib_promise_t * hclib_promise_create() {
+    hclib_promise_t * promise = (hclib_promise_t *) malloc(sizeof(hclib_promise_t));
+    HASSERT(promise);
+    hclib_promise_init(promise);
+    return promise;
 }
 
 /**
- * Allocate 'nb_ddfs' DDFs in contiguous memory.
+ * Allocate 'nb_promises' DDFs in contiguous memory.
  */
-hclib_ddf_t **hclib_ddf_create_n(size_t nb_ddfs, int null_terminated) {
-	hclib_ddf_t ** ddfs = (hclib_ddf_t **) malloc((sizeof(hclib_ddf_t*) * nb_ddfs));
+hclib_promise_t **hclib_promise_create_n(size_t nb_promises, int null_terminated) {
+	hclib_promise_t ** promises = (hclib_promise_t **) malloc((sizeof(hclib_promise_t*) * nb_promises));
 	int i = 0;
-	int lg = (null_terminated) ? nb_ddfs-1 : nb_ddfs;
+	int lg = (null_terminated) ? nb_promises-1 : nb_promises;
 	while(i < lg) {
-		ddfs[i] = hclib_ddf_create();
+		promises[i] = hclib_promise_create();
 		i++;
 	}
 	if (null_terminated) {
-		ddfs[lg] = NULL;
+		promises[lg] = NULL;
 	}
-	return ddfs;
+	return promises;
 }
 
 /**
  * Get datum from a DDF.
  * Note: this is concurrent with the 'put' operation.
  */
-void * hclib_ddf_get(hclib_ddf_t * ddf) {
-	if (ddf->datum == UNINITIALIZED_DDF_DATA_PTR) {
+void * hclib_promise_get(hclib_promise_t * promise) {
+	if (promise->datum == UNINITIALIZED_DDF_DATA_PTR) {
 		return NULL;
 	}
-	return (void *)ddf->datum;
+	return (void *)promise->datum;
 }
 
 /**
  * @brief Destruct a DDF.
- * @param[in] nb_ddfs                           Size of the DDF array
- * @param[in] null_terminated           If true, create nb_ddfs-1 and set the last element to NULL.
- * @param[in] ddf                               The DDF to destruct
+ * @param[in] nb_promises                           Size of the DDF array
+ * @param[in] null_terminated           If true, create nb_promises-1 and set the last element to NULL.
+ * @param[in] promise                               The DDF to destruct
  */
-void hclib_ddf_free_n(hclib_ddf_t ** ddfs, size_t nb_ddfs, int null_terminated) {
+void hclib_promise_free_n(hclib_promise_t ** promises, size_t nb_promises, int null_terminated) {
 	int i = 0;
-	int lg = (null_terminated) ? nb_ddfs-1 : nb_ddfs;
+	int lg = (null_terminated) ? nb_promises-1 : nb_promises;
 	while(i < lg) {
-		hclib_ddf_free(ddfs[i]);
+		hclib_promise_free(promises[i]);
 		i++;
 	}
-	free(ddfs);
+	free(promises);
 }
 
 /**
- * Deallocate a ddf pointer
+ * Deallocate a promise pointer
  */
-void hclib_ddf_free(hclib_ddf_t * ddf) {
-	free(ddf);
+void hclib_promise_free(hclib_promise_t * promise) {
+	free(promise);
 }
 
 __inline__ int __registerIfDDFnotReady_AND(hclib_ddt_t* wrapperTask,
-        hclib_ddf_t* ddfToCheck) {
+        hclib_promise_t* promiseToCheck) {
     int success = 0;
-    hclib_ddt_t* waitListOfDDF = (hclib_ddt_t*)ddfToCheck->headDDTWaitList;
+    hclib_ddt_t* waitListOfDDF = (hclib_ddt_t*)promiseToCheck->headDDTWaitList;
 
     if (waitListOfDDF != EMPTY_DDF_WAITLIST_PTR) {
 
@@ -143,16 +143,16 @@ __inline__ int __registerIfDDFnotReady_AND(hclib_ddt_t* wrapperTask,
             wrapperTask->nextDDTWaitingOnSameDDF = waitListOfDDF;
 
             success = __sync_bool_compare_and_swap(
-                    &(ddfToCheck -> headDDTWaitList), waitListOfDDF,
+                    &(promiseToCheck -> headDDTWaitList), waitListOfDDF,
                     wrapperTask);
-            // printf("task:%p registered to DDF:%p\n", pollingTask,ddfToCheck);
+            // printf("task:%p registered to DDF:%p\n", pollingTask,promiseToCheck);
 
             /*
              * may have failed because either some other task tried to be the
              * head or a put occurred.
              */
             if (!success) {
-                waitListOfDDF = (hclib_ddt_t*)ddfToCheck->headDDTWaitList;
+                waitListOfDDF = (hclib_ddt_t*)promiseToCheck->headDDTWaitList;
                 /*
                  * if waitListOfDDF was set to EMPTY_DDF_WAITLIST_PTR, the loop
                  * condition will handle that if another task was added, now try
@@ -167,10 +167,10 @@ __inline__ int __registerIfDDFnotReady_AND(hclib_ddt_t* wrapperTask,
 
 /**
  * Runtime interface to DDTs.
- * Returns '1' if all ddf dependencies have been satisfied.
+ * Returns '1' if all promise dependencies have been satisfied.
  */
 int iterate_ddt_frontier(hclib_ddt_t* wrapperTask) {
-	hclib_ddf_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
+	hclib_promise_t** currDDFnodeToWaitOn = wrapperTask->waitingFrontier;
 
     while (*currDDFnodeToWaitOn && !__registerIfDDFnotReady_AND(wrapperTask,
                 *currDDFnodeToWaitOn) ) {
@@ -198,23 +198,23 @@ hclib_ddt_t * rt_async_task_to_ddt(hclib_task_t * async_task) {
  * Close down registration of DDTs on this DDF and iterate over the
  * DDF's frontier to try to advance DDTs that were waiting on this DDF.
  */
-void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void *datumToBePut) {
+void hclib_promise_put(hclib_promise_t* promiseToBePut, void *datumToBePut) {
     HASSERT (datumToBePut != UNINITIALIZED_DDF_DATA_PTR &&
             EMPTY_DATUM_ERROR_MSG);
-    HASSERT (ddfToBePut != NULL && "can not put into NULL DDF");
-    HASSERT (ddfToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR &&
+    HASSERT (promiseToBePut != NULL && "can not put into NULL DDF");
+    HASSERT (promiseToBePut-> datum == UNINITIALIZED_DDF_DATA_PTR &&
             "violated single assignment property for DDFs");
 
     volatile hclib_ddt_t* waitListOfDDF = NULL;
     hclib_ddt_t* currDDT = NULL;
     hclib_ddt_t* nextDDT = NULL;
 
-    ddfToBePut-> datum = datumToBePut;
-    waitListOfDDF = ddfToBePut->headDDTWaitList;
+    promiseToBePut-> datum = datumToBePut;
+    waitListOfDDF = promiseToBePut->headDDTWaitList;
     /*seems like I can not avoid a CAS here*/
-    while (!__sync_bool_compare_and_swap( &(ddfToBePut -> headDDTWaitList),
+    while (!__sync_bool_compare_and_swap( &(promiseToBePut -> headDDTWaitList),
                 waitListOfDDF, EMPTY_DDF_WAITLIST_PTR)) {
-        waitListOfDDF = ddfToBePut -> headDDTWaitList;
+        waitListOfDDF = promiseToBePut -> headDDTWaitList;
     }
 
     currDDT = (hclib_ddt_t*)waitListOfDDF;
@@ -228,7 +228,7 @@ void hclib_ddf_put(hclib_ddf_t* ddfToBePut, void *datumToBePut) {
             /*deque_push_default(currFrame);*/
             // DDT eligible to scheduling
             hclib_task_t *async_task = rt_ddt_to_async_task(currDDT);
-            if (DEBUG_DDF) { printf("ddf: async_task %p\n", async_task); }
+            if (DEBUG_DDF) { printf("promise: async_task %p\n", async_task); }
             try_schedule_async(async_task, 0, 0, CURRENT_WS_INTERNAL);
         }
         currDDT = nextDDT;

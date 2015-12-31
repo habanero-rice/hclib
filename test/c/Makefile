@@ -2,8 +2,8 @@ include $(HCLIB_ROOT)/include/hclib.mak
 
 TARGETS=async0 async1 finish0 finish1 finish2  forasync1DCh  forasync1DRec \
 		forasync2DCh  forasync2DRec  forasync3DCh  forasync3DRec \
-		ddf/asyncAwait0 ddf/asyncAwait0Null ddf/asyncAwait1 ddf/future0 \
-		ddf/future1 ddf/future2 ddf/future3
+		promise/asyncAwait0 promise/asyncAwait0Null promise/asyncAwait1 promise/future0 \
+		promise/future1 promise/future2 promise/future3
 
 FLAGS=-g
 

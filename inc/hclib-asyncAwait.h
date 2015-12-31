@@ -1,357 +1,357 @@
-#include "hclib-ddf.h"
+#include "hclib-promise.h"
 #include "hclib-async.h"
 
 namespace hclib {
 
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, T lambda) {
-	int ddfs = 2;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, T lambda) {
+	int promises = 2;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, T lambda) {
-	int ddfs = 3;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, T lambda) {
+	int promises = 3;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, T lambda) {
-	int ddfs = 4;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, T lambda) {
+	int promises = 4;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, T lambda) {
-	int ddfs = 5;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, T lambda) {
+	int promises = 5;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, T lambda) {
-	int ddfs = 6;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, T lambda) {
+	int promises = 6;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, T lambda) {
-	int ddfs = 7;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, T lambda) {
+	int promises = 7;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, T lambda) {
-	int ddfs = 8;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, T lambda) {
+	int promises = 8;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, T lambda) {
-	int ddfs = 9;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, T lambda) {
+	int promises = 9;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, T lambda) {
-	int ddfs = 10;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, T lambda) {
+	int promises = 10;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, T lambda) {
-	int ddfs = 11;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, T lambda) {
+	int promises = 11;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, T lambda) {
-	int ddfs = 12;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, T lambda) {
+	int promises = 12;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, T lambda) {
-	int ddfs = 13;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, T lambda) {
+	int promises = 13;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, T lambda) {
-	int ddfs = 14;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, T lambda) {
+	int promises = 14;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, T lambda) {
-	int ddfs = 15;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, T lambda) {
+	int promises = 15;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, hclib_ddf_t* ddf14, T lambda) {
-	int ddfs = 16;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = ddf14; 
-	ddfList[15] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, hclib_promise_t* promise14, T lambda) {
+	int promises = 16;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = promise14; 
+	promiseList[15] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, hclib_ddf_t* ddf14, hclib_ddf_t* ddf15, T lambda) {
-	int ddfs = 17;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = ddf14; 
-	ddfList[15] = ddf15; 
-	ddfList[16] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, hclib_promise_t* promise14, hclib_promise_t* promise15, T lambda) {
+	int promises = 17;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = promise14; 
+	promiseList[15] = promise15; 
+	promiseList[16] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, hclib_ddf_t* ddf14, hclib_ddf_t* ddf15, hclib_ddf_t* ddf16, T lambda) {
-	int ddfs = 18;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = ddf14; 
-	ddfList[15] = ddf15; 
-	ddfList[16] = ddf16; 
-	ddfList[17] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, hclib_promise_t* promise14, hclib_promise_t* promise15, hclib_promise_t* promise16, T lambda) {
+	int promises = 18;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = promise14; 
+	promiseList[15] = promise15; 
+	promiseList[16] = promise16; 
+	promiseList[17] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, hclib_ddf_t* ddf14, hclib_ddf_t* ddf15, hclib_ddf_t* ddf16, hclib_ddf_t* ddf17, T lambda) {
-	int ddfs = 19;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = ddf14; 
-	ddfList[15] = ddf15; 
-	ddfList[16] = ddf16; 
-	ddfList[17] = ddf17; 
-	ddfList[18] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, hclib_promise_t* promise14, hclib_promise_t* promise15, hclib_promise_t* promise16, hclib_promise_t* promise17, T lambda) {
+	int promises = 19;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = promise14; 
+	promiseList[15] = promise15; 
+	promiseList[16] = promise16; 
+	promiseList[17] = promise17; 
+	promiseList[18] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, hclib_ddf_t* ddf14, hclib_ddf_t* ddf15, hclib_ddf_t* ddf16, hclib_ddf_t* ddf17, hclib_ddf_t* ddf18, T lambda) {
-	int ddfs = 20;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = ddf14; 
-	ddfList[15] = ddf15; 
-	ddfList[16] = ddf16; 
-	ddfList[17] = ddf17; 
-	ddfList[18] = ddf18; 
-	ddfList[19] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, hclib_promise_t* promise14, hclib_promise_t* promise15, hclib_promise_t* promise16, hclib_promise_t* promise17, hclib_promise_t* promise18, T lambda) {
+	int promises = 20;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = promise14; 
+	promiseList[15] = promise15; 
+	promiseList[16] = promise16; 
+	promiseList[17] = promise17; 
+	promiseList[18] = promise18; 
+	promiseList[19] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 template <typename T>
-void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, hclib_ddf_t* ddf2, hclib_ddf_t* ddf3, hclib_ddf_t* ddf4, hclib_ddf_t* ddf5, hclib_ddf_t* ddf6, hclib_ddf_t* ddf7, hclib_ddf_t* ddf8, hclib_ddf_t* ddf9, hclib_ddf_t* ddf10, hclib_ddf_t* ddf11, hclib_ddf_t* ddf12, hclib_ddf_t* ddf13, hclib_ddf_t* ddf14, hclib_ddf_t* ddf15, hclib_ddf_t* ddf16, hclib_ddf_t* ddf17, hclib_ddf_t* ddf18, hclib_ddf_t* ddf19, T lambda) {
-	int ddfs = 21;
-	hclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);
-	ddfList[0] = ddf0; 
-	ddfList[1] = ddf1; 
-	ddfList[2] = ddf2; 
-	ddfList[3] = ddf3; 
-	ddfList[4] = ddf4; 
-	ddfList[5] = ddf5; 
-	ddfList[6] = ddf6; 
-	ddfList[7] = ddf7; 
-	ddfList[8] = ddf8; 
-	ddfList[9] = ddf9; 
-	ddfList[10] = ddf10; 
-	ddfList[11] = ddf11; 
-	ddfList[12] = ddf12; 
-	ddfList[13] = ddf13; 
-	ddfList[14] = ddf14; 
-	ddfList[15] = ddf15; 
-	ddfList[16] = ddf16; 
-	ddfList[17] = ddf17; 
-	ddfList[18] = ddf18; 
-	ddfList[19] = ddf19; 
-	ddfList[20] = NULL; 
-	hclib::_asyncAwait<T>(ddfList, lambda);
+void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, hclib_promise_t* promise2, hclib_promise_t* promise3, hclib_promise_t* promise4, hclib_promise_t* promise5, hclib_promise_t* promise6, hclib_promise_t* promise7, hclib_promise_t* promise8, hclib_promise_t* promise9, hclib_promise_t* promise10, hclib_promise_t* promise11, hclib_promise_t* promise12, hclib_promise_t* promise13, hclib_promise_t* promise14, hclib_promise_t* promise15, hclib_promise_t* promise16, hclib_promise_t* promise17, hclib_promise_t* promise18, hclib_promise_t* promise19, T lambda) {
+	int promises = 21;
+	hclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);
+	promiseList[0] = promise0; 
+	promiseList[1] = promise1; 
+	promiseList[2] = promise2; 
+	promiseList[3] = promise3; 
+	promiseList[4] = promise4; 
+	promiseList[5] = promise5; 
+	promiseList[6] = promise6; 
+	promiseList[7] = promise7; 
+	promiseList[8] = promise8; 
+	promiseList[9] = promise9; 
+	promiseList[10] = promise10; 
+	promiseList[11] = promise11; 
+	promiseList[12] = promise12; 
+	promiseList[13] = promise13; 
+	promiseList[14] = promise14; 
+	promiseList[15] = promise15; 
+	promiseList[16] = promise16; 
+	promiseList[17] = promise17; 
+	promiseList[18] = promise18; 
+	promiseList[19] = promise19; 
+	promiseList[20] = NULL; 
+	hclib::_asyncAwait<T>(promiseList, lambda);
 }
 
 }

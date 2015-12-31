@@ -342,7 +342,7 @@ static inline void check_out_finish(finish_t * finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            hclib_ddf_put(finish->finish_deps[0], finish);
+            hclib_promise_put(finish->finish_deps[0], finish);
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
@@ -413,10 +413,10 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
  */
 inline int is_eligible_to_schedule(hclib_task_t * async_task) {
 #ifdef VERBOSE
-    fprintf(stderr, "is_eligible_to_schedule: async_task=%p ddf_list=%p\n",
-            async_task, async_task->ddf_list);
+    fprintf(stderr, "is_eligible_to_schedule: async_task=%p promise_list=%p\n",
+            async_task, async_task->promise_list);
 #endif
-    if (async_task->ddf_list != NULL) {
+    if (async_task->promise_list != NULL) {
     	hclib_ddt_t *ddt = (hclib_ddt_t *)rt_async_task_to_ddt(async_task);
         return iterate_ddt_frontier(ddt);
     } else {
@@ -436,7 +436,7 @@ void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
     }
 }
 
-void spawn_handler(hclib_task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
+void spawn_handler(hclib_task_t *task, place_t *pl, hclib_promise_t **promise_list,
         int escaping, int comm, int gpu) {
 
     HASSERT(task);
@@ -452,8 +452,8 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
      *
      * TODO not sure exactly what this does, just copy-pasted. Ask Kumar
      */
-    if (ddf_list) {
-        check_if_hcupc_dddf(ddf_list);
+    if (promise_list) {
+        check_if_hcupc_distributed_promises(promise_list);
     }
 
     hc_workerState* ws = CURRENT_WS_INTERNAL;
@@ -469,10 +469,10 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
         task->place = pl;
     }
 
-    if (ddf_list) {
-        set_ddf_list(task, ddf_list);
+    if (promise_list) {
+        set_promise_list(task, promise_list);
         hclib_dependent_task_t *t = (hclib_dependent_task_t*) task;
-        hclib_ddt_init(&(t->ddt), ddf_list);
+        hclib_ddt_init(&(t->ddt), promise_list);
     }
 
 #ifdef VERBOSE
@@ -504,20 +504,20 @@ void spawn(hclib_task_t * task) {
     spawn_handler(task, NULL, NULL, 0, 0, 0);
 }
 
-void spawn_escaping(hclib_task_t *task, hclib_ddf_t **ddf_list) {
-    spawn_handler(task, NULL, ddf_list, 1, 0, 0);
+void spawn_escaping(hclib_task_t *task, hclib_promise_t **promise_list) {
+    spawn_handler(task, NULL, promise_list, 1, 0, 0);
 }
 
-void spawn_escaping_at(place_t *pl, hclib_task_t *task, hclib_ddf_t **ddf_list) {
-    spawn_handler(task, pl, ddf_list, 1, 0, 0);
+void spawn_escaping_at(place_t *pl, hclib_task_t *task, hclib_promise_t **promise_list) {
+    spawn_handler(task, pl, promise_list, 1, 0, 0);
 }
 
-void spawn_await_at(hclib_task_t * task, hclib_ddf_t** ddf_list, place_t *pl) {
-    spawn_handler(task, pl, ddf_list, 0, 0, 0);
+void spawn_await_at(hclib_task_t * task, hclib_promise_t** promise_list, place_t *pl) {
+    spawn_handler(task, pl, promise_list, 0, 0, 0);
 }
 
-void spawn_await(hclib_task_t * task, hclib_ddf_t** ddf_list) {
-    spawn_await_at(task, ddf_list, NULL);
+void spawn_await(hclib_task_t * task, hclib_promise_t** promise_list) {
+    spawn_await_at(task, promise_list, NULL);
 }
 
 void spawn_commTask(hclib_task_t * task) {
@@ -532,9 +532,9 @@ void spawn_gpu_task(hclib_task_t *task) {
 extern void *unsupported_place_type_err(place_t *pl);
 extern int is_pinned_cpu_mem(void *ptr);
 
-static pending_cuda_op *create_pending_cuda_op(hclib_ddf_t *ddf, void *arg) {
+static pending_cuda_op *create_pending_cuda_op(hclib_promise_t *promise, void *arg) {
     pending_cuda_op *op = malloc(sizeof(pending_cuda_op));
-    op->ddf_to_put = ddf;
+    op->promise_to_put = promise;
     op->arg_to_put = arg;
     CHECK_CUDA(cudaEventCreate(&op->event));
     return op;
@@ -553,7 +553,7 @@ static void enqueue_pending_cuda_op(pending_cuda_op *op) {
 }
 
 static pending_cuda_op *do_gpu_memset(place_t *pl, void *ptr, int val,
-        size_t nbytes, hclib_ddf_t *to_put, void *arg_to_put) {
+        size_t nbytes, hclib_promise_t *to_put, void *arg_to_put) {
     if (is_cpu_place(pl)) {
         memset(ptr, val, nbytes);
         return NULL;
@@ -569,7 +569,7 @@ static pending_cuda_op *do_gpu_memset(place_t *pl, void *ptr, int val,
 }
 
 static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
-        void *src, size_t nbytes, hclib_ddf_t *to_put, void *arg_to_put) {
+        void *src, size_t nbytes, hclib_promise_t *to_put, void *arg_to_put) {
     HASSERT(to_put);
 
     if (is_cpu_place(dst_pl)) {
@@ -654,7 +654,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                     gpu_comm_task_t *comm_task = &task->gpu_task_def.comm_task;
                     op = do_gpu_copy(comm_task->dst_pl, comm_task->src_pl,
                             comm_task->dst, comm_task->src, comm_task->nbytes,
-                            task->ddf_to_put, task->arg_to_put);
+                            task->promise_to_put, task->arg_to_put);
                     break;
                 }
                 case (GPU_MEMSET_TASK): {
@@ -662,7 +662,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                         &task->gpu_task_def.memset_task;
                     op = do_gpu_memset(memset_task->pl, memset_task->ptr,
                             memset_task->val, memset_task->nbytes,
-                            task->ddf_to_put, task->arg_to_put);
+                            task->promise_to_put, task->arg_to_put);
                     break;
                 }
                 case (GPU_COMPUTE_TASK): {
@@ -677,7 +677,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                             compute_task->niters, compute_task->tile_size,
                             compute_task->stream,
                             compute_task->kernel_launcher->functor_on_heap);
-                    op = create_pending_cuda_op(task->ddf_to_put,
+                    op = create_pending_cuda_op(task->promise_to_put,
                             task->arg_to_put);
                     CHECK_CUDA(cudaEventRecord(op->event,
                                 compute_task->stream));
@@ -697,12 +697,12 @@ void *gpu_worker_routine(void *finish_ptr) {
                         "%p\n", task, op);
 #endif
                 enqueue_pending_cuda_op(op);
-            } else if (task->ddf_to_put) {
+            } else if (task->promise_to_put) {
                 /*
                  * No pending operation implies we did a blocking CUDA
                  * operation, and can immediately put any dependent DDFs.
                  */
-                hclib_ddf_put(task->ddf_to_put, task->arg_to_put);
+                hclib_promise_put(task->promise_to_put, task->arg_to_put);
             }
 
             // HC_FREE(task);
@@ -719,7 +719,7 @@ void *gpu_worker_routine(void *finish_ptr) {
         while (pending_cuda_ops_head &&
                 (event_status = cudaEventQuery(pending_cuda_ops_head->event)) ==
                     cudaSuccess) {
-            hclib_ddf_put(pending_cuda_ops_head->ddf_to_put,
+            hclib_promise_put(pending_cuda_ops_head->promise_to_put,
                     pending_cuda_ops_head->arg_to_put);
             CHECK_CUDA(cudaEventDestroy(pending_cuda_ops_head->event));
             pending_cuda_op *old_head = pending_cuda_ops_head;
@@ -899,13 +899,13 @@ void crt_work_loop(LiteCtx *ctx);
 
 // Based on _help_finish_ctx
 void _help_wait(LiteCtx *ctx) {
-    hclib_ddf_t **continuation_deps = ctx->arg;
+    hclib_promise_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
     task->async_task.is_asyncAnyType = 0;
-    task->async_task.ddf_list = NULL;
+    task->async_task.promise_list = NULL;
     task->async_task.args = wait_ctx;
     task->async_task.place = NULL;
 
@@ -915,11 +915,11 @@ void _help_wait(LiteCtx *ctx) {
     HASSERT(0);
 }
 
-void *hclib_ddf_wait(hclib_ddf_t *ddf) {
-	if (ddf->datum != UNINITIALIZED_DDF_DATA_PTR) {
-        return (void *)ddf->datum;
+void *hclib_promise_wait(hclib_promise_t *promise) {
+	if (promise->datum != UNINITIALIZED_DDF_DATA_PTR) {
+        return (void *)promise->datum;
     }
-    hclib_ddf_t *continuation_deps[] = { ddf, NULL };
+    hclib_promise_t *continuation_deps[] = { promise, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
     LiteCtx *newCtx = LiteCtx_create(_help_wait);
@@ -927,8 +927,8 @@ void *hclib_ddf_wait(hclib_ddf_t *ddf) {
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
-    HASSERT(ddf->datum != UNINITIALIZED_DDF_DATA_PTR);
-    return (void *)ddf->datum;
+    HASSERT(promise->datum != UNINITIALIZED_DDF_DATA_PTR);
+    return (void *)promise->datum;
 }
 
 static void _help_finish_ctx(LiteCtx *ctx) {
@@ -943,7 +943,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.is_asyncAnyType = 0;
-    task->async_task.ddf_list = NULL;
+    task->async_task.promise_list = NULL;
     task->async_task.args = hclib_finish_ctx;
     task->async_task.place = NULL;
 
@@ -1024,7 +1024,7 @@ void help_finish(finish_t * finish) {
          */
 
         // create finish event
-        hclib_ddf_t *finish_deps[] = { hclib_ddf_create(), NULL };
+        hclib_promise_t *finish_deps[] = { hclib_promise_create(), NULL };
         finish->finish_deps = finish_deps;
         // TODO - should only switch contexts after actually finding work
         LiteCtx *currentCtx = get_curr_lite_ctx();
@@ -1037,7 +1037,7 @@ void help_finish(finish_t * finish) {
          * (there are no other handles to it, and it will never be resumed)
          */
         LiteCtx_destroy(currentCtx->prev);
-        hclib_ddf_free(finish_deps[0]);
+        hclib_promise_free(finish_deps[0]);
     }
 #else /* default (broken) strategy */
     _help_finish(finish);
@@ -1058,7 +1058,7 @@ void hclib_start_finish() {
      * finish being a task registered on the finish. When we reach the
      * corresponding end_finish we set up the finish_deps for the continuation
      * and then decrement the counter from the main thread. This ensures that
-     * anytime the counter reaches zero, it is safe to do a ddf_put on the
+     * anytime the counter reaches zero, it is safe to do a promise_put on the
      * finish_deps. If we initialized counter to zero here, any async inside the
      * finish could start and finish before the main thread reaches the
      * end_finish, decrementing the finish counter to zero when it completes.
@@ -1084,14 +1084,14 @@ void hclib_end_finish() {
     HC_FREE(current_finish);
 }
 
-hclib_ddf_t *hclib_end_finish_nonblocking() {
+hclib_promise_t *hclib_end_finish_nonblocking() {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
-    hclib_ddf_t *event = hclib_ddf_create();
-    hclib_ddf_t **finish_deps = malloc(2 * sizeof(hclib_ddf_t *));
+    hclib_promise_t *event = hclib_promise_create();
+    hclib_promise_t **finish_deps = malloc(2 * sizeof(hclib_promise_t *));
     finish_deps[0] = event;
     finish_deps[1] = NULL;
     current_finish->finish_deps = finish_deps;

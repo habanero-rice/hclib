@@ -1,27 +1,27 @@
 #include "hclib_cpp.h"
 
-hclib::ddf_t *hclib::ddf_create() {
-    return hclib_ddf_create();
+hclib::promise_t *hclib::promise_create() {
+    return hclib_promise_create();
 }
 
-hclib::ddf_t **hclib::ddf_create_n(size_t nb_ddfs, int null_terminated) {
-    return hclib_ddf_create_n(nb_ddfs, null_terminated);
+hclib::promise_t **hclib::promise_create_n(size_t nb_promises, int null_terminated) {
+    return hclib_promise_create_n(nb_promises, null_terminated);
 }
 
-void hclib::ddf_init(hclib::ddf_t* ddf) {
-    hclib_ddf_init(ddf);
+void hclib::promise_init(hclib::promise_t* promise) {
+    hclib_promise_init(promise);
 }
 
-void hclib::ddf_free(hclib::ddf_t *ddf) {
-    hclib_ddf_free(ddf);
+void hclib::promise_free(hclib::promise_t *promise) {
+    hclib_promise_free(promise);
 }
 
-void hclib::ddf_put(hclib::ddf_t *ddf, void *datum) {
-    hclib_ddf_put(ddf, datum);
+void hclib::promise_put(hclib::promise_t *promise, void *datum) {
+    hclib_promise_put(promise, datum);
 }
 
-void *hclib::ddf_get(hclib::ddf_t *ddf) {
-    return hclib_ddf_get(ddf);
+void *hclib::promise_get(hclib::promise_t *promise) {
+    return hclib_promise_get(promise);
 }
 
 hc_workerState *hclib::current_ws() {
@@ -64,8 +64,8 @@ char *hclib::get_place_name(place_t *pl) {
     return hclib_get_place_name(pl);
 }
 
-void *hclib::ddf_wait(hclib::ddf_t *ddf) {
-    return hclib_ddf_wait(ddf);
+void *hclib::promise_wait(hclib::promise_t *promise) {
+    return hclib_promise_wait(promise);
 }
 
 #ifdef HUPCPP

@@ -391,18 +391,18 @@ static void async_gpu_task_launcher(void *arg) {
  * TODO Currently doesn't support await on other DDFs, nor do communication
  * tasks
  */
-hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, hclib_ddf_t **ddf_list, void *user_arg) {
+hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
+        void *src, size_t nbytes, hclib_promise_t **promise_list, void *user_arg) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
-    task->t.ddf_list = NULL;
+    task->t.promise_list = NULL;
     task->t.args = NULL;
     task->t.place = NULL;
 
-    hclib_ddf_t *ddf = hclib_ddf_create();
+    hclib_promise_t *promise = hclib_promise_create();
     task->gpu_type = GPU_COMM_TASK;
-    task->ddf_to_put = ddf;
+    task->promise_to_put = promise;
     task->arg_to_put = user_arg;
 
     task->gpu_task_def.comm_task.src_pl = src_pl;
@@ -413,31 +413,31 @@ hclib_ddf_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
 
 #ifdef VERBOSE
     fprintf(stderr, "hclib_async_copy: dst_pl=%p dst=%p src_pl=%p src=%p "
-            "nbytes=%lu ddf_list=%p\n", dst_pl, dst, src_pl, src, nbytes,
-            ddf_list);
+            "nbytes=%lu promise_list=%p\n", dst_pl, dst, src_pl, src, nbytes,
+            promise_list);
 #endif
 
-    if (ddf_list) {
-        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, NULL, 0);
+    if (promise_list) {
+        hclib_async(async_gpu_task_launcher, task, promise_list, NULL, NULL, 0);
     } else {
         spawn_gpu_task((hclib_task_t *)task);
     }
 
-    return ddf;
+    return promise;
 }
 
-hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
-        hclib_ddf_t **ddf_list, void *user_arg) {
+hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
+        hclib_promise_t **promise_list, void *user_arg) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
-    task->t.ddf_list = NULL;
+    task->t.promise_list = NULL;
     task->t.args = NULL;
     task->t.place = NULL;
 
-    hclib_ddf_t *ddf = hclib_ddf_create();
+    hclib_promise_t *promise = hclib_promise_create();
     task->gpu_type = GPU_MEMSET_TASK;
-    task->ddf_to_put = ddf;
+    task->promise_to_put = promise;
     task->arg_to_put = user_arg;
 
     task->gpu_task_def.memset_task.pl = pl;
@@ -450,13 +450,13 @@ hclib_ddf_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
             nbytes);
 #endif
 
-    if (ddf_list) {
-        hclib_async(async_gpu_task_launcher, task, ddf_list, NULL, NULL, 0);
+    if (promise_list) {
+        hclib_async(async_gpu_task_launcher, task, promise_list, NULL, NULL, 0);
     } else {
         spawn_gpu_task((hclib_task_t *)task);
     }
 
-    return ddf;
+    return promise;
 }
 #endif
 

@@ -15,15 +15,15 @@
 void async_fct(void * arg) {
     void ** argv = (void **) arg;
     int index = *((int *) argv[0]);
-    hclib_ddf_t ** ddf_list = (hclib_ddf_t **) argv[1];
+    hclib_promise_t ** promise_list = (hclib_promise_t **) argv[1];
     printf("Running async %d\n", index);
     /* Check value set by predecessor */
-    int* prev = (int *) hclib_ddf_get(ddf_list[(index-1)*2]);
+    int* prev = (int *) hclib_promise_get(promise_list[(index-1)*2]);
     assert(*prev == index-1);
-    printf("Async %d putting in DDF %d @ %p\n", index, index*2, ddf_list[index*2]);
+    printf("Async %d putting in DDF %d @ %p\n", index, index*2, promise_list[index*2]);
     int * value = (int *) malloc(sizeof(int)*1);
     *value = index;
-    hclib_ddf_put(ddf_list[index*2], value);
+    hclib_promise_put(promise_list[index*2], value);
     free(argv);
 }
 
@@ -33,12 +33,12 @@ void entrypoint(void *arg) {
     int index = 0;
     // Create asyncs
     // Building 'n' NULL-terminated lists of a single DDF each
-    hclib_ddf_t ** ddf_list = (hclib_ddf_t **)malloc(
-            sizeof(hclib_ddf_t *) * (2*(n+1)));
+    hclib_promise_t ** promise_list = (hclib_promise_t **)malloc(
+            sizeof(hclib_promise_t *) * (2*(n+1)));
     for (index = 0 ; index <= n; index++) {
-        ddf_list[index*2] = hclib_ddf_create();
-        printf("Populating ddf_list at address %p\n", &ddf_list[index*2]);
-        ddf_list[index*2+1] = NULL;
+        promise_list[index*2] = hclib_promise_create();
+        printf("Populating promise_list at address %p\n", &promise_list[index*2]);
+        promise_list[index*2+1] = NULL;
     }
 
     for(index=n-1; index>=1; index--) {
@@ -46,23 +46,23 @@ void entrypoint(void *arg) {
         void ** argv = malloc(sizeof(void *) * 2);
         argv[0] = malloc(sizeof(int) *1);
         *((int *)argv[0]) = index;
-        // Pass down the whole ddf_list, and async uses index*2 to resolve ddfs it needs
-        argv[1] = (void *)ddf_list;
-        printf("Creating async %d await on %p will enable %p\n", index, ddf_list, &(ddf_list[index*2]));
-        hclib_async(async_fct, argv, &(ddf_list[(index-1)*2]), NULL, NULL, NO_PROP);
+        // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
+        argv[1] = (void *)promise_list;
+        printf("Creating async %d await on %p will enable %p\n", index, promise_list, &(promise_list[index*2]));
+        hclib_async(async_fct, argv, &(promise_list[(index-1)*2]), NULL, NULL, NO_PROP);
     }
 
     int * value = (int *) malloc(sizeof(int));
     *value = 0;
     printf("Putting in DDF 0\n");
-    hclib_ddf_put(ddf_list[0], value);
+    hclib_promise_put(promise_list[0], value);
     hclib_end_finish();
     // freeing everything up
     for (index = 0 ; index <= n; index++) {
-        free(hclib_ddf_get(ddf_list[index*2]));
-        hclib_ddf_free(ddf_list[index*2]);
+        free(hclib_promise_get(promise_list[index*2]));
+        hclib_promise_free(promise_list[index*2]);
     }
-    free(ddf_list);
+    free(promise_list);
 }
 
 /*

@@ -99,7 +99,7 @@ hc_workerState* current_ws();
 typedef void (*generic_framePtr)(void*);
 
 #include "hclib-timer.h"
-#include "hclib-ddf.h"
+#include "hclib-promise.h"
 #include "hclib-place.h"
 
 int  hclib_num_workers();

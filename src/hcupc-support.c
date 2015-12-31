@@ -117,7 +117,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 			hc_deque_t* d = &deqs[victim];
 			hclib_task_t* t = dequeSteal(&(d->deque));
 			if (t) { /* steal succeeded */
-				HASSERT(t->ddf_list == NULL); //TODO DDF not supported inside asyncAny
+				HASSERT(t->promise_list == NULL); //TODO DDF not supported inside asyncAny
 				memcpy(&buff, t, sizeof(hclib_task_t));
 				/*
 				 * decrement the finish counter associated with this task
@@ -187,7 +187,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 		if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
 		hclib_task_t* t = dequeSteal(&(ws_i->current->deque));
 		if (t) { /* steal succeeded */
-			HASSERT(t->ddf_list == NULL); //TODO DDF not supported inside asyncAny
+			HASSERT(t->promise_list == NULL); //TODO DDF not supported inside asyncAny
 			memcpy(&buff, t, sizeof(hclib_task_t));
 			/*
 			 * decrement the finish counter associated with this task
@@ -275,7 +275,7 @@ void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id) {
 
 #ifdef HUPCPP
 
-void (*hclib_dddf_register_callback)(hclib_ddf_t** ddf_list) = NULL;
+void (*hclib_distributed_promise_register_callback)(hclib_promise_t** promise_list) = NULL;
 
 int totalPendingLocalAsyncs() {
 	/*
@@ -313,8 +313,8 @@ volatile int* hclib_start_finish_special() {
 
 #endif
 
-void check_if_hcupc_dddf(hclib_ddf_t** ddf_list) {
+void check_if_hcupc_distributed_promises(hclib_promise_t** promise_list) {
 #ifdef HUPCPP
-	hclib_dddf_register_callback(ddf_list);
+	hclib_distributed_promise_register_callback(promise_list);
 #endif
 }

@@ -9,7 +9,7 @@
 
 namespace hclib {
 
-typedef hclib_ddf_t ddf_t;
+typedef hclib_promise_t promise_t;
 typedef hclib_ddt_t ddt_t;
 typedef loop_domain_t loop_domain_t;
 typedef place_t place_t;
@@ -21,13 +21,13 @@ void launch(int *argc, char **argv, T lambda) {
     hclib_launch(argc, argv, (generic_framePtr)spawn, user_task);
 }
 
-ddf_t *ddf_create();
-ddf_t **ddf_create_n(size_t nb_ddfs, int null_terminated);
-void ddf_init(ddf_t* ddf);
-void ddf_free(ddf_t *ddf);
-void ddf_put(ddf_t *ddf, void *datum);
-void *ddf_get(ddf_t *ddf);
-void *ddf_wait(ddf_t *ddf);
+promise_t *promise_create();
+promise_t **promise_create_n(size_t nb_promises, int null_terminated);
+void promise_init(promise_t* promise);
+void promise_free(promise_t *promise);
+void promise_put(promise_t *promise, void *datum);
+void *promise_get(promise_t *promise);
+void *promise_wait(promise_t *promise);
 
 hc_workerState *current_ws();
 int current_worker();
@@ -52,17 +52,17 @@ void free_at(place_t *pl, T *ptr) {
 }
 
 template<typename T>
-ddf_t *async_copy(place_t *dst_pl, T *dst,
+promise_t *async_copy(place_t *dst_pl, T *dst,
         place_t *src_pl, T *src, size_t nitems,
-        hclib_ddf_t **ddf_list, void *user_arg) {
+        hclib_promise_t **promise_list, void *user_arg) {
     return hclib_async_copy(dst_pl, dst, src_pl, src, nitems * sizeof(T),
-            ddf_list, user_arg);
+            promise_list, user_arg);
 }
 
 template<typename T>
-ddf_t *async_memset(place_t *pl, T *ptr, int val,
-        size_t nitems, hclib_ddf_t **ddf_list, void *user_arg) {
-    return hclib_async_memset(pl, ptr, val, nitems * sizeof(T), ddf_list,
+promise_t *async_memset(place_t *pl, T *ptr, int val,
+        size_t nitems, hclib_promise_t **promise_list, void *user_arg) {
+    return hclib_async_memset(pl, ptr, val, nitems * sizeof(T), promise_list,
             user_arg);
 }
 #endif

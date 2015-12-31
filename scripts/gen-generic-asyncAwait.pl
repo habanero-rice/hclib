@@ -10,25 +10,25 @@ if($#ARGV != 0) {
 }
 ####################################################
 #template <typename T>
-#void asyncAwait(hclib_ddf_t* ddf0, T lambda) {
-#	int ddfs = 2;
-#	hclib_ddf_t** ddfList = (hclib_ddf_t**) malloc(sizeof(hclib_ddf_t *) * ddfs);
-#	ddfList[0] = ddf0; 
-#	ddfList[1] = NULL; 
-#	_asyncAwait<T>(ddfList, lambda);
+#void asyncAwait(hclib_promise_t* promise0, T lambda) {
+#	int promises = 2;
+#	hclib_promise_t** promiseList = (hclib_promise_t**) malloc(sizeof(hclib_promise_t *) * promises);
+#	promiseList[0] = promise0; 
+#	promiseList[1] = NULL; 
+#	_asyncAwait<T>(promiseList, lambda);
 #}
 #template <typename T>
-#void asyncAwait(hclib_ddf_t* ddf0, hclib_ddf_t* ddf1, T lambda) {
-#	int ddfs = 3;
-#	hclib_ddf_t** ddfList = (hclib_ddf_t**) malloc(sizeof(hclib_ddf_t *) * ddfs);
-#	ddfList[0] = ddf0; 
-#	ddfList[1] = ddf1; 
-#	ddfList[2] = NULL; 
-#	_asyncAwait<T>(ddfList, lambda);
+#void asyncAwait(hclib_promise_t* promise0, hclib_promise_t* promise1, T lambda) {
+#	int promises = 3;
+#	hclib_promise_t** promiseList = (hclib_promise_t**) malloc(sizeof(hclib_promise_t *) * promises);
+#	promiseList[0] = promise0; 
+#	promiseList[1] = promise1; 
+#	promiseList[2] = NULL; 
+#	_asyncAwait<T>(promiseList, lambda);
 #}
 ####################################################
 
-print "#include \"hclib-ddf.h\"\n";
+print "#include \"hclib-promise.h\"\n";
 print "#include \"hclib-async.h\"\n";
 print "\n";
 print "namespace hclib {\n";
@@ -36,26 +36,26 @@ print "\n";
 
 for (my $j=0; $j<$ARGV[0]; $j++) {
 	print "template <typename T>\n";
-	print "void asyncAwait(hclib_ddf_t* ddf0";
+	print "void asyncAwait(hclib_promise_t* promise0";
 
-	#Printing the hclib_ddf_t parameters
+	#Printing the hclib_promise_t parameters
 	for (my $i=1; $i<=$j; $i++) {
-  		print ", hclib_ddf_t* ddf$i";
+  		print ", hclib_promise_t* promise$i";
 	}
 	print ", T lambda) {\n";
 
-	my $ddfs = $j + 2;
-	print "\tint ddfs = $ddfs;\n";
-	print "\thclib_ddf_t** ddfList = (hclib_ddf_t**) HC_MALLOC(sizeof(hclib_ddf_t *) * ddfs);\n";
+	my $promises = $j + 2;
+	print "\tint promises = $promises;\n";
+	print "\thclib_promise_t** promiseList = (hclib_promise_t**) HC_MALLOC(sizeof(hclib_promise_t *) * promises);\n";
 
 	for (my $i=0; $i<=$j; $i++) {
-  		print "\tddfList[$i] = ddf$i; \n";
+  		print "\tpromiseList[$i] = promise$i; \n";
 	}
-	$ddfs = $ddfs - 1;
-	print "\tddfList[$ddfs] = NULL; \n";
+	$promises = $promises - 1;
+	print "\tpromiseList[$promises] = NULL; \n";
 
 
-	print "\thclib::_asyncAwait<T>(ddfList, lambda);\n";
+	print "\thclib::_asyncAwait<T>(promiseList, lambda);\n";
 	print "}\n";
 }
 print "\n";

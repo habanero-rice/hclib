@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hclib_common.h"
 #include "hclib-task.h"
-#include "hclib-ddf.h"
+#include "hclib-promise.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,27 +69,27 @@ void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
 
 // forward declaration for phased clause defined in phased.h
 struct _phased_t;
-// forward declaration for ddf_st in hclib-ddf.h
-struct hclib_ddf_st;
+// forward declaration for promise_st in hclib-promise.h
+struct hclib_promise_st;
 
 /**
  * @brief Spawn a new task asynchronously.
  * @param[in] fct_ptr           The function to execute
  * @param[in] arg               Argument to the async
- * @param[in] ddf_list          The list of DDFs the async depends on
+ * @param[in] promise_list          The list of DDFs the async depends on
  * @param[in] phased_clause     Phased clause to specify which phasers the async registers on
  * @param[in] property          Flag to pass information to the runtime
  */
 void hclib_async(asyncFct_t fct_ptr, void * arg,
-        struct hclib_ddf_st ** ddf_list, struct _phased_t * phased_clause,
+        struct hclib_promise_st ** promise_list, struct _phased_t * phased_clause,
         place_t *place, int property);
 
 /*
  * Spawn an async that automatically puts a DDF on termination. It is the user's
- * responsibility to call hclib_ddf_free on the returned ddf_t.
+ * responsibility to call hclib_promise_free on the returned promise_t.
  */
-hclib_ddf_t *hclib_async_future(futureFct_t fp, void *arg,
-        hclib_ddf_t **ddf_list, struct _phased_t *phased_clause,
+hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
+        hclib_promise_t **promise_list, struct _phased_t *phased_clause,
         place_t *place, int property);
 
 /*
@@ -140,21 +140,21 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  *
  * @param[in] forasync_fct      The function pointer to execute.
  * @param[in] argv              Argument to the function
- * @param[in] ddf_list          DDFs dependences 
+ * @param[in] promise_list          DDFs dependences 
  * @param[in] phased_clause     Phasers registration
  * @param[in] dim               Dimension of the loop
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
-void hclib_forasync(void *forasync_fct, void *argv, hclib_ddf_t **ddf_list,
+void hclib_forasync(void *forasync_fct, void *argv, hclib_promise_t **promise_list,
         int dim, loop_domain_t *domain, forasync_mode_t mode);
 
 /*
  * Semantically equivalent to hclib_forasync, but returns a DDF that is
  * triggered when all tasks belonging to this forasync have finished.
  */
-hclib_ddf_t *hclib_forasync_future(void *forasync_fct, void *argv,
-        hclib_ddf_t **ddf_list, int dim, loop_domain_t *domain,
+hclib_promise_t *hclib_forasync_future(void *forasync_fct, void *argv,
+        hclib_promise_t **promise_list, int dim, loop_domain_t *domain,
         forasync_mode_t mode);
 
 /**
@@ -171,7 +171,7 @@ void hclib_end_finish();
  * Get a DDF that is triggered when all tasks inside this finish scope have
  * finished, but return immediately.
  */
-hclib_ddf_t *hclib_end_finish_nonblocking();
+hclib_promise_t *hclib_end_finish_nonblocking();
 
 /**
  * @}

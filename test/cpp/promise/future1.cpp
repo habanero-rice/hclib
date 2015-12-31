@@ -15,9 +15,9 @@
 int main(int argc, char ** argv) {
     hclib::launch(&argc, argv, []() {
         hclib::finish([]() {
-            hclib::ddf_t *event = hclib::ddf_create();
+            hclib::promise_t *event = hclib::promise_create();
             hclib::async([=]() {
-                    int *signal = (int *)hclib::ddf_wait(event);
+                    int *signal = (int *)hclib::promise_wait(event);
                     assert(*signal == 42);
                     printf("signal = %d\n", *signal);
                 });
@@ -27,7 +27,7 @@ int main(int argc, char ** argv) {
                     *signal = 42;
 
                     sleep(5);
-                    hclib::ddf_put(event, signal);
+                    hclib::promise_put(event, signal);
                 });
         });
     });

@@ -75,7 +75,7 @@ typedef struct _gpu_task_t {
     hclib_task_t t;
     gpu_task_type_t gpu_type;
     // DDF to put when this task completes
-    hclib_ddf_t *ddf_to_put;
+    hclib_promise_t *promise_to_put;
     void *arg_to_put;
     union {
         gpu_comm_task_t comm_task;
@@ -94,7 +94,7 @@ typedef struct _gpu_task_t {
  * pending_cuda_op provides this tracking.
  */
 typedef struct _pending_cuda_op {
-    hclib_ddf_t *ddf_to_put;
+    hclib_promise_t *promise_to_put;
     void *arg_to_put;
     cudaEvent_t event;
     struct _pending_cuda_op *next;

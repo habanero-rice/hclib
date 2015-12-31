@@ -151,7 +151,7 @@ inline void asyncAny(T lambda) {
  */
 void init_hcupc_related_datastructures(int w);
 void free_hcupc_related_datastructures();
-void check_if_hcupc_dddf(hclib_ddf_t** ddf_list);
+void check_if_hcupc_distributed_promises(hclib_promise_t** promise_list);
 void hcupc_reset_asyncAnyInfo(int id);
 void hcupc_check_if_asyncAny_stolen(hclib_task_t* buff, int victim, int id);
 void hcupc_inform_failedSteal(int id);

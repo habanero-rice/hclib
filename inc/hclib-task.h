@@ -18,7 +18,7 @@
  *   3) current_finish: a pointer to the finish scope this task is registered on
  *      (possibly NULL).
  *   4) is_asyncAnyType: a boolean that doesn't seem to be ever be set to 1...
- *   5) ddf_list: a null-terminated list of pointers to the DDFs that this task
+ *   5) promise_list: a null-terminated list of pointers to the DDFs that this task
  *      depends on to execute, and which it will wait on before running.
  */
 typedef struct _hclib_task_t {
@@ -31,7 +31,7 @@ typedef struct _hclib_task_t {
      * and locality flexible asyncAny
      */
     int is_asyncAnyType;
-    hclib_ddf_t **ddf_list; // Null terminated list
+    hclib_promise_t **promise_list; // Null terminated list
     place_t *place;
 } hclib_task_t;
 
@@ -43,7 +43,7 @@ typedef struct hclib_dependent_task_t {
 	hclib_task_t async_task; // the actual task
     /*
      * ddt meta-information, tasks that this task is blocked on for execution.
-     * ddt.waitingFrontier is generally equal to async_task.ddf_list. TODO can
+     * ddt.waitingFrontier is generally equal to async_task.promise_list. TODO can
      * we factor out this redundant storage of data?
      */
 	hclib_ddt_t ddt;
@@ -109,8 +109,8 @@ inline void set_current_finish(hclib_task_t *t,
     t->current_finish = finish;
 }
 
-inline void set_ddf_list(hclib_task_t *t, hclib_ddf_t ** ddf) {
-    t->ddf_list = ddf;
+inline void set_promise_list(hclib_task_t *t, hclib_promise_t ** promise) {
+    t->promise_list = promise;
 }
 
 #endif

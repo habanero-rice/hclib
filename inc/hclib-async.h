@@ -107,7 +107,7 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
     t->_fp = lambda_wrapper<Function, T1 *>;
     t->args = args;
     t->is_asyncAnyType = 0;
-    t->ddf_list = NULL;
+    t->promise_list = NULL;
     t->place = NULL;
 }
 
@@ -157,17 +157,17 @@ inline void async(T lambda) {
 }
 
 template <typename T>
-inline void _asyncAwait(hclib_ddf_t ** ddf_list, T lambda) {
+inline void _asyncAwait(hclib_promise_t ** promise_list, T lambda) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, ddf_list);
+	spawn_await(task, promise_list);
 }
 
 template <typename T>
-inline void asyncAwaitAt(hclib_ddf_t **ddf_list, place_t *pl, T lambda) {
+inline void asyncAwaitAt(hclib_promise_t **promise_list, place_t *pl, T lambda) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, ddf_list, pl);
+	spawn_await_at(task, promise_list, pl);
 }
 
 template <typename T>
@@ -177,8 +177,8 @@ inline void asyncComm(T lambda) {
 }
 
 template <typename T>
-hclib_ddf_t *asyncFuture(T lambda) {
-    hclib_ddf_t *event = hclib_ddf_create();
+hclib_promise_t *asyncFuture(T lambda) {
+    hclib_promise_t *event = hclib_promise_create();
     /*
      * TODO creating this closure may be inefficient. While the capture list is
      * precise, if the user-provided lambda is large then copying it by value
@@ -186,7 +186,7 @@ hclib_ddf_t *asyncFuture(T lambda) {
      */
     auto wrapper = [event, lambda]() {
         lambda();
-        hclib_ddf_put(event, NULL);
+        hclib_promise_put(event, NULL);
     };
     hclib_task_t* task = _allocate_async(wrapper, false);
     spawn(task);
@@ -194,8 +194,8 @@ hclib_ddf_t *asyncFuture(T lambda) {
 }
 
 template <typename T>
-hclib_ddf_t *asyncFutureAwait(hclib_ddf_t **ddf_list, T lambda) {
-    hclib_ddf_t *event = hclib_ddf_create();
+hclib_promise_t *asyncFutureAwait(hclib_promise_t **promise_list, T lambda) {
+    hclib_promise_t *event = hclib_promise_create();
     /*
      * TODO creating this closure may be inefficient. While the capture list is
      * precise, if the user-provided lambda is large then copying it by value
@@ -203,10 +203,10 @@ hclib_ddf_t *asyncFutureAwait(hclib_ddf_t **ddf_list, T lambda) {
      */
     auto wrapper = [event, lambda]() {
         lambda();
-        hclib_ddf_put(event, NULL);
+        hclib_promise_put(event, NULL);
     };
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await(task, ddf_list);
+    spawn_await(task, promise_list);
     return event;
 }
 
@@ -216,7 +216,7 @@ inline void finish(std::function<void()> lambda) {
     hclib_end_finish();
 }
 
-inline hclib_ddf_t *nonblocking_finish(std::function<void()> lambda) {
+inline hclib_promise_t *nonblocking_finish(std::function<void()> lambda) {
     hclib_start_finish();
     lambda();
     return hclib_end_finish_nonblocking();

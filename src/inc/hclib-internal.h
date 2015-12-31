@@ -126,7 +126,7 @@ void bind_thread(int worker_id, int *bind_map, int bind_map_size);
 
 int get_current_worker();
 
-// ddf
+// promise
 int iterate_ddt_frontier(hclib_ddt_t * ddt);
 hclib_ddt_t * rt_async_task_to_ddt(hclib_task_t * async_task);
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,

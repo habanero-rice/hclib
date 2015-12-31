@@ -39,9 +39,9 @@ void run_copy_test(hclib::place_t *dst_pl, int *dst, hclib::place_t *src_pl,
         memset(dst, 0x00, nbytes);
     }
 
-    hclib::ddf_t *event = hclib::async_copy(dst_pl, dst, src_pl, src, nelems,
+    hclib::promise_t *event = hclib::async_copy(dst_pl, dst, src_pl, src, nelems,
             NULL, dst);
-    void *result = hclib::ddf_wait(event);
+    void *result = hclib::promise_wait(event);
     if (result != dst) {
         fprintf(stderr, "Expected %p, got %p\n", dst, result);
         assert(0);
