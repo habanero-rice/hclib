@@ -33,7 +33,7 @@ void taskSleep(void *args) {
 void taskA(void *args) {
     echo_worker("A");
     FINISH {
-        hclib_async(taskSleep, taskA, NO_DDF, NO_PHASER, NO_PROP);
+        hclib_async(taskSleep, taskA, NO_PROMISE, NO_PHASER, NO_PROP);
         DELAY(2);
     }
     printf("%p <- %p\n", promise, &data);
@@ -50,7 +50,7 @@ void taskB(void *args) {
 void taskC(void *args) {
     echo_worker("C");
     DELAY(1);
-    hclib_async(taskB, NULL, NO_DDF, NO_PHASER, NO_PROP);
+    hclib_async(taskB, NULL, NO_PROMISE, NO_PHASER, NO_PROP);
     DELAY(5);
 }
 
@@ -59,8 +59,8 @@ void taskMain(void *args) {
     promise = hclib_promise_create();
     promise_list[0] = promise;
 
-    hclib_async(&taskA, NULL, NO_DDF, NO_PHASER, NO_PROP);
-    hclib_async(&taskC, NULL, NO_DDF, NO_PHASER, NO_PROP);
+    hclib_async(&taskA, NULL, NO_PROMISE, NO_PHASER, NO_PROP);
+    hclib_async(&taskC, NULL, NO_PROMISE, NO_PHASER, NO_PROP);
     DELAY(10);
 }
 

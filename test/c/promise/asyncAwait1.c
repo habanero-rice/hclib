@@ -20,7 +20,7 @@ void async_fct(void * arg) {
     /* Check value set by predecessor */
     int* prev = (int *) hclib_promise_get(promise_list[(index-1)*2]);
     assert(*prev == index-1);
-    printf("Async %d putting in DDF %d @ %p\n", index, index*2, promise_list[index*2]);
+    printf("Async %d putting in promise %d @ %p\n", index, index*2, promise_list[index*2]);
     int * value = (int *) malloc(sizeof(int)*1);
     *value = index;
     hclib_promise_put(promise_list[index*2], value);
@@ -32,7 +32,7 @@ void entrypoint(void *arg) {
     int n = 5;
     int index = 0;
     // Create asyncs
-    // Building 'n' NULL-terminated lists of a single DDF each
+    // Building 'n' NULL-terminated lists of a single promise each
     hclib_promise_t ** promise_list = (hclib_promise_t **)malloc(
             sizeof(hclib_promise_t *) * (2*(n+1)));
     for (index = 0 ; index <= n; index++) {
@@ -54,7 +54,7 @@ void entrypoint(void *arg) {
 
     int * value = (int *) malloc(sizeof(int));
     *value = 0;
-    printf("Putting in DDF 0\n");
+    printf("Putting in promise 0\n");
     hclib_promise_put(promise_list[0], value);
     hclib_end_finish();
     // freeing everything up

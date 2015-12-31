@@ -404,11 +404,11 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
 }
 
 /*
- * A task which has no dependencies on prior tasks through DDFs is always
+ * A task which has no dependencies on prior tasks through promises is always
  * immediately ready for scheduling. A task that is registered on some prior
- * DDFs may be ready for scheduling if all of those DDFs have already been
+ * promises may be ready for scheduling if all of those promises have already been
  * satisfied. If they have not all been satisfied, the execution of this task is
- * registered on each, and it is only placed in a work deque once all DDFs have
+ * registered on each, and it is only placed in a work deque once all promises have
  * been satisfied.
  */
 inline int is_eligible_to_schedule(hclib_task_t * async_task) {
@@ -700,7 +700,7 @@ void *gpu_worker_routine(void *finish_ptr) {
             } else if (task->promise_to_put) {
                 /*
                  * No pending operation implies we did a blocking CUDA
-                 * operation, and can immediately put any dependent DDFs.
+                 * operation, and can immediately put any dependent promises.
                  */
                 hclib_promise_put(task->promise_to_put, task->arg_to_put);
             }
@@ -916,7 +916,7 @@ void _help_wait(LiteCtx *ctx) {
 }
 
 void *hclib_promise_wait(hclib_promise_t *promise) {
-	if (promise->datum != UNINITIALIZED_DDF_DATA_PTR) {
+	if (promise->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
         return (void *)promise->datum;
     }
     hclib_promise_t *continuation_deps[] = { promise, NULL };
@@ -927,7 +927,7 @@ void *hclib_promise_wait(hclib_promise_t *promise) {
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
-    HASSERT(promise->datum != UNINITIALIZED_DDF_DATA_PTR);
+    HASSERT(promise->datum != UNINITIALIZED_PROMISE_DATA_PTR);
     return (void *)promise->datum;
 }
 
@@ -1238,6 +1238,6 @@ static void hclib_finalize() {
 void hclib_launch(int * argc, char ** argv, generic_framePtr fct_ptr,
         void * arg) {
     hclib_init(argc, argv);
-    hclib_async(fct_ptr, arg, NO_DDF, NO_PHASER, NULL, NO_PROP);
+    hclib_async(fct_ptr, arg, NO_PROMISE, NO_PHASER, NULL, NO_PROP);
     hclib_finalize();
 }

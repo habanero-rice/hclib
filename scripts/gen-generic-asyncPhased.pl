@@ -26,7 +26,7 @@ for (my $j=0; $j<$ARGV[0]; $j++) {
         print "template <typename T>\n";
         print "void asyncPhased(PHASER_t ph0, PHASER_m m0 ";
 
-        #Printing the DDF_t parameters
+        #Printing the promise parameters
         for (my $i=1; $i<=$j; $i++) {
                 print ", PHASER_t ph$i, PHASER_m m$i";
         }

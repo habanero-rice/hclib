@@ -381,14 +381,14 @@ void hclib_free_at(place_t *pl, void *ptr) {
     }
 }
 
-// Used to wrap the creation of an async copy task that is dependent on some DDFs
+// Used to wrap the creation of an async copy task that is dependent on some promises
 static void async_gpu_task_launcher(void *arg) {
     gpu_task_t *task = (gpu_task_t *)arg;
     spawn_gpu_task((hclib_task_t *)task);
 }
 
 /*
- * TODO Currently doesn't support await on other DDFs, nor do communication
+ * TODO Currently doesn't support await on other promises, nor do communication
  * tasks
  */
 hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,

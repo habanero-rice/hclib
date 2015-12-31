@@ -9,10 +9,10 @@
 #define NO_PROP 0
 /** @brief No arguments provided. */
 #define NO_ARG NULL
-/** @brief To satisfy a DDF with a 'NULL' value. */
+/** @brief To satisfy a promise with a 'NULL' value. */
 #define NO_DATUM NULL
-/** @brief No DDF argument provided. */
-#define NO_DDF NULL
+/** @brief No promse argument provided. */
+#define NO_PROMISE NULL
 /** @brief No phaser argument provided. */
 #define NO_PHASER NULL
 /** @brief To indicate an async must register with all phasers. */

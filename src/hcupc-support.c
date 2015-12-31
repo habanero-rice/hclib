@@ -117,7 +117,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 			hc_deque_t* d = &deqs[victim];
 			hclib_task_t* t = dequeSteal(&(d->deque));
 			if (t) { /* steal succeeded */
-				HASSERT(t->promise_list == NULL); //TODO DDF not supported inside asyncAny
+				HASSERT(t->promise_list == NULL); //TODO promises not supported inside asyncAny
 				memcpy(&buff, t, sizeof(hclib_task_t));
 				/*
 				 * decrement the finish counter associated with this task
@@ -187,7 +187,7 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 		if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
 		hclib_task_t* t = dequeSteal(&(ws_i->current->deque));
 		if (t) { /* steal succeeded */
-			HASSERT(t->promise_list == NULL); //TODO DDF not supported inside asyncAny
+			HASSERT(t->promise_list == NULL); //TODO promise not supported inside asyncAny
 			memcpy(&buff, t, sizeof(hclib_task_t));
 			/*
 			 * decrement the finish counter associated with this task

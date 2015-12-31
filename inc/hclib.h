@@ -76,7 +76,7 @@ struct hclib_promise_st;
  * @brief Spawn a new task asynchronously.
  * @param[in] fct_ptr           The function to execute
  * @param[in] arg               Argument to the async
- * @param[in] promise_list          The list of DDFs the async depends on
+ * @param[in] promise_list          The list of promises the async depends on
  * @param[in] phased_clause     Phased clause to specify which phasers the async registers on
  * @param[in] property          Flag to pass information to the runtime
  */
@@ -85,7 +85,7 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
         place_t *place, int property);
 
 /*
- * Spawn an async that automatically puts a DDF on termination. It is the user's
+ * Spawn an async that automatically puts a promise on termination. It is the user's
  * responsibility to call hclib_promise_free on the returned promise_t.
  */
 hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
@@ -140,7 +140,7 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  *
  * @param[in] forasync_fct      The function pointer to execute.
  * @param[in] argv              Argument to the function
- * @param[in] promise_list          DDFs dependences 
+ * @param[in] promise_list          promises dependences 
  * @param[in] phased_clause     Phasers registration
  * @param[in] dim               Dimension of the loop
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
@@ -150,7 +150,7 @@ void hclib_forasync(void *forasync_fct, void *argv, hclib_promise_t **promise_li
         int dim, loop_domain_t *domain, forasync_mode_t mode);
 
 /*
- * Semantically equivalent to hclib_forasync, but returns a DDF that is
+ * Semantically equivalent to hclib_forasync, but returns a promise that is
  * triggered when all tasks belonging to this forasync have finished.
  */
 hclib_promise_t *hclib_forasync_future(void *forasync_fct, void *argv,
@@ -168,7 +168,7 @@ void hclib_start_finish();
 void hclib_end_finish();
 
 /*
- * Get a DDF that is triggered when all tasks inside this finish scope have
+ * Get a promise that is triggered when all tasks inside this finish scope have
  * finished, but return immediately.
  */
 hclib_promise_t *hclib_end_finish_nonblocking();

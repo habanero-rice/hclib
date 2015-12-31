@@ -74,7 +74,7 @@ typedef struct _gpu_compute_task_t {
 typedef struct _gpu_task_t {
     hclib_task_t t;
     gpu_task_type_t gpu_type;
-    // DDF to put when this task completes
+    // promise to put when this task completes
     hclib_promise_t *promise_to_put;
     void *arg_to_put;
     union {
@@ -88,7 +88,7 @@ typedef struct _gpu_task_t {
  * pending_cuda_op represents an asynchronous CUDA operation that has been
  * kicked off and which will signal event when it completes. pending_cuda_op is
  * used for user GPU copy or kernel tasks that are launched with some dependent
- * DDFs that should be put following the completion of the task. Rather than
+ * promises that should be put following the completion of the task. Rather than
  * block the whole GPU thread on each CUDA operation, we can queue up many
  * asynchronous CUDA operations but need somewhere to track them all.
  * pending_cuda_op provides this tracking.

@@ -452,7 +452,7 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
 
 void hclib_forasync(void* forasync_fct, void * argv, hclib_promise_t** promise_list,
         int dim, loop_domain_t *domain, forasync_mode_t mode) {
-    HASSERT(promise_list == NULL && "Limitation: forasync does not support DDFs yet");
+    HASSERT(promise_list == NULL && "Limitation: forasync does not support promises yet");
 
     forasync_internal(forasync_fct, argv, dim, domain, mode);
 }

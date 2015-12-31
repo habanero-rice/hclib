@@ -18,7 +18,7 @@
  *   3) current_finish: a pointer to the finish scope this task is registered on
  *      (possibly NULL).
  *   4) is_asyncAnyType: a boolean that doesn't seem to be ever be set to 1...
- *   5) promise_list: a null-terminated list of pointers to the DDFs that this task
+ *   5) promise_list: a null-terminated list of pointers to the promises that this task
  *      depends on to execute, and which it will wait on before running.
  */
 typedef struct _hclib_task_t {
@@ -37,7 +37,7 @@ typedef struct _hclib_task_t {
 
 /*
  * A representation of a task whose execution is dependent on prior tasks
- * through a list of DDF objects.
+ * through a list of promise objects.
  */
 typedef struct hclib_dependent_task_t {
 	hclib_task_t async_task; // the actual task

@@ -16,7 +16,7 @@ void async_fct(void * arg) {
     int index = *((int *) argv[0]);
     hclib_promise_t * promise = (hclib_promise_t *) argv[1];
     printf("Running async %d\n", index/2);
-    printf("Async %d putting in DDF %d @ %p\n", index/2, index, promise);
+    printf("Async %d putting in promise %d @ %p\n", index/2, index, promise);
     hclib_promise_put(promise, NO_DATUM);
     free(argv);
 }
@@ -32,7 +32,7 @@ int main(int argc, char ** argv) {
     hclib::launch(&argc, argv, [=]() {
         hclib::finish([=]() {
             int index = 0;
-            // Building 'n' NULL-terminated lists of a single DDF each
+            // Building 'n' NULL-terminated lists of a single promise each
             for (index = 0 ; index <= n; index++) {
                 promise_list[index*2] = hclib::promise_create();
                 printf("Creating promise  %p at promise_list @ %p \n",
@@ -49,7 +49,7 @@ int main(int argc, char ** argv) {
                     int index = index * 2;
                     hclib::promise_put(promise, NO_DATUM); });
             }
-            printf("Putting in DDF 0\n");
+            printf("Putting in promise 0\n");
             hclib::promise_put(promise_list[0], NO_DATUM);
         });
         // freeing everything up
