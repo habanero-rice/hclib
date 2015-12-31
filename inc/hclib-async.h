@@ -178,7 +178,7 @@ template <typename... promise_list_t>
 inline void _construct_promise_list(int index, hclib_promise_t **promise_list,
         hclib::promise_t *promise, promise_list_t... remaining) {
     promise_list[index] = &promise->internal;
-    _construct_promise_list(index, promise_list, remaining...);
+    _construct_promise_list(index + 1, promise_list, remaining...);
 }
 
 template <typename... promise_list_t>
