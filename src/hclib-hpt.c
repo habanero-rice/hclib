@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-hpt.cpp
+ * hclib-hpt.cpp
  *
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
@@ -40,11 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
-#include "hcpp-hpt.h"
-#include "hcpp-internal.h"
-#include "hcpp-atomics.h"
+#include "hclib-hpt.h"
+#include "hclib-internal.h"
+#include "hclib-atomics.h"
 #include "hcupc-support.h"
-#include "hcpp-cuda.h"
+#include "hclib-cuda.h"
 
 // #define VERBOSE
 
@@ -52,7 +52,7 @@ inline hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
 void free_hpt(place_t * hpt);
 static const char *place_type_to_str(short type);
 
-extern hc_context* hcpp_context;
+extern hc_context* hclib_context;
 
 void *unsupported_place_type_err(place_t *pl) {
     fprintf(stderr, "Unsupported place type %s\n", place_type_to_str(pl->type));
@@ -329,7 +329,7 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
                 return NULL;
             } else {
                 hclib_memory_tree_insert(ptr, nbytes,
-                        &hcpp_context->pinned_host_allocs);
+                        &hclib_context->pinned_host_allocs);
                 return ptr;
             }
         }
@@ -361,13 +361,13 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
 }
 
 int is_pinned_cpu_mem(void *ptr) {
-    return hclib_memory_tree_contains(ptr, &hcpp_context->pinned_host_allocs);
+    return hclib_memory_tree_contains(ptr, &hclib_context->pinned_host_allocs);
 }
 
 void hclib_free_at(place_t *pl, void *ptr) {
     if (is_cpu_place(pl)) {
         if (is_pinned_cpu_mem(ptr)) {
-            hclib_memory_tree_remove(ptr, &hcpp_context->pinned_host_allocs);
+            hclib_memory_tree_remove(ptr, &hclib_context->pinned_host_allocs);
             CHECK_CUDA(cudaFreeHost(ptr));
         } else {
             free(ptr);
@@ -1195,11 +1195,11 @@ void setup_worker_hpt_path(hc_workerState * worker, place_t * pl) {
  *
  * read_hpt parses one of these XML files and produces the equivalent place
  * hierarchy, returning the root of that hierarchy. The schema of the HPT XML
- * file is stored in $HCPP_HOME/hpt/hpt.dtd.
+ * file is stored in $HCLIB_HOME/hpt/hpt.dtd.
  */
 place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
         hc_workerState *** all_workers, int * num_wk) {
-    const char *filename = getenv("HCPP_HPT_FILE");
+    const char *filename = getenv("HCLIB_HPT_FILE");
     HASSERT(filename);
 
     /* create a parser context */

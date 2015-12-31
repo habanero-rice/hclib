@@ -30,20 +30,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-internal.h
+ * hclib-internal.h
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#ifndef HCPP_INTERNAL_H_
-#define HCPP_INTERNAL_H_
+#ifndef HCLIB_INTERNAL_H_
+#define HCLIB_INTERNAL_H_
 
 #include <stdarg.h>
 #include <stdint.h>
-#include "hcpp-tree.h"
-#include "hcpp-deque.h"
-#include "hcpp.h"
+#include "hclib-tree.h"
+#include "hclib-deque.h"
+#include "hclib.h"
 #include "litectx.h"
 
 #define LOG_LEVEL_FATAL         1
@@ -106,7 +106,7 @@ typedef struct hc_context {
 #endif
 } hc_context;
 
-#include "hcpp-finish.h"
+#include "hclib-finish.h"
 
 typedef struct hc_deque_t {
     /* The actual deque, WARNING: do not move declaration !
@@ -132,4 +132,4 @@ hclib_ddt_t * rt_async_task_to_ddt(hclib_task_t * async_task);
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
         hc_workerState *ws);
 
-#endif /* HCPP_INTERNAL_H_ */
+#endif /* HCLIB_INTERNAL_H_ */

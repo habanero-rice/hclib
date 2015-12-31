@@ -2,10 +2,10 @@
 #define HCLIB_CPP_H_
 
 #include "hclib_common.h"
-#include "hcpp-rt.h"
-#include "hcpp-async.h"
-#include "hcpp-asyncAwait.h"
-#include "hcpp-forasync.h"
+#include "hclib-rt.h"
+#include "hclib-async.h"
+#include "hclib-asyncAwait.h"
+#include "hclib-forasync.h"
 
 namespace hclib {
 

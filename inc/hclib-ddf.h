@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-ddf.h
+ * hclib-ddf.h
  *
  * NOTE: Terminology
  *   DDF = data-driven future
@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#ifndef HCPP_DDF_H_
-#define HCPP_DDF_H_
+#ifndef HCLIB_DDF_H_
+#define HCLIB_DDF_H_
 
 #include <stdlib.h>
 
@@ -149,4 +149,4 @@ void *hclib_ddf_wait(hclib_ddf_t *ddf);
  */
 void hclib_ddt_init(hclib_ddt_t * ddt, hclib_ddf_t ** ddf_list);
 
-#endif /* HCPP_DDF_H_ */
+#endif /* HCLIB_DDF_H_ */

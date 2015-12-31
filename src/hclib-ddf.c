@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-runtime.cpp
+ * hclib-runtime.cpp
  *
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
@@ -38,8 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
-#include "hcpp-internal.h"
-#include "hcpp-task.h"
+#include "hclib-internal.h"
+#include "hclib-task.h"
 
 // Control debug statements
 #define DEBUG_DDF 0

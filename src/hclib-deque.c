@@ -30,14 +30,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-deque.cpp
+ * hclib-deque.cpp
  *
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#include "hcpp-internal.h"
-#include "hcpp-atomics.h"
+#include "hclib-internal.h"
+#include "hclib-atomics.h"
 
 void deque_init(deque_t * deq, void * init_value) {
     deq->head = 0;

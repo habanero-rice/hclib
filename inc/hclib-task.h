@@ -1,14 +1,14 @@
-#ifndef HCPP_TASK_H_
-#define HCPP_TASK_H_
+#ifndef HCLIB_TASK_H_
+#define HCLIB_TASK_H_
 
-#include "hcpp-rt.h"
+#include "hclib-rt.h"
 
 /*
  * We just need to pack the function pointer and the pointer to
  * the heap allocated lambda for the lambda-based approach. Without lambdas, we
  * simply store the user-provided data pointer (which is obviously smaller).
  */
-#define MAX_HCPP_ASYNC_ARG_SIZE (sizeof(void *) + sizeof(void *))
+#define MAX_HCLIB_ASYNC_ARG_SIZE (sizeof(void *) + sizeof(void *))
 
 /*
  * The core task representation, including:
@@ -27,7 +27,7 @@ typedef struct _hclib_task_t {
     generic_framePtr _fp;
     /*
      * Boolean flag specific to HabaneroUPC++ only.
-     * Used to differentiate between a normal hcpp async
+     * Used to differentiate between a normal hclib async
      * and locality flexible asyncAny
      */
     int is_asyncAnyType;

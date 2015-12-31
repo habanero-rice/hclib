@@ -1,16 +1,16 @@
 /*
- * hcpp-asyncStruct.h
+ * hclib-asyncStruct.h
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  */
 
-#ifndef HCPP_ASYNCSTRUCT_H_
-#define HCPP_ASYNCSTRUCT_H_
+#ifndef HCLIB_ASYNCSTRUCT_H_
+#define HCLIB_ASYNCSTRUCT_H_
 
 #include <string.h>
 
-#include "hcpp-place.h"
-#include "hcpp-task.h"
+#include "hclib-place.h"
+#include "hclib-task.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,4 +39,4 @@ void spawn_gpu_task(hclib_task_t *task);
 }
 #endif
 
-#endif /* HCPP_ASYNCSTRUCT_H_ */
+#endif /* HCLIB_ASYNCSTRUCT_H_ */

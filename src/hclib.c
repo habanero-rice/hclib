@@ -1,10 +1,10 @@
 #include <string.h>
 
 #include "hclib.h"
-#include "hcpp-rt.h"
-#include "hcpp-task.h"
-#include "hcpp-asyncStruct.h"
-#include "hcpp-finish.h"
+#include "hclib-rt.h"
+#include "hclib-task.h"
+#include "hclib-asyncStruct.h"
+#include "hclib-finish.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Author: Vivek Kumar (vivekk@rice.edu)
  */
 
-#include "hcpp-asyncStruct.h"
+#include "hclib-asyncStruct.h"
 #include "hclib.h"
 
 #ifndef HCUPC_SUPPORT_H_
@@ -126,8 +126,8 @@ inline void execute_hcupc_lambda(T* lambda) {
 
 template <typename T>
 inline hclib_task_t* _allocate_async_hcupc(T lambda, bool await) {
-	const size_t hcpp_task_size = !await ? sizeof(hclib_task_t) : sizeof(hcpp_task_t);
-	hclib_task_t* task = (hclib_task_t*) HC_MALLOC(hcpp_task_size);
+	const size_t hclib_task_size = !await ? sizeof(hclib_task_t) : sizeof(hclib_task_t);
+	hclib_task_t* task = (hclib_task_t*) HC_MALLOC(hclib_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);

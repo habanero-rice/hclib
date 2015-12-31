@@ -1,5 +1,5 @@
-#ifndef _HCPP_TREE_H
-#define _HCPP_TREE_H
+#ifndef _HCLIB_TREE_H
+#define _HCLIB_TREE_H
 
 #include <stdlib.h>
 

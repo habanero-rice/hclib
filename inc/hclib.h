@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HCLIB_H_
 
 #include "hclib_common.h"
-#include "hcpp-task.h"
-#include "hcpp-ddf.h"
+#include "hclib-task.h"
+#include "hclib-ddf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,7 +69,7 @@ void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
 
 // forward declaration for phased clause defined in phased.h
 struct _phased_t;
-// forward declaration for ddf_st in hcpp-ddf.h
+// forward declaration for ddf_st in hclib-ddf.h
 struct hclib_ddf_st;
 
 /**

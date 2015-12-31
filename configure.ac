@@ -2,10 +2,10 @@
 AC_PREREQ([2.59])
 
 # define distribution properties
-AC_INIT([hcpp], [0.1], [vivekk@rice.edu])
+AC_INIT([hclib], [0.1], [vivekk@rice.edu])
 
 # check if srcdir is correct
-AC_CONFIG_SRCDIR([inc/hcpp.h])
+AC_CONFIG_SRCDIR([inc/hclib.h])
 
 AC_CONFIG_AUX_DIR([config])
 
@@ -35,9 +35,7 @@ CPPFLAGS=$CPPFLAGS_BACKUP
 ########### GET LOW LEVEL DETAILS IN THE INSTALLATION #############
 ###################################################################
 
-# Conditional flag to build for the hcpp/hcupc++ library
-
-### INTERFACE HCPP WITH PHASER LIBRARY
+### INTERFACE HCLIB WITH PHASER LIBRARY
 AC_ARG_ENABLE(phaser,
     AS_HELP_STRING([--enable-phaser],
     [enable interface with Phaser (Default is false)]),

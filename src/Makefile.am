@@ -40,26 +40,26 @@ PRODUCTION_SETTINGS_FLAGS = -DHC_ASSERTION_CHECK -DHC_COMM_WORKER_STATS
 endif
 
 
-# build the hcpp library
-lib_LTLIBRARIES = libhcpp.la
+# build the hclib library
+lib_LTLIBRARIES = libhclib.la
 
 # These are populated in sub-folder's Makefile.inc
 noinst_LTLIBRARIES =
-libhcpp_la_LIBADD =
+libhclib_la_LIBADD =
 
 AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) $(HC_FLAGS_4) \
 			  $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhcpp_la_SOURCES = hcpp-runtime.c hcpp-deque.c hcpp-hpt.c hcpp-thread-bind.c \
-					 hcpp-ddf.c hcpp-timer.c hcupc-support.c hclib_cpp.cpp hclib.c hcpp-tree.c
+libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-hpt.c hclib-thread-bind.c \
+					 hclib-ddf.c hclib-timer.c hcupc-support.c hclib_cpp.cpp hclib.c hclib-tree.c
 
 if X86
 if OSX
-libhcpp_la_SOURCES += \
+libhclib_la_SOURCES += \
 fcontext/jump_i386_sysv_macho_gas.S \
 fcontext/make_i386_sysv_macho_gas.S
 else
 if LINUX
-libhcpp_la_SOURCES += \
+libhclib_la_SOURCES += \
 fcontext/jump_i386_sysv_elf_gas.S \
 fcontext/make_i386_sysv_elf_gas.S
 else
@@ -69,12 +69,12 @@ endif # OSX
 else
 if X86_64
 if OSX
-libhcpp_la_SOURCES += \
+libhclib_la_SOURCES += \
 fcontext/jump_x86_64_sysv_macho_gas.S \
 fcontext/make_x86_64_sysv_macho_gas.S
 else
 if LINUX
-libhcpp_la_SOURCES += \
+libhclib_la_SOURCES += \
 fcontext/jump_x86_64_sysv_elf_gas.S \
 fcontext/make_x86_64_sysv_elf_gas.S
 else
@@ -86,8 +86,8 @@ $(error Unknown architecture)
 endif # X86_64
 endif # X86
 
-# build hcpp
-libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
-libhcpp_la_CFLAGS= $(CFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
+# build hclib
+libhclib_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
+libhclib_la_CFLAGS= $(CFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
 
 MAINTAINERCLEANFILES = Makefile.in

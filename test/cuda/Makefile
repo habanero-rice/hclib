@@ -1,4 +1,4 @@
-include $(HCPP_ROOT)/include/hcpp.mak
+include $(HCLIB_ROOT)/include/hclib.mak
 
 TARGETS=allocate copy kernel
 

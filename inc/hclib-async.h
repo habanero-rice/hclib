@@ -30,18 +30,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-async.h
+ * hclib-async.h
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 #include <functional>
 
-#include "hcpp-asyncStruct.h"
+#include "hclib-asyncStruct.h"
 #include "hcupc-support.h"
 
-#ifndef HCPP_ASYNC_H_
-#define HCPP_ASYNC_H_
+#ifndef HCLIB_ASYNC_H_
+#define HCLIB_ASYNC_H_
 
 namespace hclib {
 
@@ -112,10 +112,10 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
 }
 
 template <typename T>
-inline hclib_task_t* _allocate_async_hcpp(T lambda, bool await) {
-	const size_t hcpp_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
+inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
+	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
     // create off-stack storage for this task
-	hclib_task_t* task = (hclib_task_t*)HC_MALLOC(hcpp_task_size);
+	hclib_task_t* task = (hclib_task_t*)HC_MALLOC(hclib_task_size);
 	const size_t lambda_size = sizeof(T);
     /*
      * create off-stack storage for the lambda object (including its captured
@@ -133,7 +133,7 @@ inline hclib_task_t* _allocate_async_hcpp(T lambda, bool await) {
 #if defined(HUPCPP) && defined(DIST_WS)	// i.e. if we are supporting distributed work-stealing in HabaneroUPC++
 #define _allocate_async _allocate_async_hcupc
 #else
-#define _allocate_async _allocate_async_hcpp
+#define _allocate_async _allocate_async_hclib
 #endif
 
 /*
@@ -224,4 +224,4 @@ inline hclib_ddf_t *nonblocking_finish(std::function<void()> lambda) {
 
 }
 
-#endif /* HCPP_ASYNC_H_ */
+#endif /* HCLIB_ASYNC_H_ */

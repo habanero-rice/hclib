@@ -1,11 +1,11 @@
 /*
- * hcpp-place.h
+ * hclib-place.h
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  */
 
-#ifndef HCPP_PLACE_H_
-#define HCPP_PLACE_H_
+#ifndef HCLIB_PLACE_H_
+#define HCLIB_PLACE_H_
 
 #ifdef HC_CUDA
 #include <driver_types.h>
@@ -99,4 +99,4 @@ inline short is_nvgpu_place(place_t * pl) {
 }
 #endif
 
-#endif /* HCPP_PLACE_H_ */
+#endif /* HCLIB_PLACE_H_ */

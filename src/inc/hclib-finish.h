@@ -1,7 +1,7 @@
-#ifndef HCPP_FINISH_H
-#define HCPP_FINISH_H
+#ifndef HCLIB_FINISH_H
+#define HCLIB_FINISH_H
 
-#include "hcpp-ddf.h"
+#include "hclib-ddf.h"
 
 typedef struct finish_t {
     struct finish_t* parent;

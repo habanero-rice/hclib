@@ -1,5 +1,5 @@
-#include "hcpp-tree.h"
-#include "hcpp-rt.h"
+#include "hclib-tree.h"
+#include "hclib-rt.h"
 
 #include <stdio.h>
 

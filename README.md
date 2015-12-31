@@ -30,21 +30,21 @@ Setup all environment variables properly (see above)
 
 1) Set total number of workers
 
-a) export HCPP_WORKERS=N
+a) export HCLIB_WORKERS=N
 
 OR 
 
 b) use an HPT xml file. Some sample files in directory ./hpt
 
-export HCPP_HPT_FILE=/absolute/path/hcpp/hpt/hpt-testing.xml
+export HCLIB_HPT_FILE=/absolute/path/hclib/hpt/hpt-testing.xml
 
 2) See runtime statistics
 
-export HCPP_STATS=1
+export HCLIB_STATS=1
 
 3) Pin worker threads in round-robin fashion (supported only on Linux)
 
-export HCPP_BIND_THREADS=1
+export HCLIB_BIND_THREADS=1
 
 4) Execute the testcase:
 

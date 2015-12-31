@@ -30,18 +30,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-forasync.h
+ * hclib-forasync.h
  *  
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Ported from hclib
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
-#ifndef HCPP_FORASYNC_H_
-#define HCPP_FORASYNC_H_
+#ifndef HCLIB_FORASYNC_H_
+#define HCLIB_FORASYNC_H_
 
-#include "hcpp-place.h"
-#include "hcpp-cuda.h"
+#include "hclib-place.h"
+#include "hclib-cuda.h"
 
 /*
  * Forasync mode to perform static chunking of the iteration space.
@@ -562,4 +562,4 @@ inline hclib_ddf_t *forasync3D_future(_loop_domain_t* loop, T lambda,
 
 }
 
-#endif /* HCPP_FORASYNC_H_ */
+#endif /* HCLIB_FORASYNC_H_ */

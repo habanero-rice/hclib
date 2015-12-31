@@ -11,13 +11,13 @@ AUX_DIST = \
 
 library_includedir=$(includedir)
 
-library_include_HEADERS = inc/hcpp-timer.h inc/hcpp-rt.h inc/hcpp.h \
-						  inc/hcpp-mak/hcpp.mak inc/hcpp-async.h src/inc/hcpp-hpt.h \
-						  inc/hcpp-forasync.h inc/hcpp-ddf.h inc/hcpp-asyncAwait.h \
-						  src/inc/hcpp-atomics.h inc/hcpp-place.h inc/hcupc-support.h \
-						  inc/hcpp-asyncStruct.h inc/hclib.h inc/hclib_cpp.h \
-						  inc/hcpp-task.h inc/hclib_common.h src/inc/litectx.h \
-						  src/fcontext/fcontext.h src/inc/hcpp-tree.h src/inc/hcpp-cuda.h
+library_include_HEADERS = inc/hclib-timer.h inc/hclib-rt.h inc/hclib.h \
+						  inc/hclib-mak/hclib.mak inc/hclib-async.h src/inc/hclib-hpt.h \
+						  inc/hclib-forasync.h inc/hclib-ddf.h inc/hclib-asyncAwait.h \
+						  src/inc/hclib-atomics.h inc/hclib-place.h inc/hcupc-support.h \
+						  inc/hclib-asyncStruct.h inc/hclib_cpp.h \
+						  inc/hclib-task.h inc/hclib_common.h src/inc/litectx.h \
+						  src/fcontext/fcontext.h src/inc/hclib-tree.h src/inc/hclib-cuda.h
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \

@@ -1,5 +1,5 @@
-#include "hcpp-ddf.h"
-#include "hcpp-async.h"
+#include "hclib-ddf.h"
+#include "hclib-async.h"
 
 namespace hclib {
 

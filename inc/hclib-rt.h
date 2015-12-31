@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
- * hcpp-rt.h
+ * hclib-rt.h
  *
  *      Author: Vivek Kumar (vivekk@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include "litectx.h"
 
-#ifndef HCPP_RT_H_
-#define HCPP_RT_H_
+#ifndef HCLIB_RT_H_
+#define HCLIB_RT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,9 +98,9 @@ hc_workerState* current_ws();
 #define HC_FREE(p)			free(p)
 typedef void (*generic_framePtr)(void*);
 
-#include "hcpp-timer.h"
-#include "hcpp-ddf.h"
-#include "hcpp-place.h"
+#include "hclib-timer.h"
+#include "hclib-ddf.h"
+#include "hclib-place.h"
 
 int  hclib_num_workers();
 void hclib_start_finish();

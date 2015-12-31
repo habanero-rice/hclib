@@ -35,8 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Author: Vivek Kumar (vivekk@rice.edu)
  */
 
-#include "hcpp-internal.h"
-#include "hcpp-atomics.h"
+#include "hclib-internal.h"
+#include "hclib-atomics.h"
 #include "hcupc-support.h"
 
 #if defined(HUPCPP) && defined(DIST_WS)
@@ -285,13 +285,13 @@ int totalPendingLocalAsyncs() {
 	return CURRENT_WS_INTERNAL->current_finish->counter;
 #else
 	int pending_tasks = 0;
-	for(int i=0; i<hcpp_context->nworkers; i++) {
-		hc_workerState* ws = hcpp_context->workers[i];
+	for(int i=0; i<hclib_context->nworkers; i++) {
+		hc_workerState* ws = hclib_context->workers[i];
 		const finish_t* ws_curr_f_i = ws->current_finish;
 		if(ws_curr_f_i) {
 			bool found = false;
 			for(int j=0; j<i; j++) {
-				const finish_t* ws_curr_f_j = hcpp_context->workers[j]->current_finish;
+				const finish_t* ws_curr_f_j = hclib_context->workers[j]->current_finish;
 				if(ws_curr_f_j && ws_curr_f_j == ws_curr_f_i) {
 					found = true;
 					break;

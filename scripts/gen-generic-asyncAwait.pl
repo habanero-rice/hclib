@@ -28,8 +28,8 @@ if($#ARGV != 0) {
 #}
 ####################################################
 
-print "#include \"hcpp-ddf.h\"\n";
-print "#include \"hcpp-async.h\"\n";
+print "#include \"hclib-ddf.h\"\n";
+print "#include \"hclib-async.h\"\n";
 print "\n";
 print "namespace hclib {\n";
 print "\n";
