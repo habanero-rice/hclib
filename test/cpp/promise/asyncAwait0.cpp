@@ -26,9 +26,9 @@ int main(int argc, char ** argv) {
 
             // Building 'n' NULL-terminated lists of a single promise each
             for (index = 0 ; index <= n; index++) {
-                promise_list[index*2] = hclib::promise_create();
+                promise_list[index*2] = new hclib::promise_t();
                 printf("Creating promise  %p at promise_list @ %p \n",
-                        &promise_list[index*2], hclib::promise_get(promise_list[index*2]));
+                        &promise_list[index*2], promise_list[index*2]->get());
                 promise_list[index*2+1] = NULL;
             }
 
@@ -37,7 +37,7 @@ int main(int argc, char ** argv) {
                 // Build async's arguments
                 printf("Creating async %d await on %p will enable %p\n", index,
                         &(promise_list[(index-1)*2]), &(promise_list[index*2]));
-                hclib::asyncAwait(promise_list[(index-1)*2], [=]() {
+                hclib::asyncAwait([=]() {
                         hclib::promise_t *promise = promise_list[(index * 2)];
                         int index = index * 2;
                         printf("Running async %d\n", index/2);
@@ -45,17 +45,17 @@ int main(int argc, char ** argv) {
                                 index, promise);
                         int * value = (int *) malloc(sizeof(int)*1);
                         *value = index; 
-                        hclib::promise_put(promise, value); });
+                        promise->put(value); }, promise_list[(index-1)*2]);
             }
             int * value = (int *) malloc(sizeof(int)*1);
             *value = 2222;
             printf("Putting in promise 0\n");
-            hclib::promise_put(promise_list[0], value);
+            promise_list[0]->put(value);
         });
         // freeing everything up
         for (int index = 0 ; index <= n; index++) {
-            free(hclib_promise_get(promise_list[index*2]));
-            hclib_promise_free(promise_list[index*2]);
+            free(promise_list[index*2]->get());
+            delete promise_list[index*2];
         }
         free(promise_list);
     });

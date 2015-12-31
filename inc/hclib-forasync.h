@@ -109,7 +109,7 @@ inline void forasync1D_recursive(_loop_domain_t* loop, T lambda,
             forasync1D_recursive<T>(&ld, lambda, place, promise_list);
         };
 
-        hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+        hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 		// update lower-half
 		//continue to work on the half task
 		_loop_domain_t ld = {low, mid, stride, tile};
@@ -164,7 +164,7 @@ inline void forasync2D_recursive(const _loop_domain_t loop[2], T lambda,
             forasync2D_recursive<T>(new_loop, lambda, place, promise_list);
         };
 
-        hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+        hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 
 		//continue to work on the half task
 		loop_domain_t new_loop_lower_half[2] = {
@@ -237,7 +237,7 @@ inline void forasync3D_recursive(const _loop_domain_t loop[3], T lambda,
 			forasync3D_recursive<T>(new_loop, lambda, place, promise_list);
 		};
 
-        hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+        hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 
 		//continue to work on the half task
 		loop_domain_t new_loop_lower_half[3] = {
@@ -252,7 +252,8 @@ inline void forasync3D_recursive(const _loop_domain_t loop[3], T lambda,
 }
 
 template <typename T>
-inline void forasync1D_flat(_loop_domain_t* loop, T lambda, place_t *place, hclib_promise_t **promise_list) {
+inline void forasync1D_flat(_loop_domain_t* loop, T lambda, place_t *place,
+        hclib_promise_t **promise_list) {
 	int low=loop->low, high=loop->high, stride=loop->stride, tile=loop->tile;
 	int nb_chunks = (int) (high/tile);
 	int size = tile*nb_chunks;
@@ -263,7 +264,7 @@ inline void forasync1D_flat(_loop_domain_t* loop, T lambda, place_t *place, hcli
 			forasync1D_runner<T>(&ld, lambda);
 		};
 
-        hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+        hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 	}
 	// handling leftover
 	if (size < high) {
@@ -271,7 +272,7 @@ inline void forasync1D_flat(_loop_domain_t* loop, T lambda, place_t *place, hcli
 			_loop_domain_t ld = {low0, high, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		};
-        hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+        hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 	}
 }
 
@@ -302,7 +303,7 @@ inline void forasync2D_flat(const _loop_domain_t loop[2], T lambda,
 				forasync2D_runner<T>(new_loop, lambda);
 			};
 
-            hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+            hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 		}
 	}
 }
@@ -343,7 +344,7 @@ inline void forasync3D_flat(const _loop_domain_t loop[3], T lambda,
 					forasync3D_runner<T>(new_loop, lambda);
 				};
 
-                hclib::asyncAwaitAt(promise_list, place, lambda_wrapper);
+                hclib::asyncAwaitAt(lambda_wrapper, place, promise_list);
 			}
 		}
 	}
@@ -419,9 +420,9 @@ inline void call_gpu_functor(unsigned niters, unsigned tile_size,
 #endif
 
 template<class functor_type>
-inline hclib_promise_t *forasync1D_cuda_internal(_loop_domain_t *loop,
+inline void forasync1D_cuda_internal(_loop_domain_t *loop,
         functor_type functor, int mode, place_t *place,
-        hclib_promise_t **promise_list) {
+        hclib_promise_t **promise_list, hclib_promise_t *out_promise) {
 #ifdef __CUDACC__
     HASSERT(loop->stride == 1);
     HASSERT(loop->low == 0);
@@ -446,9 +447,9 @@ inline hclib_promise_t *forasync1D_cuda_internal(_loop_domain_t *loop,
     task->t.promise_list = NULL;
     task->t.args = NULL;
 
-    hclib_promise_t *promise = hclib_promise_create();
+    if (out_promise) hclib_promise_init(out_promise);
     task->gpu_type = GPU_COMPUTE_TASK;
-    task->promise_to_put = promise;
+    task->promise_to_put = out_promise;
     task->arg_to_put = NULL;
     task->gpu_task_def.compute_task.niters = loop->high;
     task->gpu_task_def.compute_task.tile_size = loop->tile;
@@ -457,13 +458,11 @@ inline hclib_promise_t *forasync1D_cuda_internal(_loop_domain_t *loop,
     task->gpu_task_def.compute_task.kernel_launcher = wrapper;
 
     if (promise_list) {
-        hclib::_asyncAwait(promise_list,
-                [task]() { spawn_gpu_task((hclib_task_t *)task); });
+        hclib::asyncAwait([task]() { spawn_gpu_task((hclib_task_t *)task); },
+                promise_list);
     } else {
         spawn_gpu_task((hclib_task_t *)task);
     }
-
-    return promise;
 #else
     fprintf(stderr, "Application code must be compiled with nvcc to "
             "support GPU tasks. The functor declaration and the forasync "
@@ -498,7 +497,7 @@ inline void forasync1D(_loop_domain_t* loop, T lambda,
         forasync1D_internal<T>(loop, lambda, mode, place, promise_list);
 #ifdef HC_CUDA
     } else if (is_nvgpu_place(place)) {
-        forasync1D_cuda_internal(loop, lambda, mode, place, promise_list);
+        forasync1D_cuda_internal(loop, lambda, mode, place, promise_list, NULL);
 #endif
     } else {
         fprintf(stderr, "Unrecognized place type %d\n", place->type);
@@ -521,20 +520,24 @@ inline void forasync3D(_loop_domain_t* loop, T lambda,
 }
 
 template <typename T>
-inline hclib_promise_t *forasync1D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_promise_t **promise_list = NULL) {
+inline hclib::promise_t *forasync1D_future(_loop_domain_t* loop, T lambda,
+        int mode, place_t *place, hclib_promise_t **promise_list) {
 #ifdef VERBOSE
     fprintf(stderr, "forasync1D_future: place=%p cuda_id=%d\n", place,
             place ? place->cuda_id : -1);
 #endif
     if (place == NULL || is_cpu_place(place)) {
         hclib_start_finish();
-        forasync1D_internal<T>(loop, lambda, mode, place, promise_list);
-        return hclib_end_finish_nonblocking();
+        forasync1D_internal<T>(loop, lambda, mode, place, NULL);
+        hclib::promise_t *event = new hclib::promise_t();
+        hclib_end_finish_nonblocking_helper(&event->internal);
+        return event;
 #ifdef HC_CUDA
     } else if (is_nvgpu_place(place)) {
-        return forasync1D_cuda_internal(loop, lambda, mode, place, promise_list);
+        hclib::promise_t *event = new hclib::promise_t();
+        forasync1D_cuda_internal(loop, lambda, mode, place, NULL,
+                &event->internal);
+        return event;
 #endif
     } else {
         fprintf(stderr, "Unrecognized place type %d\n", place->type);
@@ -543,21 +546,49 @@ inline hclib_promise_t *forasync1D_future(_loop_domain_t* loop, T lambda,
 }
 
 template <typename T>
-inline hclib_promise_t *forasync2D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_promise_t **promise_list = NULL) {
-    hclib_start_finish();
-    forasync2D_internal<T>(loop, lambda, mode, place, promise_list);
-    return hclib_end_finish_nonblocking();
+inline hclib::promise_t *forasync1D_future(_loop_domain_t* loop, T lambda) {
+    return forasync1D_future(loop, lambda, FORASYNC_MODE_RECURSIVE, NULL, NULL);
 }
 
 template <typename T>
-inline hclib_promise_t *forasync3D_future(_loop_domain_t* loop, T lambda,
+inline hclib::promise_t *forasync1D_future(_loop_domain_t* loop, T lambda,
+        int mode) {
+    return forasync1D_future(loop, lambda, mode, NULL, NULL);
+}
+
+template <typename T>
+inline hclib::promise_t *forasync1D_future(_loop_domain_t* loop, T lambda,
+        int mode, place_t *place) {
+    return forasync1D_future(loop, lambda, mode, place, NULL);
+}
+
+template <typename T, typename... promise_list_t>
+inline hclib::promise_t *forasync1D_future(_loop_domain_t* loop, T lambda,
+        int mode, place_t *place, promise_list_t... promises) {
+    hclib_promise_t **promise_list = construct_promise_list(promises...);
+    return forasync1D_future(loop, lambda, mode, place, promise_list);
+}
+
+template <typename T>
+inline hclib::promise_t *forasync2D_future(_loop_domain_t* loop, T lambda,
         int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
-        hclib_promise_t **promise_list = NULL) {
+        hclib::promise_t **promise_list = NULL) {
+    hclib_start_finish();
+    forasync2D_internal<T>(loop, lambda, mode, place, promise_list);
+    hclib::promise_t *event = new hclib::promise_t();
+    hclib_end_finish_nonblocking_helper(&event->internal);
+    return event;
+}
+
+template <typename T>
+inline hclib::promise_t *forasync3D_future(_loop_domain_t* loop, T lambda,
+        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        hclib::promise_t **promise_list = NULL) {
     hclib_start_finish();
     forasync3D_internal<T>(loop, lambda, mode, place, promise_list);
-    return hclib_end_finish_nonblocking();
+    hclib::promise_t *event = new hclib::promise_t();
+    hclib_end_finish_nonblocking_helper(&event->internal);
+    return event;
 }
 
 }

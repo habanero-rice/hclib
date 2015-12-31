@@ -71,7 +71,7 @@ int main (int argc, char ** argv) {
                         printf("finished %d / %d\n", idx, H1);
                     }, FORASYNC_MODE_FLAT);
 
-            hclib::promise_wait(event);
+            event->wait();
             printf("Call Finalize\n");
         });
 

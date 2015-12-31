@@ -13,7 +13,7 @@ library_includedir=$(includedir)
 
 library_include_HEADERS = inc/hclib-timer.h inc/hclib-rt.h inc/hclib.h \
 						  inc/hclib-mak/hclib.mak inc/hclib-async.h src/inc/hclib-hpt.h \
-						  inc/hclib-forasync.h inc/hclib-promise.h inc/hclib-asyncAwait.h \
+						  inc/hclib-forasync.h inc/hclib-promise.h inc/hclib_promise.h \
 						  src/inc/hclib-atomics.h inc/hclib-place.h inc/hcupc-support.h \
 						  inc/hclib-asyncStruct.h inc/hclib_cpp.h \
 						  inc/hclib-task.h inc/hclib_common.h src/inc/litectx.h \

@@ -15,15 +15,15 @@
 void async_fct(void * arg) {
     void ** argv = (void **) arg;
     int index = *((int *) argv[0]);
-    hclib_promise_t ** promise_list = (hclib_promise_t **) argv[1];
+    hclib::promise_t ** promise_list = (hclib::promise_t **) argv[1];
     printf("Running async %d\n", index);
     /* Check value set by predecessor */
-    int* prev = (int *) hclib_promise_get(promise_list[(index-1)*2]);
+    int* prev = (int *) promise_list[(index-1)*2]->get();
     assert(*prev == index-1);
     printf("Async %d putting in promise %d @ %p\n", index, index*2, promise_list[index*2]);
     int * value = (int *) malloc(sizeof(int)*1);
     *value = index;
-    hclib_promise_put(promise_list[index*2], value);
+    promise_list[index*2]->put(value);
     free(argv);
 }
 
@@ -42,7 +42,7 @@ int main(int argc, char ** argv) {
             // Create asyncs
             // Building 'n' NULL-terminated lists of a single promise each
             for (index = 0 ; index <= n; index++) {
-                promise_list[index*2] = hclib::promise_create();
+                promise_list[index*2] = new hclib::promise_t();
                 printf("Populating promise_list at address %p\n",
                         &promise_list[index*2]);
                 promise_list[index*2+1] = NULL;
@@ -52,26 +52,26 @@ int main(int argc, char ** argv) {
                 // Build async's arguments
                 printf("Creating async %d await on %p will enable %p\n", index,
                         promise_list, &(promise_list[index*2]));
-                hclib::asyncAwait(promise_list[(index - 1) * 2], [=]() {
+                hclib::asyncAwait([=]() {
                     printf("Running async %d\n", index);
-                    int* prev = (int *) hclib::promise_get(promise_list[(index-1)*2]);
+                    int* prev = (int *) promise_list[(index-1)*2]->get();
                     assert(*prev == index-1);
                     printf("Async %d putting in promise %d @ %p\n", index, index*2,
                             promise_list[index*2]);
                     int * value = (int *) malloc(sizeof(int)*1);
                     *value = index;
-                    hclib::promise_put(promise_list[index*2], value); });
+                    promise_list[index*2]->put(value); }, promise_list[(index - 1) * 2]);
             }
 
             int * value = (int *) malloc(sizeof(int));
             *value = 0;
             printf("Putting in promise 0\n");
-            hclib::promise_put(promise_list[0], value);
+            promise_list[0]->put(value);
         });
         // freeing everything up
         for (int index = 0 ; index <= n; index++) {
-            free(hclib::promise_get(promise_list[index*2]));
-            hclib::promise_free(promise_list[index*2]);
+            free(promise_list[index*2]->get());
+            delete promise_list[index*2];
         }
         free(promise_list);
     });

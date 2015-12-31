@@ -1084,13 +1084,12 @@ void hclib_end_finish() {
     HC_FREE(current_finish);
 }
 
-hclib_promise_t *hclib_end_finish_nonblocking() {
+void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
-    hclib_promise_t *event = hclib_promise_create();
     hclib_promise_t **finish_deps = malloc(2 * sizeof(hclib_promise_t *));
     finish_deps[0] = event;
     finish_deps[1] = NULL;
@@ -1102,7 +1101,11 @@ hclib_promise_t *hclib_end_finish_nonblocking() {
     // Check out the current finish from its parent
     check_out_finish(current_finish->parent);
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
+}
 
+hclib_promise_t *hclib_end_finish_nonblocking() {
+    hclib_promise_t *event = hclib_promise_create();
+    hclib_end_finish_nonblocking_helper(event);
     return event;
 }
 

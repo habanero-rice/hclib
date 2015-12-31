@@ -81,10 +81,16 @@ extern void hclib_free_at(place_t *pl, void *ptr);
 #ifdef HC_CUDA
 
 extern hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst,
-        place_t *src_pl, void *src, size_t nbytes, hclib_promise_t **promise_list,
-        void *user_arg);
+        place_t *src_pl, void *src, size_t nbytes,
+        hclib_promise_t **promise_list, void *user_arg);
+extern void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
+        void *src, size_t nbytes, hclib_promise_t **promise_list,
+        void *user_arg, hclib_promise_t *out_promise);
 extern hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
         size_t nbytes, hclib_promise_t **promise_list, void *user_arg);
+extern void hclib_async_memset_helper(place_t *pl, void *ptr, int val,
+        size_t nbytes, hclib_promise_t **promise_list, void *user_arg,
+        hclib_promise_t *out_promise);
 #endif
 
 inline short is_cpu_place(place_t * pl) {

@@ -5,7 +5,7 @@ hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
     hclib::promise_t **promises = (hclib::promise_t **)malloc(
             (null_terminated ? nb_promises + 1 : nb_promises) *
             sizeof(hclib::promise_t *));
-    for (int i = 0; i < nb_promises; i++) {
+    for (unsigned i = 0; i < nb_promises; i++) {
         promises[i] = new promise_t();
     }
 

@@ -172,6 +172,7 @@ void hclib_end_finish();
  * finished, but return immediately.
  */
 hclib_promise_t *hclib_end_finish_nonblocking();
+void hclib_end_finish_nonblocking_helper(hclib_promise_t *event);
 
 /**
  * @}

@@ -391,8 +391,10 @@ static void async_gpu_task_launcher(void *arg) {
  * TODO Currently doesn't support await on other promises, nor do communication
  * tasks
  */
-hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, hclib_promise_t **promise_list, void *user_arg) {
+
+void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
+        void *src, size_t nbytes, hclib_promise_t **promise_list,
+        void *user_arg, hclib_promise_t *out_promise) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
@@ -400,9 +402,9 @@ hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
     task->t.args = NULL;
     task->t.place = NULL;
 
-    hclib_promise_t *promise = hclib_promise_create();
+    hclib_promise_init(out_promise);
     task->gpu_type = GPU_COMM_TASK;
-    task->promise_to_put = promise;
+    task->promise_to_put = out_promise;
     task->arg_to_put = user_arg;
 
     task->gpu_task_def.comm_task.src_pl = src_pl;
@@ -422,12 +424,20 @@ hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
     } else {
         spawn_gpu_task((hclib_task_t *)task);
     }
+}
 
+hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
+        void *src, size_t nbytes, hclib_promise_t **promise_list,
+        void *user_arg) {
+    hclib_promise_t *promise = hclib_promise_create();
+    hclib_async_copy_helper(dst_pl, dst, src_pl, src, nbytes, promise_list,
+            user_arg, promise);
     return promise;
 }
 
-hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbytes,
-        hclib_promise_t **promise_list, void *user_arg) {
+void hclib_async_memset_helper(place_t *pl, void *ptr, int val, size_t nbytes,
+        hclib_promise_t **promise_list, void *user_arg,
+        hclib_promise_t *out_promise) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
@@ -435,9 +445,9 @@ hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbyt
     task->t.args = NULL;
     task->t.place = NULL;
 
-    hclib_promise_t *promise = hclib_promise_create();
+    hclib_promise_init(out_promise);
     task->gpu_type = GPU_MEMSET_TASK;
-    task->promise_to_put = promise;
+    task->promise_to_put = out_promise;
     task->arg_to_put = user_arg;
 
     task->gpu_task_def.memset_task.pl = pl;
@@ -455,7 +465,13 @@ hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val, size_t nbyt
     } else {
         spawn_gpu_task((hclib_task_t *)task);
     }
+}
 
+hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
+        size_t nbytes, hclib_promise_t **promise_list, void *user_arg) {
+    hclib_promise_t *promise = hclib_promise_create();
+    hclib_async_memset_helper(pl, ptr, val, nbytes, promise_list, user_arg,
+            promise);
     return promise;
 }
 #endif

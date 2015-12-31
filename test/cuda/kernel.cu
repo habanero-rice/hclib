@@ -60,17 +60,16 @@ int main(int argc, char **argv) {
         int *arr = hclib::allocate_at<int>(cpu_place, N, 0);
         assert(arr);
 
-        hclib_promise_t *cpu_memset_event = hclib::async_memset(cpu_place, arr, 0,
-                N, NULL, arr);
+        hclib::promise_t *cpu_memset_event = hclib::async_memset(cpu_place, arr, 0,
+                N, arr);
 
-        hclib::promise_t **cpu_kernel_deps = (hclib::promise_t **)malloc(2 * sizeof(hclib::promise_t *));
-        cpu_kernel_deps[0] = cpu_memset_event; cpu_kernel_deps[1] = NULL;
         loop_domain_t loop = {0, N, 1, 33};
         test_functor cpu_kernel(arr);
         hclib::promise_t *cpu_kernel_event = hclib::forasync1D_future(
-                (loop_domain_t *)&loop, cpu_kernel, FORASYNC_MODE_FLAT, cpu_place, cpu_kernel_deps);
+                (loop_domain_t *)&loop, cpu_kernel, FORASYNC_MODE_FLAT,
+                cpu_place, cpu_memset_event);
 
-        hclib::promise_wait(cpu_kernel_event);
+        cpu_kernel_event->wait();
 
         validate(arr, N);
 
@@ -79,22 +78,16 @@ int main(int argc, char **argv) {
         assert(d_arr);
 
         hclib::promise_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
-                0, N, NULL, d_arr);
+                0, N, d_arr);
 
-        hclib::promise_t **gpu_kernel_deps = (hclib::promise_t **)malloc(
-                2 * sizeof(hclib::promise_t *));
-        gpu_kernel_deps[0] = gpu_memset_event; gpu_kernel_deps[1] = NULL;
         test_functor gpu_kernel(d_arr);
         hclib::promise_t *gpu_kernel_event = hclib::forasync1D_future(
                 (loop_domain_t *)&loop, gpu_kernel, FORASYNC_MODE_FLAT,
-                gpu_place, gpu_kernel_deps);
+                gpu_place, gpu_memset_event);
 
-        hclib::promise_t **gpu_copy_deps = (hclib::promise_t **)malloc(
-                2 * sizeof(hclib::promise_t *));
-        gpu_copy_deps[0] = gpu_kernel_event; gpu_copy_deps[1] = NULL;
         hclib::promise_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
-                d_arr, N, gpu_copy_deps, arr);
-        hclib::promise_wait(copy_event);
+                d_arr, N, arr, gpu_kernel_event);
+        copy_event->wait();
 
         validate(arr, N);
 
