@@ -19,7 +19,7 @@ export LIBXML2_LIBS=${HOME}/libxml2-install/lib
 # ABSOLUTE PATH TO HABANERO-UPC BASE DIRECTORY
 export BASE=${HOME}/pgas/habanero-upc
 
-export HC_CUDA_FLAGS=--enable-cuda
+# export HC_CUDA_FLAGS=--enable-cuda
 
 #export TBB_MALLOC=/Users/vivek/rice_work/projects/tbb/mac
 
