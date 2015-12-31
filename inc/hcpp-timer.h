@@ -30,7 +30,7 @@
 
 void hcpp_initStats  (int numWorkers, int is_comm_worker);
 void hcpp_setState   (int wid, int state);
-void hcpp_getAvgTime (double* tWork, double *tOvh, double* tSearch);
+void hclib_get_avg_time (double* tWork, double *tOvh, double* tSearch);
 
 #define MARK_BUSY(w)	hcpp_setState(w, HCPP_WORK);
 #define MARK_OVH(w)		hcpp_setState(w, HCPP_OVH);

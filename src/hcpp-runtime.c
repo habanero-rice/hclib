@@ -49,8 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // #define VERBOSE
 
-static const int communication_worker_id = 1;
-static const int gpu_worker_id = 2;
 static double benchmark_start_time_stats = 0;
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
@@ -197,14 +195,7 @@ void hcpp_global_init() {
     hc_hpt_init(hcpp_context);
 }
 
-/*
- * Launch nworkers - 1 worker threads, retaining the current main thread as the
- * final worker. See worker_routine for a description of worker initialization.
- */
-void hcpp_create_worker_threads(int nb_workers) {
-}
-
-void display_runtime() {
+void hclib_display_runtime() {
 	printf("---------HCPP_RUNTIME_INFO-----------\n");
 	printf(">>> HCPP_WORKERS\t= %s\n", getenv("HCPP_WORKERS"));
 	printf(">>> HCPP_HPT_FILE\t= %s\n", getenv("HCPP_HPT_FILE"));
@@ -220,7 +211,7 @@ void display_runtime() {
 
 void hcpp_entrypoint() {
     if (hcpp_stats) {
-        display_runtime();
+        hclib_display_runtime();
     }
 
     srand(0);
@@ -272,12 +263,12 @@ void hcpp_entrypoint() {
          * If running with a thread dedicated to network communication (e.g. through
          * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
          */
-        HASSERT(communication_worker_id > 0);
-        if (i == communication_worker_id) continue;
+        HASSERT(COMMUNICATION_WORKER_ID > 0);
+        if (i == COMMUNICATION_WORKER_ID) continue;
 #endif
 #ifdef HC_CUDA
-        HASSERT(gpu_worker_id > 0);
-        if (i == gpu_worker_id) continue;
+        HASSERT(GPU_WORKER_ID > 0);
+        if (i == GPU_WORKER_ID) continue;
 #endif
 
         if (pthread_create(&hcpp_context->workers[i]->t, &attr, worker_routine,
@@ -293,7 +284,7 @@ void hcpp_entrypoint() {
 
 #ifdef HC_COMM_WORKER
     // Kick off a dedicated communication thread
-    if (pthread_create(&hcpp_context->workers[communication_worker_id]->t, &attr,
+    if (pthread_create(&hcpp_context->workers[COMMUNICATION_WORKER_ID]->t, &attr,
                 communication_worker_routine,
                 CURRENT_WS_INTERNAL->current_finish) != 0) {
         fprintf(stderr, "Error launching communication worker\n");
@@ -302,7 +293,7 @@ void hcpp_entrypoint() {
 #endif
 #ifdef HC_CUDA
     // Kick off a dedicated thread to manage all GPUs in a node
-    if (pthread_create(&hcpp_context->workers[gpu_worker_id]->t, &attr,
+    if (pthread_create(&hcpp_context->workers[GPU_WORKER_ID]->t, &attr,
                 gpu_worker_routine, CURRENT_WS_INTERNAL->current_finish) != 0) {
         fprintf(stderr, "Error launching GPU worker\n");
         exit(5);
@@ -447,6 +438,7 @@ void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
 
 void spawn_handler(hclib_task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
         int escaping, int comm, int gpu) {
+
     HASSERT(task);
 #ifndef HC_CUDA
     HASSERT(!gpu);
@@ -460,7 +452,9 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_ddf_t **ddf_list,
      *
      * TODO not sure exactly what this does, just copy-pasted. Ask Kumar
      */
-    check_if_hcupc_dddf(ddf_list);
+    if (ddf_list) {
+        check_if_hcupc_dddf(ddf_list);
+    }
 
     hc_workerState* ws = CURRENT_WS_INTERNAL;
     if (!escaping) {
@@ -639,8 +633,8 @@ static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
 }
 
 void *gpu_worker_routine(void *finish_ptr) {
-    set_current_worker(gpu_worker_id);
-    worker_done_t *done_flag = hcpp_context->done_flags + gpu_worker_id;
+    set_current_worker(GPU_WORKER_ID);
+    worker_done_t *done_flag = hcpp_context->done_flags + GPU_WORKER_ID;
 
     semi_conc_deque_t *deque = gpu_worker_deque;
     while (done_flag->flag) {
@@ -748,8 +742,8 @@ void *gpu_worker_routine(void *finish_ptr) {
 
 #ifdef HC_COMM_WORKER
 void *communication_worker_routine(void* finish_ptr) {
-    set_current_worker(communication_worker_id);
-    worker_done_t *done_flag = hcpp_context->done_flags + gpu_worker_id;
+    set_current_worker(COMMUNICATION_WORKER_ID);
+    worker_done_t *done_flag = hcpp_context->done_flags + GPU_WORKER_ID;
 
     semi_conc_deque_t *deque = comm_worker_out_deque;
     while (done_flag->flag) {
@@ -833,13 +827,13 @@ static void* worker_routine(void * args) {
     hc_workerState* ws = CURRENT_WS_INTERNAL;
 
 #ifdef HC_COMM_WORKER
-    if (wid == communication_worker_id) {
+    if (wid == COMMUNICATION_WORKER_ID) {
         communication_worker_routine(ws->current_finish);
         return NULL;
     }
 #endif
 #ifdef HC_CUDA
-    if (wid == gpu_worker_id) {
+    if (wid == GPU_WORKER_ID) {
         gpu_worker_routine(ws->current_finish);
         return NULL;
     }
@@ -998,13 +992,13 @@ static inline void slave_worker_finishHelper_routine(finish_t* finish) {
 
 static void _help_finish(finish_t * finish) {
 #ifdef HC_COMM_WORKER
-	if (CURRENT_WS_INTERNAL->id == communication_worker_id) {
+	if (CURRENT_WS_INTERNAL->id == COMMUNICATION_WORKER_ID) {
 		communication_worker_routine(finish);
         return;
 	}
 #endif
 #ifdef HC_CUDA
-    if (CURRENT_WS_INTERNAL->id == gpu_worker_id) {
+    if (CURRENT_WS_INTERNAL->id == GPU_WORKER_ID) {
         gpu_worker_routine(finish);
         return;
     }
@@ -1116,7 +1110,8 @@ int hclib_num_workers() {
 	return hcpp_context->nworkers;
 }
 
-void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind) {
+void hclib_gather_comm_worker_stats(int* push_outd, int* push_ind,
+        int* steal_ind) {
 	int asyncPush=0, steals=0, asyncCommPush=total_push_outd;
 	for(int i=0; i<hclib_num_workers(); i++) {
 		asyncPush += total_push_ind[i];
@@ -1141,7 +1136,7 @@ void runtime_statistics(double duration) {
 	}
 
 	double tWork, tOvh, tSearch;
-	hcpp_getAvgTime (&tWork, &tOvh, &tSearch);
+	hclib_get_avg_time(&tWork, &tOvh, &tSearch);
 
 	double total_duration = user_specified_timer>0 ? user_specified_timer : duration;
 	printf("============================ MMTk Statistics Totals ============================\n");

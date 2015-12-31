@@ -83,7 +83,7 @@ void find_avgtime_nstates() {
 #endif
 }
 
-void hcpp_getAvgTime (double* tWork, double *tOvh, double* tSearch) {
+void hclib_get_avg_time(double* tWork, double *tOvh, double* tSearch) {
 #ifdef _TIMER_ON_
 	find_avgtime_nstates();
 	*tWork = avgtime_nstates[HCPP_WORK];

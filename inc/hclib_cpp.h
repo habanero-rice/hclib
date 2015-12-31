@@ -23,6 +23,7 @@ void launch(int *argc, char **argv, T lambda) {
 
 ddf_t *ddf_create();
 ddf_t **ddf_create_n(size_t nb_ddfs, int null_terminated);
+void ddf_init(ddf_t* ddf);
 void ddf_free(ddf_t *ddf);
 void ddf_put(ddf_t *ddf, void *datum);
 void *ddf_get(ddf_t *ddf);
@@ -68,6 +69,12 @@ ddf_t *async_memset(place_t *pl, T *ptr, int val,
 
 #ifdef HUPCPP
 int total_pending_local_asyncs();
+volatile int *start_finish_special();
+void end_finish(); // This is an ugly API, but must be exposed for HUPC
+void display_runtime();
+void get_avg_time(double* tWork, double *tOvh, double* tSearch);
+void gather_comm_worker_stats(int* push_outd, int* push_ind,
+        int* steal_ind);
 #endif
 
 }

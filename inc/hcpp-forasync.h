@@ -458,9 +458,9 @@ inline hclib_ddf_t *forasync1D_cuda_internal(_loop_domain_t *loop,
 
     if (ddf_list) {
         hclib::_asyncAwait(ddf_list,
-                [task]() { spawn_gpu_task((task_t *)task); });
+                [task]() { spawn_gpu_task((hclib_task_t *)task); });
     } else {
-        spawn_gpu_task((task_t *)task);
+        spawn_gpu_task((hclib_task_t *)task);
     }
 
     return ddf;

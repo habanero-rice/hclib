@@ -158,13 +158,17 @@ void hcupc_inform_failedSteal(int id);
 void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id);
 
 #ifdef HUPCPP
-void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
+#ifdef __cplusplus
+extern "C" {
+#endif
+void hclib_gather_comm_worker_stats(int* push_outd, int* push_ind,
+        int* steal_ind);
 int totalPendingLocalAsyncs();
-void display_runtime();
-volatile int* start_finish_special();
-void hclib_upc_launch(int * argc, char ** argv,
-        void (*_dddf_register_callback)(hclib_ddf_t**),
-        asyncFct_t fct_ptr, void * arg);
+void hclib_display_runtime();
+volatile int* hclib_start_finish_special();
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #ifdef DIST_WS

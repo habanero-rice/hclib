@@ -275,7 +275,7 @@ void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id) {
 
 #ifdef HUPCPP
 
-void (*dddf_register_callback)(hclib_ddf_t** ddf_list) = NULL;
+void (*hclib_dddf_register_callback)(hclib_ddf_t** ddf_list) = NULL;
 
 int totalPendingLocalAsyncs() {
 	/*
@@ -305,15 +305,7 @@ int totalPendingLocalAsyncs() {
 #endif
 }
 
-void hclib_upc_launch(int * argc, char ** argv,
-        void (*_dddf_register_callback)(hclib_ddf_t**),
-        asyncFct_t fct_ptr, void * arg) {
-	HASSERT(_dddf_register_callback);
-	dddf_register_callback = _dddf_register_callback;
-    hclib_launch(argc, argv, fct_ptr, arg);
-}
-
-volatile int* start_finish_special() {
+volatile int* hclib_start_finish_special() {
 	hclib_start_finish();
 	hc_workerState* ws = CURRENT_WS_INTERNAL;
 	return &(ws->current_finish->counter);
@@ -323,6 +315,6 @@ volatile int* start_finish_special() {
 
 void check_if_hcupc_dddf(hclib_ddf_t** ddf_list) {
 #ifdef HUPCPP
-	dddf_register_callback(ddf_list);
+	hclib_dddf_register_callback(ddf_list);
 #endif
 }

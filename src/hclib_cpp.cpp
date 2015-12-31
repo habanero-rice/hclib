@@ -8,6 +8,10 @@ hclib::ddf_t **hclib::ddf_create_n(size_t nb_ddfs, int null_terminated) {
     return hclib_ddf_create_n(nb_ddfs, null_terminated);
 }
 
+void hclib::ddf_init(hclib::ddf_t* ddf) {
+    hclib_ddf_init(ddf);
+}
+
 void hclib::ddf_free(hclib::ddf_t *ddf) {
     hclib_ddf_free(ddf);
 }
@@ -67,5 +71,26 @@ void *hclib::ddf_wait(hclib::ddf_t *ddf) {
 #ifdef HUPCPP
 int hclib::total_pending_local_asyncs() {
     return totalPendingLocalAsyncs();
+}
+
+volatile int *hclib::start_finish_special() {
+    return hclib_start_finish_special();
+}
+
+void hclib::end_finish() {
+    hclib_end_finish();
+}
+
+void hclib::display_runtime() {
+    hclib_display_runtime();
+}
+
+void hclib::get_avg_time(double* tWork, double *tOvh, double* tSearch) {
+    hclib_get_avg_time(tWork, tOvh, tSearch);
+}
+
+void hclib::gather_comm_worker_stats(int* push_outd, int* push_ind,
+        int* steal_ind) {
+    hclib_gather_comm_worker_stats(push_outd, push_ind, steal_ind);
 }
 #endif
