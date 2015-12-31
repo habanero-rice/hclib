@@ -9,7 +9,27 @@
 
 namespace hclib {
 
-typedef hclib_promise_t promise_t;
+class promise_t {
+    private:
+        hclib_promise_t internal;
+
+    public:
+        promise_t() {
+            hclib_promise_init(&internal);
+        }
+        ~promise_t() { }
+
+        void put(void *datum) {
+            hclib_promise_put(&internal, datum);
+        }
+        void *get() {
+            return hclib_promise_get(&internal);
+        }
+        void *wait() {
+            return hclib_promise_wait(&internal);
+        }
+};
+
 typedef hclib_ddt_t ddt_t;
 typedef loop_domain_t loop_domain_t;
 typedef place_t place_t;
@@ -21,13 +41,7 @@ void launch(int *argc, char **argv, T lambda) {
     hclib_launch(argc, argv, (generic_framePtr)spawn, user_task);
 }
 
-promise_t *promise_create();
 promise_t **promise_create_n(size_t nb_promises, int null_terminated);
-void promise_init(promise_t* promise);
-void promise_free(promise_t *promise);
-void promise_put(promise_t *promise, void *datum);
-void *promise_get(promise_t *promise);
-void *promise_wait(promise_t *promise);
 
 hc_workerState *current_ws();
 int current_worker();

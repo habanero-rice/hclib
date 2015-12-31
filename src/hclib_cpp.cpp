@@ -1,27 +1,18 @@
 #include "hclib_cpp.h"
 
-hclib::promise_t *hclib::promise_create() {
-    return hclib_promise_create();
-}
+hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
+        const int null_terminated) {
+    hclib::promise_t **promises = (hclib::promise_t **)malloc(
+            (null_terminated ? nb_promises + 1 : nb_promises) *
+            sizeof(hclib::promise_t *));
+    for (int i = 0; i < nb_promises; i++) {
+        promises[i] = new promise_t();
+    }
 
-hclib::promise_t **hclib::promise_create_n(size_t nb_promises, int null_terminated) {
-    return hclib_promise_create_n(nb_promises, null_terminated);
-}
-
-void hclib::promise_init(hclib::promise_t* promise) {
-    hclib_promise_init(promise);
-}
-
-void hclib::promise_free(hclib::promise_t *promise) {
-    hclib_promise_free(promise);
-}
-
-void hclib::promise_put(hclib::promise_t *promise, void *datum) {
-    hclib_promise_put(promise, datum);
-}
-
-void *hclib::promise_get(hclib::promise_t *promise) {
-    return hclib_promise_get(promise);
+    if (null_terminated) {
+        promises[nb_promises] = NULL;
+    }
+    return promises;
 }
 
 hc_workerState *hclib::current_ws() {
@@ -62,10 +53,6 @@ place_t **hclib::get_nvgpu_places(int *n_nvgpu_places) {
 
 char *hclib::get_place_name(place_t *pl) {
     return hclib_get_place_name(pl);
-}
-
-void *hclib::promise_wait(hclib::promise_t *promise) {
-    return hclib_promise_wait(promise);
 }
 
 #ifdef HUPCPP
