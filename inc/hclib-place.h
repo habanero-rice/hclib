@@ -60,7 +60,6 @@ extern place_t *hclib_get_child_place();
 extern place_t *hclib_get_parent_place();
 extern place_t **hclib_get_children_places(int * numChildren);
 extern place_t **hclib_get_children_of_place(place_t * pl, int * numChildren);
-extern place_t **hclib_get_nvgpu_places(int *n_nvgpu_places);
 extern char *hclib_get_place_name(place_t *pl);
 
 /*
@@ -80,6 +79,7 @@ extern void hclib_free_at(place_t *pl, void *ptr);
 
 #ifdef HC_CUDA
 
+extern place_t **hclib_get_nvgpu_places(int *n_nvgpu_places);
 extern hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst,
         place_t *src_pl, void *src, size_t nbytes,
         hclib_promise_t **promise_list, void *user_arg);

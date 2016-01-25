@@ -47,9 +47,11 @@ place_t *hclib::get_root_place() {
     return hclib_get_root_place();
 }
 
+#ifdef HC_CUDA
 place_t **hclib::get_nvgpu_places(int *n_nvgpu_places) {
     return hclib_get_nvgpu_places(n_nvgpu_places);
 }
+#endif
 
 char *hclib::get_place_name(place_t *pl) {
     return hclib_get_place_name(pl);
