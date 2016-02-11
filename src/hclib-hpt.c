@@ -552,11 +552,13 @@ void hc_hpt_init(hc_context * context) {
      * constant time based on offset in place->deques.
      */
 #ifdef HC_CUDA
-    int ngpus = -1;
+    int ngpus = 0;
     int gpu_counter = 0;
-    if (ngpus == -1) {
-        CHECK_CUDA(cudaGetDeviceCount(&ngpus));
+    cudaError_t cuda_err = cudaGetDeviceCount(&ngpus);
+    if (cuda_err == cudaErrorNoDevice) {
+        ngpus = 0;
     }
+
     for (i = 0; i < context->nplaces; i++) {
         place_t *pl = context->places[i];
         pl->cuda_id = -1;

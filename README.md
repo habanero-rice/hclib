@@ -10,7 +10,20 @@ source ./setup.sh
 
 cd ..
 
-2) ./install.sh
+2) If you are compiling HClib with CUDA support, ensure the CUDA_HOME
+   environment variable is set.
+
+3) If you want to generate your own HPT configuration, you will need HWLOC
+   installed and the environment variable HWLOC_HOME pointed to its root
+   installation directory with $HWLOC_HOME/lib on your LD_LIBRARY_PATH.
+
+3) ./install.sh
+
+=============================================
+DEPENDENCIES
+=============================================
+
+gcc (>= 4.9.0, must support -std=c++11)
 
 =============================================
 BUILDING TESTCASES
