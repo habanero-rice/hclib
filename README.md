@@ -17,7 +17,13 @@ cd ..
    installed and the environment variable HWLOC_HOME pointed to its root
    installation directory with $HWLOC_HOME/lib on your LD_LIBRARY_PATH.
 
-3) ./install.sh
+4) ./install.sh
+   a) If you would like to use different C/C++ compilers (the defaults are
+      gcc/g++) then you can specify them using the CC and CXX environment
+      variables at this step. For example, if I wanted to use icc instead I
+      would run:
+
+          CC=icc CXX=icpc ./install.sh
 
 =============================================
 DEPENDENCIES
