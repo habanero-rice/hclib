@@ -1186,10 +1186,8 @@ static void hclib_init(int* argc, char** argv) {
 
     const char *hpt_file = getenv("HCLIB_HPT_FILE");
     if (hpt_file == NULL) {
-        fprintf(stderr, "ERROR: HCLIB_HPT_FILE must be provided. If you do not "
-                "want to write one manually, one can be auto-generated for your "
-                "platform using the hwloc_to_hpt tool.\n");
-        exit(2);
+        fprintf(stderr, "WARNING: Running without a provided HCLIB_HPT_FILE, "
+                "will make a best effort to generate a default HPT.\n");
     }
 
     hclib_entrypoint();

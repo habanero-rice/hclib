@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <unistd.h>
 
 #include "hclib-hpt.h"
 #include "hclib-internal.h"
@@ -568,7 +569,6 @@ void hc_hpt_init(hc_context * context) {
             CHECK_CUDA(cudaStreamCreate(&pl->cuda_stream));
         }
     }
-    HASSERT(gpu_counter == ngpus);
 #endif
 
     for (i = 0; i < context->nworkers; i++) {
@@ -1179,6 +1179,42 @@ void setup_worker_hpt_path(hc_workerState * worker, place_t * pl) {
     worker->hpt_path[0] = worker->hpt_path[1];
 }
 
+place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
+        int *num_pl, int * nproc, hc_workerState ***all_workers, int *num_wk) {
+    uint32_t i;
+    place_t *pl = (place_t *)malloc(sizeof(place_t));
+    HASSERT(pl);
+
+    pl->id = 1;
+    pl->did = 0;
+    pl->type = MEM_PLACE;
+    pl->psize = 0;
+    pl->unitSize = 0;
+    pl->level = 0;
+    pl->nChildren = 0;
+    pl->children = NULL;
+    pl->child = NULL;
+    pl->workers = NULL;
+    pl->nnext = NULL;
+    pl->ndeques = num_workers;
+    pl->parent = NULL;
+
+    hc_workerState *last = NULL;
+    for (i = 0; i < num_workers; i++) {
+        hc_workerState *worker = (hc_workerState *)malloc(sizeof(hc_workerState));
+        worker->id = 1;
+        worker->did = 0;
+        worker->next_worker = NULL;
+        worker->pl = pl;
+        if (pl->workers == NULL) pl->workers = worker;
+        else last->next_worker = worker;
+        last = worker;
+    }
+
+    unrollHPT(pl, all_places, num_pl, nproc, all_workers, num_wk);
+    return pl;
+}
+
 /*
  * The hierarchical place tree for a shared memory system is specified as an XML
  * file containing the hierarchy of memory spaces it contains. In general, this
@@ -1218,31 +1254,52 @@ void setup_worker_hpt_path(hc_workerState * worker, place_t * pl) {
 place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
         hc_workerState *** all_workers, int * num_wk) {
     const char *filename = getenv("HCLIB_HPT_FILE");
-    HASSERT(filename);
+    place_t *hpt;
+    if (filename == NULL) {
+        const char *workers_str = getenv("HCLIB_WORKERS");
+        uint32_t num_workers;
+        if (workers_str) {
+            num_workers = atoi(workers_str);
+        } else {
+            num_workers = sysconf(_SC_NPROCESSORS_ONLN);
+            fprintf(stderr, "WARNING: HCLIB_WORKERS not provided, running with "
+                    "default of %u\n", num_workers);
+        }
 
-    /* create a parser context */
-    xmlParserCtxt* ctxt = xmlNewParserCtxt();
-    if (ctxt == NULL) {
-        fprintf(stderr, "Failed to allocate parser context\n");
-        return NULL;
+        hpt = generate_fake_hpt(num_workers, all_places, num_pl, nproc,
+                all_workers, num_wk);
+    } else {
+        /* create a parser context */
+        xmlParserCtxt* ctxt = xmlNewParserCtxt();
+        if (ctxt == NULL) {
+            fprintf(stderr, "Failed to allocate parser context\n");
+            return NULL;
+        }
+        /* parse the file, activating the DTD validation option */
+        xmlDoc* doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
+        /* check if parsing succeeded */
+        if (doc == NULL) {
+            fprintf(stderr, "Failed to parse %s\n", filename);
+            return NULL;
+        }
+
+        /* check if validation suceeded */
+        if (ctxt->valid == 0) {
+            fprintf(stderr, "Failed to validate %s\n", filename);
+            return NULL;
+        }
+
+        xmlNode *root_element = xmlDocGetRootElement(doc);
+
+        hpt = parseHPTDoc(root_element);
+
+        /*free the document */
+        xmlFreeDoc(doc);
+
+        /* free up the parser context */
+        xmlFreeParserCtxt(ctxt);
     }
-    /* parse the file, activating the DTD validation option */
-    xmlDoc* doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
-    /* check if parsing succeeded */
-    if (doc == NULL) {
-        fprintf(stderr, "Failed to parse %s\n", filename);
-        return NULL;
-    }
 
-    /* check if validation suceeded */
-    if (ctxt->valid == 0) {
-        fprintf(stderr, "Failed to validate %s\n", filename);
-        return NULL;
-    }
-
-    xmlNode *root_element = xmlDocGetRootElement(doc);
-
-    place_t *hpt = parseHPTDoc(root_element);
     /*
      * This takes places which have num > 1 and workers that have num > 1 and
      * fully expand them in the place tree so that every node in the tree
@@ -1250,11 +1307,6 @@ place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
      */
     unrollHPT(hpt, all_places, num_pl, nproc, all_workers, num_wk);
 
-    /*free the document */
-    xmlFreeDoc(doc);
-
-    /* free up the parser context */
-    xmlFreeParserCtxt(ctxt);
     return hpt;
 }
 
