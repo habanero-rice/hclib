@@ -1217,7 +1217,6 @@ place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
         last = worker;
     }
 
-    unrollHPT(pl, all_places, num_pl, nproc, all_workers, num_wk);
     return pl;
 }
 
