@@ -69,14 +69,18 @@ typedef enum promise_kind {
 	PROMISE_KIND_DISTRIBUTED_REMOTE,
 } promise_kind_t;
 
+typedef struct _hclib_future_t {
+    struct hclib_promise_st *owner;
+} hclib_future_t;
+
 /**
  * An hclib_triggered_task_t associates dependent tasks and the promises that
  * trigger their execution. This is exposed so that the runtime knows the size
  * of the struct.
  */
 typedef struct hclib_triggered_task_st {
-    // NULL-terminated list of promises this task is registered on
-    struct hclib_promise_st **waiting_frontier;
+    // NULL-terminated list of futures this task is registered on
+    hclib_future_t **waiting_frontier;
     /*
      * This allows us to chain all dependent tasks waiting on a same promise.
      * Whenever a triggered task wants to register on a promise, and that
@@ -84,11 +88,12 @@ typedef struct hclib_triggered_task_st {
      * promise's wait_list_head and try to cas on the promise's wait_list_head,
      * with the current triggered task.
      */
-    struct hclib_triggered_task_st *next_waiting_on_same_promise;
+    struct hclib_triggered_task_st *next_waiting_on_same_future;
 } hclib_triggered_task_t;
 
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
+    hclib_future_t future;
 	int kind;
     volatile void *datum;
     // List of tasks that are awaiting the satisfaction of this promise
@@ -104,7 +109,14 @@ hclib_promise_t *hclib_promise_create();
 /**
  * Initialize a pre-Allocated promise.
  */
-void hclib_promise_init(hclib_promise_t* promise);
+void hclib_promise_init(hclib_promise_t *promise);
+
+/**
+ * Fetch the future associated with the provided promise. Tasks can then express
+ * their dependencies on the satisfaction of the promise by awaiting on this
+ * future.
+ */
+hclib_future_t *hclib_get_future(hclib_promise_t *promise);
 
 /**
  * @brief Allocate and initialize an array of promises.
@@ -112,45 +124,47 @@ void hclib_promise_init(hclib_promise_t* promise);
  * @param[in] null_terminated 		If true, create nb_promises-1 and set the last element to NULL.
  * @return A contiguous array of promises
  */
-hclib_promise_t **hclib_promise_create_n(size_t nb_promises, int null_terminated);
+hclib_promise_t **hclib_promise_create_n(size_t nb_promises,
+        int null_terminated);
 
 /**
  * @brief Destruct a promise.
- * @param[in] nb_promises 				Size of the promise array
+ * @param[in] nb_promises 			Size of the promise array
  * @param[in] null_terminated 		If true, create nb_promises-1 and set the last element to NULL.
  * @param[in] promise 				The promise to destruct
  */
-void hclib_promise_free_n(hclib_promise_t ** promise,  size_t nb_promises, int null_terminated);
+void hclib_promise_free_n(hclib_promise_t **promise, size_t nb_promises,
+        int null_terminated);
 
 /**
  * @brief Destruct a promise.
  * @param[in] promise 				The promise to destruct
  */
-void hclib_promise_free(hclib_promise_t * promise);
+void hclib_promise_free(hclib_promise_t *promise);
 
 /**
  * @brief Get the value of a promise.
  * @param[in] promise 				The promise to get a value from
  */
-void * hclib_promise_get(hclib_promise_t * promise);
+void *hclib_future_get(hclib_future_t *future);
 
 /**
  * @brief Put a value in a promise.
  * @param[in] promise 				The promise to get a value from
  * @param[in] datum 			The datum to be put in the promise
  */
-void hclib_promise_put(hclib_promise_t * promise, void * datum);
+void hclib_promise_put(hclib_promise_t *promise, void *datum);
 
 /*
  * Block the currently executing task on the provided promise. Returns the datum
  * that was put on promise.
  */
-void *hclib_promise_wait(hclib_promise_t *promise);
+void *hclib_future_wait(hclib_future_t *future);
 
 /*
  * Some extras
  */
 void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_promise_t ** promise_list);
+        hclib_future_t **future_list);
 
 #endif /* HCLIB_PROMISE_H_ */

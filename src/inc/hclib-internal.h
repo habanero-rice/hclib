@@ -91,7 +91,7 @@ typedef struct hc_options {
  * Global context information for the HC runtime, shared by all worker threads.
  */
 typedef struct hc_context {
-    struct hc_workerState** workers; /* all workers */
+    struct hclib_worker_state** workers; /* all workers */
     place_t ** places; /* all the places */
     place_t * hpt; /* root of the HPT? */
     int nworkers; /* # of worker threads created */
@@ -112,13 +112,13 @@ typedef struct hc_deque_t {
     /* The actual deque, WARNING: do not move declaration !
      * Other parts of the runtime rely on it being the first one. */
     deque_t deque;
-    struct hc_workerState * ws;
+    struct hclib_worker_state * ws;
     struct hc_deque_t * nnext;
     struct hc_deque_t * prev; /* the deque list of the worker */
     struct place_t * pl;
 } hc_deque_t;
 
-void log_(const char * file, int line, hc_workerState * ws, const char * format,
+void log_(const char * file, int line, hclib_worker_state * ws, const char * format,
         ...);
 
 // thread binding
@@ -131,6 +131,6 @@ int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);
 hclib_triggered_task_t * rt_async_task_to_triggered_task(
         hclib_task_t * async_task);
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
-        hc_workerState *ws);
+        hclib_worker_state *ws);
 
 #endif /* HCLIB_INTERNAL_H_ */

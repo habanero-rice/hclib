@@ -43,15 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib-internal.h"
 
 place_t * read_hpt(place_t *** all_places, int * num_pl, int * nproc,
-        hc_workerState *** all_workers, int * num_wk);
+        hclib_worker_state *** all_workers, int * num_wk);
 void free_hpt(place_t * hpt);
 void hc_hpt_init(hc_context * context);
 void hc_hpt_cleanup(hc_context * context);
 void hc_hpt_dev_init(hc_context * context);
 void hc_hpt_dev_cleanup(hc_context * context);
-hc_deque_t * get_deque_place(hc_workerState * ws, place_t * pl);
-hclib_task_t* hpt_pop_task(hc_workerState * ws);
-hclib_task_t* hpt_steal_task(hc_workerState* ws);
-int deque_push_place(hc_workerState *ws, place_t * pl, void * ele);
+hc_deque_t * get_deque_place(hclib_worker_state * ws, place_t * pl);
+hclib_task_t* hpt_pop_task(hclib_worker_state * ws);
+hclib_task_t* hpt_steal_task(hclib_worker_state* ws);
+int deque_push_place(hclib_worker_state *ws, place_t * pl, void * ele);
 
 #endif /* HCLIB_HPT_H_ */

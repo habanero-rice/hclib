@@ -72,9 +72,9 @@ void entrypoint(void *arg) {
     hclib_start_finish();
     hclib_forasync(forasync_fct1, (void*)ran, NULL, 1, &loop,
             FORASYNC_MODE_FLAT);
-    hclib_promise_t *event = hclib_end_finish_nonblocking();
+    hclib_future_t *event = hclib_end_finish_nonblocking();
 
-    hclib_promise_wait(event);
+    hclib_future_wait(event);
     printf("Call Finalize\n");
 }
 

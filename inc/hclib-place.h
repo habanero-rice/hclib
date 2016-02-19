@@ -28,7 +28,7 @@ typedef struct place_t {
 	struct place_t * child; /* the first child */
 	struct place_t * nnext; /* the sibling link of the HPT */
 	struct place_t ** children;
-	struct hc_workerState * workers; /* directly attached cpu workers */
+	struct hclib_worker_state * workers; /* directly attached cpu workers */
 	struct hc_deque_t * deques;
 	int ndeques; /* only for deques */
 	int id;
@@ -82,14 +82,14 @@ extern void hclib_free_at(place_t *pl, void *ptr);
 extern place_t **hclib_get_nvgpu_places(int *n_nvgpu_places);
 extern hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst,
         place_t *src_pl, void *src, size_t nbytes,
-        hclib_promise_t **promise_list, void *user_arg);
+        hclib_future_t **future_list, void *user_arg);
 extern void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, hclib_promise_t **promise_list,
+        void *src, size_t nbytes, hclib_future_t **future_list,
         void *user_arg, hclib_promise_t *out_promise);
 extern hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
-        size_t nbytes, hclib_promise_t **promise_list, void *user_arg);
+        size_t nbytes, hclib_future_t **future_list, void *user_arg);
 extern void hclib_async_memset_helper(place_t *pl, void *ptr, int val,
-        size_t nbytes, hclib_promise_t **promise_list, void *user_arg,
+        size_t nbytes, hclib_future_t **future_list, void *user_arg,
         hclib_promise_t *out_promise);
 #endif
 

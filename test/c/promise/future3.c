@@ -69,10 +69,10 @@ void entrypoint(void *arg) {
     init_ran(ran, H1);
     loop_domain_t loop = {0, H1, 1, T1};
 
-    hclib_promise_t *event = hclib_forasync_future(forasync_fct1, (void*)ran, NULL,
-            1, &loop, FORASYNC_MODE_FLAT);
+    hclib_future_t *event = hclib_forasync_future(forasync_fct1, (void*)ran,
+            NULL, 1, &loop, FORASYNC_MODE_FLAT);
 
-    hclib_promise_wait(event);
+    hclib_future_wait(event);
     printf("Call Finalize\n");
 }
 

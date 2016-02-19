@@ -61,7 +61,7 @@ int main (int argc, char ** argv) {
 
             init_ran(ran, H1);
 
-            hclib::promise_t *event = hclib::nonblocking_finish([=]() {
+            hclib::future_t *event = hclib::nonblocking_finish([=]() {
                 loop_domain_t loop = {0, H1, 1, T1};
                 hclib::forasync1D(&loop, [=](int idx) {
                         sleep(1);

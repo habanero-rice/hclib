@@ -60,7 +60,7 @@ int totalAsyncAnyAvailable() {
 }
 
 void spawn_asyncAnyTask(hclib_task_t* task) {
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
+	hclib_worker_state* ws = CURRENT_WS_INTERNAL;
 	spawn(task);
 	asyncAnyInfo_forWorker[ws->id].asyncAny_pushed++;
 }
@@ -103,7 +103,7 @@ void inform_HCUPC_myStatus(int wid, bool status) {
 #ifdef HPT_VERSION
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	hclib_task_t buff;
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
+	hclib_worker_state* ws = CURRENT_WS_INTERNAL;
 	place_t * pl = ws->pl;
 	while (pl != NULL) {
 		hc_deque_t * deqs = pl->deques;
@@ -178,11 +178,11 @@ bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
  */
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff) {
 	hclib_task_t buff;
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
+	hclib_worker_state* ws = CURRENT_WS_INTERNAL;
 	const hc_context* context = ws->context;
 	const int nworkers = context->nworkers;
 	for(int i=1; i<nworkers; i++) {
-		hc_workerState* ws_i = context->workers[i];
+		hclib_worker_state* ws_i = context->workers[i];
 		int victim = ws_i->id;
 		if((asyncAnyInfo_forWorker[victim].asyncAny_pushed - asyncAnyInfo_forWorker[victim].asyncAny_stolen) <= 0) continue;
 		hclib_task_t* t = dequeSteal(&(ws_i->current->deque));
@@ -275,7 +275,7 @@ void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id) {
 
 #ifdef HUPCPP
 
-void (*hclib_distributed_promise_register_callback)(hclib_promise_t** promise_list) = NULL;
+void (*hclib_distributed_future_register_callback)(hclib_future_t** future_list) = NULL;
 
 int totalPendingLocalAsyncs() {
 	/*
@@ -286,7 +286,7 @@ int totalPendingLocalAsyncs() {
 #else
 	int pending_tasks = 0;
 	for(int i=0; i<hclib_context->nworkers; i++) {
-		hc_workerState* ws = hclib_context->workers[i];
+		hclib_worker_state* ws = hclib_context->workers[i];
 		const finish_t* ws_curr_f_i = ws->current_finish;
 		if(ws_curr_f_i) {
 			bool found = false;
@@ -307,14 +307,14 @@ int totalPendingLocalAsyncs() {
 
 volatile int* hclib_start_finish_special() {
 	hclib_start_finish();
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
+	hclib_worker_state* ws = CURRENT_WS_INTERNAL;
 	return &(ws->current_finish->counter);
 }
 
 #endif
 
-void check_if_hcupc_distributed_promises(hclib_promise_t** promise_list) {
+void check_if_hcupc_distributed_futures(hclib_future_t** future_list) {
 #ifdef HUPCPP
-	hclib_distributed_promise_register_callback(promise_list);
+	hclib_distributed_future_register_callback(future_list);
 #endif
 }

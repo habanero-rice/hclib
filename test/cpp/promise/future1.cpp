@@ -17,7 +17,7 @@ int main(int argc, char ** argv) {
         hclib::finish([]() {
             hclib::promise_t *event = new hclib::promise_t();
             hclib::async([=]() {
-                    int *signal = (int *)event->wait();
+                    int *signal = (int *)event->get_future()->wait();
                     assert(*signal == 42);
                     printf("signal = %d\n", *signal);
                 });

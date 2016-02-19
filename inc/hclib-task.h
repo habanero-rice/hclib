@@ -18,8 +18,9 @@
  *   3) current_finish: a pointer to the finish scope this task is registered on
  *      (possibly NULL).
  *   4) is_asyncAnyType: a boolean that doesn't seem to be ever be set to 1...
- *   5) promise_list: a null-terminated list of pointers to the promises that this task
- *      depends on to execute, and which it will wait on before running.
+ *   5) future_list: a null-terminated list of pointers to the futures that
+ *      this task depends on to execute, and which it will wait on before
+ *      running.
  */
 typedef struct _hclib_task_t {
     void *args;
@@ -31,7 +32,7 @@ typedef struct _hclib_task_t {
      * and locality flexible asyncAny
      */
     int is_asyncAnyType;
-    hclib_promise_t **promise_list; // Null terminated list
+    hclib_future_t **future_list; // Null terminated list
     place_t *place;
 } hclib_task_t;
 
@@ -43,7 +44,7 @@ typedef struct hclib_dependent_task_t {
 	hclib_task_t async_task; // the actual task
     /*
      * meta-information, tasks that this task is blocked on for execution.
-     * deps.waiting_frontier is generally equal to async_task.promise_list. TODO
+     * deps.waiting_frontier is generally equal to async_task.future_list. TODO
      * can we factor out this redundant storage of data?
      */
 	hclib_triggered_task_t deps;
@@ -109,8 +110,8 @@ inline void set_current_finish(hclib_task_t *t,
     t->current_finish = finish;
 }
 
-inline void set_promise_list(hclib_task_t *t, hclib_promise_t ** promise) {
-    t->promise_list = promise;
+inline void set_future_list(hclib_task_t *t, hclib_future_t **futures) {
+    t->future_list = futures;
 }
 
 #endif

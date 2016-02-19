@@ -22,6 +22,7 @@ static inline void echo_worker(const char *taskName) {
 }
 
 hclib_promise_t **promise_list;
+hclib_future_t **future_list;
 hclib_promise_t *promise;
 int data;
 
@@ -33,7 +34,7 @@ void taskSleep(void *args) {
 void taskA(void *args) {
     echo_worker("A");
     FINISH {
-        hclib_async(taskSleep, taskA, NO_PROMISE, NO_PHASER, NO_PROP);
+        hclib_async(taskSleep, taskA, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
         DELAY(2);
     }
     printf("%p <- %p\n", promise, &data);
@@ -43,24 +44,26 @@ void taskA(void *args) {
 void taskB(void *args) {
     echo_worker("B");
     FINISH {
-        hclib_async(taskSleep, NULL, promise_list, NO_PHASER, NO_PROP);
+        hclib_async(taskSleep, NULL, future_list, NO_PHASER, ANY_PLACE, NO_PROP);
     }
 }
 
 void taskC(void *args) {
     echo_worker("C");
     DELAY(1);
-    hclib_async(taskB, NULL, NO_PROMISE, NO_PHASER, NO_PROP);
+    hclib_async(taskB, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
     DELAY(5);
 }
 
 void taskMain(void *args) {
     promise_list = hclib_promise_create_n(1, true);
+    future_list = (hclib_future_t **)malloc(1 * sizeof(hclib_future_t *));
     promise = hclib_promise_create();
     promise_list[0] = promise;
+    future_list[0] = hclib_get_future(promise);
 
-    hclib_async(&taskA, NULL, NO_PROMISE, NO_PHASER, NO_PROP);
-    hclib_async(&taskC, NULL, NO_PROMISE, NO_PHASER, NO_PROP);
+    hclib_async(&taskA, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
+    hclib_async(&taskC, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
     DELAY(10);
 }
 

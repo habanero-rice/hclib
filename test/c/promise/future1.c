@@ -24,8 +24,8 @@ void producer(void *arg) {
 }
 
 void consumer(void *arg) {
-    hclib_promise_t *event = (hclib_promise_t *)arg;
-    int *signal = (int *)hclib_promise_wait(event);
+    hclib_future_t *event = (hclib_future_t *)arg;
+    int *signal = (int *)hclib_future_wait(event);
     assert(*signal == 42);
     printf("signal = %d\n", *signal);
 }
@@ -35,8 +35,9 @@ void entrypoint(void *arg) {
     hclib_start_finish();
 
     hclib_promise_t *event = hclib_promise_create();
-    hclib_async(consumer, event, NULL, NULL, NULL, NO_PROP);
-    hclib_async(producer, event, NULL, NULL, NULL, NO_PROP);
+    hclib_async(consumer, hclib_get_future(event), NO_FUTURE, NO_PHASER,
+            ANY_PLACE, NO_PROP);
+    hclib_async(producer, event, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 
     hclib_end_finish();
 }

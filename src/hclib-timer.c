@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include "hclib-timer.h"
 
+#ifdef _TIMER_ON_
 typedef struct stats_t {
 	double time[HCLIB_NSTATES];	/* Time spent in each state */
 	double timeLast;
@@ -21,7 +22,6 @@ typedef struct stats_t {
 	int    curState;
 } stats_t;
 
-#ifdef _TIMER_ON_
 static stats_t* status;
 static int numWorkers = -1;
 static int have_comm_worker = 0;

@@ -12,29 +12,29 @@ extern "C" {
 
 /*** START ASYNC IMPLEMENTATION ***/
 
-void hclib_async(generic_framePtr fp, void *arg, hclib_promise_t** promise_list,
+void hclib_async(generic_framePtr fp, void *arg, hclib_future_t** future_list,
         struct _phased_t * phased_clause, place_t *place, int property) {
     HASSERT(property == 0);
     HASSERT(phased_clause == NULL);
 
-    if (promise_list) {
+    if (future_list) {
         hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
         task->async_task._fp = fp;
         task->async_task.is_asyncAnyType = 0;
-        task->async_task.promise_list = NULL;
+        task->async_task.future_list = NULL;
         task->async_task.args = arg;
         task->async_task.place = NULL;
 
         if (place) {
-            spawn_await_at((hclib_task_t *)task, promise_list, place);
+            spawn_await_at((hclib_task_t *)task, future_list, place);
         } else {
-            spawn_await((hclib_task_t *)task, promise_list);
+            spawn_await((hclib_task_t *)task, future_list);
         }
     } else {
         hclib_task_t *task = malloc(sizeof(hclib_task_t));
         task->_fp = fp;
         task->is_asyncAnyType = 0;
-        task->promise_list = NULL;
+        task->future_list = NULL;
         task->args = arg;
         task->place = NULL;
 
@@ -59,13 +59,13 @@ static void future_caller(void *in) {
 }
 
 hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
-        hclib_promise_t** promise_list, struct _phased_t * phased_clause,
+        hclib_future_t** future_list, struct _phased_t * phased_clause,
         place_t *place, int property) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, promise_list, phased_clause, place,
+    hclib_async(future_caller, wrapper, future_list, phased_clause, place,
             property);
 
     return (hclib_promise_t *)wrapper;
@@ -158,14 +158,13 @@ void forasync1D_recursive(void * forasync_arg) {
     int tile0 = loop0.tile;
 
     //split the range into two, spawn a new task for the first half and recurse on the rest  
-    forasync1D_task_t * new_forasync_task = NULL;
     if((high0-low0) > tile0) {
         int mid = (high0+low0)/2;
         // upper-half
-        new_forasync_task = allocate_forasync1D_task();
+        forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
@@ -203,7 +202,7 @@ void forasync2D_recursive(void * forasync_arg) {
         new_forasync_task = allocate_forasync2D_task();
         new_forasync_task->forasync_task._fp = forasync2D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {mid, high0, stride0, tile0};;
         new_forasync_task->def.loop0 = new_loop0;
@@ -216,7 +215,7 @@ void forasync2D_recursive(void * forasync_arg) {
         new_forasync_task = allocate_forasync2D_task();
         new_forasync_task->forasync_task._fp = forasync2D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
@@ -262,7 +261,7 @@ void forasync3D_recursive(void * forasync_arg) {
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
@@ -276,7 +275,7 @@ void forasync3D_recursive(void * forasync_arg) {
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
@@ -290,7 +289,7 @@ void forasync3D_recursive(void * forasync_arg) {
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         new_forasync_task->def.loop1 = loop1;
@@ -328,12 +327,10 @@ void forasync1D_flat(void * forasync_arg) {
         forasync1D_task_t * new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_runner;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {low0, low0+tile0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
-        // printf("1promise_list %p\n",((async_task_t*)new_forasync_task));
-        // printf("2promise_list %p\n",((async_task_t*)new_forasync_task)->def.promise_list);
         spawn((hclib_task_t*)new_forasync_task);
     }
     // handling leftover
@@ -344,7 +341,7 @@ void forasync1D_flat(void * forasync_arg) {
         forasync1D_task_t * new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_runner;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.promise_list = NULL;
+        new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
         new_forasync_task->def.loop0 = new_loop0;
@@ -370,7 +367,7 @@ void forasync2D_flat(void * forasync_arg) {
             forasync2D_task_t * new_forasync_task = allocate_forasync2D_task();
             new_forasync_task->forasync_task._fp = forasync2D_runner;
             new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-            new_forasync_task->forasync_task.promise_list = NULL;
+            new_forasync_task->forasync_task.future_list = NULL;
             new_forasync_task->def.base.user = forasync->base.user;
             loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
             new_forasync_task->def.loop0 = new_loop0;
@@ -405,7 +402,7 @@ void forasync3D_flat(void * forasync_arg) {
                 forasync3D_task_t * new_forasync_task = allocate_forasync3D_task();
                 new_forasync_task->forasync_task._fp = forasync3D_runner;
                 new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-                new_forasync_task->forasync_task.promise_list = NULL;
+                new_forasync_task->forasync_task.future_list = NULL;
                 new_forasync_task->def.base.user = forasync->base.user;
                 loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
                 new_forasync_task->def.loop0 = new_loop0;
@@ -428,7 +425,7 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     HASSERT(user_def);
     user_def->_fp = user_fct_ptr;
     user_def->args = user_arg;
-    user_def->promise_list = NULL;
+    user_def->future_list = NULL;
     user_def->place = NULL;
 
     HASSERT(dim>0 && dim<4);
@@ -450,19 +447,20 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     }
 }
 
-void hclib_forasync(void* forasync_fct, void * argv, hclib_promise_t** promise_list,
-        int dim, loop_domain_t *domain, forasync_mode_t mode) {
-    HASSERT(promise_list == NULL && "Limitation: forasync does not support promises yet");
+void hclib_forasync(void* forasync_fct, void * argv,
+        hclib_future_t** future_list, int dim, loop_domain_t *domain,
+        forasync_mode_t mode) {
+    HASSERT(future_list == NULL && "Limitation: forasync does not support futures yet");
 
     forasync_internal(forasync_fct, argv, dim, domain, mode);
 }
 
-hclib_promise_t *hclib_forasync_future(void* forasync_fct, void * argv,
-        hclib_promise_t **promise_list, int dim, loop_domain_t *domain,
+hclib_future_t *hclib_forasync_future(void* forasync_fct, void * argv,
+        hclib_future_t **future_list, int dim, loop_domain_t *domain,
         forasync_mode_t mode) {
 
     hclib_start_finish();
-    hclib_forasync(forasync_fct, argv, promise_list, dim, domain, mode);
+    hclib_forasync(forasync_fct, argv, future_list, dim, domain, mode);
     return hclib_end_finish_nonblocking();
 }
 

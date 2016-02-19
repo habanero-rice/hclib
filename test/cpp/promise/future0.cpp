@@ -20,15 +20,15 @@ int main(int argc, char ** argv) {
 
         hclib::finish([=]() {
             int i;
-            hclib::promise_t *prev = NULL;
+            hclib::future_t *prev = NULL;
             for (i = 0; i < n_asyncs; i++) {
                 if (prev) {
-                    prev = hclib::asyncFutureAwait([=]() {
+                    prev = hclib::async_future_await([=]() {
                             printf("Running async with count = %d\n", *count);
                             *count = *count + 1;
                         }, prev);
                 } else {
-                    prev = hclib::asyncFuture([=]() {
+                    prev = hclib::async_future([=]() {
                             printf("Running async with count = %d\n", *count);
                             *count = *count + 1;
                         });

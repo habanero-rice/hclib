@@ -36,7 +36,7 @@ int compare(const void * a, const void * b)
 void sort(ELEMENT_T* data, int left, int right, ELEMENT_T threshold) {
 	if (right - left + 1 > threshold) {
 		int index = partition(data, left, right);
-		hclib::start_finish();
+        hclib::finish([=] {
 			if (left < index - 1) {
 				hclib::async([=]() {
                         		sort(data, left, (index - 1), threshold);
@@ -48,7 +48,7 @@ void sort(ELEMENT_T* data, int left, int right, ELEMENT_T threshold) {
 					sort(data, index, right, threshold);
 				});
 			}
-		hclib::end_finish();
+        });
 	}
 	else {
 		//  quicksort in C++ library

@@ -63,7 +63,7 @@ int main (int argc, char ** argv) {
             init_ran(ran, H1);
             loop_domain_t loop = {0, H1, 1, T1};
 
-            hclib::promise_t *event = hclib::forasync1D_future(&loop,
+            hclib::future_t *event = hclib::forasync1D_future(&loop,
                     [=](int idx) {
                         sleep(1);
                         assert(ran[idx] == -1);

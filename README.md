@@ -68,3 +68,17 @@ export HCLIB_BIND_THREADS=1
 4) Execute the testcase:
 
 ./a.out command_line_args
+
+=============================================
+STATIC CHECKS
+=============================================
+
+As part of the development workflow for HClib, any newly committed code should
+be checked using standard static checking tools.
+
+In particular, run cppcheck on all modified files. cppcheck is available online
+at [1]. cppcheck should be run by cd-ing to tools/cppcheck and executing the
+run.sh script from there (this assumes cppcheck is on your path). Any new errors
+printed by cppcheck should be addressed before committing.
+
+[1] https://sourceforge.net/projects/cppcheck/

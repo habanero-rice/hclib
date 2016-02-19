@@ -15,7 +15,7 @@ hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
     return promises;
 }
 
-hc_workerState *hclib::current_ws() {
+hclib_worker_state *hclib::current_ws() {
     return CURRENT_WS_INTERNAL;
 }
 

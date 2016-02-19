@@ -99,21 +99,21 @@ int main(int argc, char *argv[]) {
         /* time parallel search */
         t1 = uts_wctime();
 
-        hclib::start_finish();
-        hclib::async([=]() {
-            int wid = hclib::current_worker();
-            /* initialize root node and push on thread 0 stack */
-            StealStack *s = threadStealStacks[wid];
-            s->root = 1;
-            Node *root = &(s->stack[s->stack_head]);
-            uts_initRoot(root, type);
-            s->stack_head++;
-            s->localWork++;
-            s->maxStackDepth = max(s->localWork, s->maxStackDepth);
+        hclib::finish([=] {
+            hclib::async([=]() {
+                int wid = hclib::current_worker();
+                /* initialize root node and push on thread 0 stack */
+                StealStack *s = threadStealStacks[wid];
+                s->root = 1;
+                Node *root = &(s->stack[s->stack_head]);
+                uts_initRoot(root, type);
+                s->stack_head++;
+                s->localWork++;
+                s->maxStackDepth = max(s->localWork, s->maxStackDepth);
 
-            parTreeSearch();
+                parTreeSearch();
+            });
         });
-        hclib::end_finish();
 
         t2 = uts_wctime();
 

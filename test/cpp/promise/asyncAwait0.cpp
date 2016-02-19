@@ -27,8 +27,8 @@ int main(int argc, char ** argv) {
             // Building 'n' NULL-terminated lists of a single promise each
             for (index = 0 ; index <= n; index++) {
                 promise_list[index*2] = new hclib::promise_t();
-                printf("Creating promise  %p at promise_list @ %p \n",
-                        &promise_list[index*2], promise_list[index*2]->get());
+                printf("Creating promise  %p at promise_list\n",
+                        &promise_list[index*2]);
                 promise_list[index*2+1] = NULL;
             }
 
@@ -37,7 +37,7 @@ int main(int argc, char ** argv) {
                 // Build async's arguments
                 printf("Creating async %d await on %p will enable %p\n", index,
                         &(promise_list[(index-1)*2]), &(promise_list[index*2]));
-                hclib::asyncAwait([=]() {
+                hclib::async_await([=]() {
                         hclib::promise_t *promise = promise_list[(index * 2)];
                         int index = index * 2;
                         printf("Running async %d\n", index/2);
@@ -45,7 +45,7 @@ int main(int argc, char ** argv) {
                                 index, promise);
                         int * value = (int *) malloc(sizeof(int)*1);
                         *value = index; 
-                        promise->put(value); }, promise_list[(index-1)*2]);
+                        promise->put(value); }, promise_list[(index-1)*2]->get_future());
             }
             int * value = (int *) malloc(sizeof(int)*1);
             *value = 2222;
@@ -54,7 +54,7 @@ int main(int argc, char ** argv) {
         });
         // freeing everything up
         for (int index = 0 ; index <= n; index++) {
-            free(promise_list[index*2]->get());
+            free(promise_list[index*2]->get_future()->get());
             delete promise_list[index*2];
         }
         free(promise_list);

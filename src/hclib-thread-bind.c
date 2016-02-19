@@ -55,13 +55,13 @@ int get_nb_cpus() {
 }
 
 void bind_thread_with_mask(int * mask, int lg) {
-	int i = 0;
 	cpu_set_t cpuset;
 	if (mask != NULL) {
 		CPU_ZERO(&cpuset);
 
 		/* Copy the mask from the int array to the cpuset */
-		for (i=0; i<lg; i++) {
+        int i;
+		for (i = 0; i < lg; i++) {
 			CPU_SET(mask[i], &cpuset);
 		}
 

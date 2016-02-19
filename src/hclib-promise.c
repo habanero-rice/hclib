@@ -51,15 +51,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // For waiting frontier (last element of the list)
 #define UNINITIALIZED_PROMISE_WAITLIST_PTR ((hclib_triggered_task_t *) -1)
-#define EMPTY_PROMISE_WAITLIST_PTR NULL
+#define EMPTY_FUTURE_WAITLIST_PTR NULL
 
 /**
  * Associate a triggered task to a promise list.
  */
 void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_promise_t **promise_list) {
-	task->waiting_frontier = promise_list;
-	task->next_waiting_on_same_promise = NULL;
+        hclib_future_t **future_list) {
+	task->waiting_frontier = future_list;
+	task->next_waiting_on_same_future = NULL;
 }
 
 /**
@@ -69,6 +69,7 @@ void hclib_promise_init(hclib_promise_t* promise) {
     promise->kind = PROMISE_KIND_SHARED;
     promise->datum = UNINITIALIZED_PROMISE_DATA_PTR;
     promise->wait_list_head = UNINITIALIZED_PROMISE_WAITLIST_PTR;
+    promise->future.owner = promise;
 }
 
 /**
@@ -81,14 +82,18 @@ hclib_promise_t * hclib_promise_create() {
     return promise;
 }
 
+hclib_future_t *hclib_get_future(hclib_promise_t *promise) {
+    return &promise->future;
+}
+
 /**
  * Allocate 'nb_promises' promises in contiguous memory.
  */
 hclib_promise_t **hclib_promise_create_n(size_t nb_promises, int null_terminated) {
 	hclib_promise_t ** promises = (hclib_promise_t **) malloc((sizeof(hclib_promise_t*) * nb_promises));
 	int i = 0;
-	int lg = (null_terminated) ? nb_promises-1 : nb_promises;
-	while(i < lg) {
+	int lg = (null_terminated) ? nb_promises - 1 : nb_promises;
+	while (i < lg) {
 		promises[i] = hclib_promise_create();
 		i++;
 	}
@@ -102,11 +107,11 @@ hclib_promise_t **hclib_promise_create_n(size_t nb_promises, int null_terminated
  * Get datum from a promise.
  * Note: this is concurrent with the 'put' operation.
  */
-void * hclib_promise_get(hclib_promise_t * promise) {
-	if (promise->datum == UNINITIALIZED_PROMISE_DATA_PTR) {
+void *hclib_future_get(hclib_future_t *future) {
+	if (future->owner->datum == UNINITIALIZED_PROMISE_DATA_PTR) {
 		return NULL;
 	}
-	return (void *)promise->datum;
+	return (void *)future->owner->datum;
 }
 
 /**
@@ -132,30 +137,32 @@ void hclib_promise_free(hclib_promise_t * promise) {
 	free(promise);
 }
 
-__inline__ int __register_if_promise_not_ready(hclib_triggered_task_t* wrapper_task,
-        hclib_promise_t* promiseToCheck) {
+__inline__ int __register_if_promise_not_ready(
+        hclib_triggered_task_t* wrapper_task,
+        hclib_future_t* future_to_check) {
     int success = 0;
-    hclib_triggered_task_t* wait_list_of_promise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
+    hclib_triggered_task_t* wait_list_of_future =
+        (hclib_triggered_task_t*)future_to_check->owner->wait_list_head;
 
-    if (wait_list_of_promise != EMPTY_PROMISE_WAITLIST_PTR) {
+    if (wait_list_of_future != EMPTY_FUTURE_WAITLIST_PTR) {
 
-        while (wait_list_of_promise != EMPTY_PROMISE_WAITLIST_PTR && !success) {
-            // wait_list_of_promise can not be EMPTY_PROMISE_WAITLIST_PTR in here
-            wrapper_task->next_waiting_on_same_promise = wait_list_of_promise;
+        while (wait_list_of_future != EMPTY_FUTURE_WAITLIST_PTR && !success) {
+            // wait_list_of_future can not be EMPTY_FUTURE_WAITLIST_PTR in here
+            wrapper_task->next_waiting_on_same_future = wait_list_of_future;
 
             success = __sync_bool_compare_and_swap(
-                    &(promiseToCheck -> wait_list_head), wait_list_of_promise,
+                    &(future_to_check->owner->wait_list_head), wait_list_of_future,
                     wrapper_task);
-            // printf("task:%p registered to Promise:%p\n", pollingTask,promiseToCheck);
 
             /*
              * may have failed because either some other task tried to be the
              * head or a put occurred.
              */
             if (!success) {
-                wait_list_of_promise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
+                wait_list_of_future =
+                    (hclib_triggered_task_t*)future_to_check->owner->wait_list_head;
                 /*
-                 * if wait_list_of_promise was set to EMPTY_PROMISE_WAITLIST_PTR,
+                 * if wait_list_of_future was set to EMPTY_FUTURE_WAITLIST_PTR,
                  * the loop condition will handle that if another task was
                  * added, now try to add in front of that
                  */
@@ -170,7 +177,8 @@ __inline__ int __register_if_promise_not_ready(hclib_triggered_task_t* wrapper_t
  * Returns '1' if all promise dependencies have been satisfied.
  */
 int register_on_all_promise_dependencies(hclib_triggered_task_t* wrapper_task) {
-	hclib_promise_t** curr_promise_not_to_wait_on = wrapper_task->waiting_frontier;
+	hclib_future_t** curr_promise_not_to_wait_on =
+        wrapper_task->waiting_frontier;
 
     while (*curr_promise_not_to_wait_on && !__register_if_promise_not_ready(
                 wrapper_task, *curr_promise_not_to_wait_on) ) {
@@ -214,7 +222,7 @@ void hclib_promise_put(hclib_promise_t* promiseToBePut, void *datumToBePut) {
     promiseToBePut->datum = datumToBePut;
     /*seems like I can not avoid a CAS here*/
     while (!__sync_bool_compare_and_swap( &(promiseToBePut->wait_list_head),
-                wait_list_of_promise, EMPTY_PROMISE_WAITLIST_PTR)) {
+                wait_list_of_promise, EMPTY_FUTURE_WAITLIST_PTR)) {
         wait_list_of_promise = promiseToBePut -> wait_list_head;
     }
 
@@ -223,7 +231,7 @@ void hclib_promise_put(hclib_promise_t* promiseToBePut, void *datumToBePut) {
     int iter_count = 0;
     while (curr_task != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
 
-        next_task = curr_task->next_waiting_on_same_promise;
+        next_task = curr_task->next_waiting_on_same_future;
         if (register_on_all_promise_dependencies(curr_task)) {
             /*deque_push_default(currFrame);*/
             // task eligible to scheduling

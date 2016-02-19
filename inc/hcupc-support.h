@@ -126,7 +126,7 @@ inline void execute_hcupc_lambda(T* lambda) {
 
 template <typename T>
 inline hclib_task_t* _allocate_async_hcupc(T lambda, bool await) {
-	const size_t hclib_task_size = !await ? sizeof(hclib_task_t) : sizeof(hclib_task_t);
+	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
 	hclib_task_t* task = (hclib_task_t*) HC_MALLOC(hclib_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
@@ -151,7 +151,7 @@ inline void asyncAny(T lambda) {
  */
 void init_hcupc_related_datastructures(int w);
 void free_hcupc_related_datastructures();
-void check_if_hcupc_distributed_promises(hclib_promise_t** promise_list);
+void check_if_hcupc_distributed_futures(hclib_future_t** future_list);
 void hcupc_reset_asyncAnyInfo(int id);
 void hcupc_check_if_asyncAny_stolen(hclib_task_t* buff, int victim, int id);
 void hcupc_inform_failedSteal(int id);

@@ -39,7 +39,7 @@ void run_copy_test(hclib::place_t *dst_pl, int *dst, hclib::place_t *src_pl,
         memset(dst, 0x00, nbytes);
     }
 
-    hclib::promise_t *event = hclib::async_copy(dst_pl, dst, src_pl, src,
+    hclib::future_t *event = hclib::async_copy(dst_pl, dst, src_pl, src,
             nelems, dst);
     void *result = event->wait();
     if (result != dst) {

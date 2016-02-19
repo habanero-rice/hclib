@@ -76,12 +76,12 @@ struct hclib_promise_st;
  * @brief Spawn a new task asynchronously.
  * @param[in] fct_ptr           The function to execute
  * @param[in] arg               Argument to the async
- * @param[in] promise_list          The list of promises the async depends on
+ * @param[in] future_list       The list of promises the async depends on
  * @param[in] phased_clause     Phased clause to specify which phasers the async registers on
  * @param[in] property          Flag to pass information to the runtime
  */
 void hclib_async(asyncFct_t fct_ptr, void * arg,
-        struct hclib_promise_st ** promise_list, struct _phased_t * phased_clause,
+        hclib_future_t **future_list, struct _phased_t * phased_clause,
         place_t *place, int property);
 
 /*
@@ -89,7 +89,7 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
  * responsibility to call hclib_promise_free on the returned promise_t.
  */
 hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
-        hclib_promise_t **promise_list, struct _phased_t *phased_clause,
+        hclib_future_t **future_list, struct _phased_t *phased_clause,
         place_t *place, int property);
 
 /*
@@ -140,21 +140,22 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  *
  * @param[in] forasync_fct      The function pointer to execute.
  * @param[in] argv              Argument to the function
- * @param[in] promise_list          promises dependences 
+ * @param[in] future_list       dependences 
  * @param[in] phased_clause     Phasers registration
  * @param[in] dim               Dimension of the loop
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
-void hclib_forasync(void *forasync_fct, void *argv, hclib_promise_t **promise_list,
-        int dim, loop_domain_t *domain, forasync_mode_t mode);
+void hclib_forasync(void *forasync_fct, void *argv,
+        hclib_future_t **future_list, int dim, loop_domain_t *domain,
+        forasync_mode_t mode);
 
 /*
  * Semantically equivalent to hclib_forasync, but returns a promise that is
  * triggered when all tasks belonging to this forasync have finished.
  */
-hclib_promise_t *hclib_forasync_future(void *forasync_fct, void *argv,
-        hclib_promise_t **promise_list, int dim, loop_domain_t *domain,
+hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
+        hclib_future_t **future_list, int dim, loop_domain_t *domain,
         forasync_mode_t mode);
 
 /**
@@ -171,7 +172,7 @@ void hclib_end_finish();
  * Get a promise that is triggered when all tasks inside this finish scope have
  * finished, but return immediately.
  */
-hclib_promise_t *hclib_end_finish_nonblocking();
+hclib_future_t *hclib_end_finish_nonblocking();
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event);
 
 /**

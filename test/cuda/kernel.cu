@@ -60,12 +60,12 @@ int main(int argc, char **argv) {
         int *arr = hclib::allocate_at<int>(cpu_place, N, 0);
         assert(arr);
 
-        hclib::promise_t *cpu_memset_event = hclib::async_memset(cpu_place, arr, 0,
+        hclib::future_t *cpu_memset_event = hclib::async_memset(cpu_place, arr, 0,
                 N, arr);
 
         loop_domain_t loop = {0, N, 1, 33};
         test_functor cpu_kernel(arr);
-        hclib::promise_t *cpu_kernel_event = hclib::forasync1D_future(
+        hclib::future_t *cpu_kernel_event = hclib::forasync1D_future(
                 (loop_domain_t *)&loop, cpu_kernel, FORASYNC_MODE_FLAT,
                 cpu_place, cpu_memset_event);
 
@@ -77,15 +77,15 @@ int main(int argc, char **argv) {
         int *d_arr = hclib::allocate_at<int>(gpu_place, N, 0);
         assert(d_arr);
 
-        hclib::promise_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
+        hclib::future_t *gpu_memset_event = hclib::async_memset(gpu_place, d_arr,
                 0, N, d_arr);
 
         test_functor gpu_kernel(d_arr);
-        hclib::promise_t *gpu_kernel_event = hclib::forasync1D_future(
+        hclib::future_t *gpu_kernel_event = hclib::forasync1D_future(
                 (loop_domain_t *)&loop, gpu_kernel, FORASYNC_MODE_FLAT,
                 gpu_place, gpu_memset_event);
 
-        hclib::promise_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
+        hclib::future_t *copy_event = hclib::async_copy(cpu_place, arr, gpu_place,
                 d_arr, N, arr, gpu_kernel_event);
         copy_event->wait();
 

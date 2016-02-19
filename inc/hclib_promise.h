@@ -2,6 +2,7 @@
 #define HCLIB_PROMISE_H
 
 #include "hclib-promise.h"
+#include "hclib_future.h"
 
 namespace hclib {
 
@@ -17,11 +18,9 @@ class promise_t {
         void put(void *datum) {
             hclib_promise_put(&internal, datum);
         }
-        void *get() {
-            return hclib_promise_get(&internal);
-        }
-        void *wait() {
-            return hclib_promise_wait(&internal);
+
+        future_t *get_future() {
+            return new future_t(&internal.future);
         }
 };
 

@@ -102,7 +102,7 @@ void hclib_memory_tree_insert(void *address, size_t length,
 
 #ifdef VERBOSE
     fprintf(stderr, "hclib_memory_tree_insert: root=%p address=%p length=%lu\n",
-            root, address, length);
+            root, address, (unsigned long)length);
 #endif
 
     if (root == NULL) {

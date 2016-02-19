@@ -70,7 +70,7 @@ static int bind_threads = -1;
 
 void hclib_start_finish();
 
-void log_(const char * file, int line, hc_workerState * ws, const char * format,
+void log_(const char * file, int line, hclib_worker_state * ws, const char * format,
         ...) {
     va_list l;
     FILE * f = stderr;
@@ -113,7 +113,7 @@ void set_current_worker(int wid) {
 }
 
 int get_current_worker() {
-    return ((hc_workerState*)pthread_getspecific(ws_key))->id;
+    return ((hclib_worker_state*)pthread_getspecific(ws_key))->id;
 }
 
 static void set_curr_lite_ctx(LiteCtx *ctx) {
@@ -133,7 +133,7 @@ static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
     set_curr_lite_ctx(current);
 }
 
-hc_workerState* current_ws() {
+hclib_worker_state* current_ws() {
     return CURRENT_WS_INTERNAL;
 }
 
@@ -154,8 +154,16 @@ void hclib_global_init() {
     hclib_context->hpt = read_hpt(&hclib_context->places,
             &hclib_context->nplaces, &hclib_context->nproc,
             &hclib_context->workers, &hclib_context->nworkers);
+
+#ifdef HC_COMM_WORKER
+    assert(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
+#endif
+#ifdef HC_CUDA
+    assert(hclib_context->nworkers > GPU_WORKER_ID);
+#endif
+
     for (int i = 0; i < hclib_context->nworkers; i++) {
-        hc_workerState * ws = hclib_context->workers[i];
+        hclib_worker_state * ws = hclib_context->workers[i];
         ws->context = hclib_context;
         ws->current_finish = NULL;
         ws->curr_ctx = NULL;
@@ -342,7 +350,7 @@ static inline void check_out_finish(finish_t * finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            hclib_promise_put(finish->finish_deps[0], finish);
+            hclib_promise_put(finish->finish_deps[0]->owner, finish);
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
@@ -367,7 +375,7 @@ static inline void execute_task(hclib_task_t* task) {
 }
 
 static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
-        int gpu_task, hc_workerState *ws) {
+        int gpu_task, hclib_worker_state *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p comm_task=%d "
             "gpu_task=%d\n", async_task, comm_task, gpu_task);
@@ -413,10 +421,10 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
  */
 inline int is_eligible_to_schedule(hclib_task_t * async_task) {
 #ifdef VERBOSE
-    fprintf(stderr, "is_eligible_to_schedule: async_task=%p promise_list=%p\n",
-            async_task, async_task->promise_list);
+    fprintf(stderr, "is_eligible_to_schedule: async_task=%p future_list=%p\n",
+            async_task, async_task->future_list);
 #endif
-    if (async_task->promise_list != NULL) {
+    if (async_task->future_list != NULL) {
     	hclib_triggered_task_t *triggered_task = (hclib_triggered_task_t *)rt_async_task_to_triggered_task(async_task);
         return register_on_all_promise_dependencies(triggered_task);
     } else {
@@ -430,14 +438,14 @@ inline int is_eligible_to_schedule(hclib_task_t * async_task) {
  * eligible for scheduling.
  */
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
-        hc_workerState *ws) {
+        hclib_worker_state *ws) {
     if (is_eligible_to_schedule(async_task)) {
         rt_schedule_async(async_task, comm_task, gpu_task, ws);
     }
 }
 
-void spawn_handler(hclib_task_t *task, place_t *pl, hclib_promise_t **promise_list,
-        int escaping, int comm, int gpu) {
+void spawn_handler(hclib_task_t *task, place_t *pl,
+        hclib_future_t **future_list, int escaping, int comm, int gpu) {
 
     HASSERT(task);
 #ifndef HC_CUDA
@@ -452,11 +460,11 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_promise_t **promise_li
      *
      * TODO not sure exactly what this does, just copy-pasted. Ask Kumar
      */
-    if (promise_list) {
-        check_if_hcupc_distributed_promises(promise_list);
+    if (future_list) {
+        check_if_hcupc_distributed_futures(future_list);
     }
 
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
+    hclib_worker_state* ws = CURRENT_WS_INTERNAL;
     if (!escaping) {
         check_in_finish(ws->current_finish);
         set_current_finish(task, ws->current_finish);
@@ -469,10 +477,10 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_promise_t **promise_li
         task->place = pl;
     }
 
-    if (promise_list) {
-        set_promise_list(task, promise_list);
+    if (future_list) {
+        set_future_list(task, future_list);
         hclib_dependent_task_t *t = (hclib_dependent_task_t*) task;
-        hclib_triggered_task_init(&(t->deps), promise_list);
+        hclib_triggered_task_init(&(t->deps), future_list);
     }
 
 #ifdef VERBOSE
@@ -489,7 +497,7 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_promise_t **promise_li
 
 void spawn_at_hpt(place_t* pl, hclib_task_t * task) {
     // get current worker
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
+    hclib_worker_state* ws = CURRENT_WS_INTERNAL;
     check_in_finish(ws->current_finish);
     set_current_finish(task, ws->current_finish);
     task->place = pl;
@@ -504,20 +512,22 @@ void spawn(hclib_task_t * task) {
     spawn_handler(task, NULL, NULL, 0, 0, 0);
 }
 
-void spawn_escaping(hclib_task_t *task, hclib_promise_t **promise_list) {
-    spawn_handler(task, NULL, promise_list, 1, 0, 0);
+void spawn_escaping(hclib_task_t *task, hclib_future_t **future_list) {
+    spawn_handler(task, NULL, future_list, 1, 0, 0);
 }
 
-void spawn_escaping_at(place_t *pl, hclib_task_t *task, hclib_promise_t **promise_list) {
-    spawn_handler(task, pl, promise_list, 1, 0, 0);
+void spawn_escaping_at(place_t *pl, hclib_task_t *task,
+        hclib_future_t **future_list) {
+    spawn_handler(task, pl, future_list, 1, 0, 0);
 }
 
-void spawn_await_at(hclib_task_t * task, hclib_promise_t** promise_list, place_t *pl) {
-    spawn_handler(task, pl, promise_list, 0, 0, 0);
+void spawn_await_at(hclib_task_t * task, hclib_future_t **future_list,
+        place_t *pl) {
+    spawn_handler(task, pl, future_list, 0, 0, 0);
 }
 
-void spawn_await(hclib_task_t * task, hclib_promise_t** promise_list) {
-    spawn_await_at(task, promise_list, NULL);
+void spawn_await(hclib_task_t * task, hclib_future_t **future_list) {
+    spawn_await_at(task, future_list, NULL);
 }
 
 void spawn_commTask(hclib_task_t * task) {
@@ -761,7 +771,7 @@ void *communication_worker_routine(void* finish_ptr) {
 }
 #endif
 
-void find_and_run_task(hc_workerState* ws) {
+void find_and_run_task(hclib_worker_state* ws) {
     hclib_task_t* task = hpt_pop_task(ws);
     if (!task) {
         while (hclib_context->done_flags[ws->id].flag) {
@@ -794,13 +804,13 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
 static void core_work_loop(void) {
     uint64_t wid;
     do {
-        hc_workerState *ws = CURRENT_WS_INTERNAL;
+        hclib_worker_state *ws = CURRENT_WS_INTERNAL;
         wid = (uint64_t)ws->id;
         find_and_run_task(ws);
     } while (hclib_context->done_flags[wid].flag);
 
     // Jump back to the system thread context for this worker
-    hc_workerState *ws = CURRENT_WS_INTERNAL;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     HASSERT(ws->root_ctx);
     ctx_swap(get_curr_lite_ctx(), ws->root_ctx, __func__);
     HASSERT(0); // Should never return here
@@ -824,7 +834,7 @@ static void crt_work_loop(LiteCtx *ctx) {
 static void* worker_routine(void * args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
+    hclib_worker_state* ws = CURRENT_WS_INTERNAL;
 
 #ifdef HC_COMM_WORKER
     if (wid == COMMUNICATION_WORKER_ID) {
@@ -870,7 +880,7 @@ static void* worker_routine(void * args) {
     const int wid = *((int *) args);
     set_current_worker(wid);
 
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
+    hclib_worker_state* ws = CURRENT_WS_INTERNAL;
 
     while (hclib_context->done_flags[wid].flag) {
         find_and_run_task(ws);
@@ -899,15 +909,14 @@ void crt_work_loop(LiteCtx *ctx);
 
 // Based on _help_finish_ctx
 void _help_wait(LiteCtx *ctx) {
-    hclib_promise_t **continuation_deps = ctx->arg;
+    hclib_future_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(hclib_dependent_task_t));
+    HASSERT(task);
+    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
-    task->async_task.is_asyncAnyType = 0;
-    task->async_task.promise_list = NULL;
     task->async_task.args = wait_ctx;
-    task->async_task.place = NULL;
 
     spawn_escaping((hclib_task_t *)task, continuation_deps);
 
@@ -915,11 +924,11 @@ void _help_wait(LiteCtx *ctx) {
     HASSERT(0);
 }
 
-void *hclib_promise_wait(hclib_promise_t *promise) {
-	if (promise->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
-        return (void *)promise->datum;
+void *hclib_future_wait(hclib_future_t *future) {
+	if (future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
+        return (void *)future->owner->datum;
     }
-    hclib_promise_t *continuation_deps[] = { promise, NULL };
+    hclib_future_t *continuation_deps[] = { future, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
     LiteCtx *newCtx = LiteCtx_create(_help_wait);
@@ -927,8 +936,8 @@ void *hclib_promise_wait(hclib_promise_t *promise) {
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
-    HASSERT(promise->datum != UNINITIALIZED_PROMISE_DATA_PTR);
-    return (void *)promise->datum;
+    HASSERT(future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR);
+    return (void *)future->owner->datum;
 }
 
 static void _help_finish_ctx(LiteCtx *ctx) {
@@ -941,11 +950,10 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(hclib_dependent_task_t));
+    HASSERT(task);
+    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume;
-    task->async_task.is_asyncAnyType = 0;
-    task->async_task.promise_list = NULL;
     task->async_task.args = hclib_finish_ctx;
-    task->async_task.place = NULL;
 
     /*
      * Create an async to handle the continuation after the finish, whose state
@@ -966,8 +974,10 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 #else /* default (broken) strategy */
 
 static inline void slave_worker_finishHelper_routine(finish_t* finish) {
-	hc_workerState* ws = CURRENT_WS_INTERNAL;
-	int wid = ws->id;
+	hclib_worker_state* ws = CURRENT_WS_INTERNAL;
+#ifdef HC_COMM_WORKER_STATS
+	const int wid = ws->id;
+#endif
 
 	while(finish->counter > 0) {
 		// try to pop
@@ -1024,7 +1034,8 @@ void help_finish(finish_t * finish) {
          */
 
         // create finish event
-        hclib_promise_t *finish_deps[] = { hclib_promise_create(), NULL };
+        hclib_promise_t *finish_promise = hclib_promise_create();
+        hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
         finish->finish_deps = finish_deps;
         // TODO - should only switch contexts after actually finding work
         LiteCtx *currentCtx = get_curr_lite_ctx();
@@ -1037,7 +1048,7 @@ void help_finish(finish_t * finish) {
          * (there are no other handles to it, and it will never be resumed)
          */
         LiteCtx_destroy(currentCtx->prev);
-        hclib_promise_free(finish_deps[0]);
+        hclib_promise_free(finish_promise);
     }
 #else /* default (broken) strategy */
     _help_finish(finish);
@@ -1051,8 +1062,10 @@ void help_finish(finish_t * finish) {
  */
 
 void hclib_start_finish() {
-    hc_workerState* ws = CURRENT_WS_INTERNAL;
-    finish_t * finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
+    hclib_worker_state* ws = CURRENT_WS_INTERNAL;
+    finish_t *finish = (finish_t*) HC_MALLOC(sizeof(finish_t));
+    HASSERT(finish);
+    memset(finish, 0x00, sizeof(finish_t));
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
      * finish being a task registered on the finish. When we reach the
@@ -1090,8 +1103,10 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
-    hclib_promise_t **finish_deps = malloc(2 * sizeof(hclib_promise_t *));
-    finish_deps[0] = event;
+    hclib_future_t **finish_deps = malloc(2 * sizeof(hclib_future_t *));
+    HASSERT(finish_deps);
+    memset(finish_deps, 0x00, 2 * sizeof(hclib_future_t *));
+    finish_deps[0] = &event->future;
     finish_deps[1] = NULL;
     current_finish->finish_deps = finish_deps;
 
@@ -1103,10 +1118,10 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
 }
 
-hclib_promise_t *hclib_end_finish_nonblocking() {
+hclib_future_t *hclib_end_finish_nonblocking() {
     hclib_promise_t *event = hclib_promise_create();
     hclib_end_finish_nonblocking_helper(event);
-    return event;
+    return &event->future;
 }
 
 int hclib_num_workers() {
@@ -1239,6 +1254,6 @@ static void hclib_finalize() {
 void hclib_launch(int * argc, char ** argv, generic_framePtr fct_ptr,
         void * arg) {
     hclib_init(argc, argv);
-    hclib_async(fct_ptr, arg, NO_PROMISE, NO_PHASER, NULL, NO_PROP);
+    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
     hclib_finalize();
 }

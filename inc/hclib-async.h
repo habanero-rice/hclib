@@ -108,7 +108,7 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
     t->_fp = lambda_wrapper<Function, T1 *>;
     t->args = args;
     t->is_asyncAnyType = 0;
-    t->promise_list = NULL;
+    t->future_list = NULL;
     t->place = NULL;
 }
 
@@ -157,76 +157,76 @@ inline void async(T lambda) {
 	spawn(task);
 }
 
-inline int _count_promises() {
+inline int _count_futures() {
     return 0;
 }
-template <typename... promise_list_t>
-inline int _count_promises(hclib::promise_t *promise,
-        promise_list_t... promises) {
-    return 1 + _count_promises(promises...);
+template <typename... future_list_t>
+inline int _count_futures(hclib::future_t *future,
+        future_list_t... futures) {
+    return 1 + _count_futures(futures...);
 }
-template <typename... promise_list_t>
-inline int count_promises(promise_list_t... promises) {
-    return _count_promises(promises...);
-}
-
-inline void _construct_promise_list(int index, hclib_promise_t **promise_list,
-        hclib::promise_t *promise) {
-    promise_list[index] = &promise->internal;
-}
-template <typename... promise_list_t>
-inline void _construct_promise_list(int index, hclib_promise_t **promise_list,
-        hclib::promise_t *promise, promise_list_t... remaining) {
-    promise_list[index] = &promise->internal;
-    _construct_promise_list(index + 1, promise_list, remaining...);
+template <typename... future_list_t>
+inline int count_futures(future_list_t... futures) {
+    return _count_futures(futures...);
 }
 
-template <typename... promise_list_t>
-inline hclib_promise_t **construct_promise_list(promise_list_t... promises) {
-    const int npromises = count_promises(promises...);
-    hclib_promise_t **promise_list = (hclib_promise_t **)malloc(
-            (npromises + 1) * sizeof(hclib_promise_t *));
-    HASSERT(promise_list);
-    _construct_promise_list(0, promise_list, promises...);
-    promise_list[npromises] = NULL;
-    return promise_list;
+inline void _construct_future_list(int index, hclib_future_t **future_list,
+        hclib::future_t *future) {
+    future_list[index] = future->internal;
+}
+template <typename... future_list_t>
+inline void _construct_future_list(int index, hclib_future_t **future_list,
+        hclib::future_t *future, future_list_t... remaining) {
+    future_list[index] = future->internal;
+    _construct_future_list(index + 1, future_list, remaining...);
+}
+
+template <typename... future_list_t>
+inline hclib_future_t **construct_future_list(future_list_t... futures) {
+    const int nfutures = count_futures(futures...);
+    hclib_future_t **future_list = (hclib_future_t **)malloc(
+            (nfutures + 1) * sizeof(hclib_future_t *));
+    HASSERT(future_list);
+    _construct_future_list(0, future_list, futures...);
+    future_list[nfutures] = NULL;
+    return future_list;
 }
 
 template <typename T>
-inline void asyncAwait(T lambda, hclib_promise_t **promise_list) {
+inline void async_await(T lambda, hclib_future_t **future_list) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, promise_list);
+	spawn_await(task, future_list);
 }
 
-template <typename T, typename... promise_list_t>
-inline void asyncAwait(T lambda, promise_list_t... promises) {
-    hclib_promise_t **promise_list = construct_promise_list(promises...);
-    asyncAwait(lambda, promise_list);
+template <typename T, typename... future_list_t>
+inline void async_await(T lambda, future_list_t... futures) {
+    hclib_future_t **future_list = construct_future_list(futures...);
+    async_await(lambda, future_list);
 }
 
 template <typename T>
-inline void asyncAwaitAt(T lambda, place_t *pl,
-        hclib_promise_t **promise_list) {
+inline void async_await_at(T lambda, place_t *pl,
+        hclib_future_t **future_list) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, promise_list, pl);
+	spawn_await_at(task, future_list, pl);
 }
 
-template <typename T, typename... promise_list_t>
-inline void asyncAwaitAt(T lambda, place_t *pl, promise_list_t... promises) {
-    hclib_promise_t **promise_list = construct_promise_list(promises...);
-    asyncAwaitAt(lambda, pl, promise_list);
+template <typename T, typename... future_list_t>
+inline void async_await_at(T lambda, place_t *pl, future_list_t... futures) {
+    hclib_future_t **future_list = construct_future_list(futures...);
+    async_await_at(lambda, pl, future_list);
 }
 
 template <typename T>
-inline void asyncComm(T lambda) {
+inline void async_comm(T lambda) {
 	hclib_task_t* task = _allocate_async<T>(lambda, false);
 	spawn_commTask(task);
 }
 
 template <typename T>
-hclib::promise_t *asyncFuture(T lambda) {
+hclib::future_t *async_future(T lambda) {
     hclib::promise_t *event = new hclib::promise_t();
     hclib_promise_t *internal_event = &event->internal;
     /*
@@ -240,11 +240,11 @@ hclib::promise_t *asyncFuture(T lambda) {
     };
     hclib_task_t* task = _allocate_async(wrapper, false);
     spawn(task);
-    return event;
+    return event->get_future();
 }
 
-template <typename T, typename... promise_list_t>
-hclib::promise_t *asyncFutureAwait(T lambda, promise_list_t... promises) {
+template <typename T, typename... future_list_t>
+hclib::future_t *async_future_await(T lambda, future_list_t... futures) {
     hclib::promise_t *event = new hclib::promise_t();
     hclib_promise_t *internal_event = &event->internal;
     /*
@@ -257,11 +257,11 @@ hclib::promise_t *asyncFutureAwait(T lambda, promise_list_t... promises) {
         hclib_promise_put(internal_event, NULL);
     };
 
-    hclib_promise_t **promise_list = construct_promise_list(promises...);
+    hclib_future_t **future_list = construct_future_list(futures...);
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await(task, promise_list);
-    return event;
+    spawn_await(task, future_list);
+    return event->get_future();
 }
 
 inline void finish(std::function<void()> lambda) {
@@ -270,12 +270,12 @@ inline void finish(std::function<void()> lambda) {
     hclib_end_finish();
 }
 
-inline hclib::promise_t *nonblocking_finish(std::function<void()> lambda) {
+inline hclib::future_t *nonblocking_finish(std::function<void()> lambda) {
     hclib_start_finish();
     lambda();
     hclib::promise_t *event = new hclib::promise_t();
     hclib_end_finish_nonblocking_helper(&event->internal);
-    return event;
+    return event->get_future();
 }
 
 }

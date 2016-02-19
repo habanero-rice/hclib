@@ -55,13 +55,13 @@ extern "C" {
 extern pthread_key_t ws_key;
 struct hc_context;
 struct hclib_options;
-struct hc_workerState;
+struct hclib_worker_state;
 struct place_t;
 struct deque_t;
 struct hc_deque_t;
 struct finish_t;
 
-typedef struct hc_workerState {
+typedef struct hclib_worker_state {
         pthread_t t; // the pthread associated
         struct finish_t* current_finish;
         struct place_t * pl; // the directly attached place
@@ -69,14 +69,14 @@ typedef struct hc_workerState {
         struct place_t ** hpt_path;
         struct hc_context * context;
         // the link of other ws in the same place
-        struct hc_workerState * next_worker;
+        struct hclib_worker_state * next_worker;
         struct hc_deque_t * current; // the current deque/place worker is on
         struct hc_deque_t * deques;
         int id; // The id, identify a worker
         int did; // the mapping device id
         LiteCtx *curr_ctx;
         LiteCtx *root_ctx;
-} hc_workerState;
+} hclib_worker_state;
 
 #ifdef HC_ASSERTION_CHECK
 #define HASSERT(cond) { \
@@ -89,10 +89,10 @@ typedef struct hc_workerState {
 #define HASSERT(cond)       // Do Nothing
 #endif
 
-#define CURRENT_WS_INTERNAL ((hc_workerState *) pthread_getspecific(ws_key))
+#define CURRENT_WS_INTERNAL ((hclib_worker_state *) pthread_getspecific(ws_key))
 
 int get_current_worker();
-hc_workerState* current_ws();
+hclib_worker_state* current_ws();
 
 #define HC_MALLOC(msize)	malloc(msize)
 #define HC_FREE(p)			free(p)

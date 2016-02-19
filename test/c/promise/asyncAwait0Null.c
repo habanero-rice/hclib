@@ -28,11 +28,17 @@ void entrypoint(void *arg) {
     // Building 'n' NULL-terminated lists of a single promise each
     hclib_promise_t ** promise_list = (hclib_promise_t **)malloc(
             sizeof(hclib_promise_t *) * (2*(n+1)));
+    hclib_future_t **future_list =
+        (hclib_future_t **)malloc(sizeof(hclib_future_t *) * (2 * (n + 1)));
+
     for (index = 0 ; index <= n; index++) {
-        promise_list[index*2] = hclib_promise_create();
+        promise_list[index * 2] = hclib_promise_create();
+        future_list[index * 2] = hclib_get_future(promise_list[index * 2]);
+
         printf("Creating promise  %p at promise_list @ %p \n", &promise_list[index*2],
-                hclib_promise_get(promise_list[index*2]));
+                hclib_future_get(future_list[index*2]));
         promise_list[index*2+1] = NULL;
+        future_list[index * 2 + 1] = NULL;
     }
     for(index=n-1; index>=1; index--) {
         printf("Creating async %d\n", index);
@@ -43,14 +49,15 @@ void entrypoint(void *arg) {
         argv[1] = (void *)(promise_list[index*2]);
         printf("Creating async %d await on %p will enable %p\n", index,
                 &(promise_list[(index-1)*2]), &(promise_list[index*2]));
-        hclib_async(async_fct, argv, &(promise_list[(index-1)*2]), NULL, NULL, NO_PROP);
+        hclib_async(async_fct, argv, &(future_list[(index-1)*2]), NO_PHASER,
+                ANY_PLACE, NO_PROP);
     }
     printf("Putting in promise 0\n");
     hclib_promise_put(promise_list[0], NO_DATUM);
     hclib_end_finish();
     // freeing everything up
     for (index = 0 ; index <= n; index++) {
-        free(hclib_promise_get(promise_list[index*2]));
+        free(hclib_future_get(future_list[index*2]));
         hclib_promise_free(promise_list[index*2]);
     }
     free(promise_list);

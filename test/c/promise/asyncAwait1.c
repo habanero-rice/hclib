@@ -15,12 +15,14 @@
 void async_fct(void * arg) {
     void ** argv = (void **) arg;
     int index = *((int *) argv[0]);
-    hclib_promise_t ** promise_list = (hclib_promise_t **) argv[1];
+    hclib_promise_t **promise_list = (hclib_promise_t **)argv[1];
+    hclib_future_t **future_list = (hclib_future_t **)argv[2];
     printf("Running async %d\n", index);
     /* Check value set by predecessor */
-    int* prev = (int *) hclib_promise_get(promise_list[(index-1)*2]);
+    int* prev = (int *) hclib_future_get(future_list[(index-1)*2]);
     assert(*prev == index-1);
-    printf("Async %d putting in promise %d @ %p\n", index, index*2, promise_list[index*2]);
+    printf("Async %d putting in future %d @ %p\n", index, index*2,
+            future_list[index*2]);
     int * value = (int *) malloc(sizeof(int)*1);
     *value = index;
     hclib_promise_put(promise_list[index*2], value);
@@ -35,21 +37,29 @@ void entrypoint(void *arg) {
     // Building 'n' NULL-terminated lists of a single promise each
     hclib_promise_t ** promise_list = (hclib_promise_t **)malloc(
             sizeof(hclib_promise_t *) * (2*(n+1)));
+    hclib_future_t ** future_list = (hclib_future_t **)malloc(
+            sizeof(hclib_future_t *) * (2*(n+1)));
+
     for (index = 0 ; index <= n; index++) {
-        promise_list[index*2] = hclib_promise_create();
+        promise_list[index * 2] = hclib_promise_create();
+        future_list[index * 2] = hclib_get_future(promise_list[index * 2]);
         printf("Populating promise_list at address %p\n", &promise_list[index*2]);
-        promise_list[index*2+1] = NULL;
+        promise_list[index * 2 + 1] = NULL;
+        future_list[index * 2 + 1] = NULL;
     }
 
     for(index=n-1; index>=1; index--) {
         // Build async's arguments
-        void ** argv = malloc(sizeof(void *) * 2);
+        // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
+        void ** argv = malloc(sizeof(void *) * 3);
         argv[0] = malloc(sizeof(int) *1);
         *((int *)argv[0]) = index;
-        // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
         argv[1] = (void *)promise_list;
-        printf("Creating async %d await on %p will enable %p\n", index, promise_list, &(promise_list[index*2]));
-        hclib_async(async_fct, argv, &(promise_list[(index-1)*2]), NULL, NULL, NO_PROP);
+        argv[2] = (void *)future_list;
+        printf("Creating async %d await on %p will enable %p\n", index,
+                promise_list, &(promise_list[index*2]));
+        hclib_async(async_fct, argv, &(future_list[(index-1)*2]), NO_PHASER,
+                ANY_PLACE, NO_PROP);
     }
 
     int * value = (int *) malloc(sizeof(int));
@@ -59,7 +69,7 @@ void entrypoint(void *arg) {
     hclib_end_finish();
     // freeing everything up
     for (index = 0 ; index <= n; index++) {
-        free(hclib_promise_get(promise_list[index*2]));
+        free(hclib_future_get(future_list[index*2]));
         hclib_promise_free(promise_list[index*2]);
     }
     free(promise_list);
