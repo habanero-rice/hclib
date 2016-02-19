@@ -12,8 +12,8 @@ extern "C" {
 
 /*** START ASYNC IMPLEMENTATION ***/
 
-void hclib_async(generic_framePtr fp, void *arg, hclib_future_t** future_list,
-        struct _phased_t * phased_clause, place_t *place, int property) {
+void hclib_async(generic_framePtr fp, void *arg, hclib_future_t **future_list,
+                 struct _phased_t *phased_clause, place_t *place, int property) {
     HASSERT(property == 0);
     HASSERT(phased_clause == NULL);
 
@@ -59,14 +59,14 @@ static void future_caller(void *in) {
 }
 
 hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
-        hclib_future_t** future_list, struct _phased_t * phased_clause,
-        place_t *place, int property) {
+                                    hclib_future_t **future_list, struct _phased_t *phased_clause,
+                                    place_t *place, int property) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
     hclib_async(future_caller, wrapper, future_list, phased_clause, place,
-            property);
+                property);
 
     return (hclib_promise_t *)wrapper;
 }
@@ -77,35 +77,35 @@ hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
 
 #define DEBUG_FORASYNC 0
 
-forasync1D_task_t * allocate_forasync1D_task() {
+forasync1D_task_t *allocate_forasync1D_task() {
     forasync1D_task_t *forasync_task = (forasync1D_task_t *) malloc(
-            sizeof(forasync1D_task_t));
+                                           sizeof(forasync1D_task_t));
     HASSERT(forasync_task && "malloc failed");
     forasync_task->forasync_task.place = NULL;
     return forasync_task;
 }
 
-forasync2D_task_t * allocate_forasync2D_task() {
-    forasync2D_task_t * forasync_task = (forasync2D_task_t *) malloc(
-            sizeof(forasync2D_task_t));
+forasync2D_task_t *allocate_forasync2D_task() {
+    forasync2D_task_t *forasync_task = (forasync2D_task_t *) malloc(
+                                           sizeof(forasync2D_task_t));
     HASSERT(forasync_task && "malloc failed");
     forasync_task->forasync_task.place = NULL;
     return forasync_task;
 }
 
-forasync3D_task_t * allocate_forasync3D_task() {
-    forasync3D_task_t * forasync_task = (forasync3D_task_t *) malloc(
-            sizeof(forasync3D_task_t));
+forasync3D_task_t *allocate_forasync3D_task() {
+    forasync3D_task_t *forasync_task = (forasync3D_task_t *) malloc(
+                                           sizeof(forasync3D_task_t));
     HASSERT(forasync_task && "malloc failed");
     forasync_task->forasync_task.place = NULL;
     return forasync_task;
 }
 
-void forasync1D_runner(void * forasync_arg) {
-    forasync1D_t * forasync = (forasync1D_t *) forasync_arg;
+void forasync1D_runner(void *forasync_arg) {
+    forasync1D_t *forasync = (forasync1D_t *) forasync_arg;
     hclib_task_t *user = forasync->base.user;
     forasync1D_Fct_t user_fct_ptr = (forasync1D_Fct_t) user->_fp;
-    void * user_arg = (void *) user->args;
+    void *user_arg = (void *) user->args;
     loop_domain_t loop0 = forasync->loop0;
     int i=0;
     for(i=loop0.low; i<loop0.high; i+=loop0.stride) {
@@ -113,11 +113,11 @@ void forasync1D_runner(void * forasync_arg) {
     }
 }
 
-void forasync2D_runner(void * forasync_arg) {
-    forasync2D_t * forasync = (forasync2D_t *) forasync_arg;
-    hclib_task_t * user = *((hclib_task_t **) forasync_arg);
+void forasync2D_runner(void *forasync_arg) {
+    forasync2D_t *forasync = (forasync2D_t *) forasync_arg;
+    hclib_task_t *user = *((hclib_task_t **) forasync_arg);
     forasync2D_Fct_t user_fct_ptr = (forasync2D_Fct_t) user->_fp;
-    void * user_arg = (void *) user->args;
+    void *user_arg = (void *) user->args;
     loop_domain_t loop0 = forasync->loop0;
     loop_domain_t loop1 = forasync->loop1;
     int i=0,j=0;
@@ -128,11 +128,11 @@ void forasync2D_runner(void * forasync_arg) {
     }
 }
 
-void forasync3D_runner(void * forasync_arg) {
-    forasync3D_t * forasync = (forasync3D_t *) forasync_arg;
-    hclib_task_t * user = *((hclib_task_t **) forasync_arg);
+void forasync3D_runner(void *forasync_arg) {
+    forasync3D_t *forasync = (forasync3D_t *) forasync_arg;
+    hclib_task_t *user = *((hclib_task_t **) forasync_arg);
     forasync3D_Fct_t user_fct_ptr = (forasync3D_Fct_t) user->_fp;
-    void * user_arg = (void *) user->args;
+    void *user_arg = (void *) user->args;
     loop_domain_t loop0 = forasync->loop0;
     loop_domain_t loop1 = forasync->loop1;
     loop_domain_t loop2 = forasync->loop2;
@@ -149,15 +149,15 @@ void forasync3D_runner(void * forasync_arg) {
 #endif
 }
 
-void forasync1D_recursive(void * forasync_arg) {
-    forasync1D_t * forasync = (forasync1D_t *) forasync_arg;
+void forasync1D_recursive(void *forasync_arg) {
+    forasync1D_t *forasync = (forasync1D_t *) forasync_arg;
     loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int low0 = loop0.low;
     int stride0 = loop0.stride;
     int tile0 = loop0.tile;
 
-    //split the range into two, spawn a new task for the first half and recurse on the rest  
+    //split the range into two, spawn a new task for the first half and recurse on the rest
     if((high0-low0) > tile0) {
         int mid = (high0+low0)/2;
         // upper-half
@@ -173,16 +173,16 @@ void forasync1D_recursive(void * forasync_arg) {
         // delegate scheduling to the underlying runtime
 
         spawn((hclib_task_t *)new_forasync_task);
-        //continue to work on the half task 
-        forasync1D_recursive(forasync_arg); 
-    } else { 
+        //continue to work on the half task
+        forasync1D_recursive(forasync_arg);
+    } else {
         //compute the tile
         forasync1D_runner(forasync_arg);
     }
 }
 
-void forasync2D_recursive(void * forasync_arg) {
-    forasync2D_t * forasync = (forasync2D_t *) forasync_arg;
+void forasync2D_recursive(void *forasync_arg) {
+    forasync2D_t *forasync = (forasync2D_t *) forasync_arg;
     loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int low0 = loop0.low;
@@ -194,8 +194,8 @@ void forasync2D_recursive(void * forasync_arg) {
     int stride1 = loop1.stride;
     int tile1 = loop1.tile;
 
-    //split the range into two, spawn a new task for the first half and recurse on the rest  
-    forasync2D_task_t * new_forasync_task = NULL;
+    //split the range into two, spawn a new task for the first half and recurse on the rest
+    forasync2D_task_t *new_forasync_task = NULL;
     if((high0-low0) > tile0) {
         int mid = (high0+low0)/2;
         // upper-half
@@ -227,16 +227,16 @@ void forasync2D_recursive(void * forasync_arg) {
     if(new_forasync_task != NULL) {
         // delegate scheduling to the underlying runtime
         //TODO can we make this a special async to avoid a get_current_async ?
-        spawn((hclib_task_t*)new_forasync_task);
-        //continue to work on the half task 
-        forasync2D_recursive(forasync_arg); 
+        spawn((hclib_task_t *)new_forasync_task);
+        //continue to work on the half task
+        forasync2D_recursive(forasync_arg);
     } else { //compute the tile
         forasync2D_runner(forasync_arg);
     }
 }
 
-void forasync3D_recursive(void * forasync_arg) {
-    forasync3D_t * forasync = (forasync3D_t *) forasync_arg;
+void forasync3D_recursive(void *forasync_arg) {
+    forasync3D_t *forasync = (forasync3D_t *) forasync_arg;
     loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int low0 = loop0.low;
@@ -253,8 +253,8 @@ void forasync3D_recursive(void * forasync_arg) {
     int stride2 = loop2.stride;
     int tile2 = loop2.tile;
 
-    //split the range into two, spawn a new task for the first half and recurse on the rest  
-    forasync3D_task_t * new_forasync_task = NULL;
+    //split the range into two, spawn a new task for the first half and recurse on the rest
+    forasync3D_task_t *new_forasync_task = NULL;
     if((high0-low0) > tile0) {
         int mid = (high0+low0)/2;
         // upper-half
@@ -302,16 +302,16 @@ void forasync3D_recursive(void * forasync_arg) {
     if(new_forasync_task != NULL) {
         // delegate scheduling to the underlying runtime
         //TODO can we make this a special async to avoid a get_current_async ?
-        spawn((hclib_task_t*)new_forasync_task);
-        //continue to work on the half task 
-        forasync3D_recursive(forasync_arg); 
+        spawn((hclib_task_t *)new_forasync_task);
+        //continue to work on the half task
+        forasync3D_recursive(forasync_arg);
     } else { //compute the tile
         forasync3D_runner(forasync_arg);
     }
 }
 
-void forasync1D_flat(void * forasync_arg) {
-    forasync1D_t * forasync = (forasync1D_t *) forasync_arg;
+void forasync1D_flat(void *forasync_arg) {
+    forasync1D_t *forasync = (forasync1D_t *) forasync_arg;
     loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int stride0 = loop0.stride;
@@ -324,33 +324,33 @@ void forasync1D_flat(void * forasync_arg) {
         printf("Scheduling Task %d %d\n",low0,(low0+tile0));
 #endif
         //TODO block allocation ?
-        forasync1D_task_t * new_forasync_task = allocate_forasync1D_task();
+        forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_runner;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {low0, low0+tile0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
-        spawn((hclib_task_t*)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task);
     }
     // handling leftover
     if (size < high0) {
 #if DEBUG_FORASYNC
         printf("Scheduling Task %d %d\n",low0,high0);
 #endif
-        forasync1D_task_t * new_forasync_task = allocate_forasync1D_task();
+        forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_runner;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
         new_forasync_task->def.loop0 = new_loop0;
-        spawn((hclib_task_t*)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task);
     }
 }
 
-void forasync2D_flat(void * forasync_arg) {
-    forasync2D_t * forasync = (forasync2D_t *) forasync_arg;
+void forasync2D_flat(void *forasync_arg) {
+    forasync2D_t *forasync = (forasync2D_t *) forasync_arg;
     loop_domain_t loop0 = forasync->loop0;
     loop_domain_t loop1 = forasync->loop1;
     int low0, low1;
@@ -364,7 +364,7 @@ void forasync2D_flat(void * forasync_arg) {
 #if DEBUG_FORASYNC
             printf("Scheduling Task %d %d\n",low1,high1);
 #endif
-            forasync2D_task_t * new_forasync_task = allocate_forasync2D_task();
+            forasync2D_task_t *new_forasync_task = allocate_forasync2D_task();
             new_forasync_task->forasync_task._fp = forasync2D_runner;
             new_forasync_task->forasync_task.args = &(new_forasync_task->def);
             new_forasync_task->forasync_task.future_list = NULL;
@@ -373,13 +373,13 @@ void forasync2D_flat(void * forasync_arg) {
             new_forasync_task->def.loop0 = new_loop0;
             loop_domain_t new_loop1 = {low1, high1, loop1.stride, loop1.tile};
             new_forasync_task->def.loop1 = new_loop1;
-            spawn((hclib_task_t*)new_forasync_task);
+            spawn((hclib_task_t *)new_forasync_task);
         }
     }
 }
 
-void forasync3D_flat(void * forasync_arg) {
-    forasync3D_t * forasync = (forasync3D_t *) forasync_arg;
+void forasync3D_flat(void *forasync_arg) {
+    forasync3D_t *forasync = (forasync3D_t *) forasync_arg;
     loop_domain_t loop0 = forasync->loop0;
     loop_domain_t loop1 = forasync->loop1;
     loop_domain_t loop2 = forasync->loop2;
@@ -399,7 +399,7 @@ void forasync3D_flat(void * forasync_arg) {
 #if DEBUG_FORASYNC
                 printf("Scheduling Task %d %d\n",low2,high2);
 #endif
-                forasync3D_task_t * new_forasync_task = allocate_forasync3D_task();
+                forasync3D_task_t *new_forasync_task = allocate_forasync3D_task();
                 new_forasync_task->forasync_task._fp = forasync3D_runner;
                 new_forasync_task->forasync_task.args = &(new_forasync_task->def);
                 new_forasync_task->forasync_task.future_list = NULL;
@@ -410,14 +410,14 @@ void forasync3D_flat(void * forasync_arg) {
                 new_forasync_task->def.loop1 = new_loop1;
                 loop_domain_t new_loop2 = {low2, high2, loop2.stride, loop2.tile};
                 new_forasync_task->def.loop2 = new_loop2;
-                spawn((hclib_task_t*)new_forasync_task);
+                spawn((hclib_task_t *)new_forasync_task);
             }
         }
     }
 }
 
-static void forasync_internal(void* user_fct_ptr, void * user_arg,
-        int dim, loop_domain_t * loop_domain, forasync_mode_t mode) {
+static void forasync_internal(void *user_fct_ptr, void *user_arg,
+                              int dim, loop_domain_t *loop_domain, forasync_mode_t mode) {
     // All the sub-asyncs share async_def
 
     // The user loop code to execute
@@ -431,10 +431,13 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     HASSERT(dim>0 && dim<4);
     // TODO put those somewhere as static
     asyncFct_t fct_ptr_rec[3] = { forasync1D_recursive, forasync2D_recursive,
-        forasync3D_recursive };
+                                  forasync3D_recursive
+                                };
     asyncFct_t fct_ptr_flat[3] = { forasync1D_flat, forasync2D_flat,
-        forasync3D_flat };
-    asyncFct_t * fct_ptr = (mode == FORASYNC_MODE_RECURSIVE) ? fct_ptr_rec : fct_ptr_flat;
+                                   forasync3D_flat
+                                 };
+    asyncFct_t *fct_ptr = (mode == FORASYNC_MODE_RECURSIVE) ? fct_ptr_rec :
+                          fct_ptr_flat;
     if (dim == 1) {
         forasync1D_t forasync = {{user_def}, loop_domain[0]};
         (fct_ptr[dim-1])((void *) &forasync);
@@ -447,17 +450,18 @@ static void forasync_internal(void* user_fct_ptr, void * user_arg,
     }
 }
 
-void hclib_forasync(void* forasync_fct, void * argv,
-        hclib_future_t** future_list, int dim, loop_domain_t *domain,
-        forasync_mode_t mode) {
-    HASSERT(future_list == NULL && "Limitation: forasync does not support futures yet");
+void hclib_forasync(void *forasync_fct, void *argv,
+                    hclib_future_t **future_list, int dim, loop_domain_t *domain,
+                    forasync_mode_t mode) {
+    HASSERT(future_list == NULL &&
+            "Limitation: forasync does not support futures yet");
 
     forasync_internal(forasync_fct, argv, dim, domain, mode);
 }
 
-hclib_future_t *hclib_forasync_future(void* forasync_fct, void * argv,
-        hclib_future_t **future_list, int dim, loop_domain_t *domain,
-        forasync_mode_t mode) {
+hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
+                                      hclib_future_t **future_list, int dim, loop_domain_t *domain,
+                                      forasync_mode_t mode) {
 
     hclib_start_finish();
     hclib_forasync(forasync_fct, argv, future_list, dim, domain, mode);
@@ -470,3 +474,4 @@ hclib_future_t *hclib_forasync_future(void* forasync_fct, void * argv,
 #ifdef __cplusplus
 }
 #endif
+

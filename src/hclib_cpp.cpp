@@ -3,8 +3,8 @@
 hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
         const int null_terminated) {
     hclib::promise_t **promises = (hclib::promise_t **)malloc(
-            (null_terminated ? nb_promises + 1 : nb_promises) *
-            sizeof(hclib::promise_t *));
+                                      (null_terminated ? nb_promises + 1 : nb_promises) *
+                                      sizeof(hclib::promise_t *));
     for (unsigned i = 0; i < nb_promises; i++) {
         promises[i] = new promise_t();
     }
@@ -74,12 +74,13 @@ void hclib::display_runtime() {
     hclib_display_runtime();
 }
 
-void hclib::get_avg_time(double* tWork, double *tOvh, double* tSearch) {
+void hclib::get_avg_time(double *tWork, double *tOvh, double *tSearch) {
     hclib_get_avg_time(tWork, tOvh, tSearch);
 }
 
-void hclib::gather_comm_worker_stats(int* push_outd, int* push_ind,
-        int* steal_ind) {
+void hclib::gather_comm_worker_stats(int *push_outd, int *push_ind,
+                                     int *steal_ind) {
     hclib_gather_comm_worker_stats(push_outd, push_ind, steal_ind);
 }
 #endif
+

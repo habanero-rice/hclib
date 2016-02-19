@@ -49,11 +49,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // #define VERBOSE
 
-inline hc_deque_t * get_deque_place(hclib_worker_state * ws, place_t * pl);
-void free_hpt(place_t * hpt);
+inline hc_deque_t *get_deque_place(hclib_worker_state *ws, place_t *pl);
+void free_hpt(place_t *hpt);
 static const char *place_type_to_str(short type);
 
-extern hc_context* hclib_context;
+extern hc_context *hclib_context;
 
 void *unsupported_place_type_err(place_t *pl) {
     fprintf(stderr, "Unsupported place type %s\n", place_type_to_str(pl->type));
@@ -66,28 +66,28 @@ void *unsupported_place_type_err(place_t *pl) {
  * 2) If unsuccessful, start over at step 1) in the parent
  *    place all to the hpt top.
  */
-hclib_task_t* hpt_steal_task(hclib_worker_state* ws) {
+hclib_task_t *hpt_steal_task(hclib_worker_state *ws) {
     MARK_SEARCH(ws->id); // Set the state of this worker for timing
 
     hcupc_reset_asyncAnyInfo(ws->id);
 
-    place_t * pl = ws->pl;
+    place_t *pl = ws->pl;
     while (pl != NULL) {
-        hc_deque_t * deqs = pl->deques;
+        hc_deque_t *deqs = pl->deques;
         int nb_deq = pl->ndeques;
 
         /* Try to steal once from every other worker first */
         for (int i=1; i<nb_deq; i++) {
             int victim = ((ws->id + i) % nb_deq);
-            hc_deque_t* d = &deqs[victim];
-            hclib_task_t* buff = deque_steal(&(d->deque));
+            hc_deque_t *d = &deqs[victim];
+            hclib_task_t *buff = deque_steal(&(d->deque));
             if (buff) { /* steal succeeded */
                 ws->current = get_deque_place(ws, pl);
                 hcupc_check_if_asyncAny_stolen(buff, victim, ws->id);
 
 #ifdef VERBOSE
                 printf("hpt_steal_task: worker %d successful steal from deque %p, pl %p, "
-                        "level %d\n", ws->id, d, d->pl, d->pl->level);
+                       "level %d\n", ws->id, d, d->pl, d->pl->level);
 #endif
                 return buff;
             }
@@ -106,18 +106,18 @@ hclib_task_t* hpt_steal_task(hclib_worker_state* ws) {
  * 2) if nothing found, try to pop downward from worker's child deque.
  * 3) If nothing found down to the bottom, look upward starting from Q.
  */
-hclib_task_t* hpt_pop_task(hclib_worker_state * ws) {
+hclib_task_t *hpt_pop_task(hclib_worker_state *ws) {
     // go HPT downward and then upward of my own deques
-    hc_deque_t * current = ws->current;
-    hc_deque_t * pivot = current;
+    hc_deque_t *current = ws->current;
+    hc_deque_t *pivot = current;
     short downward = 1;
 
     while (current != NULL) {
-        hclib_task_t* buff = deque_pop(&current->deque);
+        hclib_task_t *buff = deque_pop(&current->deque);
         if (buff) {
 #ifdef VERBOSE
             printf("hpt_pop_task: worker %d successful pop from deque %p, pl %p, level "
-                    "%d\n", ws->id ,current, current->pl, current->pl->level);
+                   "%d\n", ws->id ,current, current->pl, current->pl->level);
 #endif
             ws->current = current;
             hcupc_check_if_asyncAny_pop(buff, ws->id);
@@ -137,8 +137,8 @@ hclib_task_t* hpt_pop_task(hclib_worker_state * ws) {
     return NULL;
 }
 
-place_t* hclib_get_current_place() {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
+place_t *hclib_get_current_place() {
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     HASSERT(ws->current->pl != NULL);
     return ws->current->pl;
 }
@@ -189,8 +189,8 @@ char *hclib_get_place_name(place_t *pl) {
 }
 
 int hclib_get_num_places(short type) {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
-    place_t ** all_places = ws->context->places;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    place_t **all_places = ws->context->places;
     int np = ws->context->nplaces;
     int i;
     int num = 0;
@@ -199,9 +199,9 @@ int hclib_get_num_places(short type) {
     return num;
 }
 
-void hclib_get_places(place_t ** pls, short type) {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
-    place_t ** all_places = ws->context->places;
+void hclib_get_places(place_t **pls, short type) {
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    place_t **all_places = ws->context->places;
     int np = ws->context->nplaces;
     int i;
     int num = 0;
@@ -210,9 +210,9 @@ void hclib_get_places(place_t ** pls, short type) {
     return;
 }
 
-place_t * hc_get_place(short type) {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
-    place_t ** all_places = ws->context->places;
+place_t *hc_get_place(short type) {
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    place_t **all_places = ws->context->places;
     int np = ws->context->nplaces;
     int i;
     for (i=0; i<np; i++)
@@ -221,40 +221,40 @@ place_t * hc_get_place(short type) {
 }
 
 place_t *hclib_get_root_place() {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
-    place_t ** all_places = ws->context->places;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    place_t **all_places = ws->context->places;
     return all_places[0];
 }
 
-inline place_t *get_ancestor_place(hclib_worker_state * ws) {
-    place_t * parent = ws->pl;
+inline place_t *get_ancestor_place(hclib_worker_state *ws) {
+    place_t *parent = ws->pl;
     while (parent->parent != NULL) parent = parent->parent;
     return parent;
 }
 
 place_t *hclib_get_child_place() {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
-    place_t * pl = ws->current->pl;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    place_t *pl = ws->current->pl;
     HASSERT(pl != NULL);
     if (ws->hpt_path == NULL) return pl;
     return ws->hpt_path[pl->level + 1];
 }
 
 place_t *hclib_get_parent_place() {
-    hclib_worker_state * ws = CURRENT_WS_INTERNAL;
-    place_t * pl = ws->current->pl;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    place_t *pl = ws->current->pl;
     HASSERT(pl != NULL);
     if (ws->hpt_path == NULL) return pl;
     return ws->hpt_path[pl->level - 1];
 }
 
-place_t **hclib_get_children_places(int * numChildren) {
-    place_t * pl = hclib_get_current_place();
+place_t **hclib_get_children_places(int *numChildren) {
+    place_t *pl = hclib_get_current_place();
     *numChildren = pl->nChildren;
     return pl->children;
 }
 
-place_t **hclib_get_children_of_place(place_t * pl, int * numChildren) {
+place_t **hclib_get_children_of_place(place_t *pl, int *numChildren) {
     *numChildren = pl->nChildren;
     return pl->children;
 }
@@ -263,35 +263,35 @@ place_t **hclib_get_children_of_place(place_t * pl, int * numChildren) {
  * Return my own deque that is in place pl,
  * if pl == NULL, return the current deque of the worker
  */
-inline hc_deque_t *get_deque_place(hclib_worker_state * ws, place_t * pl) {
+inline hc_deque_t *get_deque_place(hclib_worker_state *ws, place_t *pl) {
     if (pl == NULL) return ws->current;
     return &(pl->deques[ws->id]);
 }
 
-hc_deque_t *get_deque(hclib_worker_state * ws) {
+hc_deque_t *get_deque(hclib_worker_state *ws) {
     return NULL;
 }
 
 /* get the first owned deque from HPT that starts with place pl upward */
-hc_deque_t *get_deque_hpt(hclib_worker_state * ws, place_t * pl) {
+hc_deque_t *get_deque_hpt(hclib_worker_state *ws, place_t *pl) {
     return NULL;
 
 }
 
-int deque_push_place(hclib_worker_state *ws, place_t * pl, void * ele) {
-    hc_deque_t * deq = get_deque_place(ws, pl);
+int deque_push_place(hclib_worker_state *ws, place_t *pl, void *ele) {
+    hc_deque_t *deq = get_deque_place(ws, pl);
     return deque_push(&deq->deque, ele);
 }
 
-inline hclib_task_t* deque_pop_place(hclib_worker_state *ws, place_t * pl) {
-    hc_deque_t * deq = get_deque_place(ws, pl);
+inline hclib_task_t *deque_pop_place(hclib_worker_state *ws, place_t *pl) {
+    hc_deque_t *deq = get_deque_place(ws, pl);
     return deque_pop(&deq->deque);
 }
 
 /**
  * Initializes a hc_deque_t
  */
-inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
+inline void init_hc_deque_t(hc_deque_t *hcdeq, place_t *pl) {
     hcdeq->deque.head = hcdeq->deque.tail = 0;
     hcdeq->pl = pl;
     hcdeq->ws = NULL;
@@ -306,7 +306,8 @@ inline void init_hc_deque_t(hc_deque_t * hcdeq, place_t * pl){
 
 #ifdef HC_CUDA
 void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
-    HASSERT(pl); HASSERT(nbytes > 0);
+    HASSERT(pl);
+    HASSERT(nbytes > 0);
 #ifdef VERBOSE
     fprintf(stderr, "hclib_allocate_at: pl=%p nbytes=%lu flags=%d, is_cpu? %s",
             pl, (unsigned long)nbytes, flags,
@@ -331,7 +332,7 @@ void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
                 return NULL;
             } else {
                 hclib_memory_tree_insert(ptr, nbytes,
-                        &hclib_context->pinned_host_allocs);
+                                         &hclib_context->pinned_host_allocs);
                 return ptr;
             }
         }
@@ -395,8 +396,8 @@ static void async_gpu_task_launcher(void *arg) {
  */
 
 void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, hclib_future_t **future_list,
-        void *user_arg, hclib_promise_t *out_promise) {
+                             void *src, size_t nbytes, hclib_future_t **future_list,
+                             void *user_arg, hclib_promise_t *out_promise) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
@@ -429,17 +430,17 @@ void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
 }
 
 hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, hclib_future_t **future_list,
-        void *user_arg) {
+                                  void *src, size_t nbytes, hclib_future_t **future_list,
+                                  void *user_arg) {
     hclib_promise_t *promise = hclib_promise_create();
     hclib_async_copy_helper(dst_pl, dst, src_pl, src, nbytes, future_list,
-            user_arg, promise);
+                            user_arg, promise);
     return promise;
 }
 
 void hclib_async_memset_helper(place_t *pl, void *ptr, int val, size_t nbytes,
-        hclib_future_t **future_list, void *user_arg,
-        hclib_promise_t *out_promise) {
+                               hclib_future_t **future_list, void *user_arg,
+                               hclib_promise_t *out_promise) {
     gpu_task_t *task = malloc(sizeof(gpu_task_t));
     task->t._fp = NULL;
     task->t.is_asyncAnyType = 0;
@@ -470,10 +471,10 @@ void hclib_async_memset_helper(place_t *pl, void *ptr, int val, size_t nbytes,
 }
 
 hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
-        size_t nbytes, hclib_future_t **future_list, void *user_arg) {
+                                    size_t nbytes, hclib_future_t **future_list, void *user_arg) {
     hclib_promise_t *promise = hclib_promise_create();
     hclib_async_memset_helper(pl, ptr, val, nbytes, future_list, user_arg,
-            promise);
+                              promise);
     return promise;
 }
 #endif
@@ -487,26 +488,26 @@ static const char *PGAS_PLACE_STR  = "PGAS_PLACE";
 
 static const char *place_type_to_str(short type) {
     switch (type) {
-        case (MEM_PLACE):
-            return MEM_PLACE_STR;
-        case (CACHE_PLACE):
-            return CACHE_PLACE_STR;
-        case (NVGPU_PLACE):
-            return NVGPU_PLACE_STR;
-        case (AMGPU_PLACE):
-            return AMGPU_PLACE_STR;
-        case (FPGA_PLACE):
-            return FPGA_PLACE_STR;
-        case (PGAS_PLACE):
-            return PGAS_PLACE_STR;
-        default:
-            fprintf(stderr, "unknown place type %d\n", type);
-            exit(5);
+    case (MEM_PLACE):
+        return MEM_PLACE_STR;
+    case (CACHE_PLACE):
+        return CACHE_PLACE_STR;
+    case (NVGPU_PLACE):
+        return NVGPU_PLACE_STR;
+    case (AMGPU_PLACE):
+        return AMGPU_PLACE_STR;
+    case (FPGA_PLACE):
+        return FPGA_PLACE_STR;
+    case (PGAS_PLACE):
+        return PGAS_PLACE_STR;
+    default:
+        fprintf(stderr, "unknown place type %d\n", type);
+        exit(5);
     }
 }
 
 /* init the hpt and place deques */
-void hc_hpt_init(hc_context * context) {
+void hc_hpt_init(hc_context *context) {
     int i, j;
 #ifdef HPT_DESCENTWORKER_PERPLACE
     /*
@@ -514,26 +515,26 @@ void hc_hpt_init(hc_context * context) {
      * HPT.
      */
     for (i = 0; i < context->nplaces; i++) {
-        place_t * pl = context->places[i];
+        place_t *pl = context->places[i];
         int nworkers = pl->ndeques;
         pl->deques = malloc(sizeof(hc_deque_t) * nworkers);
         HASSERT(pl->deques);
         for (j = 0; j < nworkers; j++) {
-            hc_deque_t * deq = &(pl->deques[j]);
+            hc_deque_t *deq = &(pl->deques[j]);
             init_hc_deque_t(deq, pl);
         }
     }
 #else // HPT_ALLWORKER_PERPLACE each place has a deque for each worker
     for (i = 0; i < context->nplaces; i++) {
-        place_t * pl = context->places[i];
+        place_t *pl = context->places[i];
         const int ndeques = context->nworkers;
 #ifdef TODO
         if (is_device_place(pl)) ndeques = 1;
 #endif
         pl->ndeques = ndeques;
-        pl->deques = (hc_deque_t*) malloc(sizeof(hc_deque_t) * ndeques);
+        pl->deques = (hc_deque_t *) malloc(sizeof(hc_deque_t) * ndeques);
         for (j = 0; j < ndeques; j++) {
-            hc_deque_t * hc_deq = &(pl->deques[j]);
+            hc_deque_t *hc_deq = &(pl->deques[j]);
             init_hc_deque_t(hc_deq, pl);
         }
     }
@@ -573,10 +574,10 @@ void hc_hpt_init(hc_context * context) {
 #endif
 
     for (i = 0; i < context->nworkers; i++) {
-        hclib_worker_state * ws = context->workers[i];
+        hclib_worker_state *ws = context->workers[i];
         const int id = ws->id;
         for (j = 0; j < context->nplaces; j++) {
-            place_t * pl = context->places[j];
+            place_t *pl = context->places[j];
             if (is_cpu_place(pl)) {
                 hc_deque_t *hc_deq = &(pl->deques[id]);
                 hc_deq->ws = ws;
@@ -593,8 +594,8 @@ void hc_hpt_init(hc_context * context) {
         }
 
         /* here we link the deques of the ancestor places for this worker */
-        place_t * parent = ws->pl;
-        place_t * current = parent;
+        place_t *parent = ws->pl;
+        place_t *current = parent;
         ws->deques = &(current->deques[id]);
         while (parent->parent != NULL) {
             parent = parent->parent;
@@ -610,7 +611,7 @@ void hc_hpt_init(hc_context * context) {
     int level = context->places[0]->level;
     printf("Level %d: ", level);
     for (i = 0; i < context->nplaces; i++) {
-        place_t * pl = context->places[i];
+        place_t *pl = context->places[i];
         if (level != pl->level) {
             printf("\n");
             level = pl->level;
@@ -618,7 +619,7 @@ void hc_hpt_init(hc_context * context) {
         }
 
         printf("Place %d %s ", pl->id, place_type_to_str(pl->type));
-        hclib_worker_state * w = pl->workers;
+        hclib_worker_state *w = pl->workers;
         if (w != NULL) {
             printf("[ ");
             while (w != NULL) {
@@ -628,7 +629,7 @@ void hc_hpt_init(hc_context * context) {
             printf("] ");
         }
 
-        place_t * c = pl->child;
+        place_t *c = pl->child;
         if (c != NULL) {
             printf("{ ");
             while (c != NULL) {
@@ -643,10 +644,10 @@ void hc_hpt_init(hc_context * context) {
 #endif
 }
 
-void hc_hpt_cleanup(hc_context * context) {
+void hc_hpt_cleanup(hc_context *context) {
     /* clean up HPT deques for cpu workers*/
     for (int i = 0; i < context->nplaces; i++) {
-        place_t * pl = context->places[i];
+        place_t *pl = context->places[i];
 #ifdef TODO
         if (is_device_place(pl)) continue;
 #endif
@@ -659,23 +660,24 @@ void hc_hpt_cleanup(hc_context * context) {
 /*
  * Interfaces to read the xml files and parse correctly to generate the place data-structures
  */
-hclib_worker_state * parse_worker_element(xmlNode * wkNode) {
-    hclib_worker_state * wk = (hclib_worker_state *) malloc(sizeof(hclib_worker_state));
+hclib_worker_state *parse_worker_element(xmlNode *wkNode) {
+    hclib_worker_state *wk = (hclib_worker_state *) malloc(sizeof(
+                                 hclib_worker_state));
     memset(wk, 0x00, sizeof(hclib_worker_state));
 
-    xmlChar * num = xmlGetProp(wkNode, xmlCharStrdup("num"));
-    xmlChar * didStr = xmlGetProp(wkNode, xmlCharStrdup("did"));
-    xmlChar * type = xmlGetProp(wkNode, xmlCharStrdup("type"));
+    xmlChar *num = xmlGetProp(wkNode, xmlCharStrdup("num"));
+    xmlChar *didStr = xmlGetProp(wkNode, xmlCharStrdup("did"));
+    xmlChar *type = xmlGetProp(wkNode, xmlCharStrdup("type"));
 
     /*
      * Kind of hacky, the id field is re-used to store the number of workers at
      * this level in the hierarchy. This field is later re-assigned with the
      * actual worker ID.
      */
-    if (num != NULL) wk->id = atoi((char*)num);
+    if (num != NULL) wk->id = atoi((char *)num);
     else wk->id = 1;
 
-    if (didStr != NULL) wk->did = atoi((char*)didStr);
+    if (didStr != NULL) wk->did = atoi((char *)didStr);
     else wk->did = 0;
     wk->next_worker = NULL;
     /* TODO: worker/deque type */
@@ -686,22 +688,22 @@ hclib_worker_state * parse_worker_element(xmlNode * wkNode) {
     return wk;
 }
 
-place_t * parse_place_element(xmlNode * plNode) {
+place_t *parse_place_element(xmlNode *plNode) {
     int num = 1;
     int did = 0;
-    xmlChar * numStr = xmlGetProp(plNode, xmlCharStrdup("num"));
-    xmlChar * didStr = xmlGetProp(plNode, xmlCharStrdup("did"));
-    xmlChar * typeStr = xmlGetProp(plNode, xmlCharStrdup("type"));
-    xmlChar * sizeStr = xmlGetProp(plNode, xmlCharStrdup("size"));
-    xmlChar * unitSize = xmlGetProp(plNode, xmlCharStrdup("unitSize"));
-    xmlChar * info = xmlGetProp(plNode, xmlCharStrdup("info"));
+    xmlChar *numStr = xmlGetProp(plNode, xmlCharStrdup("num"));
+    xmlChar *didStr = xmlGetProp(plNode, xmlCharStrdup("did"));
+    xmlChar *typeStr = xmlGetProp(plNode, xmlCharStrdup("type"));
+    xmlChar *sizeStr = xmlGetProp(plNode, xmlCharStrdup("size"));
+    xmlChar *unitSize = xmlGetProp(plNode, xmlCharStrdup("unitSize"));
+    xmlChar *info = xmlGetProp(plNode, xmlCharStrdup("info"));
 
     if (numStr != NULL) {
-        num = atoi((char*)numStr);
+        num = atoi((char *)numStr);
     }
 
     if (didStr != NULL) {
-        did = atoi((char*)didStr);
+        did = atoi((char *)didStr);
     }
 
     short type = CACHE_PLACE;
@@ -736,26 +738,26 @@ place_t * parse_place_element(xmlNode * plNode) {
     xmlFree(unitSize);
     xmlFree(info);
 
-    place_t * pl = (place_t *) malloc(sizeof(place_t));
+    place_t *pl = (place_t *) malloc(sizeof(place_t));
     HASSERT(pl);
     memset(pl, 0x00, sizeof(place_t));
     pl->id = num;
     pl->did = did;
     pl->type = type;
-    pl->psize = (sizeStr == NULL) ? 0 : atoi((char*)sizeStr);
-    pl->unitSize = (unitSize == NULL) ? 0 : atoi((char*)unitSize);
+    pl->psize = (sizeStr == NULL) ? 0 : atoi((char *)sizeStr);
+    pl->unitSize = (unitSize == NULL) ? 0 : atoi((char *)unitSize);
 
     xmlNode *child = plNode->xmlChildrenNode;
 
-    place_t * pllast = NULL;
-    hclib_worker_state * wslast = NULL;
+    place_t *pllast = NULL;
+    hclib_worker_state *wslast = NULL;
 
 #ifdef HC_ASSERTION_CHECK
     unsigned nchildren = 0;
 #endif
     while (child != NULL) {
         if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
-            place_t * tmp = parse_place_element(child);
+            place_t *tmp = parse_place_element(child);
             tmp->parent = pl;
             if (pl->child == NULL) pl->child = tmp;
             else pllast->nnext = tmp;
@@ -764,7 +766,7 @@ place_t * parse_place_element(xmlNode * plNode) {
             nchildren++;
 #endif
         } else if (!xmlStrcmp(child->name, (const xmlChar *) "worker")) {
-            hclib_worker_state * tmp = parse_worker_element(child);
+            hclib_worker_state *tmp = parse_worker_element(child);
             tmp->pl = pl;
             if (pl->workers == NULL) pl->workers = tmp;
             else wslast->next_worker = tmp;
@@ -794,21 +796,21 @@ place_t * parse_place_element(xmlNode * plNode) {
  * with each layer consisting of a linked list of memory spaces/processing
  * units, and each of those nodes pointing down to the layer below it.
  */
-place_t * parseHPTDoc(xmlNode * hptNode) {
-    xmlChar * version = xmlGetProp(hptNode, xmlCharStrdup("version"));
-    xmlChar * info = xmlGetProp(hptNode, xmlCharStrdup("info"));
+place_t *parseHPTDoc(xmlNode *hptNode) {
+    xmlChar *version = xmlGetProp(hptNode, xmlCharStrdup("version"));
+    xmlChar *info = xmlGetProp(hptNode, xmlCharStrdup("info"));
     xmlFree(version);
     xmlFree(info);
 
     xmlNode *child = hptNode->xmlChildrenNode;
 
-    place_t * hpt = NULL;
-    place_t * pllast = NULL;
+    place_t *hpt = NULL;
+    place_t *pllast = NULL;
 
     // Iterative over top-level place nodes in the XML file
     while (child != NULL) {
         if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
-            place_t * tmp = parse_place_element(child);
+            place_t *tmp = parse_place_element(child);
             tmp->parent = NULL;
             if (hpt == NULL) {
                 hpt = tmp;
@@ -824,13 +826,13 @@ place_t * parseHPTDoc(xmlNode * hptNode) {
 }
 
 typedef struct place_node {
-    place_t * data;
-    struct place_node * next;
+    place_t *data;
+    struct place_node *next;
 } place_node_t;
 
 typedef struct worker_node {
     hclib_worker_state *data;
-    struct worker_node * next;
+    struct worker_node *next;
 } worker_node_t;
 
 /*
@@ -841,11 +843,12 @@ typedef struct worker_node {
  *
  * This is done recursively to find all leaf places and workers in a global HPT.
  */
-void find_leaf(place_t * pl, place_node_t **pl_list_cur, worker_node_t ** wk_list_cur) {
-    place_t * child = pl->child;
+void find_leaf(place_t *pl, place_node_t **pl_list_cur,
+               worker_node_t **wk_list_cur) {
+    place_t *child = pl->child;
     if (child == NULL) {
         // Leaf, add it to the pl_list
-        place_node_t *new_pl = (place_node_t*)malloc(sizeof(place_node_t));
+        place_node_t *new_pl = (place_node_t *)malloc(sizeof(place_node_t));
         HASSERT(new_pl);
         memset(new_pl, 0x00, sizeof(place_node_t));
         new_pl->data = pl;
@@ -858,10 +861,10 @@ void find_leaf(place_t * pl, place_node_t **pl_list_cur, worker_node_t ** wk_lis
         }
     }
 
-    hclib_worker_state * wk = pl->workers;
-    while (wk != NULL){
+    hclib_worker_state *wk = pl->workers;
+    while (wk != NULL) {
         // Add any workers to wk_list
-        worker_node_t *new_ws = (worker_node_t*) malloc(sizeof(worker_node_t));
+        worker_node_t *new_ws = (worker_node_t *) malloc(sizeof(worker_node_t));
         HASSERT(new_ws);
         memset(new_ws, 0x00, sizeof(worker_node_t));
         new_ws->data = wk;
@@ -871,8 +874,8 @@ void find_leaf(place_t * pl, place_node_t **pl_list_cur, worker_node_t ** wk_lis
     }
 }
 
-place_t * clonePlace(place_t *pl, int * num_pl, int * num_wk);
-void setup_worker_hpt_path(hclib_worker_state * worker, place_t * pl);
+place_t *clonePlace(place_t *pl, int *num_pl, int *num_wk);
+void setup_worker_hpt_path(hclib_worker_state *worker, place_t *pl);
 
 /*
  * When we write HPT XML files manually, a count or num can be provided for each
@@ -898,15 +901,15 @@ void setup_worker_hpt_path(hclib_worker_state * worker, place_t * pl);
  * At the end, it goes back over the HPT and re-assigns worker and place IDs to
  * be consistent.
  */
-void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
-        hclib_worker_state *** all_workers, int * num_wk) {
+void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
+               hclib_worker_state *** all_workers, int *num_wk) {
     int i;
     place_node_t leaf_places = {NULL, NULL};
     worker_node_t leaf_workers = {NULL, NULL};
-    place_node_t * pl_list_cur = &leaf_places;
-    worker_node_t * wk_list_cur = &leaf_workers;
+    place_node_t *pl_list_cur = &leaf_places;
+    worker_node_t *wk_list_cur = &leaf_workers;
 
-    place_t * plp = hpt;
+    place_t *plp = hpt;
     /*
      * Iterate over all top-level places in the HPT, collecting all leaf places
      * and workers in this platform.
@@ -927,41 +930,42 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
      */
     wk_list_cur = leaf_workers.next;
     while (wk_list_cur != NULL) {
-        hclib_worker_state * ws = wk_list_cur->data;
+        hclib_worker_state *ws = wk_list_cur->data;
 
         // num is read from the XML file and temporarily stored in the id field.
         int num = ws->id;
         for (i=0; i<num-1; i++) {
-            hclib_worker_state * tmp = (hclib_worker_state*) malloc(
-                    sizeof(hclib_worker_state));
+            hclib_worker_state *tmp = (hclib_worker_state *) malloc(
+                                          sizeof(hclib_worker_state));
             HASSERT(tmp);
             memset(tmp, 0x00, sizeof(hclib_worker_state));
             tmp->pl = ws->pl;
-            tmp->did = ws->did + num - i - 1; /* please note the way we add to the list, and the way we allocate did */
+            tmp->did = ws->did + num - i -
+                       1; /* please note the way we add to the list, and the way we allocate did */
             tmp->next_worker = ws->next_worker;
             ws->next_worker = tmp;
         }
         (*nproc) += num;
         ws->pl->ndeques = ws->pl->ndeques + num;
-        worker_node_t * tmpwknode = wk_list_cur;
+        worker_node_t *tmpwknode = wk_list_cur;
         wk_list_cur = wk_list_cur->next;
         free(tmpwknode);
     }
 
     /* unroll places, we need to clone HPT subtree when we duplicate a place*/
-    place_node_t * lastpl = pl_list_cur;
+    place_node_t *lastpl = pl_list_cur;
     pl_list_cur = leaf_places.next;
     while (pl_list_cur != NULL) {
-        place_t * pl = pl_list_cur->data;
+        place_t *pl = pl_list_cur->data;
 
         /*
          * we first check whether this is the last child of its parent that
          * needs unrolling
          */
-        place_t * parent = pl->parent;
+        place_t *parent = pl->parent;
         int unfinished = 0;
         if (parent != NULL) {
-            place_t * pllast = parent->child;
+            place_t *pllast = parent->child;
 
             while (pllast != NULL) {
                 /*
@@ -982,12 +986,13 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
         pl->id = -1; /* clear this out, we only reset this after processing the whole HPT */
 
         for (i = 0; i < num - 1; i++) {
-            place_t * clpl = clonePlace(pl, num_pl, nproc);
+            place_t *clpl = clonePlace(pl, num_pl, nproc);
             // TODO This will add too many deques
             if (pl->parent != NULL) pl->parent->ndeques += pl->ndeques;
 
             /* now they are sibling */
-            clpl->did = pl->did + num - i - 1; /* please note the way we add to the list, and the way we allocate did */
+            clpl->did = pl->did + num - i -
+                        1; /* please note the way we add to the list, and the way we allocate did */
             clpl->nnext = pl->nnext;
             pl->nnext = clpl;
         }
@@ -1001,7 +1006,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
              * place nodes only after all of their children have already been
              * expanded.
              */
-            place_node_t *new_pl = (place_node_t*)malloc(sizeof(place_node_t));
+            place_node_t *new_pl = (place_node_t *)malloc(sizeof(place_node_t));
             HASSERT(new_pl);
             memset(new_pl, 0x00, sizeof(place_node_t));
             new_pl->data = parent;
@@ -1010,25 +1015,26 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
         }
 
         // Move to next place in place list
-        place_node_t * tmppl = pl_list_cur;
+        place_node_t *tmppl = pl_list_cur;
         pl_list_cur = tmppl->next;
         free(tmppl);
     }
 
     /* re-sequence the unrolled HPT with a breadth-first traversal */
-    place_node_t * start = NULL;
-    place_node_t * end = NULL;
-    place_node_t * tmp;
+    place_node_t *start = NULL;
+    place_node_t *end = NULL;
+    place_node_t *tmp;
     plp = hpt;
 
     *all_places = (place_t **)malloc(sizeof(place_t *) * (*num_pl));
     int num_dev_wk = 0;
     /* allocate worker objects for CPU workers */
-    *all_workers = (hclib_worker_state **)malloc(sizeof(hclib_worker_state *) * (*nproc));
+    *all_workers = (hclib_worker_state **)malloc(sizeof(hclib_worker_state *) *
+                   (*nproc));
 
     // Construct a new list of top-level places, starting with start.
     while (plp != NULL) {
-        tmp= (place_node_t*) malloc(sizeof(place_node_t));
+        tmp= (place_node_t *) malloc(sizeof(place_node_t));
         tmp->data = plp;
         if (start == NULL) start = tmp;
         else end->next = tmp;
@@ -1052,9 +1058,9 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
 #endif
         plp->id = plid++;
         plp->nChildren = 0;
-        place_t * child = plp->child;
+        place_t *child = plp->child;
         while (child != NULL) {
-            tmp = (place_node_t*) malloc(sizeof(place_node_t));
+            tmp = (place_node_t *) malloc(sizeof(place_node_t));
             tmp->data = child;
             tmp->next = NULL;
             end->next = tmp;
@@ -1071,7 +1077,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
             child = child->nnext;
         }
 
-        hclib_worker_state * ws = plp->workers;
+        hclib_worker_state *ws = plp->workers;
         while (ws != NULL) {
             (*all_workers)[wkid] = ws;
             ws->id = wkid ++;
@@ -1084,15 +1090,16 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
     }
     if (num_dev_wk) {
         *num_wk = *nproc + num_dev_wk;
-        hclib_worker_state ** tmp = *all_workers;
-        *all_workers = (hclib_worker_state **)malloc(sizeof(hclib_worker_state *) * (*num_wk));
-        memcpy(*all_workers, tmp, sizeof(hclib_worker_state*)*(*nproc));
+        hclib_worker_state **tmp = *all_workers;
+        *all_workers = (hclib_worker_state **)malloc(sizeof(hclib_worker_state *) *
+                       (*num_wk));
+        memcpy(*all_workers, tmp, sizeof(hclib_worker_state *)*(*nproc));
         free(tmp);
 
         /* link the device workers with the place and the all_workers list */
         for (i = 0; i < num_dev_wk; i++) {
-            hclib_worker_state * ws = (hclib_worker_state*) malloc(
-                    sizeof(hclib_worker_state));
+            hclib_worker_state *ws = (hclib_worker_state *) malloc(
+                                         sizeof(hclib_worker_state));
             HASSERT(ws);
             memset(ws, 0x00, sizeof(hclib_worker_state));
             ws->id = *nproc + i;
@@ -1102,7 +1109,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
         if (num_dev_wk) {
             int index = 0;
             for (i = 0; i < *num_pl; i++) {
-                place_t * dev_pl = ((*all_places)[i]);
+                place_t *dev_pl = ((*all_places)[i]);
                 if (is_device_place(dev_pl)) {
                     dev_pl->workers = (*all_workers)[*nproc + index];
                     (*all_workers)[*nproc + index]->pl = dev_pl;
@@ -1123,8 +1130,8 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int * num_pl, int * nproc,
  * time a new place is created and incrementing nproc every time a new worker is
  * created.
  */
-place_t * clonePlace(place_t *pl, int * num_pl, int * nproc) {
-    place_t * clone = (place_t*) malloc(sizeof(place_t));
+place_t *clonePlace(place_t *pl, int *num_pl, int *nproc) {
+    place_t *clone = (place_t *) malloc(sizeof(place_t));
     HASSERT(clone);
     memset(clone, 0x00, sizeof(place_t));
     clone->type = pl->type;
@@ -1134,10 +1141,10 @@ place_t * clonePlace(place_t *pl, int * num_pl, int * nproc) {
     clone->did = pl->did;
     clone->ndeques = pl->ndeques;
     clone->parent = pl->parent;
-    place_t * child = pl->child;
+    place_t *child = pl->child;
 
     while (child != NULL) {
-        place_t * tmp = clonePlace(child, num_pl, nproc);
+        place_t *tmp = clonePlace(child, num_pl, nproc);
         tmp->parent = clone;
         if (clone->child == NULL) clone->child = tmp;
         else pllast->nnext = tmp;
@@ -1147,11 +1154,12 @@ place_t * clonePlace(place_t *pl, int * num_pl, int * nproc) {
     }
     if (pllast != NULL) pllast->nnext = NULL;
 
-    hclib_worker_state * ws = pl->workers;
-    hclib_worker_state * wslast = NULL;
+    hclib_worker_state *ws = pl->workers;
+    hclib_worker_state *wslast = NULL;
 
     while (ws != NULL) {
-        hclib_worker_state * tmp = (hclib_worker_state *) malloc(sizeof(hclib_worker_state));
+        hclib_worker_state *tmp = (hclib_worker_state *) malloc(sizeof(
+                                      hclib_worker_state));
         HASSERT(tmp);
         memset(tmp, 0x00, sizeof(hclib_worker_state));
         tmp->pl = clone;
@@ -1168,7 +1176,7 @@ place_t * clonePlace(place_t *pl, int * num_pl, int * nproc) {
     return clone;
 }
 
-void setup_worker_hpt_path(hclib_worker_state * worker, place_t * pl) {
+void setup_worker_hpt_path(hclib_worker_state *worker, place_t *pl) {
     int i;
     if (pl == NULL) return;
     int level = pl->level;
@@ -1186,7 +1194,7 @@ void setup_worker_hpt_path(hclib_worker_state * worker, place_t * pl) {
 }
 
 place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
-        int *num_pl, int * nproc, hclib_worker_state ***all_workers, int *num_wk) {
+                           int *num_pl, int *nproc, hclib_worker_state ***all_workers, int *num_wk) {
     uint32_t i;
     place_t *pl = (place_t *)malloc(sizeof(place_t));
     HASSERT(pl);
@@ -1198,7 +1206,8 @@ place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
 
     hclib_worker_state *last = NULL;
     for (i = 0; i < num_workers; i++) {
-        hclib_worker_state *worker = (hclib_worker_state *)malloc(sizeof(hclib_worker_state));
+        hclib_worker_state *worker = (hclib_worker_state *)malloc(sizeof(
+                                         hclib_worker_state));
         memset(worker, 0x00, sizeof(hclib_worker_state));
         worker->id = 1;
         worker->pl = pl;
@@ -1232,7 +1241,7 @@ place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
  *   <place num="1" type="mem">
  *     <place num="2" type="cache"> <!-- 2 sockets with common L3 in each -->
  *       <place num="6" type="cache"> <!-- 6 L2/L1 cache per socket -->
- *         <worker num="1"/> 
+ *         <worker num="1"/>
  *       </place>
  *     </place>
  *   </place>
@@ -1247,8 +1256,8 @@ place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
  * hierarchy, returning the root of that hierarchy. The schema of the HPT XML
  * file is stored in $HCLIB_HOME/hpt/hpt.dtd.
  */
-place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
-        hclib_worker_state *** all_workers, int * num_wk) {
+place_t *read_hpt(place_t *** all_places, int *num_pl, int *nproc,
+                  hclib_worker_state *** all_workers, int *num_wk) {
     const char *filename = getenv("HCLIB_HPT_FILE");
     place_t *hpt;
     if (filename == NULL) {
@@ -1263,16 +1272,16 @@ place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
         }
 
         hpt = generate_fake_hpt(num_workers, all_places, num_pl, nproc,
-                all_workers, num_wk);
+                                all_workers, num_wk);
     } else {
         /* create a parser context */
-        xmlParserCtxt* ctxt = xmlNewParserCtxt();
+        xmlParserCtxt *ctxt = xmlNewParserCtxt();
         if (ctxt == NULL) {
             fprintf(stderr, "Failed to allocate parser context\n");
             return NULL;
         }
         /* parse the file, activating the DTD validation option */
-        xmlDoc* doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
+        xmlDoc *doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
         /* check if parsing succeeded */
         if (doc == NULL) {
             fprintf(stderr, "Failed to parse %s\n", filename);
@@ -1306,14 +1315,14 @@ place_t* read_hpt(place_t *** all_places, int * num_pl, int * nproc,
     return hpt;
 }
 
-void free_hpt(place_t * hpt) {
-    place_node_t * start = NULL;
-    place_node_t * end = NULL;
-    place_node_t * tmp;
+void free_hpt(place_t *hpt) {
+    place_node_t *start = NULL;
+    place_node_t *end = NULL;
+    place_node_t *tmp;
     place_t *plp = hpt;
 
     while (plp != NULL) {
-        tmp = (place_node_t*)  malloc(sizeof(place_node_t));
+        tmp = (place_node_t *)  malloc(sizeof(place_node_t));
         tmp->data = plp;
         if (start == NULL)
             start = tmp;
@@ -1326,9 +1335,9 @@ void free_hpt(place_t * hpt) {
 
     while (start != NULL) {
         plp = start->data;
-        place_t * child = plp->child;
+        place_t *child = plp->child;
         while (child != NULL) {
-            tmp = (place_node_t*) malloc(sizeof(place_node_t));
+            tmp = (place_node_t *) malloc(sizeof(place_node_t));
             tmp->data = child;
             tmp->next = NULL;
             end->next = tmp;
@@ -1336,9 +1345,9 @@ void free_hpt(place_t * hpt) {
             child = child->nnext;
         }
 
-        hclib_worker_state * ws = plp->workers;
+        hclib_worker_state *ws = plp->workers;
         while (ws != NULL) {
-            hclib_worker_state * tmpwk = ws;
+            hclib_worker_state *tmpwk = ws;
             ws = ws->next_worker;
             free(tmpwk);
         }
@@ -1348,3 +1357,4 @@ void free_hpt(place_t * hpt) {
         start = tmp;
     }
 }
+

@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib-internal.h"
 #include "hclib-atomics.h"
 
-void deque_init(deque_t * deq, void * init_value) {
+void deque_init(deque_t *deq, void *init_value) {
     deq->head = 0;
     deq->tail = 0;
 }
@@ -47,7 +47,7 @@ void deque_init(deque_t * deq, void * init_value) {
 /*
  * push an entry onto the tail of the deque
  */
-int deque_push(deque_t* deq, void* entry) {
+int deque_push(deque_t *deq, void *entry) {
     int size = deq->tail - deq->head;
     if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
         /* may not grow the deque if some interleaving steal occur */
@@ -56,19 +56,19 @@ int deque_push(deque_t* deq, void* entry) {
         return 0;
     }
     int n = (deq->tail) % INIT_DEQUE_CAPACITY;
-    deq->data[n] = (hclib_task_t*) entry;
+    deq->data[n] = (hclib_task_t *) entry;
     deq->tail++;
     return 1;
 }
 
-void deque_destroy(deque_t* deq) {
+void deque_destroy(deque_t *deq) {
     free(deq);
 }
 
 /*
  * the steal protocol
  */
-hclib_task_t* deque_steal(deque_t * deq) {
+hclib_task_t *deque_steal(deque_t *deq) {
     int head;
     /* Cannot read deq->data[head] here
      * Can happen that head=tail=0, then the owner of the deq pushes
@@ -85,7 +85,7 @@ hclib_task_t* deque_steal(deque_t * deq) {
         return NULL;
     }
 
-    hclib_task_t* t = (hclib_task_t*) deq->data[head % INIT_DEQUE_CAPACITY];
+    hclib_task_t *t = (hclib_task_t *) deq->data[head % INIT_DEQUE_CAPACITY];
     /* compete with other thieves and possibly the owner (if the size == 1) */
     if (hc_cas(&deq->head, head, head + 1)) { /* competing */
         return t;
@@ -96,7 +96,7 @@ hclib_task_t* deque_steal(deque_t * deq) {
 /*
  * pop the task out of the deque from the tail
  */
-hclib_task_t* deque_pop(deque_t * deq) {
+hclib_task_t *deque_pop(deque_t *deq) {
     hc_mfence();
     int tail = deq->tail;
     tail--;
@@ -109,7 +109,7 @@ hclib_task_t* deque_pop(deque_t * deq) {
         deq->tail = deq->head;
         return NULL;
     }
-    hclib_task_t* t = (hclib_task_t*) deq->data[(tail) % INIT_DEQUE_CAPACITY];
+    hclib_task_t *t = (hclib_task_t *) deq->data[(tail) % INIT_DEQUE_CAPACITY];
 
     if (size > 0) {
         return t;
@@ -129,46 +129,47 @@ hclib_task_t* deque_pop(deque_t * deq) {
 /* Semi Concurrent DEQUE                              */
 /******************************************************/
 
-void semi_conc_deque_init(semi_conc_deque_t* semiDeq, void * initValue) {
-	deque_t* deq = &semiDeq->deque;
-	deq->head = 0;
-	deq->tail = 0;
-	semiDeq->lock = 0;
+void semi_conc_deque_init(semi_conc_deque_t *semiDeq, void *initValue) {
+    deque_t *deq = &semiDeq->deque;
+    deq->head = 0;
+    deq->tail = 0;
+    semiDeq->lock = 0;
 }
 
-void semi_conc_deque_destroy(semi_conc_deque_t* semiDeq) {
-	free(semiDeq);
+void semi_conc_deque_destroy(semi_conc_deque_t *semiDeq) {
+    free(semiDeq);
 }
 
-void semi_conc_deque_locked_push(semi_conc_deque_t* semiDeq, void* entry) {
-	deque_t* deq = &semiDeq->deque;
-	int success = 0;
-	while (!success) {
-		int size = deq->tail - deq->head;
-		if (INIT_DEQUE_CAPACITY == size) {
-			HASSERT("DEQUE full, increase deque's size" && 0);
-		}
+void semi_conc_deque_locked_push(semi_conc_deque_t *semiDeq, void *entry) {
+    deque_t *deq = &semiDeq->deque;
+    int success = 0;
+    while (!success) {
+        int size = deq->tail - deq->head;
+        if (INIT_DEQUE_CAPACITY == size) {
+            HASSERT("DEQUE full, increase deque's size" && 0);
+        }
 
-		if (hc_cas(&semiDeq->lock, 0, 1) ) {
-			success = 1;
-			int n = deq->tail % INIT_DEQUE_CAPACITY;
-			deq->data[n] = (hclib_task_t*) entry;
-			hc_mfence();
-			++deq->tail;
-			semiDeq->lock= 0;
-		}
-	}
+        if (hc_cas(&semiDeq->lock, 0, 1) ) {
+            success = 1;
+            int n = deq->tail % INIT_DEQUE_CAPACITY;
+            deq->data[n] = (hclib_task_t *) entry;
+            hc_mfence();
+            ++deq->tail;
+            semiDeq->lock= 0;
+        }
+    }
 }
 
-hclib_task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * semiDeq) {
-	deque_t* deq = &semiDeq->deque;
-	int head = deq->head;
-	int tail = deq->tail;
+hclib_task_t *semi_conc_deque_non_locked_pop(semi_conc_deque_t *semiDeq) {
+    deque_t *deq = &semiDeq->deque;
+    int head = deq->head;
+    int tail = deq->tail;
 
-	if ((tail - head) > 0) {
-		hclib_task_t* t = (hclib_task_t*) deq->data[head % INIT_DEQUE_CAPACITY];
-		++deq->head;
-		return t;
-	}
-	return NULL;
+    if ((tail - head) > 0) {
+        hclib_task_t *t = (hclib_task_t *) deq->data[head % INIT_DEQUE_CAPACITY];
+        ++deq->head;
+        return t;
+    }
+    return NULL;
 }
+

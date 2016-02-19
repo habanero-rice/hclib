@@ -13,7 +13,7 @@
 static hclib_memory_tree_node *create_memory_tree_node(void *address,
         size_t length) {
     hclib_memory_tree_node *node = (hclib_memory_tree_node *)malloc(
-            sizeof(hclib_memory_tree_node));
+                                       sizeof(hclib_memory_tree_node));
     HASSERT(node);
 
     node->start_address = address;
@@ -62,7 +62,7 @@ hclib_memory_tree_node *rotate(hclib_memory_tree_node **root, int dir) {
     }
     return new_r;
 }
- 
+
 void adjust_balance(hclib_memory_tree_node **rootp) {
     hclib_memory_tree_node *root = *rootp;
     int b = balance(root) / 2;
@@ -75,10 +75,10 @@ void adjust_balance(hclib_memory_tree_node **rootp) {
     }
     if (root != NULL) set_height(root);
 }
- 
+
 // find the node that contains value as payload; or returns 0
 static hclib_memory_tree_node *find(void *address,
-        hclib_memory_tree_node *curr) {
+                                    hclib_memory_tree_node *curr) {
     unsigned char *c_address = (unsigned char *)address;
 
     if (curr == NULL) {
@@ -94,9 +94,9 @@ static hclib_memory_tree_node *find(void *address,
         return find(address, right(curr));
     }
 }
- 
+
 void hclib_memory_tree_insert(void *address, size_t length,
-        hclib_memory_tree_node **rootp) {
+                              hclib_memory_tree_node **rootp) {
     unsigned char *c_address = (unsigned char *)address;
     hclib_memory_tree_node *root = *rootp;
 
@@ -120,7 +120,7 @@ void hclib_memory_tree_insert(void *address, size_t length,
 }
 
 void hclib_memory_tree_remove(void *address,
-        hclib_memory_tree_node **rootp) {
+                              hclib_memory_tree_node **rootp) {
     hclib_memory_tree_node *root = *rootp;
     unsigned char *c_address = (unsigned char *)address;
     HASSERT(root != NULL);
@@ -138,7 +138,7 @@ void hclib_memory_tree_remove(void *address,
     }
 
     hclib_memory_tree_remove(address,
-            &root->children[c_address > root->start_address]);
+                             &root->children[c_address > root->start_address]);
     adjust_balance(rootp);
 }
 
@@ -146,3 +146,4 @@ int hclib_memory_tree_contains(void *address, hclib_memory_tree_node **root) {
     if (*root == NULL) return 0;
     return find(address, *root) != NULL;
 }
+
