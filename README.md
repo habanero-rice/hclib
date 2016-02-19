@@ -81,4 +81,8 @@ at [1]. cppcheck should be run by cd-ing to tools/cppcheck and executing the
 run.sh script from there (this assumes cppcheck is on your path). Any new errors
 printed by cppcheck should be addressed before committing.
 
+You should also run astyle on all modified fields. astyle is a source code
+auto-formatter. Simply cd to tools/astyle and execute the run.sh script from
+there. This assumes you have astyle installed and it is on your path.
+
 [1] https://sourceforge.net/projects/cppcheck/
