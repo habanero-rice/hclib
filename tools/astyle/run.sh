@@ -4,7 +4,7 @@ set -e
 
 mkdir -p temp
 
-OPTIONS="--style=kr --style=attach --indent=spaces=4 --max-code-length=80 \
+OPTIONS="--style=gnu --style=attach --indent=spaces=4 --max-code-length=80 \
     --align-pointer=name --break-after-logical"
 
 for REGIX in '*.c' '*.cpp'; do

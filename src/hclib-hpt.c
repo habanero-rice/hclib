@@ -1143,6 +1143,7 @@ place_t *clonePlace(place_t *pl, int *num_pl, int *nproc) {
     clone->parent = pl->parent;
     place_t *child = pl->child;
 
+    place_t * pllast = NULL;
     while (child != NULL) {
         place_t *tmp = clonePlace(child, num_pl, nproc);
         tmp->parent = clone;
@@ -1198,7 +1199,7 @@ place_t *generate_fake_hpt(uint32_t num_workers, place_t *** all_places,
     uint32_t i;
     place_t *pl = (place_t *)malloc(sizeof(place_t));
     HASSERT(pl);
-    memset(pl);
+    memset(pl, 0x00, sizeof(place_t));
 
     pl->id = 1;
     pl->type = MEM_PLACE;
