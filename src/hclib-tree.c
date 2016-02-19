@@ -147,3 +147,4 @@ int hclib_memory_tree_contains(void *address, hclib_memory_tree_node **root) {
     return find(address, *root) != NULL;
 }
 
+

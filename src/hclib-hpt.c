@@ -1143,7 +1143,7 @@ place_t *clonePlace(place_t *pl, int *num_pl, int *nproc) {
     clone->parent = pl->parent;
     place_t *child = pl->child;
 
-    place_t * pllast = NULL;
+    place_t *pllast = NULL;
     while (child != NULL) {
         place_t *tmp = clonePlace(child, num_pl, nproc);
         tmp->parent = clone;
@@ -1358,4 +1358,5 @@ void free_hpt(place_t *hpt) {
         start = tmp;
     }
 }
+
 

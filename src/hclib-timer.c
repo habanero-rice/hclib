@@ -96,3 +96,4 @@ void hclib_get_avg_time(double *tWork, double *tOvh, double *tSearch) {
 #endif
 }
 
+
