@@ -29,16 +29,19 @@ int main(int argc, char ** argv) {
     int n = 5;
     hclib::promise_t ** promise_list = (hclib::promise_t **)malloc(
             sizeof(hclib::promise_t *) * (2*(n+1)));
+
     hclib::launch(&argc, argv, [=]() {
         hclib::finish([=]() {
             int index = 0;
             // Building 'n' NULL-terminated lists of a single promise each
+
             for (index = 0 ; index <= n; index++) {
                 promise_list[index*2] = new hclib::promise_t();
                 printf("Creating promise  %p at promise_list\n",
                         &promise_list[index*2]);
                 promise_list[index*2+1] = NULL;
             }
+
             for(index=n-1; index>=1; index--) {
                 printf("Creating async %d\n", index);
                 // Build async's arguments
@@ -46,7 +49,7 @@ int main(int argc, char ** argv) {
                         &(promise_list[(index-1)*2]), &(promise_list[index*2]));
                 hclib::async_await([=]() {
                     hclib::promise_t *promise = promise_list[index * 2];
-                    promise->put(NO_DATUM); }, promise_list[(index * 2 - 1)*2]->get_future());
+                    promise->put(NO_DATUM); }, promise_list[(index - 1)*2]->get_future());
             }
             printf("Putting in promise 0\n");
             promise_list[0]->put(NO_DATUM);

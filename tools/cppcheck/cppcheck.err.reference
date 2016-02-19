@@ -1,11 +1,11 @@
-[../../src/hclib-promise.c:213]: (warning) Conversion of string literal "can not put sentinel value for \"uninitialized\" as a value into promise" to bool always evaluates to true.
-[../../src/hclib-promise.c:214]: (warning) Conversion of string literal "can not put into NULL promise" to bool always evaluates to true.
-[../../src/hclib-promise.c:216]: (warning) Conversion of string literal "violated single assignment property for promises" to bool always evaluates to true.
-[../../src/hclib.c:448]: (error) Memory leak: user_def
+[../../src/hclib-promise.c:216]: (warning) Conversion of string literal "can not put sentinel value for \"uninitialized\" as a value into promise" to bool always evaluates to true.
+[../../src/hclib-promise.c:217]: (warning) Conversion of string literal "can not put into NULL promise" to bool always evaluates to true.
+[../../src/hclib-promise.c:219]: (warning) Conversion of string literal "violated single assignment property for promises" to bool always evaluates to true.
+[../../src/hclib.c:451]: (error) Memory leak: user_def
 [../../src/hclib.c:83]: (warning) Conversion of string literal "malloc failed" to bool always evaluates to true.
 [../../src/hclib.c:91]: (warning) Conversion of string literal "malloc failed" to bool always evaluates to true.
 [../../src/hclib.c:99]: (warning) Conversion of string literal "malloc failed" to bool always evaluates to true.
-[../../src/hclib.c:453]: (warning) Conversion of string literal "Limitation: forasync does not support futures yet" to bool always evaluates to true.
+[../../src/hclib.c:457]: (warning) Conversion of string literal "Limitation: forasync does not support futures yet" to bool always evaluates to true.
 [../../inc/hclib-async.h:131]: (error) Memory leak: lambda_on_heap
 [/usr/include/vector_types.h:420]: (style) Struct 'dim3' has a constructor with 1 argument that is not explicit.
 [../../src/hclib_cpp.cpp:22]: (style) The function 'current_worker' is never used.
@@ -26,24 +26,24 @@
 [../../src/hclib_cpp.cpp:56]: (style) The function 'get_place_name' is never used.
 [../../src/hclib_cpp.cpp:46]: (style) The function 'get_root_place' is never used.
 [../../src/hclib-hpt.c:213]: (style) The function 'hc_get_place' is never used.
-[../../src/hclib-hpt.c:431]: (style) The function 'hclib_async_copy' is never used.
+[../../src/hclib-hpt.c:432]: (style) The function 'hclib_async_copy' is never used.
 [../../src/hclib.c:61]: (style) The function 'hclib_async_future' is never used.
-[../../src/hclib-hpt.c:472]: (style) The function 'hclib_async_memset' is never used.
-[../../src/hclib.c:458]: (style) The function 'hclib_forasync_future' is never used.
+[../../src/hclib-hpt.c:473]: (style) The function 'hclib_async_memset' is never used.
+[../../src/hclib.c:462]: (style) The function 'hclib_forasync_future' is never used.
 [../../src/hclib-hpt.c:235]: (style) The function 'hclib_get_child_place' is never used.
 [../../src/hclib-hpt.c:251]: (style) The function 'hclib_get_children_places' is never used.
 [../../src/hclib-promise.c:85]: (style) The function 'hclib_get_future' is never used.
 [../../src/hclib-hpt.c:243]: (style) The function 'hclib_get_parent_place' is never used.
 [../../src/hclib-promise.c:92]: (style) The function 'hclib_promise_create_n' is never used.
-[../../src/hclib-promise.c:123]: (style) The function 'hclib_promise_free_n' is never used.
-[../../src/hclib-runtime.c:1177]: (style) The function 'hclib_user_harness_timer' is never used.
+[../../src/hclib-promise.c:125]: (style) The function 'hclib_promise_free_n' is never used.
+[../../src/hclib-runtime.c:1184]: (style) The function 'hclib_user_harness_timer' is never used.
 [../../src/hclib_cpp.cpp:3]: (style) The function 'promise_create_n' is never used.
-[../../src/hcupc-support.c:76]: (style) The function 'registerHCUPC_callback' is never used.
+[../../src/hcupc-support.c:77]: (style) The function 'registerHCUPC_callback' is never used.
 [../../src/hclib-deque.c:139]: (style) The function 'semi_conc_deque_destroy' is never used.
-[../../src/hclib-runtime.c:519]: (style) The function 'spawn_escaping_at' is never used.
+[../../src/hclib-runtime.c:521]: (style) The function 'spawn_escaping_at' is never used.
 [../../src/hclib_cpp.cpp:65]: (style) The function 'start_finish_special' is never used.
-[../../src/hcupc-support.c:179]: (style) The function 'steal_fromComputeWorkers_forDistWS' is never used.
-[../../src/hclib-runtime.c:893]: (style) The function 'teardown' is never used.
+[../../src/hcupc-support.c:180]: (style) The function 'steal_fromComputeWorkers_forDistWS' is never used.
+[../../src/hclib-runtime.c:896]: (style) The function 'teardown' is never used.
 [../../src/hcupc-support.c:53]: (style) The function 'totalAsyncAnyAvailable' is never used.
 [../../src/hclib_cpp.cpp:61]: (style) The function 'total_pending_local_asyncs' is never used.
 (information) Cppcheck cannot find all the include files (use --check-config for details)

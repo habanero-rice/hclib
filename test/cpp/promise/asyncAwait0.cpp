@@ -44,8 +44,8 @@ int main(int argc, char ** argv) {
                         printf("Async %d putting in promise %d @ %p\n", my_index/2,
                                 my_index, promise);
                         int * value = (int *) malloc(sizeof(int)*1);
-                        *value = my_index; 
-                        promise->put(value); }, promise_list[(my_index-1)*2]->get_future());
+                        *value = my_index;
+                        promise->put(value); }, promise_list[(index - 1)*2]->get_future());
             }
             int * value = (int *) malloc(sizeof(int)*1);
             *value = 2222;
