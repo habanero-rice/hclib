@@ -4,7 +4,6 @@
 
 int main(int argc, char **argv) {
     hclib::launch(&argc, argv, []() {
-        hclib::place_t *my_pl = hclib::get_current_place();
         hclib::place_t *root_pl = hclib::get_root_place();
 
         int num_toplevel;

@@ -58,7 +58,6 @@ void init_ran(int *ran, int size) {
 
 void entrypoint(void *arg) {
     int *ran = (int *)arg;
-    int i = 0;
     // This is ok to have these on stack because this
     // code is alive until the end of the program.
 

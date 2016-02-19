@@ -46,8 +46,7 @@ int main(int argc, char ** argv) {
                         &(promise_list[(index-1)*2]), &(promise_list[index*2]));
                 hclib::async_await([=]() {
                     hclib::promise_t *promise = promise_list[index * 2];
-                    int index = index * 2;
-                    promise->put(NO_DATUM); }, promise_list[(index-1)*2]->get_future());
+                    promise->put(NO_DATUM); }, promise_list[(index * 2 - 1)*2]->get_future());
             }
             printf("Putting in promise 0\n");
             promise_list[0]->put(NO_DATUM);

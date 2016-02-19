@@ -30,6 +30,11 @@ void entrypoint(void *arg) {
 
     numTiles = matrixSize/tileSize;
 
+    in = fopen(argv_ptr[3], "r");
+    if( !in ) {
+        printf("Cannot find file: %s\n", argv_ptr[3]);
+        return;
+    }
 
     lkji = (TileBlock ****) malloc(sizeof(TileBlock***)*numTiles);
     for( i = 0 ; i < numTiles ; ++i ) {
@@ -45,12 +50,6 @@ void entrypoint(void *arg) {
         }
     }
 
-
-    in = fopen(argv_ptr[3], "r");
-    if( !in ) {
-        printf("Cannot find file: %s\n", argv_ptr[3]);
-        return;
-    }
     A = (double**) malloc(sizeof(double*)*matrixSize);
     for( i = 0; i < matrixSize; ++i)
         A[i] = (double*) malloc(sizeof(double)*matrixSize);
@@ -150,6 +149,9 @@ void entrypoint(void *arg) {
     for( i = 0; i < matrixSize; ++i )
         free(A[i]);
     free(A);
+
+    fclose(out);
+    fclose(in);
 
 }
 

@@ -144,9 +144,8 @@ void seqmerge(int low1, int high1, int low2, int high2, int lowdest, int* src, i
 }
 
 int binsplit(int val, int low, int high, int* src) {
-  int mid;
   while(low != high){
-    mid = low + ((high - low + 1) >> 1);
+    int mid = low + ((high - low + 1) >> 1);
     if(val <= src[mid]) 
       high = mid - 1;
     else 
@@ -258,10 +257,10 @@ long get_usecs (void)
 
 void scramble_array(int *arr, int size)
 {
-     int i, j;
+     int i;
 
      for (i = 0; i < size; ++i) {
-	  j = rand();
+	  int j = rand();
 	  j = j % size;
 	  swap(arr[i], arr[j]);
      }
@@ -271,11 +270,9 @@ int main(int argc, char **argv)
 {
      hclib::launch(&argc, argv, [&]() {
          int size = 10000000;
-         int check = 1;
-         int i, j, k;
+         int i, k;
          
          if(argc > 1) size = atoi(argv[1]);
-         if(argc > 2) check = atoi(argv[2]);
          
          array = (int*) malloc(size * sizeof(int));
          back = (int*) malloc(size * sizeof(int));

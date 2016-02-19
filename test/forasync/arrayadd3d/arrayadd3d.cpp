@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
         int tilesize1;
         int tilesize2;
         int tilesize3;
-        int i,j,k;
+        int i;
         int *a,*b,*c;
 
         if(argc!=7){printf("USAGE:./arrayadd2d NUM_ITERS1 NUM_ITERS2 TILE_SIZE1 TILE_SIZE2\n");return -1;}

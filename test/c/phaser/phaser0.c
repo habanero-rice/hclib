@@ -95,7 +95,6 @@ int main (int argc, char **argv)
 void refer()
 {
   int j,k; 
-  double start; 
   double meantime, sd; 
 
   double getclock(void); 
@@ -105,7 +104,7 @@ void refer()
   printf("Computing reference time 1\n"); 
 
   for (k=0; k<=OUTERREPS; k++){
-    start  = getclock(); 
+    const double start  = getclock(); 
     for (j=0; j<innerreps; j++){
       syncdelay(delaylength); 
     }

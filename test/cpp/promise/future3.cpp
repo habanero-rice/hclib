@@ -81,6 +81,7 @@ int main (int argc, char ** argv) {
         assert(ran[i] == i);
         i++;
     }
+    free(ran);
     printf("OK\n");
     return 0;
 }

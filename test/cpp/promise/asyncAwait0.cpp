@@ -39,13 +39,13 @@ int main(int argc, char ** argv) {
                         &(promise_list[(index-1)*2]), &(promise_list[index*2]));
                 hclib::async_await([=]() {
                         hclib::promise_t *promise = promise_list[(index * 2)];
-                        int index = index * 2;
-                        printf("Running async %d\n", index/2);
-                        printf("Async %d putting in promise %d @ %p\n", index/2,
-                                index, promise);
+                        int my_index = index * 2;
+                        printf("Running async %d\n", my_index/2);
+                        printf("Async %d putting in promise %d @ %p\n", my_index/2,
+                                my_index, promise);
                         int * value = (int *) malloc(sizeof(int)*1);
-                        *value = index; 
-                        promise->put(value); }, promise_list[(index-1)*2]->get_future());
+                        *value = my_index; 
+                        promise->put(value); }, promise_list[(my_index-1)*2]->get_future());
             }
             int * value = (int *) malloc(sizeof(int)*1);
             *value = 2222;

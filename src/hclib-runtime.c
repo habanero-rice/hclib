@@ -39,13 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #include <sys/time.h>
 
-#include "hclib.h"
-#include "hclib-internal.h"
-#include "hclib-atomics.h"
-#include "hclib-finish.h"
-#include "hclib-hpt.h"
-#include "hcupc-support.h"
-#include "hclib-cuda.h"
+#include <hclib.h>
+#include <hclib-internal.h>
+#include <hclib-atomics.h>
+#include <hclib-finish.h>
+#include <hclib-hpt.h>
+#include <hcupc-support.h>
+#include <hclib-cuda.h>
 
 // #define VERBOSE
 

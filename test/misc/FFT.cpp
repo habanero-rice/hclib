@@ -48,12 +48,11 @@ COMPLEX *in, *out, *W;
  */
 static void compute_w_coefficients(int n, int a, int b, COMPLEX * W)
 {
-     register double twoPiOverN;
-     register int k;
-     register REAL s, c;
 
      if (b - a < 128) {
-	  twoPiOverN = 2.0 * 3.1415926535897932384626434 / n;
+      register REAL s, c;
+      register int k;
+	  register double twoPiOverN = 2.0 * 3.1415926535897932384626434 / n;
 	  for (k = a; k <= b; ++k) {
 	       c = cos(twoPiOverN * k);
 	       c_re(W[k]) = c_re(W[n - k]) = c;
@@ -112,15 +111,15 @@ static int factor(int n)
 static void unshuffle(int a, int b,
 			   COMPLEX * in, COMPLEX * out, int r, int m)
 {
-     int i, j;
      int r4 = r & (~0x3);
      const COMPLEX *ip;
-     COMPLEX *jp;
 
      if (b - a < 16) {
 	  ip = in + a * r;
+      int i;
 	  for (i = a; i < b; ++i) {
-	       jp = out + i;
+	       COMPLEX *jp = out + i;
+           int j;
 	       for (j = 0; j < r4; j += 4) {
 		    jp[0] = ip[0];
 		    jp[m] = ip[1];
@@ -152,7 +151,7 @@ static void fft_twiddle_gen1(COMPLEX * in, COMPLEX * out,
      COMPLEX *jp, *kp;
 
      for (k = 0, kp = out; k < r; ++k, kp += m) {
-	  REAL r0, i0, rt, it, rw, iw;
+	  REAL r0, i0, it, rw, iw;
 	  int l1 = nWdnti + nWdntm * k;
 	  int l0;
 
@@ -160,7 +159,7 @@ static void fft_twiddle_gen1(COMPLEX * in, COMPLEX * out,
 	  for (j = 0, jp = in, l0 = 0; j < r; ++j, jp += m) {
 	       rw = c_re(W[l0]);
 	       iw = c_im(W[l0]);
-	       rt = c_re(*jp);
+	       REAL rt = c_re(*jp);
 	       it = c_im(*jp);
 	       r0 += rt * rw - it * iw;
 	       i0 += rt * iw + it * rw;

@@ -78,6 +78,7 @@ int main (int argc, char ** argv) {
         hclib::finish([=]() {
             spawn_async(indices, 0);
         });
+        free(indices);
     });
     printf("Check results: ");
     assert_done(0, NB_ASYNC);
