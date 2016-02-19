@@ -42,11 +42,11 @@ typedef struct _hclib_task_t {
 typedef struct hclib_dependent_task_t {
 	hclib_task_t async_task; // the actual task
     /*
-     * ddt meta-information, tasks that this task is blocked on for execution.
-     * ddt.waiting_frontier is generally equal to async_task.promise_list. TODO
+     * meta-information, tasks that this task is blocked on for execution.
+     * deps.waiting_frontier is generally equal to async_task.promise_list. TODO
      * can we factor out this redundant storage of data?
      */
-	hclib_triggered_task_t ddt;
+	hclib_triggered_task_t deps;
 } hclib_dependent_task_t;
 
 /** @struct loop_domain_t

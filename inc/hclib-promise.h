@@ -150,7 +150,7 @@ void *hclib_promise_wait(hclib_promise_t *promise);
 /*
  * Some extras
  */
-void hclib_triggered_task_init(hclib_triggered_task_t * ddt,
+void hclib_triggered_task_init(hclib_triggered_task_t *task,
         hclib_promise_t ** promise_list);
 
 #endif /* HCLIB_PROMISE_H_ */

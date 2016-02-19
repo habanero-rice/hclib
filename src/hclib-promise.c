@@ -54,11 +54,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define EMPTY_PROMISE_WAITLIST_PTR NULL
 
 /**
- * Associate a DDT to a promise list.
+ * Associate a triggered task to a promise list.
  */
-void hclib_triggered_task_init(hclib_triggered_task_t * ddt, hclib_promise_t ** promise_list) {
-	ddt->waiting_frontier = promise_list;
-	ddt->next_waiting_on_same_promise = NULL;
+void hclib_triggered_task_init(hclib_triggered_task_t *task,
+        hclib_promise_t **promise_list) {
+	task->waiting_frontier = promise_list;
+	task->next_waiting_on_same_promise = NULL;
 }
 
 /**
@@ -131,20 +132,20 @@ void hclib_promise_free(hclib_promise_t * promise) {
 	free(promise);
 }
 
-__inline__ int __registerIfPromisenotReady_AND(hclib_triggered_task_t* wrapperTask,
+__inline__ int __register_if_promise_not_ready(hclib_triggered_task_t* wrapper_task,
         hclib_promise_t* promiseToCheck) {
     int success = 0;
-    hclib_triggered_task_t* waitListOfPromise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
+    hclib_triggered_task_t* wait_list_of_promise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
 
-    if (waitListOfPromise != EMPTY_PROMISE_WAITLIST_PTR) {
+    if (wait_list_of_promise != EMPTY_PROMISE_WAITLIST_PTR) {
 
-        while (waitListOfPromise != EMPTY_PROMISE_WAITLIST_PTR && !success) {
-            // waitListOfPromise can not be EMPTY_PROMISE_WAITLIST_PTR in here
-            wrapperTask->next_waiting_on_same_promise = waitListOfPromise;
+        while (wait_list_of_promise != EMPTY_PROMISE_WAITLIST_PTR && !success) {
+            // wait_list_of_promise can not be EMPTY_PROMISE_WAITLIST_PTR in here
+            wrapper_task->next_waiting_on_same_promise = wait_list_of_promise;
 
             success = __sync_bool_compare_and_swap(
-                    &(promiseToCheck -> wait_list_head), waitListOfPromise,
-                    wrapperTask);
+                    &(promiseToCheck -> wait_list_head), wait_list_of_promise,
+                    wrapper_task);
             // printf("task:%p registered to Promise:%p\n", pollingTask,promiseToCheck);
 
             /*
@@ -152,9 +153,9 @@ __inline__ int __registerIfPromisenotReady_AND(hclib_triggered_task_t* wrapperTa
              * head or a put occurred.
              */
             if (!success) {
-                waitListOfPromise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
+                wait_list_of_promise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
                 /*
-                 * if waitListOfPromise was set to EMPTY_PROMISE_WAITLIST_PTR,
+                 * if wait_list_of_promise was set to EMPTY_PROMISE_WAITLIST_PTR,
                  * the loop condition will handle that if another task was
                  * added, now try to add in front of that
                  */
@@ -166,37 +167,38 @@ __inline__ int __registerIfPromisenotReady_AND(hclib_triggered_task_t* wrapperTa
 }
 
 /**
- * Runtime interface to DDTs.
  * Returns '1' if all promise dependencies have been satisfied.
  */
-int iterate_ddt_frontier(hclib_triggered_task_t* wrapperTask) {
-	hclib_promise_t** currPromisenodeToWaitOn = wrapperTask->waiting_frontier;
+int register_on_all_promise_dependencies(hclib_triggered_task_t* wrapper_task) {
+	hclib_promise_t** curr_promise_not_to_wait_on = wrapper_task->waiting_frontier;
 
-    while (*currPromisenodeToWaitOn && !__registerIfPromisenotReady_AND(wrapperTask,
-                *currPromisenodeToWaitOn) ) {
-        ++currPromisenodeToWaitOn;
+    while (*curr_promise_not_to_wait_on && !__register_if_promise_not_ready(
+                wrapper_task, *curr_promise_not_to_wait_on) ) {
+        ++curr_promise_not_to_wait_on;
     }
-	wrapperTask->waiting_frontier = currPromisenodeToWaitOn;
-    return *currPromisenodeToWaitOn == NULL;
+	wrapper_task->waiting_frontier = curr_promise_not_to_wait_on;
+    return *curr_promise_not_to_wait_on == NULL;
 }
 
 //
 // Task conversion Implementation
 //
 
-hclib_task_t * rt_ddt_to_async_task(hclib_triggered_task_t * ddt) {
-	hclib_task_t* t = &(((hclib_task_t *)ddt)[-1]);
+hclib_task_t * rt_triggered_task_to_async_task(hclib_triggered_task_t * task) {
+	hclib_task_t* t = &(((hclib_task_t *)task)[-1]);
 	return t;
 }
 
-hclib_triggered_task_t * rt_async_task_to_ddt(hclib_task_t * async_task) {
-	return &(((hclib_dependent_task_t*) async_task)->ddt);
+hclib_triggered_task_t * rt_async_task_to_triggered_task(
+        hclib_task_t * async_task) {
+	return &(((hclib_dependent_task_t*) async_task)->deps);
 }
 
 /**
  * Put datum in the promise.
- * Close down registration of DDTs on this promise and iterate over the
- * promise's frontier to try to advance DDTs that were waiting on this promise.
+ * Close down registration of triggered tasks on this promise and iterate over
+ * the promise's frontier to try to advance tasks that were waiting on this
+ * promise.
  */
 void hclib_promise_put(hclib_promise_t* promiseToBePut, void *datumToBePut) {
     HASSERT (datumToBePut != UNINITIALIZED_PROMISE_DATA_PTR &&
@@ -205,32 +207,32 @@ void hclib_promise_put(hclib_promise_t* promiseToBePut, void *datumToBePut) {
     HASSERT (promiseToBePut-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
             "violated single assignment property for promises");
 
-    volatile hclib_triggered_task_t* waitListOfPromise = promiseToBePut->wait_list_head;;
-    hclib_triggered_task_t* currDDT = NULL;
-    hclib_triggered_task_t* nextDDT = NULL;
+    volatile hclib_triggered_task_t* wait_list_of_promise = promiseToBePut->wait_list_head;;
+    hclib_triggered_task_t* curr_task = NULL;
+    hclib_triggered_task_t* next_task = NULL;
 
     promiseToBePut->datum = datumToBePut;
     /*seems like I can not avoid a CAS here*/
     while (!__sync_bool_compare_and_swap( &(promiseToBePut->wait_list_head),
-                waitListOfPromise, EMPTY_PROMISE_WAITLIST_PTR)) {
-        waitListOfPromise = promiseToBePut -> wait_list_head;
+                wait_list_of_promise, EMPTY_PROMISE_WAITLIST_PTR)) {
+        wait_list_of_promise = promiseToBePut -> wait_list_head;
     }
 
-    currDDT = (hclib_triggered_task_t*)waitListOfPromise;
+    curr_task = (hclib_triggered_task_t*)wait_list_of_promise;
 
     int iter_count = 0;
-    while (currDDT != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
+    while (curr_task != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
 
-        nextDDT = currDDT->next_waiting_on_same_promise;
-        if (iterate_ddt_frontier(currDDT)) {
-            /* printf("pushed:%p\n", currDDT); */
+        next_task = curr_task->next_waiting_on_same_promise;
+        if (register_on_all_promise_dependencies(curr_task)) {
             /*deque_push_default(currFrame);*/
-            // DDT eligible to scheduling
-            hclib_task_t *async_task = rt_ddt_to_async_task(currDDT);
+            // task eligible to scheduling
+            hclib_task_t *async_task = rt_triggered_task_to_async_task(
+                    curr_task);
             if (DEBUG_PROMISE) { printf("promise: async_task %p\n", async_task); }
             try_schedule_async(async_task, 0, 0, CURRENT_WS_INTERNAL);
         }
-        currDDT = nextDDT;
+        curr_task = next_task;
         iter_count++;
     }
 }
