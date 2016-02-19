@@ -417,7 +417,7 @@ inline int is_eligible_to_schedule(hclib_task_t * async_task) {
             async_task, async_task->promise_list);
 #endif
     if (async_task->promise_list != NULL) {
-    	hclib_ddt_t *ddt = (hclib_ddt_t *)rt_async_task_to_ddt(async_task);
+    	hclib_triggered_task_t *ddt = (hclib_triggered_task_t *)rt_async_task_to_ddt(async_task);
         return iterate_ddt_frontier(ddt);
     } else {
         return 1;
@@ -472,7 +472,7 @@ void spawn_handler(hclib_task_t *task, place_t *pl, hclib_promise_t **promise_li
     if (promise_list) {
         set_promise_list(task, promise_list);
         hclib_dependent_task_t *t = (hclib_dependent_task_t*) task;
-        hclib_ddt_init(&(t->ddt), promise_list);
+        hclib_triggered_task_init(&(t->ddt), promise_list);
     }
 
 #ifdef VERBOSE

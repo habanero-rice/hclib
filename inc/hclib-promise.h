@@ -33,10 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * hclib-promise.h
  *
  * NOTE: Terminology
- *   promise = data-driven future
- *   DDT = data-driven task (a task that waits on promise objects)
+ *   promise = an object that has data put on it, and by being put on can
+ *             trigger downstream dependent tasks to execute. Promises are
+ *             write-only.
+ *   future  = a read-only handle to a promise's result that can be used to
+ *             block on the satisfaction of that handle, or to express a task
+ *             dependency on that promise.
+ *   triggered task = a normal task whose execution is predicated on the
+ *             satisfaction of some promise. This dependency is expressed using
+ *             the future associated with that promise.
  *  
- *      Author: Vivek Kumar (vivekk@rice.edu)
+ *      Author: Vivek Kumar (vivekk@rice.edu), Max Grossman (jmg3@rice.edu)
  *      Ported from hclib
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
@@ -47,15 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 /**
- * @file User Interface to HCLIB's Data-Driven Futures
+ * @file User Interface to HCLIB's futures and promises.
  */
-
-/**
- * @defgroup promise Data-Driven Future
- * @brief Data-Driven Future API for data-flow like programming.
- *
- * @{
- **/
 
 /**
  * @brief Opaque type for promises.
@@ -70,26 +70,29 @@ typedef enum promise_kind {
 } promise_kind_t;
 
 /**
- * DDT data-structure to associate DDTs and promises.
- * This is exposed so that the runtime knows the size of the struct.
+ * An hclib_triggered_task_t associates dependent tasks and the promises that
+ * trigger their execution. This is exposed so that the runtime knows the size
+ * of the struct.
  */
-typedef struct hclib_ddt_st {
-    // NULL-terminated list of promises the DDT is registered on
-    struct hclib_promise_st ** waitingFrontier;
+typedef struct hclib_triggered_task_st {
+    // NULL-terminated list of promises this task is registered on
+    struct hclib_promise_st **waiting_frontier;
     /*
-     * This allows us to chain all DDTs waiting on a same promise. Whenever a DDT
-     * wants to register on a promise, and that promise is not ready, we chain the
-     * current DDT and the promise's headDDTWaitList and try to cas on the promise's
-     * headDDTWaitList, with the current DDT.
+     * This allows us to chain all dependent tasks waiting on a same promise.
+     * Whenever a triggered task wants to register on a promise, and that
+     * promise is not ready, we chain the current triggered task and the
+     * promise's wait_list_head and try to cas on the promise's wait_list_head,
+     * with the current triggered task.
      */
-    struct hclib_ddt_st * nextDDTWaitingOnSamePromise;
-} hclib_ddt_t;
+    struct hclib_triggered_task_st *next_waiting_on_same_promise;
+} hclib_triggered_task_t;
 
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
 	int kind;
-    volatile void * datum;
-    volatile hclib_ddt_t * headDDTWaitList;
+    volatile void *datum;
+    // List of tasks that are awaiting the satisfaction of this promise
+    volatile hclib_triggered_task_t *wait_list_head;
 } hclib_promise_t;
 
 /**
@@ -147,6 +150,7 @@ void *hclib_promise_wait(hclib_promise_t *promise);
 /*
  * Some extras
  */
-void hclib_ddt_init(hclib_ddt_t * ddt, hclib_promise_t ** promise_list);
+void hclib_triggered_task_init(hclib_triggered_task_t * ddt,
+        hclib_promise_t ** promise_list);
 
 #endif /* HCLIB_PROMISE_H_ */

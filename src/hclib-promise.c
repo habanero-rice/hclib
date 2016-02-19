@@ -46,19 +46,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define EMPTY_DATUM_ERROR_MSG "can not put sentinel value for \"uninitialized\" as a value into promise"
 
-// For 'headDDTWaitList' when a promise has been satisfied
+// For 'wait_list_head' when a promise has been satisfied
 #define PROMISE_SATISFIED NULL
 
 // For waiting frontier (last element of the list)
-#define UNINITIALIZED_PROMISE_WAITLIST_PTR ((hclib_ddt_t *) -1)
+#define UNINITIALIZED_PROMISE_WAITLIST_PTR ((hclib_triggered_task_t *) -1)
 #define EMPTY_PROMISE_WAITLIST_PTR NULL
 
 /**
  * Associate a DDT to a promise list.
  */
-void hclib_ddt_init(hclib_ddt_t * ddt, hclib_promise_t ** promise_list) {
-	ddt->waitingFrontier = promise_list;
-	ddt->nextDDTWaitingOnSamePromise = NULL;
+void hclib_triggered_task_init(hclib_triggered_task_t * ddt, hclib_promise_t ** promise_list) {
+	ddt->waiting_frontier = promise_list;
+	ddt->next_waiting_on_same_promise = NULL;
 }
 
 /**
@@ -67,7 +67,7 @@ void hclib_ddt_init(hclib_ddt_t * ddt, hclib_promise_t ** promise_list) {
 void hclib_promise_init(hclib_promise_t* promise) {
     promise->kind = PROMISE_KIND_SHARED;
     promise->datum = UNINITIALIZED_PROMISE_DATA_PTR;
-    promise->headDDTWaitList = UNINITIALIZED_PROMISE_WAITLIST_PTR;
+    promise->wait_list_head = UNINITIALIZED_PROMISE_WAITLIST_PTR;
 }
 
 /**
@@ -131,19 +131,19 @@ void hclib_promise_free(hclib_promise_t * promise) {
 	free(promise);
 }
 
-__inline__ int __registerIfPromisenotReady_AND(hclib_ddt_t* wrapperTask,
+__inline__ int __registerIfPromisenotReady_AND(hclib_triggered_task_t* wrapperTask,
         hclib_promise_t* promiseToCheck) {
     int success = 0;
-    hclib_ddt_t* waitListOfPromise = (hclib_ddt_t*)promiseToCheck->headDDTWaitList;
+    hclib_triggered_task_t* waitListOfPromise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
 
     if (waitListOfPromise != EMPTY_PROMISE_WAITLIST_PTR) {
 
         while (waitListOfPromise != EMPTY_PROMISE_WAITLIST_PTR && !success) {
             // waitListOfPromise can not be EMPTY_PROMISE_WAITLIST_PTR in here
-            wrapperTask->nextDDTWaitingOnSamePromise = waitListOfPromise;
+            wrapperTask->next_waiting_on_same_promise = waitListOfPromise;
 
             success = __sync_bool_compare_and_swap(
-                    &(promiseToCheck -> headDDTWaitList), waitListOfPromise,
+                    &(promiseToCheck -> wait_list_head), waitListOfPromise,
                     wrapperTask);
             // printf("task:%p registered to Promise:%p\n", pollingTask,promiseToCheck);
 
@@ -152,7 +152,7 @@ __inline__ int __registerIfPromisenotReady_AND(hclib_ddt_t* wrapperTask,
              * head or a put occurred.
              */
             if (!success) {
-                waitListOfPromise = (hclib_ddt_t*)promiseToCheck->headDDTWaitList;
+                waitListOfPromise = (hclib_triggered_task_t*)promiseToCheck->wait_list_head;
                 /*
                  * if waitListOfPromise was set to EMPTY_PROMISE_WAITLIST_PTR,
                  * the loop condition will handle that if another task was
@@ -169,14 +169,14 @@ __inline__ int __registerIfPromisenotReady_AND(hclib_ddt_t* wrapperTask,
  * Runtime interface to DDTs.
  * Returns '1' if all promise dependencies have been satisfied.
  */
-int iterate_ddt_frontier(hclib_ddt_t* wrapperTask) {
-	hclib_promise_t** currPromisenodeToWaitOn = wrapperTask->waitingFrontier;
+int iterate_ddt_frontier(hclib_triggered_task_t* wrapperTask) {
+	hclib_promise_t** currPromisenodeToWaitOn = wrapperTask->waiting_frontier;
 
     while (*currPromisenodeToWaitOn && !__registerIfPromisenotReady_AND(wrapperTask,
                 *currPromisenodeToWaitOn) ) {
         ++currPromisenodeToWaitOn;
     }
-	wrapperTask->waitingFrontier = currPromisenodeToWaitOn;
+	wrapperTask->waiting_frontier = currPromisenodeToWaitOn;
     return *currPromisenodeToWaitOn == NULL;
 }
 
@@ -184,12 +184,12 @@ int iterate_ddt_frontier(hclib_ddt_t* wrapperTask) {
 // Task conversion Implementation
 //
 
-hclib_task_t * rt_ddt_to_async_task(hclib_ddt_t * ddt) {
+hclib_task_t * rt_ddt_to_async_task(hclib_triggered_task_t * ddt) {
 	hclib_task_t* t = &(((hclib_task_t *)ddt)[-1]);
 	return t;
 }
 
-hclib_ddt_t * rt_async_task_to_ddt(hclib_task_t * async_task) {
+hclib_triggered_task_t * rt_async_task_to_ddt(hclib_task_t * async_task) {
 	return &(((hclib_dependent_task_t*) async_task)->ddt);
 }
 
@@ -205,24 +205,23 @@ void hclib_promise_put(hclib_promise_t* promiseToBePut, void *datumToBePut) {
     HASSERT (promiseToBePut-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
             "violated single assignment property for promises");
 
-    volatile hclib_ddt_t* waitListOfPromise = NULL;
-    hclib_ddt_t* currDDT = NULL;
-    hclib_ddt_t* nextDDT = NULL;
+    volatile hclib_triggered_task_t* waitListOfPromise = promiseToBePut->wait_list_head;;
+    hclib_triggered_task_t* currDDT = NULL;
+    hclib_triggered_task_t* nextDDT = NULL;
 
-    promiseToBePut-> datum = datumToBePut;
-    waitListOfPromise = promiseToBePut->headDDTWaitList;
+    promiseToBePut->datum = datumToBePut;
     /*seems like I can not avoid a CAS here*/
-    while (!__sync_bool_compare_and_swap( &(promiseToBePut -> headDDTWaitList),
+    while (!__sync_bool_compare_and_swap( &(promiseToBePut->wait_list_head),
                 waitListOfPromise, EMPTY_PROMISE_WAITLIST_PTR)) {
-        waitListOfPromise = promiseToBePut -> headDDTWaitList;
+        waitListOfPromise = promiseToBePut -> wait_list_head;
     }
 
-    currDDT = (hclib_ddt_t*)waitListOfPromise;
+    currDDT = (hclib_triggered_task_t*)waitListOfPromise;
 
     int iter_count = 0;
     while (currDDT != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
 
-        nextDDT = currDDT->nextDDTWaitingOnSamePromise;
+        nextDDT = currDDT->next_waiting_on_same_promise;
         if (iterate_ddt_frontier(currDDT)) {
             /* printf("pushed:%p\n", currDDT); */
             /*deque_push_default(currFrame);*/
