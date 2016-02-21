@@ -523,8 +523,12 @@ template <typename T>
 inline hclib::future_t *forasync1D_future(_loop_domain_t* loop, T lambda,
         int mode, place_t *place, hclib_future_t **future_list) {
 #ifdef VERBOSE
+    int place_device_id = -1;
+#ifdef HC_CUDA
+    if (place) place_device_id = place->cuda_id;
+#endif
     fprintf(stderr, "forasync1D_future: place=%p cuda_id=%d\n", place,
-            place ? place->cuda_id : -1);
+            place_device_id);
 #endif
     if (place == NULL || is_cpu_place(place)) {
         hclib_start_finish();

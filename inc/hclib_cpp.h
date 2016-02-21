@@ -6,6 +6,7 @@
 #include "hclib-async.h"
 #include "hclib-forasync.h"
 #include "hclib_promise.h"
+#include "hclib.h"
 
 namespace hclib {
 

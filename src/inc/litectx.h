@@ -2,16 +2,32 @@
 #define _LITECTX_H_
 
 #include "hclib_common.h"
-#include <stdlib.h>
 #include "fcontext.h"
 #include <string.h>
+#include <sys/mman.h>
+#include <malloc.h>
 
-#define LITECTX_ALLOC(bytes) malloc(bytes)
+// #define OVERFLOW_PROTECT
+
 #define LITECTX_FREE(ptr) free(ptr)
-// #define LITECTX_FREE(ptr)
-#define LITECTX_SIZE 0x10000 /* 64KiB */
+#define LITECTX_SIZE 0x10000 /* 64KB */
+
+#ifdef OVERFLOW_PROTECT
+// This must be a multiple of the page size on this machine?
+#define OVERFLOW_PADDING_SIZE 4096
+#endif
 
 typedef struct LiteCtxStruct {
+    /*
+     * If we're running in a mode where we want to make a best effort to detect
+     * stack overflows by threads running on lightweight contexts, we create a
+     * small buffer in front of the light context data structures and mprotect
+     * it to PROT_NONE. This adds some overhead to context creation, but can be
+     * useful for debugging odd behavior in HClib programs.
+     */
+#ifdef OVERFLOW_PROTECT
+    char overflow_buffer[OVERFLOW_PADDING_SIZE];
+#endif
     struct LiteCtxStruct *volatile prev;
     void *volatile arg;
     fcontext_t _fctx;
@@ -20,6 +36,37 @@ typedef struct LiteCtxStruct {
 
 #define LITECTX_STACK_SIZE ((LITECTX_SIZE) - sizeof(LiteCtx))
 
+#ifdef OVERFLOW_PROTECT
+
+extern int posix_memalign(void **memptr, size_t alignment, size_t size);
+
+static inline void *LITECTX_ALLOC(size_t nbytes) {
+    assert(nbytes == sizeof(LiteCtx) || nbytes == LITECTX_SIZE);
+
+    void *ptr;
+    const int err = posix_memalign(&ptr, (size_t)4096, nbytes);
+    if (err != 0) {
+        fprintf(stderr, "Error in posix_memalign\n");
+        exit(1);
+    }
+
+    const int protect_err = mprotect(ptr, OVERFLOW_PADDING_SIZE, PROT_NONE);
+    if (protect_err != 0) {
+        perror("mprotect");
+        exit(1);
+    }
+
+    printf("WARNING: Running in OVERFLOW_PROTECT mode to check for stack "
+            "overflows, this will negatively impact performance.\n");
+    printf("WARNING: Setting up PROT_NONE region at %p, length = %lu\n", ptr,
+            OVERFLOW_PADDING_SIZE);
+
+    return ptr;
+}
+#else
+#define LITECTX_ALLOC(nbytes) malloc(nbytes)
+#endif
+
 static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(LITECTX_SIZE);
     char *const stack_top = ctx->_stack + LITECTX_STACK_SIZE;
@@ -27,8 +74,11 @@ static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
     ctx->arg = NULL;
     ctx->_fctx = make_fcontext(stack_top, LITECTX_STACK_SIZE,
             (void (*)(void *))fn);
+
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_create: %p\n", ctx);
+    fprintf(stderr, "LiteCtx_create: %p, ctx size = %lu, stack size = %lu, "
+            "stack top = %p, stack bottom = %p\n", ctx, sizeof(LiteCtx),
+            LITECTX_STACK_SIZE, stack_top, ctx->_stack);
 #endif
     return ctx;
 }
@@ -36,6 +86,15 @@ static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
 static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
 #ifdef VERBOSE
     fprintf(stderr, "LiteCtx_destroy: ctx=%p\n", ctx);
+#endif
+
+#ifdef OVERFLOW_PROTECT
+    const int merr = mprotect(ctx, OVERFLOW_PADDING_SIZE,
+            PROT_READ | PROT_WRITE);
+    if (merr != 0) {
+        perror("mprotect");
+        exit(1);
+    }
 #endif
     LITECTX_FREE(ctx);
 }
@@ -46,7 +105,12 @@ static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
  */
 static __inline__ LiteCtx *LiteCtx_proxy_create(const char *lbl) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(sizeof(*ctx));
+#ifdef OVERFLOW_PROTECT
+    memset(((unsigned char *)ctx) + OVERFLOW_PADDING_SIZE, 0, sizeof(*ctx) - OVERFLOW_PADDING_SIZE);
+#else
     memset(ctx, 0, sizeof(*ctx));
+#endif
+
 #ifdef VERBOSE
     fprintf(stderr, "LiteCtx_proxy_create[%s]: %p\n", lbl, ctx);
 #endif
@@ -57,6 +121,16 @@ static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
 #ifdef VERBOSE
     fprintf(stderr, "LiteCtx_proxy_destroy: ctx=%p\n", ctx);
 #endif
+
+#ifdef OVERFLOW_PROTECT
+    const int merr = mprotect(ctx, OVERFLOW_PADDING_SIZE,
+            PROT_READ | PROT_WRITE);
+    if (merr != 0) {
+        perror("mprotect");
+        exit(1);
+    }
+#endif
+
     LITECTX_FREE(ctx);
 }
 

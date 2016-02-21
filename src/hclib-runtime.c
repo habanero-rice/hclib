@@ -63,7 +63,7 @@ pending_cuda_op *pending_cuda_ops_head = NULL;
 pending_cuda_op *pending_cuda_ops_tail = NULL;
 #endif
 
-hc_context 		*hclib_context;
+hc_context *hclib_context = NULL;
 
 static char *hclib_stats = NULL;
 static int bind_threads = -1;
@@ -202,6 +202,7 @@ void hclib_global_init() {
 
     // Sets up the deques and worker contexts for the parsed HPT
     hc_hpt_init(hclib_context);
+
 }
 
 void hclib_display_runtime() {
@@ -379,7 +380,8 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
                                      int gpu_task, hclib_worker_state *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p comm_task=%d "
-            "gpu_task=%d\n", async_task, comm_task, gpu_task);
+            "gpu_task=%d place=%p\n", async_task, comm_task, gpu_task,
+            async_task->place);
 #endif
 
     if (comm_task) {
@@ -402,12 +404,19 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
             deque_push_place(ws, async_task->place, async_task);
         } else {
             const int wid = get_current_worker();
+#ifdef VERBOSE
+            fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
+                    "hclib_context=%p\n", wid, hclib_context);
+#endif
             if (!deque_push(&(hclib_context->workers[wid]->current->deque),
                             async_task)) {
                 // TODO: deque is full, so execute in place
                 printf("WARNING: deque full, local execution\n");
                 execute_task(async_task);
             }
+#ifdef VERBOSE
+            fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
+#endif
         }
     }
 }
@@ -950,6 +959,9 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * the async must ESCAPE, otherwise this finish scope will deadlock on
      * itself).
      */
+#ifdef VERBOSE
+    printf("_help_finish_ctx: ctx = %p, ctx->arg = %p\n", ctx, ctx->arg);
+#endif
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
@@ -984,11 +996,11 @@ static inline void slave_worker_finishHelper_routine(finish_t *finish) {
     const int wid = ws->id;
 #endif
 
-    while(finish->counter > 0) {
+    while (finish->counter > 0) {
         // try to pop
         hclib_task_t *task = hpt_pop_task(ws);
         if (!task) {
-            while(finish->counter > 0) {
+            while (finish->counter > 0) {
                 // try to steal
                 task = hpt_steal_task(ws);
                 if (task) {
@@ -999,7 +1011,7 @@ static inline void slave_worker_finishHelper_routine(finish_t *finish) {
                 }
             }
         }
-        if(task) {
+        if (task) {
             execute_task(task);
         }
     }
@@ -1047,6 +1059,10 @@ void help_finish(finish_t *finish) {
         HASSERT(currentCtx);
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
+
+#ifdef VERBOSE
+    printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
+#endif
         ctx_swap(currentCtx, newCtx, __func__);
         /*
          * destroy the context that resumed this one since it's now defunct
