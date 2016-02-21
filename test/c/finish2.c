@@ -49,7 +49,7 @@ void async_fct(void *arg) {
 }
 
 void assert_done(int start, int end) {
-    while(start < end) {
+    while (start < end) {
         assert(ran[start] == start);
         start++;
     }

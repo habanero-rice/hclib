@@ -181,9 +181,9 @@ static __inline__ LiteCtx *LiteCtx_swap(LiteCtx *current, LiteCtx *next,
 #endif
     next->prev = current;
     LiteCtx *new_current = (LiteCtx *)jump_fcontext(&current->_fctx,
-            next->_fctx, next, false);
+            next->_fctx, next, true);
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap: swapped back in %p(%p)\n", new_current,
+    fprintf(stderr, "LiteCtx_swap: swapped in %p(%p)\n", new_current,
             new_current->_fctx.sp);
 #endif
     return new_current;
