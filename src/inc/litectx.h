@@ -10,11 +10,11 @@
 // #define OVERFLOW_PROTECT
 
 #define LITECTX_FREE(ptr) free(ptr)
-#define LITECTX_SIZE 0x10000 /* 64KB */
+#define LITECTX_SIZE 0x40000 /* 256KB */
 
 #ifdef OVERFLOW_PROTECT
 // This must be a multiple of the page size on this machine?
-#define OVERFLOW_PADDING_SIZE 4096
+#define OVERFLOW_PADDING_SIZE 4096LU
 #endif
 
 typedef struct LiteCtxStruct {
