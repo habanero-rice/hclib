@@ -63,6 +63,20 @@ AS_IF([test "x$with_distWS" != xno],
 AM_CONDITIONAL(DIST_WS, test "x$with_distWS" != xno)
 ### End Dist WS
 
+### SUPPORT HabaneroOpenSHMEM++
+AC_ARG_ENABLE(hcshmem,
+    AS_HELP_STRING([--enable-hcshmem],
+    [support HabaneroOpenSHMEM++ runtime (Default is false)]),
+    [with_hcshmem=$enableval],
+    [with_hcshmem=no;])
+
+AS_IF([test "x$with_hcshmem" != xno],
+      [ AC_MSG_NOTICE([Enabled HabaneroOpenSHMEM++ support]) ],
+      [ AC_MSG_NOTICE([Disabled HabaneroOpenSHMEM++ support]) ])
+
+AM_CONDITIONAL(HCSHMEM, test "x$with_hcshmem" != xno)
+### End hupcpp
+
 ### SUPPORT HabaneroUPC++
 AC_ARG_ENABLE(hupcpp,
     AS_HELP_STRING([--enable-hupcpp],
