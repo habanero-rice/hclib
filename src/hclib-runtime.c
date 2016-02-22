@@ -1274,11 +1274,15 @@ static void hclib_finalize() {
  * swap out the current context as a continuation without having to check if we
  * need to do extra work to persist it.
  */
+
 void hclib_launch(int *argc, char **argv, generic_framePtr fct_ptr,
                   void *arg) {
     hclib_init(argc, argv);
+#ifdef HCSHMEM      // TODO: replace with HCLIB_COMM_WORKER
+    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
+#else    
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
+#endif
     hclib_finalize();
 }
-
 
