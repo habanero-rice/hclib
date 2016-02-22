@@ -5,7 +5,6 @@
 #include "fcontext.h"
 #include <string.h>
 #include <sys/mman.h>
-#include <malloc.h>
 
 // #define OVERFLOW_PROTECT
 
