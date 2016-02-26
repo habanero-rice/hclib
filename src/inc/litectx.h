@@ -175,15 +175,16 @@ static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
 static __inline__ LiteCtx *LiteCtx_swap(LiteCtx *current, LiteCtx *next,
         const char *lbl) {
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap[%s]: current=%p(%p) next=%p(%p)\n",
-            lbl, current, current->_fctx.sp, next, next->_fctx.sp);
+    fprintf(stderr, "LiteCtx_swap[%s]: current=%p(%p) next=%p(%p) on pthread "
+            "%p\n", lbl, current, current->_fctx.sp, next, next->_fctx.sp,
+            (void *)pthread_self());
 #endif
     next->prev = current;
     LiteCtx *new_current = (LiteCtx *)jump_fcontext(&current->_fctx,
             next->_fctx, next, true);
 #ifdef VERBOSE
-    fprintf(stderr, "LiteCtx_swap: swapped in %p(%p)\n", new_current,
-            new_current->_fctx.sp);
+    fprintf(stderr, "LiteCtx_swap: swapped in %p(%p) on pthread %p\n",
+            new_current, new_current->_fctx.sp, (void *)pthread_self());
 #endif
     return new_current;
 }

@@ -765,20 +765,32 @@ void *gpu_worker_routine(void *finish_ptr) {
 #ifdef HC_COMM_WORKER
 void *communication_worker_routine(void *finish_ptr) {
     set_current_worker(COMMUNICATION_WORKER_ID);
-    worker_done_t *done_flag = hclib_context->done_flags + GPU_WORKER_ID;
+    worker_done_t *done_flag = hclib_context->done_flags + COMMUNICATION_WORKER_ID;
+
+#ifdef VERBOSE
+    fprintf(stderr, "communication worker spinning up\n");
+#endif
 
     semi_conc_deque_t *deque = comm_worker_out_deque;
     while (done_flag->flag) {
         // try to pop
         hclib_task_t *task = semi_conc_deque_non_locked_pop(deque);
         // Comm worker cannot steal
-        if(task) {
+        if (task) {
 #ifdef HC_COMM_WORKER_STATS
             increment_asyncComm_counter();
+#endif
+#ifdef VERBOSE
+            fprintf(stderr, "communication worker popped task %p\n", task);
 #endif
             execute_task(task);
         }
     }
+
+#ifdef VERBOSE
+    fprintf(stderr, "communication worker exiting\n");
+#endif
+
     return NULL;
 }
 #endif
