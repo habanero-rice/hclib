@@ -17,7 +17,7 @@
  *   2) _args: a pointer to user-provided arguments to that function.
  *   3) current_finish: a pointer to the finish scope this task is registered on
  *      (possibly NULL).
- *   4) is_asyncAnyType: a boolean that doesn't seem to be ever be set to 1...
+ *   4) is_async_any_type: a boolean that doesn't seem to be ever be set to 1...
  *   5) future_list: a null-terminated list of pointers to the futures that
  *      this task depends on to execute, and which it will wait on before
  *      running.
@@ -25,13 +25,13 @@
 typedef struct _hclib_task_t {
     void *args;
     struct finish_t *current_finish;
-    generic_framePtr _fp;
+    generic_frame_ptr _fp;
     /*
      * Boolean flag specific to HabaneroUPC++ only.
      * Used to differentiate between a normal hclib async
      * and locality flexible asyncAny
      */
-    int is_asyncAnyType;
+    int is_async_any_type;
     hclib_future_t **future_list; // Null terminated list
     place_t *place;
 } hclib_task_t;

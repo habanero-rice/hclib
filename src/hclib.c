@@ -3,7 +3,7 @@
 #include "hclib.h"
 #include "hclib-rt.h"
 #include "hclib-task.h"
-#include "hclib-asyncStruct.h"
+#include "hclib-async-struct.h"
 #include "hclib-finish.h"
 
 #ifdef __cplusplus
@@ -12,7 +12,7 @@ extern "C" {
 
 /*** START ASYNC IMPLEMENTATION ***/
 
-void hclib_async(generic_framePtr fp, void *arg, hclib_future_t **future_list,
+void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
                  struct _phased_t *phased_clause, place_t *place, int property) {
  //   HASSERT(property == 0);
     HASSERT(phased_clause == NULL);
@@ -20,7 +20,7 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_future_t **future_list,
     if (future_list) {
         hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
         task->async_task._fp = fp;
-        task->async_task.is_asyncAnyType = 0;
+        task->async_task.is_async_any_type = 0;
         task->async_task.future_list = NULL;
         task->async_task.args = arg;
         task->async_task.place = NULL;
@@ -33,7 +33,7 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_future_t **future_list,
     } else {
         hclib_task_t *task = malloc(sizeof(hclib_task_t));
         task->_fp = fp;
-        task->is_asyncAnyType = 0;
+        task->is_async_any_type = 0;
         task->future_list = NULL;
         task->args = arg;
         task->place = NULL;
@@ -50,7 +50,7 @@ void hclib_async(generic_framePtr fp, void *arg, hclib_future_t **future_list,
              * to execute on a comm_async and not on a regular async. Regular async
 	     * would allow this finish_spmd to be executed by computation worker.
 	     */
-	    else spawn_commTask(task);	
+	    else spawn_comm_task(task);	
         }
     }
 }

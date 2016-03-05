@@ -18,7 +18,7 @@ typedef place_type_t place_type_t;
 template <typename T>
 void launch(int *argc, char **argv, T lambda) {
     hclib_task_t *user_task = _allocate_async(lambda, false);
-    hclib_launch(argc, argv, (generic_framePtr)spawn, user_task);
+    hclib_launch(argc, argv, (generic_frame_ptr)spawn, user_task);
 }
 
 promise_t **promise_create_n(size_t nb_promises, int null_terminated);
@@ -91,7 +91,7 @@ int total_pending_local_asyncs();
 volatile int *start_finish_special();
 void end_finish(); // This is an ugly API, but must be exposed for HUPC
 void display_runtime();
-void get_avg_time(double* tWork, double *tOvh, double* tSearch);
+void get_avg_time(double* t_work, double *t_ovh, double* t_search);
 void gather_comm_worker_stats(int* push_outd, int* push_ind,
         int* steal_ind);
 #endif

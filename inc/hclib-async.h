@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+/* Copyright (c) 2016, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -26,18 +26,17 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
- */
+*/
 
 /*
  * hclib-async.h
  *  
- *      Author: Vivek Kumar (vivekk@rice.edu)
+ *      Authors: Vivek Kumar (vivekk@rice.edu), Max Grossman (jmg3@rice.edu)
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 #include <functional>
 
-#include "hclib-asyncStruct.h"
+#include "hclib-async-struct.h"
 #include "hcupc-support.h"
 #include "hclib_promise.h"
 
@@ -107,7 +106,7 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
         new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
     t->_fp = lambda_wrapper<Function, T1 *>;
     t->args = args;
-    t->is_asyncAnyType = 0;
+    t->is_async_any_type = 0;
     t->future_list = NULL;
     t->place = NULL;
 }
@@ -138,13 +137,13 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
 #endif
 
 /*
- * Yes, the name "asyncAtHpt" sounds weird
+ * Yes, the name "async_at_hpt" sounds weird
  * but using this name to differentiate with the inter-node
  * "asyncAt" in HabaneroUPC++. Feel free to give a better
- * name to asyncAtHpt.
+ * name to async_at_hpt.
  */
 template <typename T>
-inline void asyncAtHpt(place_t* pl, T lambda) {
+inline void async_at_hpt(place_t* pl, T lambda) {
     MARK_OVH(current_ws()->id);
     hclib_task_t* task = _allocate_async<T>(lambda, false);
     spawn_at_hpt(pl, task);
@@ -222,7 +221,7 @@ inline void async_await_at(T lambda, place_t *pl, future_list_t... futures) {
 template <typename T>
 inline void async_comm(T lambda) {
 	hclib_task_t* task = _allocate_async<T>(lambda, false);
-	spawn_commTask(task);
+	spawn_comm_task(task);
 }
 
 template <typename T>

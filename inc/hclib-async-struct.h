@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+/* Copyright (c) 2016, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -26,32 +26,49 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
- */
 
 /*
- * hcshmem-support.h
+ * hclib-async-struct.h
  *  
- *      Author: Vivek Kumar (vivekk@rice.edu)
+ *      Authors: Vivek Kumar (vivekk@rice.edu), Max Grossman (jmg3@rice.edu)
  */
 
-#include "hclib-async-struct.h"
-#include "hclib.h"
+#ifndef HCLIB_ASYNCSTRUCT_H_
+#define HCLIB_ASYNCSTRUCT_H_
 
-#ifndef HCSHMEM_SUPPORT_H_
-#define HCSHMEM_SUPPORT_H_
+#include <string.h>
 
-#ifdef HCSHEMM
+#include "hclib-place.h"
+#include "hclib-task.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-void hclib_gather_comm_worker_stats(int* push_outd, int* push_ind, int* steal_ind);
-int totalPendingLocalAsyncs();
-void hclib_display_runtime();
-volatile int* hclib_start_finish_special();
+
+inline hclib_future_t ** get_future_list(hclib_task_t *t) {
+    return t->future_list;
+}
+
+inline void mark_as_async_any_task(hclib_task_t *t) {
+    t->is_async_any_type = 1;
+}
+
+inline int is_async_any_task(hclib_task_t *t) {
+    return t->is_async_any_type;
+}
+
+void spawn(hclib_task_t * task);
+void spawn_at_hpt(place_t* pl, hclib_task_t * task);
+void spawn_await_at(hclib_task_t * task, hclib_future_t** future_list,
+        place_t *pl);
+void spawn_await(hclib_task_t * task, hclib_future_t** future_list);
+void spawn_comm_task(hclib_task_t * task);
+void spawn_gpu_task(hclib_task_t *task);
+
 #ifdef __cplusplus
 }
 #endif
-#endif
 
-#endif //HCSHMEM_SUPPORT_H_
+#endif /* HCLIB_ASYNCSTRUCT_H_ */

@@ -367,7 +367,7 @@ static inline void execute_task(hclib_task_t *task) {
      */
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 
-    // task->_fp is of type 'void (*generic_framePtr)(void*)'
+    // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
 #ifdef VERBOSE
     fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
 #endif
@@ -1287,7 +1287,7 @@ static void hclib_finalize() {
  * need to do extra work to persist it.
  */
 
-void hclib_launch(int *argc, char **argv, generic_framePtr fct_ptr,
+void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
                   void *arg) {
     hclib_init(argc, argv);
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER

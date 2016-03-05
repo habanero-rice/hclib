@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Author: Vivek Kumar (vivekk@rice.edu)
  */
 
-#include "hclib-asyncStruct.h"
+#include "hclib-async-struct.h"
 #include "hclib.h"
 
 #ifndef HCUPC_SUPPORT_H_
@@ -51,9 +51,9 @@ typedef struct asyncAnyInfo {
 #define MAX_REMOTE_ASYNCANY_ARG_SIZE 384
 
 struct remoteAsyncAny_task  {
-	generic_framePtr _fp;
+	generic_frame_ptr _fp;
 	char _args[MAX_REMOTE_ASYNCANY_ARG_SIZE];
-	inline void init_remoteAsyncAny_task(generic_framePtr fp, size_t arg_sz, void *remoteAsyncAny_args) {
+	inline void init_remoteAsyncAny_task(generic_frame_ptr fp, size_t arg_sz, void *remoteAsyncAny_args) {
 		HASSERT(arg_sz <= MAX_REMOTE_ASYNCANY_ARG_SIZE);
 		this->_fp = fp;
 		if (arg_sz > 0) {

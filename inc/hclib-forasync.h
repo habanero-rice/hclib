@@ -443,7 +443,7 @@ inline void forasync1D_cuda_internal(_loop_domain_t *loop,
     gpu_task_t *task = (gpu_task_t *)malloc(sizeof(gpu_task_t));
     HASSERT(task);
     task->t._fp = NULL;
-    task->t.is_asyncAnyType = 0;
+    task->t.is_async_any_type = 0;
     task->t.future_list = NULL;
     task->t.args = NULL;
 
