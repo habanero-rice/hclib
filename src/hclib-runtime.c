@@ -157,10 +157,10 @@ void hclib_global_init() {
                                   &hclib_context->workers, &hclib_context->nworkers);
 
 #ifdef HC_COMM_WORKER
-    assert(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
+    HASSERT(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
 #endif
 #ifdef HC_CUDA
-    assert(hclib_context->nworkers > GPU_WORKER_ID);
+    HASSERT(hclib_context->nworkers > GPU_WORKER_ID);
 #endif
 
     for (int i = 0; i < hclib_context->nworkers; i++) {
@@ -172,6 +172,7 @@ void hclib_global_init() {
     }
     hclib_context->done_flags = (worker_done_t *)malloc(
                                     hclib_context->nworkers * sizeof(worker_done_t));
+    HASSERT(hclib_context->done_flags);
 #ifdef HC_CUDA
     hclib_context->pinned_host_allocs = NULL;
 #endif
@@ -235,13 +236,8 @@ void hclib_entrypoint() {
      */
     hclib_global_init();
 
-#ifdef HC_COMM_WORKER
-    const int have_comm_worker = 1;
-#else
-    const int have_comm_worker = 0;
-#endif
-    // init timer stats
-    hclib_initStats(hclib_context->nworkers, have_comm_worker);
+    // init timer stats, TODO make this account for resource management threads
+    hclib_init_stats(0, hclib_context->nworkers);
 
     /* Create key to store per thread worker_state */
     if (pthread_key_create(&ws_key, NULL) != 0) {
@@ -351,9 +347,7 @@ static inline void check_out_finish(finish_t *finish) {
     if (finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
-#if HCLIB_LITECTX_STRATEGY
             hclib_promise_put(finish->finish_deps[0]->owner, finish);
-#endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
 }
@@ -815,7 +809,6 @@ void find_and_run_task(hclib_worker_state *ws) {
     }
 }
 
-#if HCLIB_LITECTX_STRATEGY
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
     hclib_end_finish();
     // Signal shutdown to all worker threads
@@ -898,27 +891,10 @@ static void *worker_routine(void *args) {
     return NULL;
 }
 
-#else /* default (broken) strategy */
-
-static void *worker_routine(void *args) {
-    const int wid = *((int *) args);
-    set_current_worker(wid);
-
-    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-
-    while (hclib_context->done_flags[wid].flag) {
-        find_and_run_task(ws);
-    }
-
-    return NULL;
-}
-#endif /* HCLIB_LITECTX_STRATEGY */
-
 void teardown() {
 
 }
 
-#if HCLIB_LITECTX_STRATEGY
 static void _finish_ctx_resume(void *arg) {
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
@@ -1000,92 +976,35 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     core_work_loop(); // this function never returns
     HASSERT(0); // we should never return here
 }
-#else /* default (broken) strategy */
-
-static inline void slave_worker_finishHelper_routine(finish_t *finish) {
-    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-#ifdef HC_COMM_WORKER_STATS
-    const int wid = ws->id;
-#endif
-
-    while (finish->counter > 0) {
-        // try to pop
-        hclib_task_t *task = hpt_pop_task(ws);
-        if (!task) {
-            while (finish->counter > 0) {
-                // try to steal
-                task = hpt_steal_task(ws);
-                if (task) {
-#ifdef HC_COMM_WORKER_STATS
-                    increment_steals_counter(wid);
-#endif
-                    break;
-                }
-            }
-        }
-        if (task) {
-            execute_task(task);
-        }
-    }
-}
-
-static void _help_finish(finish_t *finish) {
-#ifdef HC_COMM_WORKER
-    if (CURRENT_WS_INTERNAL->id == COMMUNICATION_WORKER_ID) {
-        communication_worker_routine(finish);
-        return;
-    }
-#endif
-#ifdef HC_CUDA
-    if (CURRENT_WS_INTERNAL->id == GPU_WORKER_ID) {
-        gpu_worker_routine(finish);
-        return;
-    }
-#endif
-    slave_worker_finishHelper_routine(finish);
-}
-#endif /* HCLIB_LITECTX_STRATEGY */
 
 void help_finish(finish_t *finish) {
-    // This is called to make progress when an end_finish has been
-    // reached but it hasn't completed yet.
-    // Note that's also where the master worker ends up entering its work loop
+    /*
+     * Creating a new context to switch to is necessary here because the
+     * current context needs to become the continuation for this finish
+     * (which will be switched back to by _finish_ctx_resume, for which an
+     * async is created inside _help_finish_ctx).
+     */
 
-#if HCLIB_THREAD_BLOCKING_STRATEGY
-#error Thread-blocking strategy is not yet implemented
-#elif HCLIB_LITECTX_STRATEGY
-    {
-        /*
-         * Creating a new context to switch to is necessary here because the
-         * current context needs to become the continuation for this finish
-         * (which will be switched back to by _finish_ctx_resume, for which an
-         * async is created inside _help_finish_ctx).
-         */
-
-        // create finish event
-        hclib_promise_t *finish_promise = hclib_promise_create();
-        hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
-        finish->finish_deps = finish_deps;
-        // TODO - should only switch contexts after actually finding work
-        LiteCtx *currentCtx = get_curr_lite_ctx();
-        HASSERT(currentCtx);
-        LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
-        newCtx->arg = finish;
+    // create finish event
+    hclib_promise_t *finish_promise = hclib_promise_create();
+    hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
+    finish->finish_deps = finish_deps;
+    // TODO - should only switch contexts after actually finding work
+    LiteCtx *currentCtx = get_curr_lite_ctx();
+    HASSERT(currentCtx);
+    LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
+    newCtx->arg = finish;
 
 #ifdef VERBOSE
-    printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
+printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
 #endif
-        ctx_swap(currentCtx, newCtx, __func__);
-        /*
-         * destroy the context that resumed this one since it's now defunct
-         * (there are no other handles to it, and it will never be resumed)
-         */
-        LiteCtx_destroy(currentCtx->prev);
-        hclib_promise_free(finish_promise);
-    }
-#else /* default (broken) strategy */
-    _help_finish(finish);
-#endif /* HCLIB_???_STRATEGY */
+    ctx_swap(currentCtx, newCtx, __func__);
+    /*
+     * destroy the context that resumed this one since it's now defunct
+     * (there are no other handles to it, and it will never be resumed)
+     */
+    LiteCtx_destroy(currentCtx->prev);
+    hclib_promise_free(finish_promise);
 
     HASSERT(finish->counter == 0);
 }
@@ -1245,7 +1164,6 @@ static void hclib_init(int *argc, char **argv) {
 
 
 static void hclib_finalize() {
-#if HCLIB_LITECTX_STRATEGY
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
@@ -1253,10 +1171,6 @@ static void hclib_finalize() {
     // free resources
     LiteCtx_destroy(finalize_ctx->prev);
     LiteCtx_proxy_destroy(finalize_ctx);
-#else /* default (broken) strategy */
-    hclib_end_finish();
-    hclib_signal_join(hclib_context->nworkers);
-#endif /* HCLIB_LITECTX_STRATEGY */
 
     if (hclib_stats) {
         showStatsFooter();

@@ -23,8 +23,9 @@ typedef struct stats_t {
 } stats_t;
 
 static stats_t *status;
-static int numWorkers = -1;
-static int have_comm_worker = 0;
+static int start_worker = -1; // inclusive
+static int end_worker = -1; // exclusive
+
 #endif
 double avgtime_nstates[HCLIB_NSTATES];
 
@@ -34,12 +35,13 @@ inline double wctime() {
     return (tv.tv_sec + 1E-6 * tv.tv_usec);
 }
 
-void hclib_initStats  (int nw, int comm_w) {
+void hclib_init_stats(int set_start_worker, int set_end_worker) {
 #ifdef _TIMER_ON_
-    numWorkers = nw;
-    have_comm_worker = comm_w;
-    status = new stats_t[numWorkers];
-    for(int i=0; i<numWorkers; i++) {
+    start_worker = set_start_worker;
+    end_worker = set_end_worker;
+
+    status = new stats_t[end_worker - start_worker];
+    for(int i = 0; i < end_worker - start_worker; i++) {
         status[i].timeLast = wctime();
         status[i].curState = HCLIB_IDLE;
         for (int j = 0; j < HCLIB_NSTATES; j++) {
@@ -51,21 +53,23 @@ void hclib_initStats  (int nw, int comm_w) {
 }
 
 /* Change states */
-void hclib_setState(int wid, int state) {
+void hclib_set_state(int wid, int state) {
 #ifdef _TIMER_ON_
+    HASSERT(wid >= start_worker && wid < end_worker);
+    HASSERT(state >= 0 && state < HCLIB_NSTATES);
+    const int worker_offset = wid - start_worker;
+
     double time;
-    if (state < 0 || state >= HCLIB_NSTATES) {
-        printf("ERROR: hclib_setState: thread state out of range");
-        exit(-1);
-    }
-    if (state == status[wid].curState)
+    if (state == status[worker_offset].curState) {
         return;
+    }
 
     time = wctime();
-    status[wid].time[status[wid].curState] +=  time - status[wid].timeLast;
-    status[wid].entries[state]++;
-    status[wid].timeLast = time;
-    status[wid].curState = state;
+    status[worker_offset].time[status[worker_offset].curState] +=
+        time - status[worker_offset].timeLast;
+    status[worker_offset].entries[state]++;
+    status[worker_offset].timeLast = time;
+    status[worker_offset].curState = state;
 #endif
 }
 
@@ -73,7 +77,7 @@ void find_avgtime_nstates() {
 #ifdef _TIMER_ON_
     int start = have_comm_worker ? 1 : 0;
     int total = have_comm_worker ? (numWorkers - 1) : numWorkers;
-    for(int j=0; j<HCLIB_NSTATES; j++) {
+    for(int j = 0; j < HCLIB_NSTATES; j++) {
         avgtime_nstates[j] = 0;
         for(int i = start; i<numWorkers; i++) {
             avgtime_nstates[j] += status[i].time[j];
@@ -83,16 +87,16 @@ void find_avgtime_nstates() {
 #endif
 }
 
-void hclib_get_avg_time(double *tWork, double *tOvh, double *tSearch) {
+void hclib_get_avg_time(double *t_work, double *t_ovh, double *t_search) {
 #ifdef _TIMER_ON_
     find_avgtime_nstates();
-    *tWork = avgtime_nstates[HCLIB_WORK];
-    *tSearch = avgtime_nstates[HCLIB_SEARCH];
-    *tOvh = avgtime_nstates[HCLIB_OVH];
+    *t_work = avgtime_nstates[HCLIB_WORK];
+    *t_search = avgtime_nstates[HCLIB_SEARCH];
+    *t_ovh = avgtime_nstates[HCLIB_OVH];
 #else
-    *tWork = 0;
-    *tOvh = 0;
-    *tSearch = 0;
+    *t_work = 0;
+    *t_ovh = 0;
+    *t_search = 0;
 #endif
 }
 

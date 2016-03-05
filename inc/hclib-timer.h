@@ -28,12 +28,12 @@
 #define HCLIB_IDLE    3
 #define HCLIB_NSTATES 4
 
-void hclib_initStats  (int numWorkers, int is_comm_worker);
-void hclib_setState   (int wid, int state);
-void hclib_get_avg_time (double* tWork, double *tOvh, double* tSearch);
+void hclib_init_stats(int start_worker, int end_worker);
+void hclib_set_state(int wid, int state);
+void hclib_get_avg_time (double* t_work, double *t_ovh, double* t_search);
 
-#define MARK_BUSY(w)	hclib_setState(w, HCLIB_WORK);
-#define MARK_OVH(w)		hclib_setState(w, HCLIB_OVH);
-#define MARK_SEARCH(w)	hclib_setState(w, HCLIB_SEARCH);
+#define MARK_BUSY(w)	hclib_set_state(w, HCLIB_WORK);
+#define MARK_OVH(w)		hclib_set_state(w, HCLIB_OVH);
+#define MARK_SEARCH(w)	hclib_set_state(w, HCLIB_SEARCH);
 
 #endif /* HCLIB_TIMER_H_ */
