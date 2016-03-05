@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
                 for (int i = 0; i < numPlaces; i++) {
 
                 place_t *currentPlace = cachePlaces[i];
-                if (currentPlace->nChildren != 0) {
+                if (currentPlace->nchildren != 0) {
                 cout << "CachePlace with children found, skipping" << endl;
                 continue;
                 }

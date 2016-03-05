@@ -86,10 +86,11 @@ void log_(const char *file, int line, hclib_worker_state *ws,
     va_end(l);
 }
 
+#ifdef HC_COMM_WORKER_STATS
 // Statistics
 int total_push_outd;
-int *total_push_ind;
 int *total_steals;
+int *total_push_ind;
 
 inline void increment_async_counter(int wid) {
     total_push_ind[wid]++;
@@ -99,9 +100,10 @@ inline void increment_steals_counter(int wid) {
     total_steals[wid]++;
 }
 
-inline void increment_asyncComm_counter() {
+inline void increment_async_comm_counter() {
     total_push_outd++;
 }
+#endif
 
 void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hclib_context->workers[wid]) != 0) {
@@ -162,6 +164,9 @@ void hclib_global_init() {
 #ifdef HC_CUDA
     HASSERT(hclib_context->nworkers > GPU_WORKER_ID);
 #endif
+    hclib_context->done_flags = (worker_done_t *)malloc(
+                                    hclib_context->nworkers * sizeof(worker_done_t));
+    HASSERT(hclib_context->done_flags);
 
     for (int i = 0; i < hclib_context->nworkers; i++) {
         hclib_worker_state *ws = hclib_context->workers[i];
@@ -169,14 +174,13 @@ void hclib_global_init() {
         ws->current_finish = NULL;
         ws->curr_ctx = NULL;
         ws->root_ctx = NULL;
+        hclib_context->done_flags[i].flag = 1;
     }
-    hclib_context->done_flags = (worker_done_t *)malloc(
-                                    hclib_context->nworkers * sizeof(worker_done_t));
-    HASSERT(hclib_context->done_flags);
 #ifdef HC_CUDA
     hclib_context->pinned_host_allocs = NULL;
 #endif
 
+#ifdef HC_COMM_WORKER_STATS
     total_push_outd = 0;
     total_steals = (int *)malloc(hclib_context->nworkers * sizeof(int));
     HASSERT(total_steals);
@@ -185,8 +189,8 @@ void hclib_global_init() {
     for (int i = 0; i < hclib_context->nworkers; i++) {
         total_steals[i] = 0;
         total_push_ind[i] = 0;
-        hclib_context->done_flags[i].flag = 1;
     }
+#endif
 
 #ifdef HC_COMM_WORKER
     comm_worker_out_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
@@ -203,7 +207,6 @@ void hclib_global_init() {
 
     // Sets up the deques and worker contexts for the parsed HPT
     hc_hpt_init(hclib_context);
-
 }
 
 void hclib_display_runtime() {
@@ -256,13 +259,13 @@ void hclib_entrypoint() {
                hclib_context->nworkers);
     }
 
-    // Start workers
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) != 0) {
         fprintf(stderr, "Error in pthread_attr_init\n");
         exit(3);
     }
 
+    // Start workers
     for (int i = 1; i < hclib_context->nworkers; i++) {
 #ifdef HC_COMM_WORKER
         /*
@@ -772,7 +775,7 @@ void *communication_worker_routine(void *finish_ptr) {
         // Comm worker cannot steal
         if (task) {
 #ifdef HC_COMM_WORKER_STATS
-            increment_asyncComm_counter();
+            increment_async_comm_counter();
 #endif
 #ifdef VERBOSE
             fprintf(stderr, "communication worker popped task %p\n", task);
@@ -1080,17 +1083,19 @@ int hclib_num_workers() {
     return hclib_context->nworkers;
 }
 
+#ifdef HC_COMM_WORKER_STATS
 void hclib_gather_comm_worker_stats(int *push_outd, int *push_ind,
                                     int *steal_ind) {
-    int asyncPush=0, steals=0, asyncCommPush=total_push_outd;
+    int asyncPush=0, steals=0, async_comm_push=total_push_outd;
     for(int i=0; i<hclib_num_workers(); i++) {
         asyncPush += total_push_ind[i];
         steals += total_steals[i];
     }
-    *push_outd = asyncCommPush;
+    *push_outd = async_comm_push;
     *push_ind = asyncPush;
     *steal_ind = steals;
 }
+#endif
 
 double mysecond() {
     struct timeval tv;
@@ -1099,7 +1104,7 @@ double mysecond() {
 }
 
 void runtime_statistics(double duration) {
-    int asyncPush=0, steals=0, asyncCommPush=total_push_outd;
+    int asyncPush=0, steals=0, async_comm_push=total_push_outd;
     for(int i=0; i<hclib_num_workers(); i++) {
         asyncPush += total_push_ind[i];
         steals += total_steals[i];
@@ -1112,7 +1117,7 @@ void runtime_statistics(double duration) {
                             duration;
     printf("============================ MMTk Statistics Totals ============================\n");
     printf("time.mu\ttotalPushOutDeq\ttotalPushInDeq\ttotalStealsInDeq\ttWork\ttOverhead\ttSearch\n");
-    printf("%.3f\t%d\t%d\t%d\t%.4f\t%.4f\t%.5f\n",total_duration,asyncCommPush,
+    printf("%.3f\t%d\t%d\t%d\t%.4f\t%.4f\t%.5f\n",total_duration,async_comm_push,
            asyncPush,steals,tWork,tOvh,tSearch);
     printf("Total time: %.3f ms\n",total_duration);
     printf("------------------------------ End MMTk Statistics -----------------------------\n");

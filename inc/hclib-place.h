@@ -24,19 +24,16 @@ typedef enum place_type {
 } place_type_t;
 
 typedef struct place_t {
-	struct place_t * parent;
-	struct place_t * child; /* the first child */
-	struct place_t * nnext; /* the sibling link of the HPT */
-	struct place_t ** children;
+	struct place_t *parent;
+	struct place_t *child; /* the first child */
+	struct place_t *nnext; /* the sibling link of the HPT */
+	struct place_t **children;
 	struct hclib_worker_state * workers; /* directly attached cpu workers */
 	struct hc_deque_t * deques;
 	int ndeques; /* only for deques */
 	int id;
-	int did; /* the mapping device id */
-	int unitSize;
-	int psize;
 	int level; /* Level in the HPT tree. Logical root is level 0. */
-	int nChildren;
+	int nchildren;
 	short type;
 #ifdef HC_CUDA
     int cuda_id;

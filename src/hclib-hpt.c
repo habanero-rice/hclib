@@ -255,12 +255,12 @@ place_t *hclib_get_parent_place() {
 
 place_t **hclib_get_children_places(int *numChildren) {
     place_t *pl = hclib_get_current_place();
-    *numChildren = pl->nChildren;
+    *numChildren = pl->nchildren;
     return pl->children;
 }
 
 place_t **hclib_get_children_of_place(place_t *pl, int *numChildren) {
-    *numChildren = pl->nChildren;
+    *numChildren = pl->nchildren;
     return pl->children;
 }
 
@@ -666,13 +666,10 @@ void hc_hpt_cleanup(hc_context *context) {
  * Interfaces to read the xml files and parse correctly to generate the place data-structures
  */
 hclib_worker_state *parse_worker_element(xmlNode *wkNode) {
-    hclib_worker_state *wk = (hclib_worker_state *) malloc(sizeof(
-                                 hclib_worker_state));
-    memset(wk, 0x00, sizeof(hclib_worker_state));
+    hclib_worker_state *wk = (hclib_worker_state *)calloc(1,
+            sizeof(hclib_worker_state));
 
     xmlChar *num = xmlGetProp(wkNode, xmlCharStrdup("num"));
-    xmlChar *didStr = xmlGetProp(wkNode, xmlCharStrdup("did"));
-    xmlChar *type = xmlGetProp(wkNode, xmlCharStrdup("type"));
 
     /*
      * Kind of hacky, the id field is re-used to store the number of workers at
@@ -682,33 +679,30 @@ hclib_worker_state *parse_worker_element(xmlNode *wkNode) {
     if (num != NULL) wk->id = atoi((char *)num);
     else wk->id = 1;
 
-    if (didStr != NULL) wk->did = atoi((char *)didStr);
-    else wk->did = 0;
-    wk->next_worker = NULL;
-    /* TODO: worker/deque type */
-
     xmlFree(num);
-    xmlFree(didStr);
-    xmlFree(type);
+
     return wk;
 }
 
+/*
+ * Starting at a given XML place node, this function constructs a new place_t
+ * node to store in the HPT being created. This includes storing its count in
+ * the id field and its type.
+ *
+ * We then iterate over all children, which can either be a place node or a
+ * worker node, and add them as children of this place node. Children are added
+ * by hanging them off of either pl->child or pl->workers. Both of these are
+ * singly linked lists, one of exclusively places and the other of exclusively
+ * workers.
+ */
 place_t *parse_place_element(xmlNode *plNode) {
-    int num = 1;
-    int did = 0;
     xmlChar *numStr = xmlGetProp(plNode, xmlCharStrdup("num"));
-    xmlChar *didStr = xmlGetProp(plNode, xmlCharStrdup("did"));
     xmlChar *typeStr = xmlGetProp(plNode, xmlCharStrdup("type"));
-    xmlChar *sizeStr = xmlGetProp(plNode, xmlCharStrdup("size"));
-    xmlChar *unitSize = xmlGetProp(plNode, xmlCharStrdup("unitSize"));
-    xmlChar *info = xmlGetProp(plNode, xmlCharStrdup("info"));
 
+    // The number of duplicates of this node to create
+    int num = 1;
     if (numStr != NULL) {
         num = atoi((char *)numStr);
-    }
-
-    if (didStr != NULL) {
-        did = atoi((char *)didStr);
     }
 
     short type = CACHE_PLACE;
@@ -736,21 +730,12 @@ place_t *parse_place_element(xmlNode *plNode) {
     // Not supported yet
     HASSERT(type != AMGPU_PLACE && type != FPGA_PLACE);
 
-    xmlFree(numStr);
-    xmlFree(didStr);
-    xmlFree(typeStr);
-    xmlFree(sizeStr);
-    xmlFree(unitSize);
-    xmlFree(info);
-
-    place_t *pl = (place_t *) malloc(sizeof(place_t));
-    HASSERT(pl);
-    memset(pl, 0x00, sizeof(place_t));
+    place_t *pl = (place_t *)calloc(1, sizeof(place_t));
     pl->id = num;
-    pl->did = did;
     pl->type = type;
-    pl->psize = (sizeStr == NULL) ? 0 : atoi((char *)sizeStr);
-    pl->unitSize = (unitSize == NULL) ? 0 : atoi((char *)unitSize);
+
+    xmlFree(numStr);
+    xmlFree(typeStr);
 
     xmlNode *child = plNode->xmlChildrenNode;
 
@@ -783,7 +768,9 @@ place_t *parse_place_element(xmlNode *plNode) {
         child = child->next;
     }
 
+#ifdef HC_ASSERTION_CHECK
     if (type == NVGPU_PLACE) HASSERT(nchildren == 0);
+#endif
 
     return pl;
 }
@@ -810,20 +797,13 @@ place_t *parseHPTDoc(xmlNode *hptNode) {
     xmlNode *child = hptNode->xmlChildrenNode;
 
     place_t *hpt = NULL;
-    place_t *pllast = NULL;
 
     // Iterative over top-level place nodes in the XML file
     while (child != NULL) {
         if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
-            place_t *tmp = parse_place_element(child);
-            tmp->parent = NULL;
-            if (hpt == NULL) {
-                hpt = tmp;
-                pllast = tmp;
-            } else {
-                pllast->nnext = tmp;
-                pllast = tmp;
-            }
+            // Assert that there is only a single top-level place node in the HPT
+            HASSERT(hpt == NULL);
+            hpt = parse_place_element(child);
         }
         child = child->next;
     }
@@ -879,7 +859,7 @@ void find_leaf(place_t *pl, place_node_t **pl_list_cur,
     }
 }
 
-place_t *clonePlace(place_t *pl, int *num_pl, int *num_wk);
+place_t *clone_place(place_t *pl, int *num_pl, int *num_wk);
 void setup_worker_hpt_path(hclib_worker_state *worker, place_t *pl);
 
 /*
@@ -945,8 +925,6 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
             HASSERT(tmp);
             memset(tmp, 0x00, sizeof(hclib_worker_state));
             tmp->pl = ws->pl;
-            tmp->did = ws->did + num - i -
-                       1; /* please note the way we add to the list, and the way we allocate did */
             tmp->next_worker = ws->next_worker;
             ws->next_worker = tmp;
         }
@@ -991,13 +969,11 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
         pl->id = -1; /* clear this out, we only reset this after processing the whole HPT */
 
         for (i = 0; i < num - 1; i++) {
-            place_t *clpl = clonePlace(pl, num_pl, nproc);
+            place_t *clpl = clone_place(pl, num_pl, nproc);
             // TODO This will add too many deques
             if (pl->parent != NULL) pl->parent->ndeques += pl->ndeques;
 
             /* now they are sibling */
-            clpl->did = pl->did + num - i -
-                        1; /* please note the way we add to the list, and the way we allocate did */
             clpl->nnext = pl->nnext;
             pl->nnext = clpl;
         }
@@ -1062,7 +1038,7 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
         if (is_device_place(plp)) num_dev_wk++;
 #endif
         plp->id = plid++;
-        plp->nChildren = 0;
+        plp->nchildren = 0;
         place_t *child = plp->child;
         while (child != NULL) {
             tmp = (place_node_t *) malloc(sizeof(place_node_t));
@@ -1070,14 +1046,14 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
             tmp->next = NULL;
             end->next = tmp;
             end = tmp;
-            plp->nChildren++;
+            plp->nchildren++;
             child->level = plp->level + 1;
             child = child->nnext;
         }
 
-        plp->children = (place_t **)malloc(sizeof(place_t *) * plp->nChildren);
+        plp->children = (place_t **)malloc(sizeof(place_t *) * plp->nchildren);
         child = plp->child;
-        for (i = 0; i < plp->nChildren; i++) {
+        for (i = 0; i < plp->nchildren; i++) {
             plp->children[i] = child;
             child = child->nnext;
         }
@@ -1118,7 +1094,6 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
                 if (is_device_place(dev_pl)) {
                     dev_pl->workers = (*all_workers)[*nproc + index];
                     (*all_workers)[*nproc + index]->pl = dev_pl;
-                    (*all_workers)[*nproc + index]->did = dev_pl->did;
                     setup_worker_hpt_path((*all_workers)[*nproc + index], dev_pl);
                     index++;
                 }
@@ -1135,22 +1110,19 @@ void unrollHPT(place_t *hpt, place_t *** all_places, int *num_pl, int *nproc,
  * time a new place is created and incrementing nproc every time a new worker is
  * created.
  */
-place_t *clonePlace(place_t *pl, int *num_pl, int *nproc) {
+place_t *clone_place(place_t *pl, int *num_pl, int *nproc) {
     place_t *clone = (place_t *) malloc(sizeof(place_t));
     HASSERT(clone);
     memset(clone, 0x00, sizeof(place_t));
     clone->type = pl->type;
-    clone->psize = pl->psize;
-    clone->unitSize = pl->unitSize;
     clone->id = pl->id;
-    clone->did = pl->did;
     clone->ndeques = pl->ndeques;
     clone->parent = pl->parent;
     place_t *child = pl->child;
 
     place_t *pllast = NULL;
     while (child != NULL) {
-        place_t *tmp = clonePlace(child, num_pl, nproc);
+        place_t *tmp = clone_place(child, num_pl, nproc);
         tmp->parent = clone;
         if (clone->child == NULL) clone->child = tmp;
         else pllast->nnext = tmp;
@@ -1169,7 +1141,6 @@ place_t *clonePlace(place_t *pl, int *num_pl, int *nproc) {
         HASSERT(tmp);
         memset(tmp, 0x00, sizeof(hclib_worker_state));
         tmp->pl = clone;
-        tmp->did = ws->did;
         if (clone->workers == NULL) clone->workers = tmp;
         else wslast->next_worker = tmp;
         wslast = tmp;
