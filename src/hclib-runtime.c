@@ -155,7 +155,7 @@ static void *gpu_worker_routine(void *finish);
 void hclib_global_init() {
     // Build queues
     hclib_context->hpt = read_hpt(&hclib_context->places,
-                                  &hclib_context->nplaces, &hclib_context->nproc,
+                                  &hclib_context->nplaces,
                                   &hclib_context->workers, &hclib_context->nworkers);
 
 #ifdef HC_COMM_WORKER

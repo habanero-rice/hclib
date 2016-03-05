@@ -80,13 +80,6 @@ typedef struct {
     void * pad[CACHE_LINE_L1-1];
 } worker_done_t;
 
-typedef struct hc_options {
-    int nproc; /* number of physical processors */
-    /* number of workers, one per hardware core, plus workers for device (GPU)
-     * (one per device) */
-    int nworkers; 
-} hc_options;
-
 /*
  * Global context information for the HC runtime, shared by all worker threads.
  */
@@ -96,7 +89,6 @@ typedef struct hc_context {
     place_t * hpt; /* root of the HPT? */
     int nworkers; /* # of worker threads created */
     int nplaces; /* # of places */
-    int nproc; /* the number of hardware cores in the runtime */
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;

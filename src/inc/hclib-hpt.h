@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hclib-internal.h"
 
-place_t * read_hpt(place_t *** all_places, int * num_pl, int * nproc,
+place_t * read_hpt(place_t *** all_places, int * num_pl,
         hclib_worker_state *** all_workers, int * num_wk);
 void free_hpt(place_t * hpt);
 void hc_hpt_init(hc_context * context);
