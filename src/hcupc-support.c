@@ -319,6 +319,7 @@ volatile int *hclib_start_finish_special() {
 
 void check_if_hcupc_distributed_futures(hclib_future_t **future_list) {
 #ifdef HUPCPP
+    HASSERT(hclib_distributed_future_register_callback);
     hclib_distributed_future_register_callback(future_list);
 #endif
 }

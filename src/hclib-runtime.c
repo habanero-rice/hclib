@@ -541,7 +541,7 @@ void spawn_await(hclib_task_t *task, hclib_future_t **future_list) {
     spawn_await_at(task, future_list, NULL);
 }
 
-void spawn_commTask(hclib_task_t *task) {
+void spawn_comm_task(hclib_task_t *task) {
     spawn_handler(task, NULL, NULL, 0, 1, 0);
 }
 
