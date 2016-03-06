@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 typedef enum {
     DIVIDE = 0,
@@ -421,6 +422,66 @@ void load_locality_info(char *filename, int *nworkers_out,
      * the node (graph) and the set of paths for each worker to traverse when
      * either popping or stealing (worker_paths).
      */
+    *nworkers_out = nworkers;
+    *graph_out = graph;
+    *worker_paths_out = worker_paths;
+}
+
+static char *create_heap_allocated_str(const char *s) {
+    char *heap_allocated = (char *)malloc(strlen(s) + 1);
+    memcpy(heap_allocated, s, strlen(s));
+    heap_allocated[strlen(s)] = '\0';
+    return heap_allocated;
+}
+
+void generate_locality_info(int *nworkers_out,
+        hclib_locality_graph **graph_out,
+        hclib_worker_paths **worker_paths_out) {
+    int i;
+    const char *nworkers_str = getenv("HCLIB_WORKERS");
+    int nworkers;
+    if (nworkers_str) {
+        nworkers = atoi(nworkers_str);
+    } else {
+        nworkers = sysconf(_SC_NPROCESSORS_ONLN);
+        fprintf(stderr, "WARNING: HCLIB_WORKERS not provided, running with "
+                "default of %u\n", nworkers);
+    }
+
+    hclib_locality_graph *graph = (hclib_locality_graph *)malloc(sizeof(hclib_locality_graph));
+    assert(graph);
+    graph->n_locales = 1 + nworkers;
+    graph->locales = (hclib_locale *)malloc(graph->n_locales * sizeof(hclib_locale));
+    assert(graph->locales);
+    graph->edges = (unsigned *)malloc(graph->n_locales * graph->n_locales * sizeof(unsigned));
+    assert(graph->edges);
+
+    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers * sizeof(hclib_worker_paths));
+    assert(worker_paths);
+
+    graph->locales[0].id = 0;
+    graph->locales[0].lbl = create_heap_allocated_str("sysmem");
+    for (i = 1; i <= nworkers; i++) {
+        char buf[128];
+        sprintf(buf, "cache%d", i - 1);
+        graph->locales[i].id = i;
+        graph->locales[i].lbl = create_heap_allocated_str(buf);
+        graph->edges[i * graph->n_locales + 0] = 1;
+        graph->edges[0 * graph->n_locales + i] = 1;
+
+        worker_paths[i - 1].pop_path = (hclib_locality_path *)malloc(sizeof(hclib_locality_path));
+        worker_paths[i - 1].pop_path->path_length = 2;
+        worker_paths[i - 1].pop_path->locales = (hclib_locale **)malloc(2 * sizeof(hclib_locale *));
+        worker_paths[i - 1].pop_path->locales[0] = graph->locales + i;
+        worker_paths[i - 1].pop_path->locales[1] = graph->locales + 0;
+
+        worker_paths[i - 1].steal_path = (hclib_locality_path *)malloc(sizeof(hclib_locality_path));
+        worker_paths[i - 1].steal_path->path_length = 2;
+        worker_paths[i - 1].steal_path->locales = (hclib_locale **)malloc(2 * sizeof(hclib_locale *));
+        worker_paths[i - 1].steal_path->locales[0] = graph->locales + i;
+        worker_paths[i - 1].steal_path->locales[1] = graph->locales + 0;
+    }
+
     *nworkers_out = nworkers;
     *graph_out = graph;
     *worker_paths_out = worker_paths;

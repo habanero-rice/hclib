@@ -143,8 +143,16 @@ void hclib_global_init() {
     int nworkers;
     hclib_locality_graph *graph;
     hclib_worker_paths *worker_paths;
-    load_locality_info("/home/jmg3/degas/hcpp/locality_graphs/davinci.json",
-            &nworkers, &graph, &worker_paths);
+
+    const char *locality_graph_path = getenv("HCLIB_LOCALITY_FILE");
+    if (locality_graph_path) {
+        load_locality_info(locality_graph_path, &nworkers, &graph,
+                &worker_paths);
+    } else {
+        fprintf(stderr, "WARNING: HCLIB_LOCALITY_FILE not provided, generating "
+                "sane default locality information\n");
+        generate_locality_info(&nworkers, &graph, &worker_paths);
+    }
 
     print_locality_graph(graph);
     print_worker_paths(worker_paths, nworkers);
