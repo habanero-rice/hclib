@@ -14,13 +14,12 @@
 struct hc_deque_t;
 
 typedef enum place_type {
-	CACHE_PLACE,
-	MEM_PLACE,
-	NVGPU_PLACE, /* for Nvidia GPU */
-	AMGPU_PLACE, /* for AMD GPU */
-	FPGA_PLACE,  /* for FPGA */
-	PGAS_PLACE,
-	NUM_OF_TYPES,
+    MEM_PLACE, // A volatile storage location, e.g. L1 cache, system memory
+    NVGPU_PLACE, // DRAM of an Nvidia GPU
+    AMDGPU_PLACE, // DRAM of an AMD GPU
+    MACHINE_PLACE, // Root place for the full HPT
+    INTERCONNECT_PLACE, // A type of place that represents the 
+    NUM_OF_TYPES,
 } place_type_t;
 
 typedef struct place_t {
@@ -46,7 +45,7 @@ typedef struct place_t {
     // The number of child places, also the length of the children array
 	int nchildren;
     // Type of this place, e.g. CACHE, MEM, etc
-	short type;
+    place_type_t type;
 #ifdef HC_CUDA
     int cuda_id;
     cudaStream_t cuda_stream;
@@ -104,7 +103,7 @@ extern void hclib_async_memset_helper(place_t *pl, void *ptr, int val,
 
 inline short is_cpu_place(place_t * pl) {
     HASSERT(pl);
-    return (pl->type == MEM_PLACE || pl->type == CACHE_PLACE);
+    return (pl->type == MEM_PLACE);
 }
 
 #ifdef HC_CUDA

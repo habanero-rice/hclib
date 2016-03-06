@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // #define VERBOSE
 
-static double benchmark_start_time_stats = 0;
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
@@ -85,25 +84,6 @@ void log_(const char *file, int line, hclib_worker_state *ws,
     fflush(f);
     va_end(l);
 }
-
-#ifdef HC_COMM_WORKER_STATS
-// Statistics
-int total_push_outd;
-int *total_steals;
-int *total_push_ind;
-
-inline void increment_async_counter(int wid) {
-    total_push_ind[wid]++;
-}
-
-inline void increment_steals_counter(int wid) {
-    total_steals[wid]++;
-}
-
-inline void increment_async_comm_counter() {
-    total_push_outd++;
-}
-#endif
 
 void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hclib_context->workers[wid]) != 0) {
@@ -153,17 +133,21 @@ static void *gpu_worker_routine(void *finish);
  * Main initialization function for the hclib_context object.
  */
 void hclib_global_init() {
-    // Build queues
-    hclib_context->hpt = read_hpt(&hclib_context->places,
-                                  &hclib_context->nplaces,
+    /*
+     * Build queues, this returns to us a tree structure of place and worker
+     * nodes representing the hardware available on the current system. We
+     * augment this tree based on module registrations to add logical (rather
+     * than physical) places.
+     */
+    hclib_context->hpt = read_hpt(&hclib_context->places, &hclib_context->nplaces,
                                   &hclib_context->workers, &hclib_context->nworkers);
-
-#ifdef HC_COMM_WORKER
-    HASSERT(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
-#endif
-#ifdef HC_CUDA
-    HASSERT(hclib_context->nworkers > GPU_WORKER_ID);
-#endif
+    const char *n_resource_workers_str = getenv("HCLIB_RESOURCE_WORKERS");
+    if (n_resource_workers_str) {
+        hclib_context->n_resource_workers = atoi(n_resource_workers_str);
+    } else {
+        hclib_context->n_resource_workers = 0;
+    }
+    HASSERT(hclib_context->n_resource_workers < hclib_context->nworkers);
     hclib_context->done_flags = (worker_done_t *)malloc(
                                     hclib_context->nworkers * sizeof(worker_done_t));
     HASSERT(hclib_context->done_flags);
@@ -176,20 +160,9 @@ void hclib_global_init() {
         ws->root_ctx = NULL;
         hclib_context->done_flags[i].flag = 1;
     }
+
 #ifdef HC_CUDA
     hclib_context->pinned_host_allocs = NULL;
-#endif
-
-#ifdef HC_COMM_WORKER_STATS
-    total_push_outd = 0;
-    total_steals = (int *)malloc(hclib_context->nworkers * sizeof(int));
-    HASSERT(total_steals);
-    total_push_ind = (int *)malloc(hclib_context->nworkers * sizeof(int));
-    HASSERT(total_push_ind);
-    for (int i = 0; i < hclib_context->nworkers; i++) {
-        total_steals[i] = 0;
-        total_push_ind[i] = 0;
-    }
 #endif
 
 #ifdef HC_COMM_WORKER
@@ -335,8 +308,6 @@ void hclib_cleanup() {
     pthread_key_delete(ws_key);
 
     free(hclib_context);
-    free(total_steals);
-    free(total_push_ind);
     free_hcupc_related_datastructures();
 }
 
@@ -496,11 +467,6 @@ void spawn_handler(hclib_task_t *task, place_t *pl,
 #endif
 
     try_schedule_async(task, comm, gpu, ws);
-
-#ifdef HC_COMM_WORKER_STATS
-    const int wid = get_current_worker();
-    increment_async_counter(wid);
-#endif
 }
 
 void spawn_at_hpt(place_t *pl, hclib_task_t *task) {
@@ -510,10 +476,6 @@ void spawn_at_hpt(place_t *pl, hclib_task_t *task) {
     set_current_finish(task, ws->current_finish);
     task->place = pl;
     try_schedule_async(task, 0, 0, ws);
-#ifdef HC_COMM_WORKER_STATS
-    const int wid = get_current_worker();
-    increment_async_counter(wid);
-#endif
 }
 
 void spawn(hclib_task_t *task) {
@@ -799,9 +761,6 @@ void find_and_run_task(hclib_worker_state *ws) {
             // try to steal
             task = hpt_steal_task(ws);
             if (task) {
-#ifdef HC_COMM_WORKER_STATS
-                increment_steals_counter(ws->id);
-#endif
                 break;
             }
         }
@@ -892,10 +851,6 @@ static void *worker_routine(void *args) {
     LiteCtx_destroy(currentCtx->prev);
     LiteCtx_proxy_destroy(currentCtx);
     return NULL;
-}
-
-void teardown() {
-
 }
 
 static void _finish_ctx_resume(void *arg) {
@@ -1083,65 +1038,14 @@ int hclib_num_workers() {
     return hclib_context->nworkers;
 }
 
-#ifdef HC_COMM_WORKER_STATS
-void hclib_gather_comm_worker_stats(int *push_outd, int *push_ind,
-                                    int *steal_ind) {
-    int asyncPush=0, steals=0, async_comm_push=total_push_outd;
-    for(int i=0; i<hclib_num_workers(); i++) {
-        asyncPush += total_push_ind[i];
-        steals += total_steals[i];
-    }
-    *push_outd = async_comm_push;
-    *push_ind = asyncPush;
-    *steal_ind = steals;
-}
-#endif
-
 double mysecond() {
     struct timeval tv;
     gettimeofday(&tv, 0);
     return tv.tv_sec + ((double) tv.tv_usec / 1000000);
 }
 
-void runtime_statistics(double duration) {
-    int asyncPush=0, steals=0, async_comm_push=total_push_outd;
-    for(int i=0; i<hclib_num_workers(); i++) {
-        asyncPush += total_push_ind[i];
-        steals += total_steals[i];
-    }
-
-    double tWork, tOvh, tSearch;
-    hclib_get_avg_time(&tWork, &tOvh, &tSearch);
-
-    double total_duration = user_specified_timer>0 ? user_specified_timer :
-                            duration;
-    printf("============================ MMTk Statistics Totals ============================\n");
-    printf("time.mu\ttotalPushOutDeq\ttotalPushInDeq\ttotalStealsInDeq\ttWork\ttOverhead\ttSearch\n");
-    printf("%.3f\t%d\t%d\t%d\t%.4f\t%.4f\t%.5f\n",total_duration,async_comm_push,
-           asyncPush,steals,tWork,tOvh,tSearch);
-    printf("Total time: %.3f ms\n",total_duration);
-    printf("------------------------------ End MMTk Statistics -----------------------------\n");
-    printf("===== TEST PASSED in %.3f msec =====\n",duration);
-}
-
-static void show_stats_header() {
-    printf("\n");
-    printf("-----\n");
-    printf("mkdir timedrun fake\n");
-    printf("\n");
-    printf("-----\n");
-    benchmark_start_time_stats = mysecond();
-}
-
 void hclib_user_harness_timer(double dur) {
     user_specified_timer = dur;
-}
-
-void showStatsFooter() {
-    double end = mysecond();
-    HASSERT(benchmark_start_time_stats != 0);
-    double dur = (end-benchmark_start_time_stats)*1000;
-    runtime_statistics(dur);
 }
 
 /*
@@ -1153,10 +1057,6 @@ static void hclib_init(int *argc, char **argv) {
     HASSERT(bind_threads == -1);
     hclib_stats = getenv("HCLIB_STATS");
     bind_threads = (getenv("HCLIB_BIND_THREADS") != NULL);
-
-    if (hclib_stats) {
-        show_stats_header();
-    }
 
     const char *hpt_file = getenv("HCLIB_HPT_FILE");
     if (hpt_file == NULL) {
@@ -1176,10 +1076,6 @@ static void hclib_finalize() {
     // free resources
     LiteCtx_destroy(finalize_ctx->prev);
     LiteCtx_proxy_destroy(finalize_ctx);
-
-    if (hclib_stats) {
-        showStatsFooter();
-    }
 
     hclib_join(hclib_context->nworkers);
     hclib_cleanup();

@@ -92,6 +92,7 @@ typedef struct hc_context {
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
+    unsigned n_resource_workers; /* # of threads to dedicate to resource management */
 #ifdef HC_CUDA
     hclib_memory_tree_node *pinned_host_allocs;
     cudaStream_t stream;

@@ -77,8 +77,8 @@ hclib_task_t *hpt_steal_task(hclib_worker_state *ws) {
         int nb_deq = pl->ndeques;
 
         /* Try to steal once from every other worker first */
-        for (int i=1; i<nb_deq; i++) {
-            int victim = ((ws->id + i) % nb_deq);
+        for (int i = 1; i < nb_deq; i++) {
+            const int victim = ((ws->id + i) % nb_deq);
             hc_deque_t *d = &deqs[victim];
             hclib_task_t *buff = deque_steal(&(d->deque));
             if (buff) { /* steal succeeded */
@@ -485,30 +485,30 @@ hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
 #endif
 
 static const char *MEM_PLACE_STR   = "MEM_PLACE";
-static const char *CACHE_PLACE_STR = "CACHE_PLACE";
 static const char *NVGPU_PLACE_STR = "NVGPU_PLACE";
-static const char *AMGPU_PLACE_STR = "AMGPU_PLACE";
-static const char *FPGA_PLACE_STR  = "FPGA_PLACE";
-static const char *PGAS_PLACE_STR  = "PGAS_PLACE";
+static const char *AMDGPU_PLACE_STR = "AMDGPU_PLACE";
 
 static const char *place_type_to_str(short type) {
     switch (type) {
     case (MEM_PLACE):
         return MEM_PLACE_STR;
-    case (CACHE_PLACE):
-        return CACHE_PLACE_STR;
     case (NVGPU_PLACE):
         return NVGPU_PLACE_STR;
-    case (AMGPU_PLACE):
-        return AMGPU_PLACE_STR;
-    case (FPGA_PLACE):
-        return FPGA_PLACE_STR;
-    case (PGAS_PLACE):
-        return PGAS_PLACE_STR;
+    case (AMDGPU_PLACE):
+        return AMDGPU_PLACE_STR;
     default:
         fprintf(stderr, "unknown place type %d\n", type);
         exit(5);
     }
+}
+
+/*
+ * Validate that the structure of the HPT passed by the user matches the
+ * assumptions of the runtime. The following rules are checked by this function:
+ *
+ *   1. 
+ */
+void validate_hpt(place_t *root) {
 }
 
 /* init the hpt and place deques */
@@ -705,30 +705,21 @@ place_t *parse_place_element(xmlNode *plNode) {
         num = atoi((char *)numStr);
     }
 
-    short type = CACHE_PLACE;
+    short type = MEM_PLACE;
     if (typeStr != NULL) {
         if (!xmlStrcmp(typeStr, (const xmlChar *) "mem")) {
             type = MEM_PLACE;
-        } else if (!xmlStrcmp(typeStr, (const xmlChar *) "cache")) {
-            type = CACHE_PLACE;
         } else if (!xmlStrcmp(typeStr, (const xmlChar *) "nvgpu")) {
             type = NVGPU_PLACE;
         } else if (!xmlStrcmp(typeStr, (const xmlChar *) "amgpu")) {
-            type = AMGPU_PLACE;
-        } else if (!xmlStrcmp(typeStr, (const xmlChar *) "fpga")) {
-            type = FPGA_PLACE;
-        } else if (!xmlStrcmp(typeStr, (const xmlChar *) "pgas")) {
-            type = PGAS_PLACE;
+            type = AMDGPU_PLACE;
         } else {
             /* warning, unknown type specified */
         }
-    } else {
-        /* default to be cache type */
-        type = CACHE_PLACE;
     }
 
     // Not supported yet
-    HASSERT(type != AMGPU_PLACE && type != FPGA_PLACE);
+    HASSERT(type != AMDGPU_PLACE);
 
     place_t *pl = (place_t *)calloc(1, sizeof(place_t));
     pl->id = num;
