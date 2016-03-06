@@ -83,21 +83,19 @@ typedef struct {
 /*
  * Global context information for the HC runtime, shared by all worker threads.
  */
-typedef struct hc_context {
+typedef struct hclib_context {
     struct hclib_worker_state** workers; /* all workers */
-    place_t ** places; /* all the places */
-    place_t * hpt; /* root of the HPT? */
+    hclib_locality_graph *graph;
+    hclib_worker_paths *worker_paths;
     int nworkers; /* # of worker threads created */
-    int nplaces; /* # of places */
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
-    unsigned n_resource_workers; /* # of threads to dedicate to resource management */
 #ifdef HC_CUDA
     hclib_memory_tree_node *pinned_host_allocs;
     cudaStream_t stream;
 #endif
-} hc_context;
+} hclib_context;
 
 #include "hclib-finish.h"
 

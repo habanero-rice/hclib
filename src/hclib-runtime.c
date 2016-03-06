@@ -157,17 +157,6 @@ void hclib_global_init() {
     print_locality_graph(graph);
     print_worker_paths(worker_paths, nworkers);
 
-    exit(0);
-
-    hclib_context->hpt = read_hpt(&hclib_context->places, &hclib_context->nplaces,
-                                  &hclib_context->workers, &hclib_context->nworkers);
-    const char *n_resource_workers_str = getenv("HCLIB_RESOURCE_WORKERS");
-    if (n_resource_workers_str) {
-        hclib_context->n_resource_workers = atoi(n_resource_workers_str);
-    } else {
-        hclib_context->n_resource_workers = 0;
-    }
-    HASSERT(hclib_context->n_resource_workers < hclib_context->nworkers);
     hclib_context->done_flags = (worker_done_t *)malloc(
                                     hclib_context->nworkers * sizeof(worker_done_t));
     HASSERT(hclib_context->done_flags);
