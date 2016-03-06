@@ -4,11 +4,7 @@ HABANERO-C++ LIBRARY INSTALLATION PROCEDURE
 
 1) Set the paths correctly in ./scripts/setup.sh
 
-cd scripts
-
-source ./setup.sh
-
-cd ..
+cd scripts && source ./setup.sh && cd ..
 
 2) If you are compiling HClib with CUDA support, ensure the CUDA_HOME
    environment variable is set.

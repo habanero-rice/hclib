@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-hpt.h>
 #include <hcupc-support.h>
 #include <hclib-cuda.h>
+#include <hclib-locality-graph.h>
 
 // #define VERBOSE
 
@@ -139,6 +140,17 @@ void hclib_global_init() {
      * augment this tree based on module registrations to add logical (rather
      * than physical) places.
      */
+    int nworkers;
+    hclib_locality_graph *graph;
+    hclib_worker_paths *worker_paths;
+    load_locality_info("/home/jmg3/degas/hcpp/locality_graphs/davinci.json",
+            &nworkers, &graph, &worker_paths);
+
+    print_locality_graph(graph);
+    print_worker_paths(worker_paths, nworkers);
+
+    exit(0);
+
     hclib_context->hpt = read_hpt(&hclib_context->places, &hclib_context->nplaces,
                                   &hclib_context->workers, &hclib_context->nworkers);
     const char *n_resource_workers_str = getenv("HCLIB_RESOURCE_WORKERS");
