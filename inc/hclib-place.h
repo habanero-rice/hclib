@@ -24,26 +24,26 @@ typedef enum place_type {
 
 typedef struct place_t {
     // Parent place
-	struct place_t *parent;
+    struct place_t *parent;
     // The first child in a linked list of children
-	struct place_t *child;
+    struct place_t *child;
     // A link to the next place that has the same parent in the HPT
-	struct place_t *nnext;
+    struct place_t *nnext;
     /*
      * A convenience field which contains pointers to all of the items in the
      * child linked list.
      */
-	struct place_t **children;
+    struct place_t **children;
     // A linked list of directly attached workers
-	struct hclib_worker_state *workers;
-	struct hc_deque_t *deques;
-	int ndeques; /* only for deques */
+    struct hclib_worker_state *workers;
+    struct hc_deque_t *deques;
+    int ndeques; /* only for deques */
     // Unique ID for this place
-	int id;
+    int id;
     // Level in the HPT tree. Logical root is level 0.
-	int level;
+    int level;
     // The number of child places, also the length of the children array
-	int nchildren;
+    int nchildren;
     // Type of this place, e.g. CACHE, MEM, etc
     place_type_t type;
 #ifdef HC_CUDA
