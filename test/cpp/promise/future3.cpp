@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_cpp.h"
 
 #define H1 256
-#define T1 33
+#define T1 11
 
 //user written code
 void init_ran(int *ran, int size) {
@@ -68,7 +68,7 @@ int main (int argc, char ** argv) {
                         sleep(1);
                         assert(ran[idx] == -1);
                         ran[idx] = idx;
-                        printf("finished %d / %d\n", idx, H1);
+                        printf("finished %d / %d on %d\n", idx, H1, hclib_get_current_worker());
                     }, FORASYNC_MODE_FLAT);
 
             event->wait();

@@ -49,6 +49,10 @@ struct _hclib_task_t;
  * must visit it along at least one locale path.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _hclib_locale {
     unsigned id;
     const char *lbl;
@@ -83,5 +87,14 @@ extern void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers);
 extern int deque_push_locale(hclib_worker_state *ws, hclib_locale *locale, void *ele);
 extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);
+
+
+extern int hclib_get_num_locales();
+extern hclib_locale *hclib_get_closest_locale();
+extern hclib_locale *hclib_get_all_locales();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

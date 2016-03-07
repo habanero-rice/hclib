@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// #define VERBOSE
+
+extern hclib_context *hc_context;
+
 typedef enum {
     DIVIDE = 0,
     REMAINDER = 1
@@ -607,18 +611,25 @@ hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
     hclib_locality_path *pop = paths->pop_path;
 
 #ifdef VERBOSE
-    fprintf(stderr, "locale_pop_task: ws=%p pop=%p path_length=%d wid=%d\n", ws,
-            pop, pop->path_length, wid);
+    fprintf(stderr, "locale_pop_task: ws=%p wid=%d pop=%p path_length=%d\n", ws,
+            wid, pop, pop->path_length);
 #endif
 
     for (i = 0; i < pop->path_length; i++) {
         hclib_locale *locale = pop->locales[i];
 #ifdef VERBOSE
-        fprintf(stderr, "locale_pop_task: i=%d locale=%p locale->deques=%p\n",
-                i, locale, locale->deques);
+        fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
+                "locale->deques=%p locale->lbl=%s\n", wid, i, locale,
+                locale->deques, locale->lbl);
 #endif
         hclib_task_t *task = deque_pop(&(locale->deques[wid].deque));
         if (task) {
+#ifdef VERBOSE
+        fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
+                "locale->deques=%p locale->lbl=%s successfully popped task "
+                "%p\n", wid, i, locale, locale->deques, locale->lbl, task);
+#endif
+
             return task;
         }
     }
@@ -637,6 +648,12 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
     hclib_worker_paths *paths = ws->paths;
     hclib_locality_path *steal = paths->steal_path;
 
+#ifdef VERBOSE
+    fprintf(stderr, "locale_steal_task: ws=%p wid=%d steal=%p path_length=%d\n", ws,
+            wid, steal, steal->path_length);
+#endif
+
+
     MARK_SEARCH(wid); // Set the state of this worker for timing
 
     for (i = 0; i < steal->path_length; i++) {
@@ -644,13 +661,49 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
         hclib_deque_t *deqs = locale->deques;
 
         for (j = 1; j < nworkers; j++) {
-            const int victim = (wid + i) % nworkers;
+            const int victim = (wid + j) % nworkers;
+
+#ifdef VERBOSE
+        fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
+                "locale->deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
+                locale->deques, locale->lbl, victim);
+#endif
+
             hclib_task_t *task = deque_steal(&(deqs[victim].deque));
             if (task) {
+#ifdef VERBOSE
+                fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
+                        "locale->deques=%p locale->lbl=%s victim=%d "
+                        "successfully stole task %p\n", wid, i, locale,
+                        locale->deques, locale->lbl, victim, task);
+#endif
                 return task;
             }
         }
     }
 
     return NULL;
+}
+
+/*
+ * Count the number of locales present in the platform.
+ */
+int hclib_get_num_locales() {
+    return hc_context->graph->n_locales;
+}
+
+/*
+ * Fetch the locale that is assumed to be closest to our current worker thread,
+ * as measured by the distance along the pop path.
+ */
+hclib_locale *hclib_get_closest_locale() {
+    return CURRENT_WS_INTERNAL->paths->pop_path->locales[0];
+}
+
+/*
+ * Return a list of all the locales in the current runtime. The length of this
+ * list can be determined by hclib_get_num_locales.
+ */
+hclib_locale *hclib_get_all_locales() {
+    return hc_context->graph->locales;
 }

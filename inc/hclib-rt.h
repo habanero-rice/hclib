@@ -78,7 +78,7 @@ typedef struct _hclib_worker_state {
 #ifdef HC_ASSERTION_CHECK
 #define HASSERT(cond) { \
     if (!(cond)) { \
-        fprintf(stderr, "W%d: assertion failure\n", get_current_worker()); \
+        fprintf(stderr, "W%d: assertion failure\n", hclib_get_current_worker()); \
         assert(cond); \
     } \
 }
@@ -88,7 +88,7 @@ typedef struct _hclib_worker_state {
 
 #define CURRENT_WS_INTERNAL ((hclib_worker_state *) pthread_getspecific(ws_key))
 
-int get_current_worker();
+int hclib_get_current_worker();
 hclib_worker_state* current_ws();
 
 #define HC_MALLOC(msize)	malloc(msize)

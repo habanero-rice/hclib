@@ -69,7 +69,7 @@ void spawn_async(volatile int * indices, int i) {
 
         indices[i] = i;
         hclib_async(async_fct, (void*) (indices+i), NO_FUTURE, NO_PHASER,
-                ANY_PLACE, NO_PROP);
+                ANY_PLACE);
         spawn_async(indices, i+1);
 
         hclib_end_finish();

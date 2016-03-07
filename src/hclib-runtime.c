@@ -84,7 +84,7 @@ void log_(const char *file, int line, hclib_worker_state *ws,
     va_end(l);
 }
 
-void set_current_worker(int wid) {
+static void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hc_context->workers[wid]) != 0) {
         log_die("Cannot set thread-local worker state");
     }
@@ -94,7 +94,7 @@ void set_current_worker(int wid) {
     }
 }
 
-int get_current_worker() {
+int hclib_get_current_worker() {
     return ((hclib_worker_state *)pthread_getspecific(ws_key))->id;
 }
 
@@ -354,7 +354,7 @@ static inline void rt_schedule_async(hclib_task_t *async_task, hclib_worker_stat
          * locale. For now we just place at locale 0 by default, but having a
          * current locale might be a good thing to implement in the future. TODO.
          */
-        const int wid = get_current_worker();
+        const int wid = hclib_get_current_worker();
 #ifdef VERBOSE
         fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
                 "hc_context=%p hc_context->graph=%p\n", wid, hc_context, hc_context->graph);
@@ -799,7 +799,7 @@ static void *worker_routine(void *args) {
 
 #ifdef VERBOSE
     fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
-            "and lite ctx %p\n", get_current_worker(), currentCtx, newCtx);
+            "and lite ctx %p\n", hclib_get_current_worker(), currentCtx, newCtx);
 #endif
 
     // free resources

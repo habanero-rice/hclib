@@ -116,8 +116,6 @@ void log_(const char * file, int line, hclib_worker_state * ws, const char * for
 // thread binding
 void bind_thread(int worker_id, int *bind_map, int bind_map_size);
 
-int get_current_worker();
-
 // promise
 int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);
 hclib_triggered_task_t * rt_async_task_to_triggered_task(

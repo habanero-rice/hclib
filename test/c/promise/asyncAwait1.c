@@ -59,7 +59,7 @@ void entrypoint(void *arg) {
         printf("Creating async %d await on %p will enable %p\n", index,
                 promise_list, &(promise_list[index*2]));
         hclib_async(async_fct, argv, &(future_list[(index-1)*2]), NO_PHASER,
-                ANY_PLACE, NO_PROP);
+                ANY_PLACE);
     }
 
     int * value = (int *) malloc(sizeof(int));

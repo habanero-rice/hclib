@@ -135,14 +135,8 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
 #define _allocate_async _allocate_async_hclib
 #endif
 
-/*
- * Yes, the name "async_at_hpt" sounds weird
- * but using this name to differentiate with the inter-node
- * "asyncAt" in HabaneroUPC++. Feel free to give a better
- * name to async_at_hpt.
- */
 template <typename T>
-inline void async_at_hpt(hclib_locale* locale, T lambda) {
+inline void async_at(hclib_locale* locale, T lambda) {
     MARK_OVH(current_ws()->id);
     hclib_task_t* task = _allocate_async<T>(lambda, false);
     spawn_at(task, locale);
