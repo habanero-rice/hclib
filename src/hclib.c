@@ -45,7 +45,7 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
 
 typedef struct _future_args_wrapper {
     hclib_promise_t event;
-    futureFct_t fp;
+    future_fct_t fp;
     void *actual_in;
 } future_args_wrapper;
 
@@ -55,7 +55,7 @@ static void future_caller(void *in) {
     hclib_promise_put(&args->event, user_result);
 }
 
-hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
+hclib_promise_t *hclib_async_future(future_fct_t fp, void *arg,
                                     hclib_future_t **future_list, struct _phased_t *phased_clause,
                                     hclib_locale *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
@@ -426,13 +426,13 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
 
     HASSERT(dim>0 && dim<4);
     // TODO put those somewhere as static
-    asyncFct_t fct_ptr_rec[3] = { forasync1D_recursive, forasync2D_recursive,
+    async_fct_t fct_ptr_rec[3] = { forasync1D_recursive, forasync2D_recursive,
                                   forasync3D_recursive
                                 };
-    asyncFct_t fct_ptr_flat[3] = { forasync1D_flat, forasync2D_flat,
+    async_fct_t fct_ptr_flat[3] = { forasync1D_flat, forasync2D_flat,
                                    forasync3D_flat
                                  };
-    asyncFct_t *fct_ptr = (mode == FORASYNC_MODE_RECURSIVE) ? fct_ptr_rec :
+    async_fct_t *fct_ptr = (mode == FORASYNC_MODE_RECURSIVE) ? fct_ptr_rec :
                           fct_ptr_flat;
     if (dim == 1) {
         forasync1D_t forasync = {{user_def}, loop_domain[0]};
