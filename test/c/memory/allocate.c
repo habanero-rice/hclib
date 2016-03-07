@@ -42,7 +42,15 @@ void entrypoint(void *arg) {
 
     for (i = 0; i < nlocales; i++) {
         hclib_future_t *future = hclib_allocate_at(30, locales + i);
-        void *allocation = hclib_future_get(future);
+        void *allocation = hclib_future_wait(future);
+        fprintf(stderr, "%d: allocation = %p\n", i, allocation);
+        future = hclib_reallocate_at(allocation, 50, locales + i);
+        void *reallocation = hclib_future_wait(future);
+        fprintf(stderr, "%d: reallocation = %p\n", i, reallocation);
+        future = hclib_memset_at(reallocation, 0, 50, locales + i);
+        hclib_future_wait(future);
+
+        hclib_free_at(reallocation, locales + i);
     }
 
     printf("Passed\n");

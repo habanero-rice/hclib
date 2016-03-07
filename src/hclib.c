@@ -50,7 +50,8 @@ typedef struct _malloc_struct {
 
 static void allocate_kernel(void *arg) {
     malloc_struct *ms = (malloc_struct *)arg;
-    hclib_promise_put(ms->promise, malloc(ms->nbytes));
+    void *allocated = malloc(ms->nbytes);
+    hclib_promise_put(ms->promise, allocated);
     free(ms);
 }
 

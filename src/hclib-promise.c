@@ -211,23 +211,23 @@ hclib_triggered_task_t *rt_async_task_to_triggered_task(
  * the promise's frontier to try to advance tasks that were waiting on this
  * promise.
  */
-void hclib_promise_put(hclib_promise_t *promiseToBePut, void *datumToBePut) {
-    HASSERT (datumToBePut != UNINITIALIZED_PROMISE_DATA_PTR &&
+void hclib_promise_put(hclib_promise_t *promise_to_be_put, void *datum_to_be_put) {
+    HASSERT (datum_to_be_put != UNINITIALIZED_PROMISE_DATA_PTR &&
              EMPTY_DATUM_ERROR_MSG);
-    HASSERT (promiseToBePut != NULL && "can not put into NULL promise");
-    HASSERT (promiseToBePut-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
+    HASSERT (promise_to_be_put != NULL && "can not put into NULL promise");
+    HASSERT (promise_to_be_put-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
              "violated single assignment property for promises");
 
     volatile hclib_triggered_task_t *wait_list_of_promise =
-        promiseToBePut->wait_list_head;;
+        promise_to_be_put->wait_list_head;;
     hclib_triggered_task_t *curr_task = NULL;
     hclib_triggered_task_t *next_task = NULL;
 
-    promiseToBePut->datum = datumToBePut;
+    promise_to_be_put->datum = datum_to_be_put;
     /*seems like I can not avoid a CAS here*/
-    while (!__sync_bool_compare_and_swap( &(promiseToBePut->wait_list_head),
+    while (!__sync_bool_compare_and_swap( &(promise_to_be_put->wait_list_head),
                                           wait_list_of_promise, EMPTY_FUTURE_WAITLIST_PTR)) {
-        wait_list_of_promise = promiseToBePut -> wait_list_head;
+        wait_list_of_promise = promise_to_be_put -> wait_list_head;
     }
 
     curr_task = (hclib_triggered_task_t *)wait_list_of_promise;
