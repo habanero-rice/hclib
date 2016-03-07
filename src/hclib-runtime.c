@@ -36,7 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif
+#define _GNU_SOURCE
+#include <sched.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <sys/time.h>
 
 #include <hclib.h>
@@ -64,7 +70,6 @@ pending_cuda_op *pending_cuda_ops_tail = NULL;
 hclib_context *hc_context = NULL;
 
 static char *hclib_stats = NULL;
-static int bind_threads = -1;
 
 void hclib_start_finish();
 
@@ -89,8 +94,25 @@ static void set_current_worker(int wid) {
         log_die("Cannot set thread-local worker state");
     }
 
-    if (bind_threads) {
-        bind_thread(wid, NULL, 0);
+    cpu_set_t cpu_set;
+    CPU_ZERO(&cpu_set);
+    if (wid >= hc_context->ncores) {
+        /*
+         * If we are spawning more worker threads than there are cores, allow
+         * the extras to float around.
+         */
+        int i;
+        for (i = 0; i < hc_context->ncores; i++) {
+            CPU_SET(i, &cpu_set);
+        }
+    } else {
+        // Pin worker i to core i
+        CPU_SET(wid, &cpu_set);
+    }
+    if (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set),
+                &cpu_set) != 0) {
+        fprintf(stderr, "Error setting affinity of worker thread %d\n", wid);
+        exit(5);
     }
 }
 
@@ -157,6 +179,7 @@ void hclib_global_init() {
     print_worker_paths(worker_paths, nworkers);
 #endif
 
+    hc_context->ncores = sysconf(_SC_NPROCESSORS_ONLN);
     hc_context->nworkers = nworkers;
     hc_context->graph = graph;
     hc_context->worker_paths = worker_paths;
@@ -183,12 +206,6 @@ void hclib_display_runtime() {
     printf("---------HCLIB_RUNTIME_INFO-----------\n");
     printf(">>> HCLIB_WORKERS\t= %s\n", getenv("HCLIB_WORKERS"));
     printf(">>> HCLIB_HPT_FILE\t= %s\n", getenv("HCLIB_HPT_FILE"));
-    printf(">>> HCLIB_BIND_THREADS\t= %s\n", bind_threads ? "true" : "false");
-    if (getenv("HCLIB_WORKERS") && bind_threads) {
-        printf("WARNING: HCLIB_BIND_THREADS assign cores in round robin. E.g., "
-               "setting HCLIB_WORKERS=12 on 2-socket node, each with 12 cores, "
-               "will assign both HCUPC++ places on same socket\n");
-    }
     printf(">>> HCLIB_STATS\t\t= %s\n", hclib_stats);
     printf("----------------------------------------\n");
 }
@@ -237,47 +254,17 @@ void hclib_entrypoint() {
 
     // Start workers
     for (int i = 1; i < hc_context->nworkers; i++) {
-#ifdef HC_COMM_WORKER
-        /*
-         * If running with a thread dedicated to network communication (e.g. through
-         * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
-         */
-        HASSERT(COMMUNICATION_WORKER_ID > 0);
-        if (i == COMMUNICATION_WORKER_ID) continue;
-#endif
-#ifdef HC_CUDA
-        HASSERT(GPU_WORKER_ID > 0);
-        if (i == GPU_WORKER_ID) continue;
-#endif
-
         if (pthread_create(&hc_context->workers[i]->t, &attr, worker_routine,
                            &hc_context->workers[i]->id) != 0) {
             fprintf(stderr, "Error launching thread\n");
             exit(4);
         }
+
     }
     set_current_worker(0);
 
     // allocate root finish
     hclib_start_finish();
-
-#ifdef HC_COMM_WORKER
-    // Kick off a dedicated communication thread
-    if (pthread_create(&hc_context->workers[COMMUNICATION_WORKER_ID]->t, &attr,
-                       communication_worker_routine,
-                       CURRENT_WS_INTERNAL->current_finish) != 0) {
-        fprintf(stderr, "Error launching communication worker\n");
-        exit(5);
-    }
-#endif
-#ifdef HC_CUDA
-    // Kick off a dedicated thread to manage all GPUs in a node
-    if (pthread_create(&hc_context->workers[GPU_WORKER_ID]->t, &attr,
-                       gpu_worker_routine, CURRENT_WS_INTERNAL->current_finish) != 0) {
-        fprintf(stderr, "Error launching GPU worker\n");
-        exit(5);
-    }
-#endif
 }
 
 void hclib_signal_join(int nb_workers) {
@@ -1009,9 +996,7 @@ void hclib_user_harness_timer(double dur) {
  */
 static void hclib_init(int *argc, char **argv) {
     HASSERT(hclib_stats == NULL);
-    HASSERT(bind_threads == -1);
     hclib_stats = getenv("HCLIB_STATS");
-    bind_threads = (getenv("HCLIB_BIND_THREADS") != NULL);
 
     hclib_entrypoint();
 }

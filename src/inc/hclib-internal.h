@@ -89,6 +89,7 @@ typedef struct hclib_context {
     hclib_locality_graph *graph;
     hclib_worker_paths *worker_paths;
     int nworkers; /* # of worker threads created */
+    int ncores; /* physical number of cores detected */
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
@@ -112,9 +113,6 @@ typedef struct _hclib_deque_t {
 
 void log_(const char * file, int line, hclib_worker_state * ws, const char * format,
         ...);
-
-// thread binding
-void bind_thread(int worker_id, int *bind_map, int bind_map_size);
 
 // promise
 int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);

@@ -51,6 +51,7 @@ typedef struct _malloc_struct {
 static void allocate_kernel(void *arg) {
     malloc_struct *ms = (malloc_struct *)arg;
     void *allocated = malloc(ms->nbytes);
+    memset(allocated, 42, 1); // first touch allocation
     hclib_promise_put(ms->promise, allocated);
     free(ms);
 }
@@ -72,7 +73,9 @@ typedef struct _realloc_struct {
 
 static void reallocate_kernel(void *arg) {
     realloc_struct *rs = (realloc_struct *)arg;
-    hclib_promise_put(rs->promise, realloc(rs->ptr, rs->nbytes));
+    void *reallocated = realloc(rs->ptr, rs->nbytes);
+    memset(reallocated, 42, 1); // first touch allocation
+    hclib_promise_put(rs->promise, reallocated);
     free(rs);
 }
 
