@@ -55,7 +55,7 @@ libhclib_la_LIBADD =
 
 AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) $(HC_FLAGS_4) \
 			  $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-hpt.c hclib-thread-bind.c \
+libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-thread-bind.c \
 					 hcshmem-support.c hclib-promise.c hclib-timer.c hcupc-support.c \
 					 hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c
 

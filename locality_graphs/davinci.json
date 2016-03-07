@@ -1,4 +1,5 @@
 {
+    "nworkers": 12,
     "declarations": [
         "sysmem",
         "L3_0", "L3_1",
@@ -16,7 +17,6 @@
         ["sysmem", "GPU0"], ["sysmem", "GPU1"],
         ["sysmem", "Interconnect"]
     ],
-    "nworkers": 12,
     "pop_paths": {
         "default": ["L2_$(id / 6)_$(id % 6)", "L3_$(id / 6)", "sysmem"]
     },

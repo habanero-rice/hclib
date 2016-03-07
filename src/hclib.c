@@ -13,44 +13,32 @@ extern "C" {
 /*** START ASYNC IMPLEMENTATION ***/
 
 void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
-                 struct _phased_t *phased_clause, place_t *place, int property) {
- //   HASSERT(property == 0);
+        struct _phased_t *phased_clause, hclib_locale *locale) {
     HASSERT(phased_clause == NULL);
 
     if (future_list) {
         hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
         task->async_task._fp = fp;
-        task->async_task.is_async_any_type = 0;
         task->async_task.future_list = NULL;
         task->async_task.args = arg;
-        task->async_task.place = NULL;
+        task->async_task.locale = NULL;
 
-        if (place) {
-            spawn_await_at((hclib_task_t *)task, future_list, place);
+        if (locale) {
+            spawn_await_at((hclib_task_t *)task, future_list, locale);
         } else {
             spawn_await((hclib_task_t *)task, future_list);
         }
     } else {
         hclib_task_t *task = malloc(sizeof(hclib_task_t));
         task->_fp = fp;
-        task->is_async_any_type = 0;
         task->future_list = NULL;
         task->args = arg;
-        task->place = NULL;
+        task->locale = NULL;
 
-        if (place) {
-            spawn_at_hpt(place, task);
+        if (locale) {
+            spawn_at(task, locale);
         } else {
-	    if(property == 0) spawn(task);
-	    /* 
-	     * ^^^^^ TODO: Presently this path executed only for HabaneroOpenSHMEM++ ^^^^^^
-	     * This else part is executed only if hclib::launch() is called from 
-	     * HabaneroUPC++ or HabaneroOpenSHMEM++. This task is essentially the main()
-	     * function which has the finish_spmd(). This finish_spmd is only allowed
-             * to execute on a comm_async and not on a regular async. Regular async
-	     * would allow this finish_spmd to be executed by computation worker.
-	     */
-	    else spawn_comm_task(task);	
+            spawn(task);
         }
     }
 }
@@ -69,13 +57,12 @@ static void future_caller(void *in) {
 
 hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
                                     hclib_future_t **future_list, struct _phased_t *phased_clause,
-                                    place_t *place, int property) {
+                                    hclib_locale *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, future_list, phased_clause, place,
-                property);
+    hclib_async(future_caller, wrapper, future_list, phased_clause, locale);
 
     return (hclib_promise_t *)wrapper;
 }
@@ -90,7 +77,7 @@ forasync1D_task_t *allocate_forasync1D_task() {
     forasync1D_task_t *forasync_task = (forasync1D_task_t *) malloc(
                                            sizeof(forasync1D_task_t));
     HASSERT(forasync_task && "malloc failed");
-    forasync_task->forasync_task.place = NULL;
+    forasync_task->forasync_task.locale = NULL;
     return forasync_task;
 }
 
@@ -98,7 +85,7 @@ forasync2D_task_t *allocate_forasync2D_task() {
     forasync2D_task_t *forasync_task = (forasync2D_task_t *) malloc(
                                            sizeof(forasync2D_task_t));
     HASSERT(forasync_task && "malloc failed");
-    forasync_task->forasync_task.place = NULL;
+    forasync_task->forasync_task.locale = NULL;
     return forasync_task;
 }
 
@@ -106,7 +93,7 @@ forasync3D_task_t *allocate_forasync3D_task() {
     forasync3D_task_t *forasync_task = (forasync3D_task_t *) malloc(
                                            sizeof(forasync3D_task_t));
     HASSERT(forasync_task && "malloc failed");
-    forasync_task->forasync_task.place = NULL;
+    forasync_task->forasync_task.locale = NULL;
     return forasync_task;
 }
 
@@ -435,7 +422,7 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
     user_def->_fp = user_fct_ptr;
     user_def->args = user_arg;
     user_def->future_list = NULL;
-    user_def->place = NULL;
+    user_def->locale = NULL;
 
     HASSERT(dim>0 && dim<4);
     // TODO put those somewhere as static

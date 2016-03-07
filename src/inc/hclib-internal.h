@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib-deque.h"
 #include "hclib.h"
 #include "litectx.h"
+#include "hclib-locality-graph.h"
 
 #define LOG_LEVEL_FATAL         1
 #define LOG_LEVEL_WARN          2
@@ -84,7 +85,7 @@ typedef struct {
  * Global context information for the HC runtime, shared by all worker threads.
  */
 typedef struct hclib_context {
-    struct hclib_worker_state** workers; /* all workers */
+    struct _hclib_worker_state** workers; /* all workers */
     hclib_locality_graph *graph;
     hclib_worker_paths *worker_paths;
     int nworkers; /* # of worker threads created */
@@ -99,15 +100,15 @@ typedef struct hclib_context {
 
 #include "hclib-finish.h"
 
-typedef struct hc_deque_t {
+typedef struct _hclib_deque_t {
     /* The actual deque, WARNING: do not move declaration !
      * Other parts of the runtime rely on it being the first one. */
     deque_t deque;
     struct hclib_worker_state * ws;
-    struct hc_deque_t * nnext;
-    struct hc_deque_t * prev; /* the deque list of the worker */
-    struct place_t * pl;
-} hc_deque_t;
+    struct _hclib_deque_t *nnext;
+    struct _hclib_deque_t *prev; /* the deque list of the worker */
+    hclib_locale *locale;
+} hclib_deque_t;
 
 void log_(const char * file, int line, hclib_worker_state * ws, const char * format,
         ...);
@@ -121,7 +122,6 @@ int get_current_worker();
 int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);
 hclib_triggered_task_t * rt_async_task_to_triggered_task(
         hclib_task_t * async_task);
-void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
-        hclib_worker_state *ws);
+void try_schedule_async(hclib_task_t * async_task, hclib_worker_state *ws);
 
 #endif /* HCLIB_INTERNAL_H_ */

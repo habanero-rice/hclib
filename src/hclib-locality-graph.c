@@ -1,6 +1,7 @@
 #include "jsmn.h"
 #include "hclib-locality-graph.h"
 #include "hclib-rt.h"
+#include "hclib-internal.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -69,7 +70,10 @@ static void strreverse(char* begin, char* end) {
         aux=*end, *end--=*begin, *begin++=aux;
     }
 }
-	
+
+/*
+ * Pulled from http://www.strudel.org.uk/itoa/
+ */
 static void itoa(int value, char* str, int base) {
     static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
     char* wstr=str;
@@ -244,10 +248,38 @@ static int parse_paths(int starting_token_index, int n_paths, char *json,
     return path_index;
 }
 
+inline void init_hclib_deque_t(hclib_deque_t *hcdeq, hclib_locale *locale) {
+    hcdeq->deque.head = hcdeq->deque.tail = 0;
+    hcdeq->locale = locale;
+    hcdeq->ws = NULL;
+    hcdeq->nnext = NULL;
+    hcdeq->prev = NULL;
+#ifdef BUCKET_DEQUE
+    hcdeq->deque.last = 0;
+    hcdeq->deque.thief = 0;
+    hcdeq->deque.staleMaps = NULL;
+#endif
+}
+
+static void initialize_locale(hclib_locale *locale, int id, const char *lbl,
+        int nworkers) {
+    int i;
+    assert(locale);
+
+    locale->id = id;
+    locale->lbl = lbl;
+    locale->deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
+    assert(locale->deques);
+    for (i = 0; i < nworkers; i++) {
+        hclib_deque_t *deq = locale->deques + i;
+        init_hclib_deque_t(deq, locale);
+    }
+}
+
 /*
  * See locality_graphs/davinci.json for an example locality graph.
  */
-void load_locality_info(char *filename, int *nworkers_out,
+void load_locality_info(const char *filename, int *nworkers_out,
         hclib_locality_graph **graph_out,
         hclib_worker_paths **worker_paths_out) {
     int i;
@@ -285,6 +317,12 @@ void load_locality_info(char *filename, int *nworkers_out,
     assert(tokens[token_index].type == JSMN_OBJECT);
     token_index++;
 
+    // Number of workers to create
+    assert(string_token_equals(tokens + token_index, json, "nworkers") == 0);
+    token_index++;
+    const int nworkers = parse_int_from_primitive(tokens + token_index, json);
+    token_index++;
+
     // Declarations field of top-level object
     assert(string_token_equals(tokens + token_index, json, "declarations") == 0);
     token_index++;
@@ -299,6 +337,9 @@ void load_locality_info(char *filename, int *nworkers_out,
         assert(tokens[i].type == JSMN_STRING);
         locales[i - token_index].id = i - token_index;
         locales[i - token_index].lbl = get_copy_of_string_token(tokens + i, json);
+
+        initialize_locale(locales + (i - token_index), i - token_index,
+                get_copy_of_string_token(tokens + i, json), nworkers);
 
         // Verify that this is a unique label across all locales
         int j;
@@ -353,12 +394,6 @@ void load_locality_info(char *filename, int *nworkers_out,
         graph->edges[locale2->id * nlocales + locale1->id] = 1;
     }
     token_index = edge_index;
-
-    // Number of workers to create
-    assert(string_token_equals(tokens + token_index, json, "nworkers") == 0);
-    token_index++;
-    const int nworkers = parse_int_from_primitive(tokens + token_index, json);
-    token_index++;
 
     hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers * sizeof(hclib_worker_paths));
     assert(worker_paths);
@@ -459,13 +494,14 @@ void generate_locality_info(int *nworkers_out,
     hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers * sizeof(hclib_worker_paths));
     assert(worker_paths);
 
-    graph->locales[0].id = 0;
-    graph->locales[0].lbl = create_heap_allocated_str("sysmem");
+    initialize_locale(graph->locales + 0, 0, create_heap_allocated_str("sysmem"),
+                nworkers);
     for (i = 1; i <= nworkers; i++) {
         char buf[128];
         sprintf(buf, "cache%d", i - 1);
-        graph->locales[i].id = i;
-        graph->locales[i].lbl = create_heap_allocated_str(buf);
+        initialize_locale(graph->locales + i, i, create_heap_allocated_str(buf),
+                    nworkers);
+
         graph->edges[i * graph->n_locales + 0] = 1;
         graph->edges[0 * graph->n_locales + i] = 1;
 
@@ -535,4 +571,86 @@ void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers) {
     }
     printf("==========================================================\n");
     printf("\n");
+}
+
+/*
+ * *************************************************
+ *                  Runtime code
+ * *************************************************
+ */
+
+/*
+ * Get the deque owned by the current worker at the specified locale.
+ */
+static inline hclib_deque_t *get_deque_locale(hclib_worker_state *ws,
+        hclib_locale *locale) {
+    assert(locale);
+    return &(locale->deques[ws->id]);
+}
+
+/*
+ * Push a task onto the deque for this thread at the specified locale.
+ */
+int deque_push_locale(hclib_worker_state *ws, hclib_locale *locale, void *ele) {
+    hclib_deque_t *deq = get_deque_locale(ws, locale);
+    return deque_push(&deq->deque, ele);
+}
+
+/*
+ * Try to find a new task that was originally created by this worker by
+ * traversing its pop path and only looking at deques owned by this worker.
+ */
+hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
+    int i;
+    const int wid = ws->id;
+    hclib_worker_paths *paths = ws->paths;
+    hclib_locality_path *pop = paths->pop_path;
+
+#ifdef VERBOSE
+    fprintf(stderr, "locale_pop_task: ws=%p pop=%p path_length=%d wid=%d\n", ws,
+            pop, pop->path_length, wid);
+#endif
+
+    for (i = 0; i < pop->path_length; i++) {
+        hclib_locale *locale = pop->locales[i];
+#ifdef VERBOSE
+        fprintf(stderr, "locale_pop_task: i=%d locale=%p locale->deques=%p\n",
+                i, locale, locale->deques);
+#endif
+        hclib_task_t *task = deque_pop(&(locale->deques[wid].deque));
+        if (task) {
+            return task;
+        }
+    }
+
+    return NULL;
+}
+
+/*
+ * Try to find new work by stealing work from some other worker. We traverse the
+ * steal path for the current worker and check all deques at each locale.
+ */
+hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
+    int i, j;
+    const int wid = ws->id;
+    const int nworkers = ws->nworkers;
+    hclib_worker_paths *paths = ws->paths;
+    hclib_locality_path *steal = paths->steal_path;
+
+    MARK_SEARCH(wid); // Set the state of this worker for timing
+
+    for (i = 0; i < steal->path_length; i++) {
+        hclib_locale *locale = steal->locales[i];
+        hclib_deque_t *deqs = locale->deques;
+
+        for (j = 1; j < nworkers; j++) {
+            const int victim = (wid + i) % nworkers;
+            hclib_task_t *task = deque_steal(&(deqs[victim].deque));
+            if (task) {
+                return task;
+            }
+        }
+    }
+
+    return NULL;
 }

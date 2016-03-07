@@ -2,6 +2,7 @@
 #define HCLIB_TASK_H_
 
 #include "hclib-rt.h"
+#include "hclib-locality-graph.h"
 
 /*
  * We just need to pack the function pointer and the pointer to
@@ -26,14 +27,8 @@ typedef struct _hclib_task_t {
     void *args;
     struct finish_t *current_finish;
     generic_frame_ptr _fp;
-    /*
-     * Boolean flag specific to HabaneroUPC++ only.
-     * Used to differentiate between a normal hclib async
-     * and locality flexible asyncAny
-     */
-    int is_async_any_type;
     hclib_future_t **future_list; // Null terminated list
-    place_t *place;
+    hclib_locale *locale;
 } hclib_task_t;
 
 /*

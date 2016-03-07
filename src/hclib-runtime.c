@@ -48,8 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-cuda.h>
 #include <hclib-locality-graph.h>
 
-// #define VERBOSE
-
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
@@ -63,7 +61,7 @@ pending_cuda_op *pending_cuda_ops_head = NULL;
 pending_cuda_op *pending_cuda_ops_tail = NULL;
 #endif
 
-hc_context *hclib_context = NULL;
+hclib_context *hc_context = NULL;
 
 static char *hclib_stats = NULL;
 static int bind_threads = -1;
@@ -87,7 +85,7 @@ void log_(const char *file, int line, hclib_worker_state *ws,
 }
 
 void set_current_worker(int wid) {
-    if (pthread_setspecific(ws_key, hclib_context->workers[wid]) != 0) {
+    if (pthread_setspecific(ws_key, hc_context->workers[wid]) != 0) {
         log_die("Cannot set thread-local worker state");
     }
 
@@ -154,41 +152,31 @@ void hclib_global_init() {
         generate_locality_info(&nworkers, &graph, &worker_paths);
     }
 
+#ifdef VERBOSE
     print_locality_graph(graph);
     print_worker_paths(worker_paths, nworkers);
+#endif
 
-    hclib_context->done_flags = (worker_done_t *)malloc(
-                                    hclib_context->nworkers * sizeof(worker_done_t));
-    HASSERT(hclib_context->done_flags);
+    hc_context->nworkers = nworkers;
+    hc_context->graph = graph;
+    hc_context->worker_paths = worker_paths;
+    hc_context->done_flags = (worker_done_t *)calloc(nworkers,
+            sizeof(worker_done_t));
+    assert(hc_context->done_flags);
+    hc_context->workers = (hclib_worker_state **)calloc(nworkers,
+            sizeof(hclib_worker_state *));
+    assert(hc_context->workers);
 
-    for (int i = 0; i < hclib_context->nworkers; i++) {
-        hclib_worker_state *ws = hclib_context->workers[i];
-        ws->context = hclib_context;
-        ws->current_finish = NULL;
-        ws->curr_ctx = NULL;
-        ws->root_ctx = NULL;
-        hclib_context->done_flags[i].flag = 1;
+    for (int i = 0; i < hc_context->nworkers; i++) {
+        hclib_worker_state *ws = (hclib_worker_state *)calloc(1,
+                sizeof(hclib_worker_state));
+        ws->context = hc_context;
+        ws->id = i;
+        ws->nworkers = hc_context->nworkers;
+        ws->paths = worker_paths + i;
+        hc_context->done_flags[i].flag = 1;
+        hc_context->workers[i] = ws;
     }
-
-#ifdef HC_CUDA
-    hclib_context->pinned_host_allocs = NULL;
-#endif
-
-#ifdef HC_COMM_WORKER
-    comm_worker_out_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
-    HASSERT(comm_worker_out_deque);
-    semi_conc_deque_init(comm_worker_out_deque, NULL);
-#endif
-#ifdef HC_CUDA
-    gpu_worker_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
-    HASSERT(gpu_worker_deque);
-    semi_conc_deque_init(gpu_worker_deque, NULL);
-#endif
-
-    init_hcupc_related_datastructures(hclib_context->nworkers);
-
-    // Sets up the deques and worker contexts for the parsed HPT
-    hc_hpt_init(hclib_context);
 }
 
 void hclib_display_runtime() {
@@ -212,8 +200,8 @@ void hclib_entrypoint() {
 
     srand(0);
 
-    hclib_context = (hc_context *)malloc(sizeof(hc_context));
-    HASSERT(hclib_context);
+    hc_context = (hclib_context *)malloc(sizeof(hclib_context));
+    HASSERT(hc_context);
 
     /*
      * Parse the platform description from the HPT configuration file and load
@@ -222,7 +210,7 @@ void hclib_entrypoint() {
     hclib_global_init();
 
     // init timer stats, TODO make this account for resource management threads
-    hclib_init_stats(0, hclib_context->nworkers);
+    hclib_init_stats(0, hc_context->nworkers);
 
     /* Create key to store per thread worker_state */
     if (pthread_key_create(&ws_key, NULL) != 0) {
@@ -233,12 +221,12 @@ void hclib_entrypoint() {
      * set pthread's concurrency. Doesn't seem to do much on Linux, only
      * relevant when there are more pthreads than hardware cores to schedule
      * them on. */
-    pthread_setconcurrency(hclib_context->nworkers);
+    pthread_setconcurrency(hc_context->nworkers);
 
     // Launch the worker threads
     if (hclib_stats) {
         printf("Using %d worker threads (including main thread)\n",
-               hclib_context->nworkers);
+               hc_context->nworkers);
     }
 
     pthread_attr_t attr;
@@ -248,7 +236,7 @@ void hclib_entrypoint() {
     }
 
     // Start workers
-    for (int i = 1; i < hclib_context->nworkers; i++) {
+    for (int i = 1; i < hc_context->nworkers; i++) {
 #ifdef HC_COMM_WORKER
         /*
          * If running with a thread dedicated to network communication (e.g. through
@@ -262,8 +250,8 @@ void hclib_entrypoint() {
         if (i == GPU_WORKER_ID) continue;
 #endif
 
-        if (pthread_create(&hclib_context->workers[i]->t, &attr, worker_routine,
-                           &hclib_context->workers[i]->id) != 0) {
+        if (pthread_create(&hc_context->workers[i]->t, &attr, worker_routine,
+                           &hc_context->workers[i]->id) != 0) {
             fprintf(stderr, "Error launching thread\n");
             exit(4);
         }
@@ -275,7 +263,7 @@ void hclib_entrypoint() {
 
 #ifdef HC_COMM_WORKER
     // Kick off a dedicated communication thread
-    if (pthread_create(&hclib_context->workers[COMMUNICATION_WORKER_ID]->t, &attr,
+    if (pthread_create(&hc_context->workers[COMMUNICATION_WORKER_ID]->t, &attr,
                        communication_worker_routine,
                        CURRENT_WS_INTERNAL->current_finish) != 0) {
         fprintf(stderr, "Error launching communication worker\n");
@@ -284,7 +272,7 @@ void hclib_entrypoint() {
 #endif
 #ifdef HC_CUDA
     // Kick off a dedicated thread to manage all GPUs in a node
-    if (pthread_create(&hclib_context->workers[GPU_WORKER_ID]->t, &attr,
+    if (pthread_create(&hc_context->workers[GPU_WORKER_ID]->t, &attr,
                        gpu_worker_routine, CURRENT_WS_INTERNAL->current_finish) != 0) {
         fprintf(stderr, "Error launching GPU worker\n");
         exit(5);
@@ -295,7 +283,7 @@ void hclib_entrypoint() {
 void hclib_signal_join(int nb_workers) {
     int i;
     for (i = 0; i < nb_workers; i++) {
-        hclib_context->done_flags[i].flag = 0;
+        hc_context->done_flags[i].flag = 0;
     }
 }
 
@@ -305,7 +293,7 @@ void hclib_join(int nb_workers) {
     fprintf(stderr, "hclib_join: nb_workers = %d\n", nb_workers);
 #endif
     for (int i = 1; i < nb_workers; i++) {
-        pthread_join(hclib_context->workers[i]->t, NULL);
+        pthread_join(hc_context->workers[i]->t, NULL);
     }
 #ifdef VERBOSE
     fprintf(stderr, "hclib_join: finished\n");
@@ -313,11 +301,9 @@ void hclib_join(int nb_workers) {
 }
 
 void hclib_cleanup() {
-    hc_hpt_cleanup(hclib_context); /* cleanup deques (allocated by hc mm) */
     pthread_key_delete(ws_key);
 
-    free(hclib_context);
-    free_hcupc_related_datastructures();
+    free(hc_context);
 }
 
 static inline void check_in_finish(finish_t *finish) {
@@ -353,48 +339,34 @@ static inline void execute_task(hclib_task_t *task) {
     HC_FREE(task);
 }
 
-static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
-                                     int gpu_task, hclib_worker_state *ws) {
+static inline void rt_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 #ifdef VERBOSE
-    fprintf(stderr, "rt_schedule_async: async_task=%p comm_task=%d "
-            "gpu_task=%d place=%p\n", async_task, comm_task, gpu_task,
-            async_task->place);
+    fprintf(stderr, "rt_schedule_async: async_task=%p locale=%p\n", async_task, async_task->locale);
 #endif
 
-    if (comm_task) {
-        HASSERT(!gpu_task);
-#ifdef HC_COMM_WORKER
-        // push on comm_worker out_deq if this is a communication task
-        semi_conc_deque_locked_push(comm_worker_out_deque, async_task);
-#else
-        HASSERT(0);
-#endif
-    } else if (gpu_task) {
-#ifdef HC_CUDA
-        semi_conc_deque_locked_push(gpu_worker_deque, async_task);
-#else
-        HASSERT(0);
-#endif
+    if (async_task->locale) {
+        // If task was explicitly created at a locale, place it there
+        deque_push_locale(ws, async_task->locale, async_task);
     } else {
-        // push on worker deq
-        if (async_task->place) {
-            deque_push_place(ws, async_task->place, async_task);
-        } else {
-            const int wid = get_current_worker();
+        /*
+         * If no explicit locale was provided, place it at a default location.
+         * In the old implementation, each worker had the concept of a 'current'
+         * locale. For now we just place at locale 0 by default, but having a
+         * current locale might be a good thing to implement in the future. TODO.
+         */
+        const int wid = get_current_worker();
 #ifdef VERBOSE
-            fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
-                    "hclib_context=%p\n", wid, hclib_context);
+        fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
+                "hc_context=%p hc_context->graph=%p\n", wid, hc_context, hc_context->graph);
 #endif
-            if (!deque_push(&(hclib_context->workers[wid]->current->deque),
-                            async_task)) {
-                // TODO: deque is full, so execute in place
-                printf("WARNING: deque full, local execution\n");
-                execute_task(async_task);
-            }
-#ifdef VERBOSE
-            fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
-#endif
+        if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque), async_task)) {
+            // TODO: deque is full, so execute in place
+            printf("WARNING: deque full, local execution\n");
+            execute_task(async_task);
         }
+#ifdef VERBOSE
+        fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
+#endif
     }
 }
 
@@ -406,7 +378,7 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
  * registered on each, and it is only placed in a work deque once all promises have
  * been satisfied.
  */
-inline int is_eligible_to_schedule(hclib_task_t *async_task) {
+static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
 #ifdef VERBOSE
     fprintf(stderr, "is_eligible_to_schedule: async_task=%p future_list=%p\n",
             async_task, async_task->future_list);
@@ -425,32 +397,19 @@ inline int is_eligible_to_schedule(hclib_task_t *async_task) {
  * runtime. See is_eligible_to_schedule to understand when a task is or isn't
  * eligible for scheduling.
  */
-void try_schedule_async(hclib_task_t *async_task, int comm_task, int gpu_task,
-                        hclib_worker_state *ws) {
+void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
+#ifdef VERBOSE
+    fprintf(stderr, "try_schedule_async: async_task=%p ws=%p\n", async_task, ws);
+#endif
     if (is_eligible_to_schedule(async_task)) {
-        rt_schedule_async(async_task, comm_task, gpu_task, ws);
+        rt_schedule_async(async_task, ws);
     }
 }
 
-void spawn_handler(hclib_task_t *task, place_t *pl,
-                   hclib_future_t **future_list, int escaping, int comm, int gpu) {
+void spawn_handler(hclib_task_t *task, hclib_locale *locale,
+        hclib_future_t **future_list, int escaping) {
 
     HASSERT(task);
-#ifndef HC_CUDA
-    HASSERT(!gpu);
-#endif
-#ifndef HC_COMM_WORKER
-    HASSERT(!comm);
-#endif
-    /*
-     * check if this is DDDf_t (remote or owner) and do callback to
-     * HabaneroUPC++ for implementation.
-     *
-     * TODO not sure exactly what this does, just copy-pasted. Ask Kumar
-     */
-    if (future_list) {
-        check_if_hcupc_distributed_futures(future_list);
-    }
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     if (!escaping) {
@@ -461,8 +420,8 @@ void spawn_handler(hclib_task_t *task, place_t *pl,
         set_current_finish(task, NULL);
     }
 
-    if (pl) {
-        task->place = pl;
+    if (locale) {
+        task->locale = locale;
     }
 
     if (future_list) {
@@ -475,46 +434,33 @@ void spawn_handler(hclib_task_t *task, place_t *pl,
     fprintf(stderr, "spawn_handler: task=%p\n", task);
 #endif
 
-    try_schedule_async(task, comm, gpu, ws);
+    try_schedule_async(task, ws);
 }
 
-void spawn_at_hpt(place_t *pl, hclib_task_t *task) {
-    // get current worker
-    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    check_in_finish(ws->current_finish);
-    set_current_finish(task, ws->current_finish);
-    task->place = pl;
-    try_schedule_async(task, 0, 0, ws);
+void spawn_at(hclib_task_t *task, hclib_locale *locale) {
+    spawn_handler(task, locale, NULL, 0);
 }
 
 void spawn(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0, 0, 0);
+    spawn_handler(task, NULL, NULL, 0);
 }
 
 void spawn_escaping(hclib_task_t *task, hclib_future_t **future_list) {
-    spawn_handler(task, NULL, future_list, 1, 0, 0);
+    spawn_handler(task, NULL, future_list, 1);
 }
 
-void spawn_escaping_at(place_t *pl, hclib_task_t *task,
+void spawn_escaping_at(hclib_locale *locale, hclib_task_t *task,
                        hclib_future_t **future_list) {
-    spawn_handler(task, pl, future_list, 1, 0, 0);
+    spawn_handler(task, locale, future_list, 1);
 }
 
 void spawn_await_at(hclib_task_t *task, hclib_future_t **future_list,
-                    place_t *pl) {
-    spawn_handler(task, pl, future_list, 0, 0, 0);
+                    hclib_locale *locale) {
+    spawn_handler(task, locale, future_list, 0);
 }
 
 void spawn_await(hclib_task_t *task, hclib_future_t **future_list) {
     spawn_await_at(task, future_list, NULL);
-}
-
-void spawn_comm_task(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0, 1, 0);
-}
-
-void spawn_gpu_task(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0, 0, 1);
 }
 
 #ifdef HC_CUDA
@@ -624,7 +570,7 @@ static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
 
 void *gpu_worker_routine(void *finish_ptr) {
     set_current_worker(GPU_WORKER_ID);
-    worker_done_t *done_flag = hclib_context->done_flags + GPU_WORKER_ID;
+    worker_done_t *done_flag = hc_context->done_flags + GPU_WORKER_ID;
 
     semi_conc_deque_t *deque = gpu_worker_deque;
     while (done_flag->flag) {
@@ -733,7 +679,7 @@ void *gpu_worker_routine(void *finish_ptr) {
 #ifdef HC_COMM_WORKER
 void *communication_worker_routine(void *finish_ptr) {
     set_current_worker(COMMUNICATION_WORKER_ID);
-    worker_done_t *done_flag = hclib_context->done_flags + COMMUNICATION_WORKER_ID;
+    worker_done_t *done_flag = hc_context->done_flags + COMMUNICATION_WORKER_ID;
 
 #ifdef VERBOSE
     fprintf(stderr, "communication worker spinning up\n");
@@ -764,11 +710,11 @@ void *communication_worker_routine(void *finish_ptr) {
 #endif
 
 void find_and_run_task(hclib_worker_state *ws) {
-    hclib_task_t *task = hpt_pop_task(ws);
+    hclib_task_t *task = locale_pop_task(ws);
     if (!task) {
-        while (hclib_context->done_flags[ws->id].flag) {
+        while (hc_context->done_flags[ws->id].flag) {
             // try to steal
-            task = hpt_steal_task(ws);
+            task = locale_steal_task(ws);
             if (task) {
                 break;
             }
@@ -783,7 +729,7 @@ void find_and_run_task(hclib_worker_state *ws) {
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
     hclib_end_finish();
     // Signal shutdown to all worker threads
-    hclib_signal_join(hclib_context->nworkers);
+    hclib_signal_join(hc_context->nworkers);
     // Jump back to the system thread context for this worker
     ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, __func__);
     HASSERT(0); // Should never return here
@@ -795,7 +741,7 @@ static void core_work_loop(void) {
         hclib_worker_state *ws = CURRENT_WS_INTERNAL;
         wid = (uint64_t)ws->id;
         find_and_run_task(ws);
-    } while (hclib_context->done_flags[wid].flag);
+    } while (hc_context->done_flags[wid].flag);
 
     // Jump back to the system thread context for this worker
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
@@ -1044,7 +990,7 @@ hclib_future_t *hclib_end_finish_nonblocking() {
 }
 
 int hclib_num_workers() {
-    return hclib_context->nworkers;
+    return hc_context->nworkers;
 }
 
 double mysecond() {
@@ -1067,12 +1013,6 @@ static void hclib_init(int *argc, char **argv) {
     hclib_stats = getenv("HCLIB_STATS");
     bind_threads = (getenv("HCLIB_BIND_THREADS") != NULL);
 
-    const char *hpt_file = getenv("HCLIB_HPT_FILE");
-    if (hpt_file == NULL) {
-        fprintf(stderr, "WARNING: Running without a provided HCLIB_HPT_FILE, "
-                "will make a best effort to generate a default HPT.\n");
-    }
-
     hclib_entrypoint();
 }
 
@@ -1086,7 +1026,7 @@ static void hclib_finalize() {
     LiteCtx_destroy(finalize_ctx->prev);
     LiteCtx_proxy_destroy(finalize_ctx);
 
-    hclib_join(hclib_context->nworkers);
+    hclib_join(hc_context->nworkers);
     hclib_cleanup();
 }
 
@@ -1114,11 +1054,7 @@ static void hclib_finalize() {
 void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
                   void *arg) {
     hclib_init(argc, argv);
-#ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#else    
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
-#endif
+    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE);
     hclib_finalize();
 }
 

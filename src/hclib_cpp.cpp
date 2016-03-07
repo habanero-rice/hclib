@@ -27,35 +27,29 @@ int hclib::num_workers() {
     return hclib_num_workers();
 }
 
-int hclib::get_num_places(hclib::place_type_t type) {
-    return hclib_get_num_places(type);
-}
-
-void hclib::get_places(hclib::place_t **pls, hclib::place_type_t type) {
-    hclib_get_places(pls, type);
-}
-
-place_t *hclib::get_current_place() {
-    return hclib_get_current_place();
-}
-
-place_t **hclib::get_children_of_place(place_t *pl, int *num_children) {
-    return hclib_get_children_of_place(pl, num_children);
-}
-
-place_t *hclib::get_root_place() {
-    return hclib_get_root_place();
-}
-
-#ifdef HC_CUDA
-place_t **hclib::get_nvgpu_places(int *n_nvgpu_places) {
-    return hclib_get_nvgpu_places(n_nvgpu_places);
-}
-#endif
-
-char *hclib::get_place_name(place_t *pl) {
-    return hclib_get_place_name(pl);
-}
+// int hclib::get_num_places(hclib::place_type_t type) {
+//     return hclib_get_num_places(type);
+// }
+// 
+// void hclib::get_places(hclib::place_t **pls, hclib::place_type_t type) {
+//     hclib_get_places(pls, type);
+// }
+// 
+// place_t *hclib::get_current_place() {
+//     return hclib_get_current_place();
+// }
+// 
+// place_t **hclib::get_children_of_place(place_t *pl, int *num_children) {
+//     return hclib_get_children_of_place(pl, num_children);
+// }
+// 
+// place_t *hclib::get_root_place() {
+//     return hclib_get_root_place();
+// }
+// 
+// char *hclib::get_place_name(place_t *pl) {
+//     return hclib_get_place_name(pl);
+// }
 
 #ifdef HUPCPP
 int hclib::total_pending_local_asyncs() {

@@ -82,7 +82,7 @@ struct hclib_promise_st;
  */
 void hclib_async(asyncFct_t fct_ptr, void * arg,
         hclib_future_t **future_list, struct _phased_t * phased_clause,
-        place_t *place, int property);
+        hclib_locale *locale);
 
 /*
  * Spawn an async that automatically puts a promise on termination. It is the user's
@@ -90,7 +90,7 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
  */
 hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
         hclib_future_t **future_list, struct _phased_t *phased_clause,
-        place_t *place, int property);
+        hclib_locale *locale);
 
 /*
  * Forasync definition and API

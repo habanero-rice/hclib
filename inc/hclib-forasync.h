@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCLIB_FORASYNC_H_
 #define HCLIB_FORASYNC_H_
 
-#include "hclib-place.h"
 #include "hclib-cuda.h"
 
 /*
@@ -491,62 +490,36 @@ inline void forasync1D_cuda_internal(_loop_domain_t *loop,
  */
 template <typename T>
 inline void forasync1D(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        int mode = FORASYNC_MODE_RECURSIVE, hclib_locale *locale = NULL,
         hclib_future_t **future_list = NULL) {
-    if (place == NULL || is_cpu_place(place)) {
-        forasync1D_internal<T>(loop, lambda, mode, place, future_list);
-#ifdef HC_CUDA
-    } else if (is_nvgpu_place(place)) {
-        forasync1D_cuda_internal(loop, lambda, mode, place, future_list, NULL);
-#endif
-    } else {
-        fprintf(stderr, "Unrecognized place type %d\n", place->type);
-        exit(1);
-    }
+    forasync1D_internal<T>(loop, lambda, mode, locale, future_list);
 }
 
 template <typename T>
 inline void forasync2D(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        int mode = FORASYNC_MODE_RECURSIVE, hclib_locale *locale = NULL,
         hclib_future_t **future_list = NULL) {
-    forasync2D_internal<T>(loop, lambda, mode, place, future_list);
+    forasync2D_internal<T>(loop, lambda, mode, locale, future_list);
 }
 
 template <typename T>
 inline void forasync3D(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        int mode = FORASYNC_MODE_RECURSIVE, hclib_locale *locale = NULL,
         hclib_future_t **future_list = NULL) {
-    forasync3D_internal<T>(loop, lambda, mode, place, future_list);
+    forasync3D_internal<T>(loop, lambda, mode, locale, future_list);
 }
 
 template <typename T>
 inline hclib::future_t *forasync1D_future(_loop_domain_t* loop, T lambda,
-        int mode, place_t *place, hclib_future_t **future_list) {
+        int mode, hclib_locale *locale, hclib_future_t **future_list) {
 #ifdef VERBOSE
-    int place_device_id = -1;
-#ifdef HC_CUDA
-    if (place) place_device_id = place->cuda_id;
+    fprintf(stderr, "forasync1D_future: locale=%p\n", locale);
 #endif
-    fprintf(stderr, "forasync1D_future: place=%p cuda_id=%d\n", place,
-            place_device_id);
-#endif
-    if (place == NULL || is_cpu_place(place)) {
-        hclib_start_finish();
-        forasync1D_internal<T>(loop, lambda, mode, place, NULL);
-        hclib::promise_t *event = new hclib::promise_t();
-        hclib_end_finish_nonblocking_helper(&event->internal);
-        return event->get_future();
-#ifdef HC_CUDA
-    } else if (is_nvgpu_place(place)) {
-        hclib::promise_t *event = new hclib::promise_t();
-        forasync1D_cuda_internal(loop, lambda, mode, place, NULL,
-                &event->internal);
-        return event->get_future();
-#endif
-    } else {
-        fprintf(stderr, "Unrecognized place type %d\n", place->type);
-        exit(1);
-    }
+    hclib_start_finish();
+    forasync1D_internal<T>(loop, lambda, mode, locale, NULL);
+    hclib::promise_t *event = new hclib::promise_t();
+    hclib_end_finish_nonblocking_helper(&event->internal);
+    return event->get_future();
 }
 
 template <typename T>
@@ -562,23 +535,23 @@ inline hclib::future_t *forasync1D_future(_loop_domain_t* loop, T lambda,
 
 template <typename T>
 inline hclib::future_t *forasync1D_future(_loop_domain_t* loop, T lambda,
-        int mode, place_t *place) {
-    return forasync1D_future(loop, lambda, mode, place, NULL);
+        int mode, hclib_locale *locale) {
+    return forasync1D_future(loop, lambda, mode, locale, NULL);
 }
 
 template <typename T, typename... future_list_t>
 inline hclib::future_t *forasync1D_future(_loop_domain_t* loop, T lambda,
-        int mode, place_t *place, future_list_t... futures) {
+        int mode, hclib_locale *locale, future_list_t... futures) {
     hclib_future_t **future_list = construct_future_list(futures...);
-    return forasync1D_future(loop, lambda, mode, place, future_list);
+    return forasync1D_future(loop, lambda, mode, locale, future_list);
 }
 
 template <typename T>
 inline hclib::future_t *forasync2D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        int mode = FORASYNC_MODE_RECURSIVE, hclib_locale *locale = NULL,
         hclib::future_t **future_list = NULL) {
     hclib_start_finish();
-    forasync2D_internal<T>(loop, lambda, mode, place, future_list);
+    forasync2D_internal<T>(loop, lambda, mode, locale, future_list);
     hclib::promise_t *event = new hclib::promise_t();
     hclib_end_finish_nonblocking_helper(&event->internal);
     return event->get_future();
@@ -586,10 +559,10 @@ inline hclib::future_t *forasync2D_future(_loop_domain_t* loop, T lambda,
 
 template <typename T>
 inline hclib::future_t *forasync3D_future(_loop_domain_t* loop, T lambda,
-        int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
+        int mode = FORASYNC_MODE_RECURSIVE, hclib_locale *locale = NULL,
         hclib::future_t **future_list = NULL) {
     hclib_start_finish();
-    forasync3D_internal<T>(loop, lambda, mode, place, future_list);
+    forasync3D_internal<T>(loop, lambda, mode, locale, future_list);
     hclib::promise_t *event = new hclib::promise_t();
     hclib_end_finish_nonblocking_helper(&event->internal);
     return event->get_future();

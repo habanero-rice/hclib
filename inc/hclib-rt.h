@@ -56,27 +56,23 @@ extern "C" {
 extern pthread_key_t ws_key;
 struct hc_context;
 struct hclib_options;
-struct hclib_worker_state;
 struct place_t;
 struct deque_t;
 struct hc_deque_t;
 struct finish_t;
+struct _hclib_worker_paths;
 
-typedef struct hclib_worker_state {
-        pthread_t t; // the pthread associated
-        struct finish_t* current_finish;
-        struct place_t * pl; // the directly attached place
-        // Path from root to worker's leaf place. Array of places.
-        struct place_t ** hpt_path;
-        struct hc_context * context;
-        // the link of other ws in the same place
-        struct hclib_worker_state * next_worker;
-        struct hc_deque_t * current; // the current deque/place worker is on
-        struct hc_deque_t * deques;
-        int id; // The id, identify a worker
-        int did; // the mapping device id
-        LiteCtx *curr_ctx;
-        LiteCtx *root_ctx;
+typedef struct _hclib_worker_state {
+    struct hclib_context *context;
+    struct _hclib_worker_paths *paths;
+    pthread_t t; // the pthread associated
+    struct finish_t* current_finish;
+    LiteCtx *curr_ctx;
+    LiteCtx *root_ctx;
+    // The id, identify a worker
+    int id;
+    // Total number of workers in this instance of the HClib runtime
+    int nworkers;
 } hclib_worker_state;
 
 #ifdef HC_ASSERTION_CHECK
@@ -101,7 +97,6 @@ typedef void (*generic_frame_ptr)(void*);
 
 #include "hclib-timer.h"
 #include "hclib-promise.h"
-#include "hclib-place.h"
 
 int  hclib_num_workers();
 void hclib_start_finish();

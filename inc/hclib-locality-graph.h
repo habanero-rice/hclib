@@ -1,6 +1,11 @@
 #ifndef _HCLIB_LOCALITY_GRAPH_H
 #define _HCLIB_LOCALITY_GRAPH_H
 
+#include "hclib-rt.h"
+
+struct _hclib_deque_t;
+struct _hclib_task_t;
+
 /*
  * A locality graph defines the reachable hardware components from each locale
  * in a platform. It consists of a set of locales linked together by
@@ -46,7 +51,9 @@
 
 typedef struct _hclib_locale {
     unsigned id;
-    char *lbl;
+    const char *lbl;
+
+    struct _hclib_deque_t *deques;
 } hclib_locale;
 
 typedef struct _hclib_locality_graph {
@@ -65,7 +72,7 @@ typedef struct _hclib_worker_paths {
     hclib_locality_path *steal_path;
 } hclib_worker_paths;
 
-extern void load_locality_info(char *filename, int *nworkers_out,
+extern void load_locality_info(const char *filename, int *nworkers_out,
         hclib_locality_graph **graph_out,
         hclib_worker_paths **worker_paths_out);
 extern void generate_locality_info(int *nworkers_out,
@@ -73,5 +80,8 @@ extern void generate_locality_info(int *nworkers_out,
         hclib_worker_paths **worker_paths_out);
 extern void print_locality_graph(hclib_locality_graph *graph);
 extern void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers);
+extern int deque_push_locale(hclib_worker_state *ws, hclib_locale *locale, void *ele);
+extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
+extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);
 
 #endif
