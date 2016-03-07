@@ -93,6 +93,16 @@ hclib_promise_t *hclib_async_future(future_fct_t fp, void *arg,
         hclib_locale *locale);
 
 /*
+ * Locale-aware memory management functions.
+ */
+hclib_future_t *hclib_allocate_at(size_t nbytes, hclib_locale *locale);
+hclib_future_t *hclib_reallocate_at(void *ptr, size_t new_nbytes,
+        hclib_locale *locale);
+hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes,
+        hclib_locale *locale);
+void hclib_free_at(void *ptr, hclib_locale *locale);
+
+/*
  * Forasync definition and API
  */
 
