@@ -36,7 +36,10 @@ MEDIAN_PY=../../../tools/median.py
 MEAN_PY=../../../tools/mean.py
 BENCHMARKS=('cilksort 100000000', 'FFT 16384', 'fib 45', 'fib-ddt 45', \
         'nqueens 14', 'qsort 100000000', 'rodinia/backprop/backprop 4194304', \
-        'rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt')
+        'rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt', \
+        'rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt', \
+        'rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K',
+        'rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4')
 NTRIALS=10
 
 TIMESTAMP=$(date +%s)
@@ -53,11 +56,12 @@ REFERENCE_LOG_FILE=$(ls -lrt regression-logs-$MACHINE/ | grep dat | tail -n 1 | 
 touch $LOG_FILE
 
 for TEST in "${BENCHMARKS[@]}"; do
+    TESTNAME=$(basename $(echo $TEST | awk '{ print $1 }'))
+    echo Running $TESTNAME
+
     T=$(for TRIAL in $(seq 1 $NTRIALS); do
-        echo $TRIAL
         HCLIB_PROFILE_LAUNCH_BODY=1 $TEST 2>&1 | grep 'HCLIB TIME' | awk '{ print $3 }'
     done | python $MEAN_PY)
-    TESTNAME=$(basename $(echo $TEST | awk '{ print $1 }'))
     echo $TESTNAME $T >> $LOG_FILE
 done
 

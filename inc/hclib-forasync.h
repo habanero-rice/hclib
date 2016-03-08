@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCLIB_FORASYNC_H_
 #define HCLIB_FORASYNC_H_
 
+#include "hclib.h"
 #include "hclib-task.h"
 
 /*
@@ -53,6 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace hclib {
 
+static inline int default_tile_size(int n, int nchunks) {
+    return (n + nchunks - 1) / nchunks;
+}
+
 class loop_domain_1d {
     private:
         hclib_loop_domain_t loop;
@@ -60,12 +65,12 @@ class loop_domain_1d {
     public:
         loop_domain_1d(int N) {
             loop.low = 0; loop.high = N;
-            loop.stride = 1; loop.tile = 1;
+            loop.stride = 1; loop.tile = default_tile_size(N, hclib_num_workers());
         }
 
         loop_domain_1d(int low, int high) {
             loop.low = low; loop.high = high;
-            loop.stride = 1; loop.tile = 1;
+            loop.stride = 1; loop.tile = default_tile_size(high - low, hclib_num_workers());
         }
 
         hclib_loop_domain_t *get_internal() { return &loop; }
@@ -78,16 +83,16 @@ class loop_domain_2d {
     public:
         loop_domain_2d(int N1, int N2) {
             loop[0].low = 0;    loop[0].high = N1;
-            loop[0].stride = 1; loop[0].tile = 1;
+            loop[0].stride = 1; loop[0].tile = default_tile_size(N1, hclib_num_workers());
             loop[1].low = 0;    loop[1].high = N2;
-            loop[1].stride = 1; loop[1].tile = 1;
+            loop[1].stride = 1; loop[1].tile = default_tile_size(N2, hclib_num_workers());
         }
 
         loop_domain_2d(int low1, int high1, int low2, int high2) {
             loop[0].low = low1; loop[0].high = high1;
-            loop[0].stride = 1; loop[0].tile = 1;
+            loop[0].stride = 1; loop[0].tile = default_tile_size(high1 - low1, hclib_num_workers());
             loop[1].low = low2; loop[1].high = high2;
-            loop[1].stride = 1; loop[1].tile = 1;
+            loop[1].stride = 1; loop[1].tile = default_tile_size(high2 - low2, hclib_num_workers());
         }
 
         hclib_loop_domain_t *get_internal() { return loop; }
@@ -100,21 +105,21 @@ class loop_domain_3d {
     public:
         loop_domain_3d(int N1, int N2, int N3) {
             loop[0].low = 0;    loop[0].high = N1;
-            loop[0].stride = 1; loop[0].tile = 1;
+            loop[0].stride = 1; loop[0].tile = default_tile_size(N1, hclib_num_workers());
             loop[1].low = 0;    loop[1].high = N2;
-            loop[1].stride = 1; loop[1].tile = 1;
+            loop[1].stride = 1; loop[1].tile = default_tile_size(N2, hclib_num_workers());
             loop[2].low = 0;    loop[2].high = N3;
-            loop[2].stride = 1; loop[2].tile = 1;
+            loop[2].stride = 1; loop[2].tile = default_tile_size(N3, hclib_num_workers());
         }
 
         loop_domain_3d(int low1, int high1, int low2, int high2, int low3,
                 int high3) {
             loop[0].low = low1; loop[0].high = high1;
-            loop[0].stride = 1; loop[0].tile = 1;
+            loop[0].stride = 1; loop[0].tile = default_tile_size(high1 - low1, hclib_num_workers());
             loop[1].low = low2; loop[1].high = high2;
-            loop[1].stride = 1; loop[1].tile = 1;
-            loop[2].low = low2; loop[2].high = high2;
-            loop[2].stride = 1; loop[2].tile = 1;
+            loop[1].stride = 1; loop[1].tile = default_tile_size(high2 - low2, hclib_num_workers());
+            loop[2].low = low3; loop[2].high = high3;
+            loop[2].stride = 1; loop[2].tile = default_tile_size(high3 - low3, hclib_num_workers());
         }
 
         hclib_loop_domain_t *get_internal() { return loop; }

@@ -1058,7 +1058,7 @@ void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
     hclib_finalize();
     if (profile_launch_body) {
         end_time = current_time_ns();
-        printf("HCLIB TIME %llu ns\n", end_time - start_time);
+        printf("\nHCLIB TIME %llu ns\n", end_time - start_time);
     }
 }
 

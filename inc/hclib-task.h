@@ -96,16 +96,16 @@ typedef struct _forasync_3D_task_t {
     forasync3D_t def;
 } forasync3D_task_t;
 
-inline struct finish_t* get_current_finish(hclib_task_t *t) {
+static inline struct finish_t* get_current_finish(hclib_task_t *t) {
     return t->current_finish;
 }
 
-inline void set_current_finish(hclib_task_t *t,
+static inline void set_current_finish(hclib_task_t *t,
         struct finish_t* finish) {
     t->current_finish = finish;
 }
 
-inline void set_future_list(hclib_task_t *t, hclib_future_t **futures) {
+static inline void set_future_list(hclib_task_t *t, hclib_future_t **futures) {
     t->future_list = futures;
 }
 
