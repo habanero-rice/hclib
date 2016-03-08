@@ -6,7 +6,7 @@ INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/f
 # cflags: important to define that otherwise we inherit default values too
 CFLAGS = -Wall -g -O3 -std=c99
 CXXFLAGS = -Wall -g -O3 -std=c++11
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -lrt
 
 if DIST_WS
 HC_FLAGS_1 = -DDIST_WS

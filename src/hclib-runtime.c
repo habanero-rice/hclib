@@ -70,6 +70,7 @@ pending_cuda_op *pending_cuda_ops_tail = NULL;
 hclib_context *hc_context = NULL;
 
 static char *hclib_stats = NULL;
+static int profile_launch_body = 0;
 
 void hclib_start_finish();
 
@@ -87,6 +88,13 @@ void log_(const char *file, int line, hclib_worker_state *ws,
     vfprintf(f, format, l);
     fflush(f);
     va_end(l);
+}
+
+static unsigned long long current_time_ns() {
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
 }
 
 static void set_current_worker(int wid) {
@@ -997,6 +1005,9 @@ void hclib_user_harness_timer(double dur) {
 static void hclib_init(int *argc, char **argv) {
     HASSERT(hclib_stats == NULL);
     hclib_stats = getenv("HCLIB_STATS");
+    if (getenv("HCLIB_PROFILE_LAUNCH_BODY")) {
+        profile_launch_body = 1;
+    }
 
     hclib_entrypoint();
 }
@@ -1038,8 +1049,16 @@ static void hclib_finalize() {
 
 void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
                   void *arg) {
+    unsigned long long start_time, end_time;
     hclib_init(argc, argv);
+    if (profile_launch_body) {
+        start_time = current_time_ns();
+    }
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE);
     hclib_finalize();
+    if (profile_launch_body) {
+        end_time = current_time_ns();
+        printf("HCLIB TIME %llu ns\n", end_time - start_time);
+    }
 }
 
