@@ -59,8 +59,8 @@ int main (int argc, char ** argv) {
 
         init_ran(ran, H1);
         hclib::finish([=]() {
-            loop_domain_t loop = {0, H1, 1, T1};
-            hclib::forasync1D(&loop, [=](int idx) { assert(ran[idx] == -1);
+            hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, H1);
+            hclib::forasync1D(loop, [=](int idx) { assert(ran[idx] == -1);
                     ran[idx] = idx; }, FORASYNC_MODE_FLAT);
         });
     });

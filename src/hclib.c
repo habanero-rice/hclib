@@ -177,7 +177,7 @@ void forasync1D_runner(void *forasync_arg) {
     hclib_task_t *user = forasync->base.user;
     forasync1D_Fct_t user_fct_ptr = (forasync1D_Fct_t) user->_fp;
     void *user_arg = (void *) user->args;
-    loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop0 = forasync->loop0;
     int i=0;
     for(i=loop0.low; i<loop0.high; i+=loop0.stride) {
         (*user_fct_ptr)(user_arg, i);
@@ -189,8 +189,8 @@ void forasync2D_runner(void *forasync_arg) {
     hclib_task_t *user = *((hclib_task_t **) forasync_arg);
     forasync2D_Fct_t user_fct_ptr = (forasync2D_Fct_t) user->_fp;
     void *user_arg = (void *) user->args;
-    loop_domain_t loop0 = forasync->loop0;
-    loop_domain_t loop1 = forasync->loop1;
+    hclib_loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop1 = forasync->loop1;
     int i=0,j=0;
     for(i=loop0.low; i<loop0.high; i+=loop0.stride) {
         for(j=loop1.low; j<loop1.high; j+=loop1.stride) {
@@ -204,9 +204,9 @@ void forasync3D_runner(void *forasync_arg) {
     hclib_task_t *user = *((hclib_task_t **) forasync_arg);
     forasync3D_Fct_t user_fct_ptr = (forasync3D_Fct_t) user->_fp;
     void *user_arg = (void *) user->args;
-    loop_domain_t loop0 = forasync->loop0;
-    loop_domain_t loop1 = forasync->loop1;
-    loop_domain_t loop2 = forasync->loop2;
+    hclib_loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop1 = forasync->loop1;
+    hclib_loop_domain_t loop2 = forasync->loop2;
     int i=0,j=0,k=0;
     for(i=loop0.low; i<loop0.high; i+=loop0.stride) {
         for(j=loop1.low; j<loop1.high; j+=loop1.stride) {
@@ -222,7 +222,7 @@ void forasync3D_runner(void *forasync_arg) {
 
 void forasync1D_recursive(void *forasync_arg) {
     forasync1D_t *forasync = (forasync1D_t *) forasync_arg;
-    loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int low0 = loop0.low;
     int stride0 = loop0.stride;
@@ -237,7 +237,7 @@ void forasync1D_recursive(void *forasync_arg) {
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
-        loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
+        hclib_loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
         // update lower-half
         forasync->loop0.high = mid;
@@ -254,12 +254,12 @@ void forasync1D_recursive(void *forasync_arg) {
 
 void forasync2D_recursive(void *forasync_arg) {
     forasync2D_t *forasync = (forasync2D_t *) forasync_arg;
-    loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int low0 = loop0.low;
     int stride0 = loop0.stride;
     int tile0 = loop0.tile;
-    loop_domain_t loop1 = forasync->loop1;
+    hclib_loop_domain_t loop1 = forasync->loop1;
     int high1 = loop1.high;
     int low1 = loop1.low;
     int stride1 = loop1.stride;
@@ -275,7 +275,7 @@ void forasync2D_recursive(void *forasync_arg) {
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
-        loop_domain_t new_loop0 = {mid, high0, stride0, tile0};;
+        hclib_loop_domain_t new_loop0 = {mid, high0, stride0, tile0};;
         new_forasync_task->def.loop0 = new_loop0;
         new_forasync_task->def.loop1 = loop1;
         // update lower-half
@@ -289,7 +289,7 @@ void forasync2D_recursive(void *forasync_arg) {
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
-        loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
+        hclib_loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
         new_forasync_task->def.loop1 = new_loop1;
         // update lower-half
         forasync->loop1.high = mid;
@@ -308,17 +308,17 @@ void forasync2D_recursive(void *forasync_arg) {
 
 void forasync3D_recursive(void *forasync_arg) {
     forasync3D_t *forasync = (forasync3D_t *) forasync_arg;
-    loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int low0 = loop0.low;
     int stride0 = loop0.stride;
     int tile0 = loop0.tile;
-    loop_domain_t loop1 = forasync->loop1;
+    hclib_loop_domain_t loop1 = forasync->loop1;
     int high1 = loop1.high;
     int low1 = loop1.low;
     int stride1 = loop1.stride;
     int tile1 = loop1.tile;
-    loop_domain_t loop2 = forasync->loop2;
+    hclib_loop_domain_t loop2 = forasync->loop2;
     int high2 = loop2.high;
     int low2 = loop2.low;
     int stride2 = loop2.stride;
@@ -334,7 +334,7 @@ void forasync3D_recursive(void *forasync_arg) {
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
-        loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
+        hclib_loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
         new_forasync_task->def.loop1 = loop1;
         new_forasync_task->def.loop2 = loop2;
@@ -349,7 +349,7 @@ void forasync3D_recursive(void *forasync_arg) {
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
-        loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
+        hclib_loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
         new_forasync_task->def.loop1 = new_loop1;
         new_forasync_task->def.loop2 = loop2;
         // update lower-half
@@ -364,7 +364,7 @@ void forasync3D_recursive(void *forasync_arg) {
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         new_forasync_task->def.loop1 = loop1;
-        loop_domain_t new_loop2 = {mid, high2, stride2, tile2};
+        hclib_loop_domain_t new_loop2 = {mid, high2, stride2, tile2};
         new_forasync_task->def.loop2 = new_loop2;
         // update lower-half
         forasync->loop2.high = mid;
@@ -383,7 +383,7 @@ void forasync3D_recursive(void *forasync_arg) {
 
 void forasync1D_flat(void *forasync_arg) {
     forasync1D_t *forasync = (forasync1D_t *) forasync_arg;
-    loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop0 = forasync->loop0;
     int high0 = loop0.high;
     int stride0 = loop0.stride;
     int tile0 = loop0.tile;
@@ -400,7 +400,7 @@ void forasync1D_flat(void *forasync_arg) {
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
-        loop_domain_t new_loop0 = {low0, low0+tile0, stride0, tile0};
+        hclib_loop_domain_t new_loop0 = {low0, low0+tile0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
         spawn((hclib_task_t *)new_forasync_task);
     }
@@ -414,7 +414,7 @@ void forasync1D_flat(void *forasync_arg) {
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
-        loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
+        hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
         new_forasync_task->def.loop0 = new_loop0;
         spawn((hclib_task_t *)new_forasync_task);
     }
@@ -422,8 +422,8 @@ void forasync1D_flat(void *forasync_arg) {
 
 void forasync2D_flat(void *forasync_arg) {
     forasync2D_t *forasync = (forasync2D_t *) forasync_arg;
-    loop_domain_t loop0 = forasync->loop0;
-    loop_domain_t loop1 = forasync->loop1;
+    hclib_loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop1 = forasync->loop1;
     int low0, low1;
     for(low0=loop0.low; low0<loop0.high; low0+=loop0.tile) {
         int high0 = (low0+loop0.tile)>loop0.high?loop0.high:(low0+loop0.tile);
@@ -440,9 +440,9 @@ void forasync2D_flat(void *forasync_arg) {
             new_forasync_task->forasync_task.args = &(new_forasync_task->def);
             new_forasync_task->forasync_task.future_list = NULL;
             new_forasync_task->def.base.user = forasync->base.user;
-            loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
+            hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
             new_forasync_task->def.loop0 = new_loop0;
-            loop_domain_t new_loop1 = {low1, high1, loop1.stride, loop1.tile};
+            hclib_loop_domain_t new_loop1 = {low1, high1, loop1.stride, loop1.tile};
             new_forasync_task->def.loop1 = new_loop1;
             spawn((hclib_task_t *)new_forasync_task);
         }
@@ -451,9 +451,9 @@ void forasync2D_flat(void *forasync_arg) {
 
 void forasync3D_flat(void *forasync_arg) {
     forasync3D_t *forasync = (forasync3D_t *) forasync_arg;
-    loop_domain_t loop0 = forasync->loop0;
-    loop_domain_t loop1 = forasync->loop1;
-    loop_domain_t loop2 = forasync->loop2;
+    hclib_loop_domain_t loop0 = forasync->loop0;
+    hclib_loop_domain_t loop1 = forasync->loop1;
+    hclib_loop_domain_t loop2 = forasync->loop2;
     int low0, low1, low2;
     for(low0=loop0.low; low0<loop0.high; low0+=loop0.tile) {
         int high0 = (low0+loop0.tile)>loop0.high?loop0.high:(low0+loop0.tile);
@@ -475,11 +475,11 @@ void forasync3D_flat(void *forasync_arg) {
                 new_forasync_task->forasync_task.args = &(new_forasync_task->def);
                 new_forasync_task->forasync_task.future_list = NULL;
                 new_forasync_task->def.base.user = forasync->base.user;
-                loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
+                hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
                 new_forasync_task->def.loop0 = new_loop0;
-                loop_domain_t new_loop1 = {low1, high1, loop1.stride, loop1.tile};
+                hclib_loop_domain_t new_loop1 = {low1, high1, loop1.stride, loop1.tile};
                 new_forasync_task->def.loop1 = new_loop1;
-                loop_domain_t new_loop2 = {low2, high2, loop2.stride, loop2.tile};
+                hclib_loop_domain_t new_loop2 = {low2, high2, loop2.stride, loop2.tile};
                 new_forasync_task->def.loop2 = new_loop2;
                 spawn((hclib_task_t *)new_forasync_task);
             }
@@ -488,7 +488,7 @@ void forasync3D_flat(void *forasync_arg) {
 }
 
 static void forasync_internal(void *user_fct_ptr, void *user_arg,
-                              int dim, loop_domain_t *loop_domain, forasync_mode_t mode) {
+                              int dim, hclib_loop_domain_t *loop_domain, forasync_mode_t mode) {
     // All the sub-asyncs share async_def
 
     // The user loop code to execute
@@ -522,7 +522,7 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
 }
 
 void hclib_forasync(void *forasync_fct, void *argv,
-                    hclib_future_t **future_list, int dim, loop_domain_t *domain,
+                    hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
                     forasync_mode_t mode) {
     HASSERT(future_list == NULL &&
             "Limitation: forasync does not support futures yet");
@@ -531,7 +531,7 @@ void hclib_forasync(void *forasync_fct, void *argv,
 }
 
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-                                      hclib_future_t **future_list, int dim, loop_domain_t *domain,
+                                      hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
                                       forasync_mode_t mode) {
 
     hclib_start_finish();

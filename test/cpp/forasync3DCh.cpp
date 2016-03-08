@@ -62,10 +62,7 @@ int main (int argc, char ** argv) {
 
         init_ran(ran, H1*H2*H3);
         hclib::finish([=]() {
-            loop_domain_t loop0 = {0,H1,1,T1};
-            loop_domain_t loop1 = {0,H2,1,T2};
-            loop_domain_t loop2 = {0,H3,1,T3};
-            loop_domain_t loop[3] = {loop0, loop1, loop2};
+            hclib::loop_domain_3d *loop = new hclib::loop_domain_3d(H1, H2, H3);
             hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
                     assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
                     ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3; },

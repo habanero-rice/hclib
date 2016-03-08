@@ -45,19 +45,19 @@ typedef struct hclib_dependent_task_t {
 	hclib_triggered_task_t deps;
 } hclib_dependent_task_t;
 
-/** @struct loop_domain_t
+/** @struct hclib_loop_domain_t
  * @brief Describe loop domain when spawning a forasync.
  * @param[in] low       Lower bound for the loop
  * @param[in] high      Upper bound for the loop
  * @param[in] stride    Stride access
  * @param[in] tile      Tile size for chunking
  */
-typedef struct _loop_domain_t {
+typedef struct _hclib_loop_domain_t {
     int low;
     int high;
     int stride;
     int tile;
-} loop_domain_t;
+} hclib_loop_domain_t;
 
 typedef struct {
     hclib_task_t *user;
@@ -65,7 +65,7 @@ typedef struct {
 
 typedef struct {
     forasync_t base;
-    loop_domain_t loop0;
+    hclib_loop_domain_t loop0;
 } forasync1D_t;
 
 typedef struct _forasync_1D_task_t {
@@ -75,8 +75,8 @@ typedef struct _forasync_1D_task_t {
 
 typedef struct {
     forasync_t base;
-    loop_domain_t loop0;
-    loop_domain_t loop1;
+    hclib_loop_domain_t loop0;
+    hclib_loop_domain_t loop1;
 } forasync2D_t;
 
 typedef struct _forasync_2D_task_t {
@@ -86,9 +86,9 @@ typedef struct _forasync_2D_task_t {
 
 typedef struct {
     forasync_t base;
-    loop_domain_t loop0;
-    loop_domain_t loop1;
-    loop_domain_t loop2;
+    hclib_loop_domain_t loop0;
+    hclib_loop_domain_t loop1;
+    hclib_loop_domain_t loop2;
 } forasync3D_t;
 
 typedef struct _forasync_3D_task_t {

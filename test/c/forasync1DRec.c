@@ -62,7 +62,7 @@ void entrypoint(void *arg) {
     // code is alive until the end of the program.
 
     init_ran(ran, H1);
-    loop_domain_t loop = {0,H1,1,T1};
+    hclib_loop_domain_t loop = {0,H1,1,T1};
     hclib_start_finish();
     hclib_forasync(forasync_fct1,(void*)(ran),NULL, 1,&loop,FORASYNC_MODE_RECURSIVE);
     hclib_end_finish();

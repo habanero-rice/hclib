@@ -157,7 +157,7 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
 void hclib_forasync(void *forasync_fct, void *argv,
-        hclib_future_t **future_list, int dim, loop_domain_t *domain,
+        hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
         forasync_mode_t mode);
 
 /*
@@ -165,7 +165,7 @@ void hclib_forasync(void *forasync_fct, void *argv,
  * triggered when all tasks belonging to this forasync have finished.
  */
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-        hclib_future_t **future_list, int dim, loop_domain_t *domain,
+        hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
         forasync_mode_t mode);
 
 /**

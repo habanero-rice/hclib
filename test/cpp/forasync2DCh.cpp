@@ -60,9 +60,7 @@ int main (int argc, char ** argv) {
 
         init_ran(ran, H1*H2);
         hclib::finish([=]() {
-            loop_domain_t loop0 = {0,H1,1,T1};
-            loop_domain_t loop1 = {0,H2,1,T2};
-            loop_domain_t loop[2] = {loop0, loop1};
+            hclib::loop_domain_2d *loop = new hclib::loop_domain_2d(H1, H2);
             hclib::forasync2D(loop, [=](int idx1, int idx2) {
                     assert(ran[idx1*H2+idx2] == -1);
                     ran[idx1*H2+idx2] = idx1*H2+idx2; }, FORASYNC_MODE_FLAT);

@@ -68,10 +68,10 @@ void entrypoint(void *arg) {
     // code is alive until the end of the program.
 
     init_ran(ran, H1*H2*H3);
-    loop_domain_t loop0 = {0,H1,1,T1};
-    loop_domain_t loop1 = {0,H2,1,T2};
-    loop_domain_t loop2 = {0,H3,1,T3};
-    loop_domain_t loop[3] = {loop0, loop1, loop2};
+    hclib_loop_domain_t loop0 = {0,H1,1,T1};
+    hclib_loop_domain_t loop1 = {0,H2,1,T2};
+    hclib_loop_domain_t loop2 = {0,H3,1,T3};
+    hclib_loop_domain_t loop[3] = {loop0, loop1, loop2};
 
     hclib_start_finish();
     hclib_forasync(forasync_fct3,(void*)(ran),NULL, 3,loop,FORASYNC_MODE_RECURSIVE);

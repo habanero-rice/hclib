@@ -12,7 +12,6 @@
 namespace hclib {
 
 typedef hclib_triggered_task_t triggered_task_t;
-typedef loop_domain_t loop_domain_t;
 typedef hclib_locale hclib_locale;
 
 template <typename T>

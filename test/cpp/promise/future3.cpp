@@ -61,9 +61,8 @@ int main (int argc, char ** argv) {
             // code is alive until the end of the program.
 
             init_ran(ran, H1);
-            loop_domain_t loop = {0, H1, 1, T1};
-
-            hclib::future_t *event = hclib::forasync1D_future(&loop,
+            hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(H1);
+            hclib::future_t *event = hclib::forasync1D_future(loop,
                     [=](int idx) {
                         sleep(1);
                         assert(ran[idx] == -1);

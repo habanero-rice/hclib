@@ -66,7 +66,7 @@ void entrypoint(void *arg) {
     // code is alive until the end of the program.
 
     init_ran(ran, H1);
-    loop_domain_t loop = {0, H1, 1, T1};
+    hclib_loop_domain_t loop = {0, H1, 1, T1};
 
     hclib_future_t *event = hclib_forasync_future(forasync_fct1, (void*)ran,
             NULL, 1, &loop, FORASYNC_MODE_FLAT);
