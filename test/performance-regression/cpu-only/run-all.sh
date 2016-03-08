@@ -26,9 +26,16 @@ fi
 make clean
 make -j
 
+for FOLDER in $(ls rodinia/); do
+    if [[ -d rodinia/$FOLDER ]]; then
+        cd rodinia/$FOLDER && make clean && make -j && cd ../../
+    fi
+done
+
 MEDIAN_PY=../../../tools/median.py
 MEAN_PY=../../../tools/mean.py
-BENCHMARKS=('cilksort 100000000', 'FFT 16384', 'fib 45', 'fib-ddt 45', 'nqueens 14', 'qsort 100000000')
+BENCHMARKS=('cilksort 100000000', 'FFT 16384', 'fib 45', 'fib-ddt 45', \
+        'nqueens 14', 'qsort 100000000', 'rodinia/backprop/backprop 4194304')
 NTRIALS=30
 
 TIMESTAMP=$(date +%s)
@@ -48,7 +55,7 @@ for TEST in "${BENCHMARKS[@]}"; do
     T=$(for TRIAL in $(seq 1 $TRIALS); do
         HCLIB_PROFILE_LAUNCH_BODY=1 $TEST 2>&1 | grep 'HCLIB TIME' | awk '{ print $3 }'
     done | python $MEAN_PY)
-    TESTNAME=$(echo $TEST | awk '{ print $1 }')
+    TESTNAME=$(basename $(echo $TEST | awk '{ print $1 }'))
     echo $TESTNAME $T >> $LOG_FILE
 done
 
@@ -58,9 +65,13 @@ if [[ -z "$REFERENCE_LOG_FILE" || ! -f regression-logs-$MACHINE/$REFERENCE_LOG_F
 fi
 
 while read LINE; do
-    BENCHMARK=$(echo $LINE | awk '{ print $1 }')
+    BENCHMARK=$(basename $(echo $LINE | awk '{ print $1 }'))
     NEW_T=$(echo $LINE | awk '{ print $2 }')
     OLD_T=$(cat regression-logs-$MACHINE/$REFERENCE_LOG_FILE | grep "^$BENCHMARK " | awk '{ print $2 }')
-    NEW_SPEEDUP=$(echo $OLD_T / $NEW_T | bc -l)
-    echo $BENCHMARK $NEW_SPEEDUP
+    if [[ -z "$OLD_T" ]]; then
+        echo Unable to find an older run of \'$BENCHMARK\' to compare against
+    else
+        NEW_SPEEDUP=$(echo $OLD_T / $NEW_T | bc -l)
+        echo $BENCHMARK $NEW_SPEEDUP
+    fi
 done < $LOG_FILE
