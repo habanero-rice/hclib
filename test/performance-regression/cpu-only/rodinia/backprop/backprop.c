@@ -272,7 +272,7 @@ int n1, n2;
   ctx->l1 = l1;
   ctx->l2 = l2;
 
-  loop_domain_t domain;
+  hclib_loop_domain_t domain;
   domain.low = 1;
   domain.high = n2 + 1;
   domain.stride = 1;
@@ -381,7 +381,7 @@ float *delta, *ly, **w, **oldw;
   ctx->oldw = oldw;
   ctx->w = w;
 
-  loop_domain_t domain;
+  hclib_loop_domain_t domain;
   domain.low = 1;
   domain.high = ndelta + 1;
   domain.stride = 1;
