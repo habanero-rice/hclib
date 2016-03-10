@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <omp.h>
 #include "hclib_cpp.h"
+#include <unistd.h>
 
 FILE *fp;
 
@@ -48,10 +49,19 @@ void BFSGraph( int argc, char** argv)
 	
 	printf("Reading File\n");
 	//Read in Graph from a file
-	fp = fopen(input_f,"r");
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("Current working dir: %s\n", cwd);
+    } else {
+        perror("getcwd() error");
+        return;
+    }
+    
+    fp = fopen(input_f,"r");
 	if(!fp)
 	{
-		printf("Error Reading graph file\n");
+		printf("Error Reading graph file \"%s\"\n", input_f);
+        perror("fopen");
 		return;
 	}
 

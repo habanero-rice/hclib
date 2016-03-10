@@ -17,9 +17,8 @@ RUNNING_UNDER_SLURM=1
 if [[ -z "$SLURM_JOB_ID" ]]; then
     echo Not executing under SLURM
     RUNNING_UNDER_SLURM=0
-fi
-
-if [[ $RUNNING_UNDER_SLURM == 1 ]]; then
+else
+    echo Running under SLURM, cd-ing back to $SLURM_SUBMIT_DIR
     cd $SLURM_SUBMIT_DIR
 fi
 
@@ -34,12 +33,13 @@ done
 
 MEDIAN_PY=../../../tools/median.py
 MEAN_PY=../../../tools/mean.py
-BENCHMARKS=('cilksort 100000000', 'FFT 16384', 'fib 45', 'fib-ddt 45', \
-        'nqueens 14', 'qsort 100000000', 'rodinia/backprop/backprop 4194304', \
-        'rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt', \
-        'rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt', \
-        'rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K',
+BENCHMARKS=('cilksort 100000000' 'FFT 16384' 'fib 45' 'fib-ddt 45' \
+        'nqueens 14' 'qsort 100000000' 'rodinia/backprop/backprop 4194304' \
+        'rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt' \
+        'rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt' \
+        'rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K'
         'rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4')
+
 NTRIALS=10
 
 TIMESTAMP=$(date +%s)
@@ -55,13 +55,18 @@ fi
 REFERENCE_LOG_FILE=$(ls -lrt regression-logs-$MACHINE/ | grep dat | tail -n 1 | awk '{ print $9 }') 
 touch $LOG_FILE
 
+mkdir -p test_logs
+
 for TEST in "${BENCHMARKS[@]}"; do
     TESTNAME=$(basename $(echo $TEST | awk '{ print $1 }'))
-    echo Running $TESTNAME
+    TEST_LOG=test_logs/tmp.$TESTNAME.log
+    echo "Running $TESTNAME from $(pwd), \"$TEST\""
 
-    T=$(for TRIAL in $(seq 1 $NTRIALS); do
-        HCLIB_PROFILE_LAUNCH_BODY=1 $TEST 2>&1 | grep 'HCLIB TIME' | awk '{ print $3 }'
-    done | python $MEAN_PY)
+    for TRIAL in $(seq 1 $NTRIALS); do
+        HCLIB_PROFILE_LAUNCH_BODY=1 $TEST 2>&1
+    done > $TEST_LOG
+
+    T=$(cat $TEST_LOG | grep 'HCLIB TIME' | awk '{ print $3 }'| python $MEAN_PY)
     echo $TESTNAME $T >> $LOG_FILE
 done
 
