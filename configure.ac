@@ -16,10 +16,18 @@ AC_COPYRIGHT([])
 # configure script revision
 AC_REVISION([$Revision: 0.1 $])
 
+# Making hclib as statically linked library to support OpenSHMEM. 
+# In past we had problems by making HabaneroUPC++ as dynamically linked. It
+# was segfaulting due to issues with UPC++ understanding of 
+# shared objects layout.
+LT_INIT([disable-shared])
+dnl LT_INIT()
+LT_LANG([C++])
+
+#AC_PROG_CXX
+#AC_PROG_LIBTOOL
+#AC_LANG(C++)
 AM_PROG_AS
-AC_PROG_CXX
-AC_PROG_LIBTOOL
-AC_LANG(C++)
 AC_CANONICAL_HOST
 
 # Platform check
