@@ -237,8 +237,11 @@ void forasync1D_recursive(void *forasync_arg) {
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
         new_forasync_task->forasync_task.future_list = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
-        hclib_loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
-        new_forasync_task->def.loop0 = new_loop0;
+        new_forasync_task->def.loop0.low = mid;
+        new_forasync_task->def.loop0.high = high0;
+        new_forasync_task->def.loop0.stride = stride0;
+        new_forasync_task->def.loop0.tile = tile0;
+
         // update lower-half
         forasync->loop0.high = mid;
         // delegate scheduling to the underlying runtime

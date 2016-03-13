@@ -38,7 +38,8 @@ BENCHMARKS=('cilksort 100000000' 'FFT 16384' 'fib 45' 'fib-ddt 45' \
         'rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt' \
         'rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt' \
         'rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K'
-        'rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4')
+        'rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4'
+        'rodinia/hotspot/hotspot 1024 1024 2 4 rodinia/hotspot/temp_1024 rodinia/hotspot/power_1024 output.out')
 
 NTRIALS=10
 
