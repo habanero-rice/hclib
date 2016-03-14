@@ -53,16 +53,8 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
 	     */
 	    else {   
                 HASSERT(property == ASYNC_MAIN);
-                /*
-                 * In HC-OpenSHMEM, there is no start_finish equivalent call. 
-                 * The end_finish is called everytime user will call shmem_fence/ shmem_barrier etc.
-                 * Once the end_finish (implicitely) is called from HC-OpenSHMEM, 
-                 * a new start_finish scope is automatically started to pair with
-                 * the hclib_end_finish call made here.
-                 */
-	        // hclib_start_finish();
-                spawn_comm_task(task);	
-	        // hclib_end_finish();
+		// TODO: Once the fibre-support is fixed, this else branch would go away
+                spawn(task);	
             }
         }
     }
