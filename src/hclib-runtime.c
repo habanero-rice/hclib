@@ -1290,8 +1290,8 @@ static void hclib_finalize() {
 void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
                   void *arg) {
     hclib_init(argc, argv);
-#ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
+#ifdef HCSHMEM
+    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, ASYNC_MAIN);
 #else    
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 #endif

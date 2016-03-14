@@ -41,7 +41,8 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
         if (place) {
             spawn_at_hpt(place, task);
         } else {
-	    if(property == 0) spawn(task);
+	    if(property == 0) { spawn(task); }
+            else if(property == ASYNC_COMM) { spawn_comm_task(task); }
 	    /* 
 	     * ^^^^^ TODO: Presently this path executed only for HabaneroOpenSHMEM++ ^^^^^^
 	     * This else part is executed only if hclib::launch() is called from 
@@ -50,7 +51,19 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
              * to execute on a comm_async and not on a regular async. Regular async
 	     * would allow this finish_spmd to be executed by computation worker.
 	     */
-	    else spawn_comm_task(task);	
+	    else {   
+                HASSERT(property == ASYNC_MAIN);
+                /*
+                 * In HC-OpenSHMEM, there is no start_finish equivalent call. 
+                 * The end_finish is called everytime user will call shmem_fence/ shmem_barrier etc.
+                 * Once the end_finish (implicitely) is called from HC-OpenSHMEM, 
+                 * a new start_finish scope is automatically started to pair with
+                 * the hclib_end_finish call made here.
+                 */
+                hclib_start_finish();
+                spawn_comm_task(task);	
+                hclib_end_finish();
+            }
         }
     }
 }

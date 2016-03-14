@@ -106,6 +106,10 @@ typedef int forasync_mode_t;
 /** @brief To indicate an async need not register with any finish scopes. */
 #define ESCAPING_ASYNC      ((int) 0x2)
 
+#define ASYNC_COMM         1
+/** Used only from HC-openSHMEM to launch the main function */
+#define ASYNC_MAIN         2
+
 /**
  * @brief Function prototype for a 1-dimension forasync.
  * @param[in] arg               Argument to the loop iteration
