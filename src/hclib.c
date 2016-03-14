@@ -60,9 +60,9 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
                  * a new start_finish scope is automatically started to pair with
                  * the hclib_end_finish call made here.
                  */
-                hclib_start_finish();
+	        // hclib_start_finish();
                 spawn_comm_task(task);	
-                hclib_end_finish();
+	        // hclib_end_finish();
             }
         }
     }
