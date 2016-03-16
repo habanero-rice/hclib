@@ -1,0 +1,57 @@
+cd OpenMP; make
+make[1]: Entering directory `/home/jmg3/degas/hcpp/test/performance-regression/cpu-only/rodinia/leukocyte/OpenMP'
+gcc  -g -O3 -Wall -fopenmp -I../meschach_lib -std=c++11 -I/home/jmg3/degas/hcpp/hclib-install/include -I/home/jmg3/libxml2/include/libxml2 find_ellipse.c -c
+cc1: warning: command line option ‘-std=c++11’ is valid for C++/ObjC++ but not for C [enabled by default]
+find_ellipse.c: In function ‘ellipsematching112_hclib_async’:
+find_ellipse.c:140:19: error: ‘gicov’ undeclared (first use in this function)
+                 ((gicov)->me[(j)][(i)] = (mean / sqrt(var)));
+                   ^
+find_ellipse.c:140:19: note: each undeclared identifier is reported only once for each function it appears in
+find_ellipse.c:115:9: warning: variable ‘width’ set but not used [-Wunused-but-set-variable]
+     int width; width = ctx->width;
+         ^
+find_ellipse.c:107:9: warning: variable ‘k’ set but not used [-Wunused-but-set-variable]
+     int k; k = ctx->k;
+         ^
+find_ellipse.c:106:9: warning: variable ‘n’ set but not used [-Wunused-but-set-variable]
+     int n; n = ctx->n;
+         ^
+find_ellipse.c: In function ‘ellipsematching’:
+find_ellipse.c:185:16: error: incompatible types when assigning to type ‘double[150]’ from type ‘double *’
+ ctx->sin_angle = sin_angle;
+                ^
+find_ellipse.c:186:16: error: incompatible types when assigning to type ‘double[150]’ from type ‘double *’
+ ctx->cos_angle = cos_angle;
+                ^
+find_ellipse.c:187:12: error: incompatible types when assigning to type ‘double[150]’ from type ‘double *’
+ ctx->theta = theta;
+            ^
+find_ellipse.c:188:9: error: incompatible types when assigning to type ‘int[7][150]’ from type ‘int (*)[150]’
+ ctx->tX = tX;
+         ^
+find_ellipse.c:189:9: error: incompatible types when assigning to type ‘int[7][150]’ from type ‘int (*)[150]’
+ ctx->tY = tY;
+         ^
+find_ellipse.c: In function ‘dilate_f186_hclib_async’:
+find_ellipse.c:238:5: error: ‘i’ undeclared (first use in this function)
+     i = ___iter;
+     ^
+find_ellipse.c:246:25: error: ‘el_center_i’ undeclared (first use in this function)
+                 y = i - el_center_i + el_i;
+                         ^
+find_ellipse.c:247:25: error: ‘el_center_j’ undeclared (first use in this function)
+                 x = j - el_center_j + el_j;
+                         ^
+find_ellipse.c: In function ‘dilate_f’:
+find_ellipse.c:265:62: warning: unused variable ‘i’ [-Wunused-variable]
+  int el_center_i = strel->m / 2, el_center_j = strel->n / 2, i;
+                                                              ^
+find_ellipse.c:265:34: warning: unused variable ‘el_center_j’ [-Wunused-variable]
+  int el_center_i = strel->m / 2, el_center_j = strel->n / 2, i;
+                                  ^
+find_ellipse.c:265:6: warning: unused variable ‘el_center_i’ [-Wunused-variable]
+  int el_center_i = strel->m / 2, el_center_j = strel->n / 2, i;
+      ^
+make[1]: *** [find_ellipse.o] Error 1
+make[1]: Leaving directory `/home/jmg3/degas/hcpp/test/performance-regression/cpu-only/rodinia/leukocyte/OpenMP'
+make: *** [OpenMP/leukocyte] Error 2

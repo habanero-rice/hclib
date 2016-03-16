@@ -1,0 +1,101 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:575: checking for acc
+configure:605: checking for cc
+configure:635: checking for gcc
+configure:748: checking whether the C compiler (gcc  ) works
+configure:764: gcc -o conftest    conftest.c  1>&5
+configure:790: checking whether the C compiler (gcc  ) is a cross-compiler
+configure:795: checking whether we are using GNU C
+configure:804: gcc -E conftest.c
+configure:823: checking whether gcc accepts -g
+configure:855: checking how to run the C preprocessor
+configure:876: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:935: checking for AIX
+configure:961: checking for minix/config.h
+configure:971: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:967:26: fatal error: minix/config.h: No such file or directory
+ #include <minix/config.h>
+                          ^
+compilation terminated.
+configure: failed program was:
+#line 966 "configure"
+#include "confdefs.h"
+#include <minix/config.h>
+configure:1009: checking for POSIXized ISC
+configure:1032: checking for ranlib
+configure:1063: checking for memory.h
+configure:1073: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1100: checking for ANSI C header files
+configure:1113: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1180: gcc -o conftest -g -O2   conftest.c  1>&5
+configure: In function 'main':
+configure:1175:67: warning: incompatible implicit declaration of built-in function 'exit' [enabled by default]
+ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
+                                                                   ^
+configure:1205: checking for complex.h
+configure:1215: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1241: checking for malloc.h
+configure:1251: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1277: checking for varargs.h
+configure:1287: gcc -E  conftest.c >/dev/null 2>conftest.out
+In file included from configure:1283:0:
+/opt/apps/software/Core/GCC/4.8.5/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/include/varargs.h:4:2: error: #error "GCC no longer implements <varargs.h>."
+ #error "GCC no longer implements <varargs.h>."
+  ^
+/opt/apps/software/Core/GCC/4.8.5/lib/gcc/x86_64-unknown-linux-gnu/4.8.5/include/varargs.h:5:2: error: #error "Revise your code to use <stdarg.h>."
+ #error "Revise your code to use <stdarg.h>."
+  ^
+configure: failed program was:
+#line 1282 "configure"
+#include "confdefs.h"
+#include <varargs.h>
+configure:1316: checking for size_t
+configure:1349: checking for working const
+configure:1403: gcc -c -g -O2  conftest.c 1>&5
+configure:1424: checking whether byte ordering is bigendian
+configure:1442: gcc -c -g -O2  conftest.c 1>&5
+configure:1457: gcc -c -g -O2  conftest.c 1>&5
+configure: In function 'main':
+configure:1452:2: error: unknown type name 'not'
+  not big endian
+  ^
+configure:1452:10: error: expected '=', ',', ';', 'asm' or '__attribute__' before 'endian'
+  not big endian
+          ^
+configure: failed program was:
+#line 1446 "configure"
+#include "confdefs.h"
+#include <sys/types.h>
+#include <sys/param.h>
+int main() {
+
+#if BYTE_ORDER != BIG_ENDIAN
+ not big endian
+#endif
+; return 0; }
+configure:1579: gcc -c -g -O2  conftest.c 1>&5
+configure:1571:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before 'int'
+ int main() {
+ ^
+configure: failed program was:
+#line 1569 "configure"
+#include "confdefs.h"
+u_int
+int main() {
+#include <stdio.h>
+#ifdef __STDC__
+#include <stdlib.h>
+#endif
+; return 0; }
+configure:1636: checking for bcopy
+configure:1664: gcc -o conftest -g -O2   conftest.c  -lm 1>&5
+configure:1648:6: warning: conflicting types for built-in function 'bcopy' [enabled by default]
+ char $ac_func();
+      ^
+configure:1636: checking for bzero
+configure:1664: gcc -o conftest -g -O2   conftest.c  -lm 1>&5
+configure:1648:6: warning: conflicting types for built-in function 'bzero' [enabled by default]
+ char $ac_func();
+      ^

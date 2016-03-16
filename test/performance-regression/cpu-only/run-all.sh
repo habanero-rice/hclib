@@ -13,6 +13,11 @@
 
 set -e
 
+if [[ -z "$RODINIA_DATA_DIR" ]]; then
+    echo RODINIA_DATA_DIR must be set to the data directory of the Rodinia benchmark suite
+    exit 1
+fi
+
 RUNNING_UNDER_SLURM=1
 if [[ -z "$SLURM_JOB_ID" ]]; then
     echo Not executing under SLURM
@@ -33,16 +38,23 @@ done
 
 MEDIAN_PY=../../../tools/median.py
 MEAN_PY=../../../tools/mean.py
-BENCHMARKS=('cilksort 100000000' 'FFT 16384' 'fib 45' 'fib-ddt 45' \
-        'nqueens 14' 'qsort 100000000' 'rodinia/backprop/backprop 4194304' \
-        'rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt' \
-        'rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt' \
-        'rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K'
-        'rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4'
-        'rodinia/hotspot/hotspot 1024 1024 2 4 rodinia/hotspot/temp_1024 rodinia/hotspot/power_1024 output.out'
-        'rodinia/hotspot3D/3D 512 8 100 rodinia/hotspot3D/power_512x8 rodinia/hotspot3D/temp_512x8 output.out'
-        'rodinia/kmeans/kmeans -n 4 -i rodinia/kmeans/kdd_cup'
-        'rodinia/lavaMD/lavaMD -cores 4 -boxes1d 10')
+BENCHMARKS=("cilksort 100000000"
+        "FFT 16384"
+        "fib 45"
+        "fib-ddt 45"
+        "nqueens 14"
+        "qsort 100000000"
+        "rodinia/backprop/backprop 4194304"
+        "rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt"
+        "rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt"
+        "rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K"
+        "rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4"
+        "rodinia/hotspot/hotspot 1024 1024 2 4 rodinia/hotspot/temp_1024 rodinia/hotspot/power_1024 output.out"
+        "rodinia/hotspot3D/3D 512 8 100 rodinia/hotspot3D/power_512x8 rodinia/hotspot3D/temp_512x8 output.out"
+        "rodinia/kmeans/kmeans -n 4 -i $RODINIA_DATA_DIR/kmeans/kdd_cup"
+        "rodinia/lavaMD/lavaMD -cores 4 -boxes1d 10"
+        "rodinia/leukocyte/OpenMP/leukocyte 5 4 $RODINIA_DATA_DIR/leukocyte/testfile.avi"
+        "rodinia/lud/omp/lud_omp -s 8000")
 
 NTRIALS=10
 
