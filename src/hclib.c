@@ -67,7 +67,7 @@ static void future_caller(void *in) {
     hclib_promise_put(&args->event, user_result);
 }
 
-hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
+hclib_future_t *hclib_async_future(futureFct_t fp, void *arg,
                                     hclib_future_t **future_list, struct _phased_t *phased_clause,
                                     place_t *place, int property) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
@@ -77,7 +77,7 @@ hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
     hclib_async(future_caller, wrapper, future_list, phased_clause, place,
                 property);
 
-    return (hclib_promise_t *)wrapper;
+    return hclib_get_future(&wrapper->event);
 }
 
 /*** END ASYNC IMPLEMENTATION ***/

@@ -28,13 +28,13 @@ void entrypoint(void *arg) {
 
     hclib_start_finish();
     int i;
-    hclib_promise_t *prev = NULL;
+    hclib_future_t *prev = NULL;
     for (i = 0; i < n_asyncs; i++) {
         if (prev) {
             hclib_future_t **future_list = (hclib_future_t **)malloc(
                     2 * sizeof(hclib_future_t *));
             assert(future_list);
-            future_list[0] = hclib_get_future(prev);
+            future_list[0] = prev;
             future_list[1] = NULL;
             prev = hclib_async_future(async_fct, count, future_list, NULL,
                     NULL, NO_PROP);

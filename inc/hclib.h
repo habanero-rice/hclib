@@ -85,10 +85,9 @@ void hclib_async(asyncFct_t fct_ptr, void * arg,
         place_t *place, int property);
 
 /*
- * Spawn an async that automatically puts a promise on termination. It is the user's
- * responsibility to call hclib_promise_free on the returned promise_t.
+ * Spawn an async that automatically puts a promise on termination.
  */
-hclib_promise_t *hclib_async_future(futureFct_t fp, void *arg,
+hclib_future_t *hclib_async_future(futureFct_t fp, void *arg,
         hclib_future_t **future_list, struct _phased_t *phased_clause,
         place_t *place, int property);
 
