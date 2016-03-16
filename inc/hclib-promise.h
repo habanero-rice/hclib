@@ -116,7 +116,7 @@ void hclib_promise_init(hclib_promise_t *promise);
  * their dependencies on the satisfaction of the promise by awaiting on this
  * future.
  */
-hclib_future_t *hclib_get_future(hclib_promise_t *promise);
+hclib_future_t *hclib_get_future_for_promise(hclib_promise_t *promise);
 
 /**
  * @brief Allocate and initialize an array of promises.

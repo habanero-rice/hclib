@@ -33,7 +33,7 @@ void entrypoint(void *arg) {
 
     for (index = 0 ; index <= n; index++) {
         promise_list[index * 2] = hclib_promise_create();
-        future_list[index * 2] = hclib_get_future(promise_list[index * 2]);
+        future_list[index * 2] = hclib_get_future_for_promise(promise_list[index * 2]);
 
         printf("Creating promise  %p at promise_list @ %p \n", &promise_list[index*2],
                 hclib_future_get(future_list[index*2]));

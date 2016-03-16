@@ -82,7 +82,7 @@ hclib_promise_t *hclib_promise_create() {
     return promise;
 }
 
-hclib_future_t *hclib_get_future(hclib_promise_t *promise) {
+hclib_future_t *hclib_get_future_for_promise(hclib_promise_t *promise) {
     return &promise->future;
 }
 

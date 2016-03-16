@@ -77,7 +77,7 @@ hclib_future_t *hclib_async_future(futureFct_t fp, void *arg,
     hclib_async(future_caller, wrapper, future_list, phased_clause, place,
                 property);
 
-    return hclib_get_future(&wrapper->event);
+    return hclib_get_future_for_promise(&wrapper->event);
 }
 
 /*** END ASYNC IMPLEMENTATION ***/
