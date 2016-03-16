@@ -33,7 +33,7 @@ void entrypoint(void *arg) {
 
     for (index = 0 ; index <= n; index++) {
         promise_list[index * 2] = hclib_promise_create();
-        future_list[index * 2] = hclib_get_future(promise_list[index * 2]);
+        future_list[index * 2] = hclib_get_future_for_promise(promise_list[index * 2]);
 
         printf("Creating promise  %p at promise_list @ %p \n", &promise_list[index*2],
                 hclib_future_get(future_list[index*2]));
@@ -68,7 +68,7 @@ void entrypoint(void *arg) {
  * reverse order they've been created.
  */
 int main(int argc, char ** argv) {
-    hclib_launch(&argc, argv, entrypoint, NULL);
+    hclib_launch(entrypoint, NULL);
     printf("Exiting...\n");
     return 0;
 }

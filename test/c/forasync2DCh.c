@@ -81,7 +81,7 @@ int main (int argc, char ** argv) {
     int *ran=(int *)malloc(H1*H2*sizeof(int));
 
     printf("Call Init\n");
-    hclib_launch(&argc, argv, entrypoint, ran);
+    hclib_launch(entrypoint, ran);
     printf("Check results: ");
     int i = 0;
     while(i < H1*H2) {

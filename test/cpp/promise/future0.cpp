@@ -12,7 +12,7 @@
 #include "hclib_cpp.h"
 
 int main(int argc, char ** argv) {
-    hclib::launch(&argc, argv, []() {
+    hclib::launch([]() {
         int n_asyncs = 5;
         int *count = (int *)malloc(sizeof(int));
         assert(count);

@@ -35,7 +35,7 @@ void entrypoint(void *arg) {
     hclib_start_finish();
 
     hclib_promise_t *event = hclib_promise_create();
-    hclib_async(consumer, hclib_get_future(event), NO_FUTURE, NO_PHASER,
+    hclib_async(consumer, hclib_get_future_for_promise(event), NO_FUTURE, NO_PHASER,
             ANY_PLACE);
     hclib_async(producer, event, NO_FUTURE, NO_PHASER, ANY_PLACE);
 
@@ -43,7 +43,7 @@ void entrypoint(void *arg) {
 }
 
 int main(int argc, char ** argv) {
-    hclib_launch(&argc, argv, entrypoint, NULL);
+    hclib_launch(entrypoint, NULL);
     printf("Exiting...\n");
     return 0;
 }

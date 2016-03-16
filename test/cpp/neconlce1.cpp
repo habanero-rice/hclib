@@ -1,12 +1,11 @@
 #include "hclib_cpp.h"
-#include "hclib-place.h"
 #include <iostream>
 
 using namespace std;
 
 int main(int argc, char **argv) {
 
-    hclib::launch(&argc, argv, [] {
+    hclib::launch([] {
         hclib::finish([] {
 
             int numWorkers = hclib::num_workers();

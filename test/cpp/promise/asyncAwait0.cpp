@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
     hclib::promise_t ** promise_list = (hclib::promise_t **)malloc(
             sizeof(hclib::promise_t *) * (2*(n+1)));
 
-    hclib::launch(&argc, argv, [=]() {
+    hclib::launch([=]() {
         hclib::finish([=]() {
             int index = 0;
 

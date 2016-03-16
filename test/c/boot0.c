@@ -36,9 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hclib.h"
 
-int main (int argc, char ** argv) {
-    hclib_init(&argc, argv);
+void entrypoint(void *arg) {
     printf("Hello\n");
-    hclib_finalize();
+}
+
+int main (int argc, char ** argv) {
+    hclib_launch(entrypoint, NULL);
     return 0;
 }

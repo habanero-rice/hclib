@@ -1002,7 +1002,7 @@ void hclib_user_harness_timer(double dur) {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-static void hclib_init(int *argc, char **argv) {
+static void hclib_init() {
     HASSERT(hclib_stats == NULL);
     hclib_stats = getenv("HCLIB_STATS");
     if (getenv("HCLIB_PROFILE_LAUNCH_BODY")) {
@@ -1047,10 +1047,9 @@ static void hclib_finalize() {
  * need to do extra work to persist it.
  */
 
-void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
-                  void *arg) {
+void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     unsigned long long start_time, end_time;
-    hclib_init(argc, argv);
+    hclib_init();
     if (profile_launch_body) {
         start_time = current_time_ns();
     }

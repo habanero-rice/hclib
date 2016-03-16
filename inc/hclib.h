@@ -61,7 +61,7 @@ struct _phased_t;
 typedef void (*async_fct_t)(void * arg);
 typedef void *(*future_fct_t)(void *arg);
 
-void hclib_launch(int * argc, char ** argv, async_fct_t fct_ptr, void * arg);
+void hclib_launch(async_fct_t fct_ptr, void * arg);
 
 /*
  * Async definition and API
@@ -85,10 +85,9 @@ void hclib_async(async_fct_t fct_ptr, void * arg,
         hclib_locale *locale);
 
 /*
- * Spawn an async that automatically puts a promise on termination. It is the user's
- * responsibility to call hclib_promise_free on the returned promise_t.
+ * Spawn an async that automatically puts a promise on termination.
  */
-hclib_promise_t *hclib_async_future(future_fct_t fp, void *arg,
+hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
         hclib_future_t **future_list, struct _phased_t *phased_clause,
         hclib_locale *locale);
 

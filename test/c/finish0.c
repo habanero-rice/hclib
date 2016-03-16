@@ -103,7 +103,7 @@ void entrypoint(void *out_mid) {
 int main (int argc, char ** argv) {
     printf("Call Init\n");
     int mid;
-    hclib_launch(&argc, argv, entrypoint, &mid);
+    hclib_launch(entrypoint, &mid);
     printf("Check results: ");
     assert_done(mid, NB_ASYNC);
     printf("OK\n");

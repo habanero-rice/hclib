@@ -42,7 +42,7 @@ void entrypoint(void *arg) {
 
     for (index = 0 ; index <= n; index++) {
         promise_list[index * 2] = hclib_promise_create();
-        future_list[index * 2] = hclib_get_future(promise_list[index * 2]);
+        future_list[index * 2] = hclib_get_future_for_promise(promise_list[index * 2]);
         printf("Populating promise_list at address %p\n", &promise_list[index*2]);
         promise_list[index * 2 + 1] = NULL;
         future_list[index * 2 + 1] = NULL;
@@ -81,7 +81,7 @@ void entrypoint(void *arg) {
  */
 int main(int argc, char ** argv) {
     setbuf(stdout,NULL);
-    hclib_launch(&argc, argv, entrypoint, NULL);
+    hclib_launch(entrypoint, NULL);
     printf("Exiting...\n");
     return 0;
 }

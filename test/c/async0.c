@@ -57,7 +57,7 @@ void entrypoint(void *arg) {
 }
 
 int main (int argc, char ** argv) {
-    hclib_launch(&argc, argv, entrypoint, NULL);
+    hclib_launch(entrypoint, NULL);
     fprintf(stderr, "Finished launch\n");
     return 0;
 }

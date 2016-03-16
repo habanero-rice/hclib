@@ -62,7 +62,7 @@ hclib_future_t *hclib_allocate_at(size_t nbytes, hclib_locale *locale) {
     ms->nbytes = nbytes;
     ms->promise = promise;
     hclib_async(allocate_kernel, ms, NULL, NULL, locale);
-    return hclib_get_future(promise);
+    return hclib_get_future_for_promise(promise);
 }
 
 typedef struct _realloc_struct {
@@ -86,7 +86,7 @@ hclib_future_t *hclib_reallocate_at(void *ptr, size_t new_nbytes, hclib_locale *
     rs->nbytes = new_nbytes;
     rs->promise = promise;
     hclib_async(reallocate_kernel, rs, NULL, NULL, locale);
-    return hclib_get_future(promise);
+    return hclib_get_future_for_promise(promise);
 }
 
 typedef struct _memset_struct {
@@ -111,7 +111,7 @@ hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes, hclib_loc
     ms->pattern = pattern;
     ms->promise = promise;
     hclib_async(memset_kernel, ms, NULL, NULL, locale);
-    return hclib_get_future(promise);
+    return hclib_get_future_for_promise(promise);
 }
 
 void hclib_free_at(void *ptr, hclib_locale *locale) {
@@ -130,7 +130,7 @@ static void future_caller(void *in) {
     hclib_promise_put(&args->event, user_result);
 }
 
-hclib_promise_t *hclib_async_future(future_fct_t fp, void *arg,
+hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
                                     hclib_future_t **future_list, struct _phased_t *phased_clause,
                                     hclib_locale *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
@@ -139,7 +139,7 @@ hclib_promise_t *hclib_async_future(future_fct_t fp, void *arg,
     wrapper->actual_in = arg;
     hclib_async(future_caller, wrapper, future_list, phased_clause, locale);
 
-    return (hclib_promise_t *)wrapper;
+    return hclib_get_future_for_promise(&wrapper->event);
 }
 
 /*** END ASYNC IMPLEMENTATION ***/
