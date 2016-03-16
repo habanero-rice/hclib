@@ -54,7 +54,8 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/kmeans/kmeans -n 4 -i $RODINIA_DATA_DIR/kmeans/kdd_cup"
         "rodinia/lavaMD/lavaMD -cores 4 -boxes1d 10"
         "rodinia/leukocyte/OpenMP/leukocyte 5 4 $RODINIA_DATA_DIR/leukocyte/testfile.avi"
-        "rodinia/lud/omp/lud_omp -s 8000")
+        "rodinia/lud/omp/lud_omp -s 8000"
+        "rodinia/nn/nn rodinia/nn/filelist_4 5 30 90")
 
 NTRIALS=10
 
