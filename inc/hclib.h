@@ -61,7 +61,7 @@ struct _phased_t;
 typedef void (*asyncFct_t)(void * arg);
 typedef void *(*futureFct_t)(void *arg);
 
-void hclib_launch(int * argc, char ** argv, asyncFct_t fct_ptr, void * arg);
+void hclib_launch(asyncFct_t fct_ptr, void * arg);
 
 /*
  * Async definition and API

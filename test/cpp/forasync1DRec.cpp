@@ -51,7 +51,7 @@ void init_ran(int *ran, int size) {
 int main (int argc, char ** argv) {
     printf("Call Init\n");
     int *ran=(int *)malloc(H1*sizeof(int));
-    hclib::launch(&argc, argv, [=]() {
+    hclib::launch([=]() {
         int i = 0;
         // This is ok to have these on stack because this
         // code is alive until the end of the program.

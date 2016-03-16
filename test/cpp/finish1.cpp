@@ -71,7 +71,7 @@ void spawn_async(volatile int * indices, int i) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib::launch(&argc, argv, []() {
+    hclib::launch([]() {
         volatile int * indices = (int *) malloc(sizeof(int)*NB_ASYNC);
         ran = (int *) malloc(sizeof(int)*NB_ASYNC);
         init_ran(ran, NB_ASYNC);

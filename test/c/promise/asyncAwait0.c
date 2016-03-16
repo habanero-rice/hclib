@@ -73,7 +73,7 @@ void entrypoint(void *arg) {
  * reverse order they've been created.
  */
 int main(int argc, char ** argv) {
-    hclib_launch(&argc, argv, entrypoint, NULL);
+    hclib_launch(entrypoint, NULL);
     printf("Exiting...\n");
     return 0;
 }

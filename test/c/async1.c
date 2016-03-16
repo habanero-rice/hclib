@@ -79,7 +79,7 @@ void entrypoint(void *arg) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib_launch(&argc, argv, entrypoint, NULL);
+    hclib_launch(entrypoint, NULL);
     printf("Check results: ");
     int i = 0;
     while(i < NB_ASYNC) {

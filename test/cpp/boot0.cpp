@@ -37,8 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_cpp.h"
 
 int main (int argc, char ** argv) {
-    hclib_init(&argc, argv);
-    printf("Hello\n");
-    hclib_finalize();
+    hclib_launch([=] {
+        printf("hello\n");
+    });
     return 0;
 }

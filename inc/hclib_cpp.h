@@ -16,9 +16,9 @@ typedef place_t place_t;
 typedef place_type_t place_type_t;
 
 template <typename T>
-void launch(int *argc, char **argv, T lambda) {
+void launch(T lambda) {
     hclib_task_t *user_task = _allocate_async(lambda, false);
-    hclib_launch(argc, argv, (generic_frame_ptr)spawn, user_task);
+    hclib_launch((generic_frame_ptr)spawn, user_task);
 }
 
 promise_t **promise_create_n(size_t nb_promises, int null_terminated);

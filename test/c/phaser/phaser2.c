@@ -21,7 +21,7 @@ void barrier_test(void* arg) {
 }
 
 int main (int argc, char ** argv) {
-    hclib_init(&argc, argv);
+    hclib_init();
     // TODO should get number of workers here
     int nthreads = 3;
     int degree = nthreads;

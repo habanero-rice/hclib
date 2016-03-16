@@ -6,7 +6,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-    hclib::launch(&argc, argv, [] () {
+    hclib::launch([] () {
 
             hclib::finish([] () {
 

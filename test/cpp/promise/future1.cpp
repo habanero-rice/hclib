@@ -13,7 +13,7 @@
 #include "hclib_cpp.h"
 
 int main(int argc, char ** argv) {
-    hclib::launch(&argc, argv, []() {
+    hclib::launch([]() {
         hclib::finish([]() {
             hclib::promise_t *event = new hclib::promise_t();
             hclib::async([=]() {

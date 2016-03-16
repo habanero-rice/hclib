@@ -82,7 +82,7 @@ int main (int argc, char ** argv) {
     int *ran=(int *)malloc(H1*sizeof(int));
     assert(ran);
 
-    hclib_launch(&argc, argv, entrypoint, ran);
+    hclib_launch(entrypoint, ran);
 
     printf("Check results: ");
     int i = 0;

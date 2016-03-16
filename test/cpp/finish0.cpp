@@ -58,7 +58,7 @@ void assert_done(int start, int end) {
 int main (int argc, char ** argv) {
     printf("Call Init\n");
     int mid = NB_ASYNC/2;
-    hclib::launch(&argc, argv, [&mid]() {
+    hclib::launch([&mid]() {
         int i = 0;
         int indices [NB_ASYNC];
 

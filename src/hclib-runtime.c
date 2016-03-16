@@ -1224,7 +1224,7 @@ void showStatsFooter() {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-static void hclib_init(int *argc, char **argv) {
+static void hclib_init() {
     HASSERT(hclib_stats == NULL);
     HASSERT(bind_threads == -1);
     hclib_stats = getenv("HCLIB_STATS");
@@ -1287,9 +1287,8 @@ static void hclib_finalize() {
  * need to do extra work to persist it.
  */
 
-void hclib_launch(int *argc, char **argv, generic_frame_ptr fct_ptr,
-                  void *arg) {
-    hclib_init(argc, argv);
+void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
+    hclib_init();
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
 #else    
