@@ -273,7 +273,6 @@ void hclib_entrypoint() {
          * If running with a thread dedicated to network communication (e.g. through
          * UPC, MPI, OpenSHMEM) then skip creating that thread as a compute worker.
          */
-        HASSERT(COMMUNICATION_WORKER_ID > 0);
         if (i == COMMUNICATION_WORKER_ID) continue;
 #endif
 #ifdef HC_CUDA
@@ -293,12 +292,16 @@ void hclib_entrypoint() {
     hclib_start_finish();
 
 #ifdef HC_COMM_WORKER
+    const bool master_thread_is_comm_worker = (COMMUNICATION_WORKER_ID == 0);
+
     // Kick off a dedicated communication thread
-    if (pthread_create(&hclib_context->workers[COMMUNICATION_WORKER_ID]->t, &attr,
-                       communication_worker_routine,
-                       CURRENT_WS_INTERNAL->current_finish) != 0) {
-        fprintf(stderr, "Error launching communication worker\n");
-        exit(5);
+    if (!master_thread_is_comm_worker) {
+        if (pthread_create(&hclib_context->workers[COMMUNICATION_WORKER_ID]->t, &attr,
+                           communication_worker_routine,
+                           CURRENT_WS_INTERNAL->current_finish) != 0) {
+            fprintf(stderr, "Error launching communication worker\n");
+            exit(5);
+        }
     }
 #endif
 #ifdef HC_CUDA
@@ -1291,7 +1294,16 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     hclib_init();
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#else    
+#elif HUPCPP
+    const bool master_thread_is_comm_worker = (COMMUNICATION_WORKER_ID == 0);
+    if (master_thread_is_comm_worker) {
+        hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+        (fct_ptr)(arg);
+        communication_worker_routine(ws->current_finish);
+    } else {
+        hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
+    }
+#else
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 #endif
     hclib_finalize();
