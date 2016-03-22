@@ -56,7 +56,10 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/leukocyte/OpenMP/leukocyte 5 4 $RODINIA_DATA_DIR/leukocyte/testfile.avi"
         "rodinia/lud/omp/lud_omp -s 8000"
         "rodinia/nn/nn rodinia/nn/filelist_4 5 30 90"
-        "rodinia/nw/needle 2048 10 2")
+        "rodinia/nw/needle 2048 10 2"
+        "rodinia/particlefilter/particle_filter -x 128 -y 128 -z 10 -np 10000"
+        "rodinia/pathfinder/pathfinder 100000 100"
+        "rodinia/srad/srad 2048 2048 0 127 0 127 2 0.5 2")
 
 NTRIALS=10
 
