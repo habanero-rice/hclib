@@ -1,6 +1,6 @@
-include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCPP_ROOT)/include/hcpp.mak
 
-EXE=FFT fib nqueens qsort fib-ddt Cilksort
+EXE=FFT fib nqueens qsort fib-ddt asyncAwait0 Cilksort
 
 all: clean $(EXE) clean-obj
 
@@ -8,6 +8,9 @@ FFT: FFT.cpp
 	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 Cilksort: Cilksort.cpp
+	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+
+asyncAwait0: asyncAwait0.cpp
 	g++ $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 nqueens: nqueens.cpp

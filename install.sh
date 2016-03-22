@@ -1,27 +1,27 @@
-#!/bin/bash
+#!/bin/sh
 
-set -e
 
 #
 # Defining some variables
 #
 
-PROJECT_NAME=hclib
+PROJECT_NAME=hcpp
+
 
 check_error()
 {
     if [ $# -gt 2 ]; then
-        echo "Error in check_error call";
-        exit 1;
+	echo "Error in check_error call";
+	exit 1;
     fi;
     ERRCODE="$1";
     if [ "$ERRCODE" = "0" ]; then
-        return 0;
+	return 0;
     fi;
     if [ $# -eq 2 ]; then
-        ERRMESSAGE="$2";
+	ERRMESSAGE="$2";
     else
-        ERRMESSAGE="Error";
+	ERRMESSAGE="Error";
     fi;
     echo "[${PROJECT_NAME}] $ERRMESSAGE";
     exit $ERRCODE;
@@ -51,18 +51,22 @@ echo "[${PROJECT_NAME}] Bootstrap..."
 ./bootstrap.sh
 check_error "$?" "Bootstrap failed";
 
+
 #
 # Configure
 #
 echo "[${PROJECT_NAME}]] Configure..."
 
 COMPTREE=$PWD/compileTree
-mkdir -p ${COMPTREE}
+if [ ! -d "${COMPTREE}" ]; then
+    mkdir ${COMPTREE}
+fi
 
 cd ${COMPTREE}
 
-../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCLIB_FLAGS} ${HC_CUDA_FLAGS} --enable-hcshmem $*
+../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCPP_FLAGS}
 check_error "$?" "Configure failed";
+
 
 #
 # Make
@@ -70,6 +74,7 @@ check_error "$?" "Configure failed";
 echo "[${PROJECT_NAME}]] Make..."
 make -j${NPROC}
 check_error "$?" "Build failed";
+
 
 #
 # Make install

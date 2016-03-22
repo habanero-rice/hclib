@@ -1,6 +1,7 @@
 #include "header.h"
 
 void trisolve ( int k, int j, int tileSize, TileBlock* in_lkji_jkk, TileBlock* in_lkji_kkkp1, TileBlock* out_lkji_jkkp1 ) {
+	int i = 0;
 	int iB, jB, kB;
 	double** aBlock = in_lkji_jkk->matrixBlock;
 	double** liBlock = in_lkji_kkkp1->matrixBlock;

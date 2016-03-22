@@ -1,4 +1,4 @@
-include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCPP_ROOT)/include/hcpp.mak
 
 EXE=arrayadd1d
 

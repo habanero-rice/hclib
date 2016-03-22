@@ -9,16 +9,15 @@
           info CDATA #IMPLIED>
 <!ATTLIST place
           num CDATA #IMPLIED
-          did CDATA #IMPLIED
+	  did CDATA #IMPLIED
           type (mem | cache | nvgpu | amgpu | fpga | pgas) "cache"
           size CDATA #IMPLIED
-          unitSize CDATA #IMPLIED
-          info CDATA #IMPLIED>
+          unitSize CDATA #IMPLIED>
 
 <!ELEMENT place (place*, worker*)>
 <!ELEMENT worker EMPTY>
 
 <!ATTLIST worker
           num CDATA #IMPLIED
-          did CDATA #IMPLIED
+	  did CDATA #IMPLIED
           type (cpu|gpu) "cpu">

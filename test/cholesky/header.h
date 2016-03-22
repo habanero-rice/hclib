@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <iostream>
-#include "hclib_cpp.h"
+#include "hcpp.h"
 
-using namespace hclib;
+using namespace hcpp;
 
 typedef struct TileBlock {
 	double **matrixBlock;

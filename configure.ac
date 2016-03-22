@@ -2,10 +2,10 @@
 AC_PREREQ([2.59])
 
 # define distribution properties
-AC_INIT([hclib], [0.1], [vivekk@rice.edu])
+AC_INIT([hcpp], [0.1], [vivekk@rice.edu])
 
 # check if srcdir is correct
-AC_CONFIG_SRCDIR([inc/hclib.h])
+AC_CONFIG_SRCDIR([inc/hcpp.h])
 
 AC_CONFIG_AUX_DIR([config])
 
@@ -16,26 +16,9 @@ AC_COPYRIGHT([])
 # configure script revision
 AC_REVISION([$Revision: 0.1 $])
 
-# Making hclib as statically linked library to support OpenSHMEM. 
-# In past we had problems by making HabaneroUPC++ as dynamically linked. It
-# was segfaulting due to issues with UPC++ understanding of 
-# shared objects layout.
-LT_INIT([disable-shared])
-dnl LT_INIT()
-LT_LANG([C++])
-
-#AC_PROG_CXX
-#AC_PROG_LIBTOOL
-#AC_LANG(C++)
-AM_PROG_AS
-AC_CANONICAL_HOST
-
-# Platform check
-AM_CONDITIONAL([OSX], [case $host_os in darwin*) true;; *) false;; esac])
-AM_CONDITIONAL([LINUX], [case $host_os in *linux*) true;; *) false;; esac])
-AM_CONDITIONAL([X86], [case $host_cpu in i?86) true;; *) false;; esac])
-AM_CONDITIONAL([X86_64], [case $host_cpu in x86_64) true;; *) false;; esac])
-AC_MSG_NOTICE([Host detected as $host_os $host_cpu])
+AC_PROG_CXX
+AC_PROG_LIBTOOL
+AC_LANG(C++)
 
 CPPFLAGS=$CPPFLAGS_BACKUP
 
@@ -43,19 +26,21 @@ CPPFLAGS=$CPPFLAGS_BACKUP
 ########### GET LOW LEVEL DETAILS IN THE INSTALLATION #############
 ###################################################################
 
-### INTERFACE HCLIB WITH PHASER LIBRARY
-AC_ARG_ENABLE(phaser,
-    AS_HELP_STRING([--enable-phaser],
-    [enable interface with Phaser (Default is false)]),
-    [with_phaser=$enableval],
-    [with_phaser=no;])
+# Conditional flag to build for the hcpp/hcupc++ library
 
-AS_IF([test "x$with_phaser" != xno],
-      [ AC_MSG_NOTICE([Enabled Phaser support]) ],
-      [ AC_MSG_NOTICE([Disabled Phaser support]) ])
+### INTERFACE HCPP WITH OCR
+AC_ARG_ENABLE(ocr,
+    AS_HELP_STRING([--enable-ocr],
+    [enable interface with OCR (Default is false)]),
+    [with_ocr=$enableval],
+    [with_ocr=no;])
 
-AM_CONDITIONAL(_PHASERS_, test "x$with_phaser" != xno)
-### End Phaser
+AS_IF([test "x$with_ocr" != xno],
+      [ AC_MSG_NOTICE([Enabled OCR support]) ],
+      [ AC_MSG_NOTICE([Disabled OCR support]) ])
+
+AM_CONDITIONAL(WITH_OCR, test "x$with_ocr" != xno)
+### End OCR
 
 ### ENABLE DISTRIBUTED WORK_STEALING SUPPORT FOR HabaneroUPC++
 AC_ARG_ENABLE(distWS,
@@ -71,20 +56,6 @@ AS_IF([test "x$with_distWS" != xno],
 AM_CONDITIONAL(DIST_WS, test "x$with_distWS" != xno)
 ### End Dist WS
 
-### SUPPORT HabaneroOpenSHMEM++
-AC_ARG_ENABLE(hcshmem,
-    AS_HELP_STRING([--enable-hcshmem],
-    [support HabaneroOpenSHMEM++ runtime (Default is false)]),
-    [with_hcshmem=$enableval],
-    [with_hcshmem=no;])
-
-AS_IF([test "x$with_hcshmem" != xno],
-      [ AC_MSG_NOTICE([Enabled HabaneroOpenSHMEM++ support]) ],
-      [ AC_MSG_NOTICE([Disabled HabaneroOpenSHMEM++ support]) ])
-
-AM_CONDITIONAL(HCSHMEM, test "x$with_hcshmem" != xno)
-### End hupcpp
-
 ### SUPPORT HabaneroUPC++
 AC_ARG_ENABLE(hupcpp,
     AS_HELP_STRING([--enable-hupcpp],
@@ -98,34 +69,6 @@ AS_IF([test "x$with_hupcpp" != xno],
 
 AM_CONDITIONAL(HUPCPP, test "x$with_hupcpp" != xno)
 ### End hupcpp
-
-### SUPPORT CUDA-accelerated forasyncs
-AC_ARG_ENABLE(cuda,
-    AS_HELP_STRING([--enable-cuda],
-    [support CUDA-accelerated forasyncs (Default is false)]),
-    [with_cuda=$enableval],
-    [with_cuda=no;])
-
-AS_IF([test "x$with_cuda" != xno],
-      [ AC_MSG_NOTICE([Enabled CUDA support]) ],
-      [ AC_MSG_NOTICE([Disabled CUDA support]) ])
-
-AM_CONDITIONAL(HC_CUDA, test "x$with_cuda" != xno)
-### End cuda
-
-### Turn on runtime verbosity
-AC_ARG_ENABLE(verbose,
-    AS_HELP_STRING([--enable-verbose],
-    [turn on HC runtime verbosity (Default is false)]),
-    [with_verbose=$enableval],
-    [with_verbose=no;])
-
-AS_IF([test "x$with_verbose" != xno],
-      [ AC_MSG_NOTICE([Enabled verbose HC runtime]) ],
-      [ AC_MSG_NOTICE([Disabled verbose HC runtime]) ])
-
-AM_CONDITIONAL(HC_VERBOSE, test "x$with_verbose" != xno)
-### End verbose
 
 ### ENABLE PRODUCTION SETTINGS
 AC_ARG_ENABLE(production,

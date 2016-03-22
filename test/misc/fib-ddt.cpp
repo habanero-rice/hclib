@@ -1,5 +1,4 @@
-#include "hclib_cpp.h"
-#include <iostream>
+#include "hcpp.h"
 using namespace std;
 
 static int threshold = 2;
@@ -9,43 +8,43 @@ int fib_serial(int n) {
     return fib_serial(n-1) + fib_serial(n-2);
 }
 
-void fib(int n, hclib::promise_t* res) {
+void fib(int n, hcpp::DDF_t* res) {
   int* r = new int;
   if (n <= threshold) {
     *r = fib_serial(n);
-    res->put(r);
+    hcpp::ddf_put(res, r);
     return;
   } 
 
   // compute f1 asynchronously
-  hclib::promise_t* f1 = new hclib::promise_t();
-  hclib::async([=]() { 
+  hcpp::DDF_t* f1 = hcpp::ddf_create();
+  hcpp::async([=]() { 
     fib(n - 1, f1);
   });
 
   // compute f2 serially (f1 is done asynchronously).
-  hclib::promise_t* f2 = new hclib::promise_t();
-  hclib::async([=]() { 
+  hcpp::DDF_t* f2 = hcpp::ddf_create();
+  hcpp::async([=]() { 
     fib(n - 2, f2);
   });
 
   // wait for dependences, before updating the result
-  hclib::async_await([=] {
-    *r = *((int*) f1->get_future()->get()) + *((int*) f2->get_future()->get());
-    res->put(r);
-  }, f1->get_future(), f2->get_future());
+  hcpp::asyncAwait(f1, f2, [=]() {
+    *r = *((int*) hcpp::ddf_get(f1)) + *((int*) hcpp::ddf_get(f2));
+    hcpp::ddf_put(res, r);
+  });
 }
 
 int main(int argc, char** argv) {
-    hclib::launch(&argc, argv, [&]() {
-        int n = argc == 1 ? 30 : atoi(argv[1]);
-        threshold = argc == 2 ? 10 : atoi(argv[2]);
-        hclib::promise_t* promise = new hclib::promise_t();
-        hclib::finish([=] {
-            fib(n, promise);
-        });
-        int res = *((int*)promise->get_future()->get());
-        cout << "Fib(" << n << ") = " << res << endl;
-    });
-    return 0;
+  hcpp::init(&argc, argv);
+  int n = argc == 1 ? 30 : atoi(argv[1]);
+  threshold = argc == 2 ? 10 : atoi(argv[2]);
+  hcpp::DDF_t* ddf = hcpp::ddf_create();
+  hcpp::start_finish();
+  fib(n, ddf);
+  hcpp::end_finish();
+  int res = *((int*)ddf_get(ddf));
+  cout << "Fib(" << n << ") = " << res << endl;
+  hcpp::finalize();
+  return 0;
 }

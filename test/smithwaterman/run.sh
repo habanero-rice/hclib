@@ -4,9 +4,9 @@ if [ $# -ne 2 ]; then
 	exit
 fi
 
-export HCLIB_WORKERS=$1
+export HCPP_WORKERS=$1
 SIZE=$2
-export HCLIB_STATS=1
+export HCPP_STATS=1
 
 #SIZE=tiny
 #SIZE=medium

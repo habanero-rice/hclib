@@ -1,6 +1,11 @@
+
+Habanero-C++ library supports two different runtime backends: a) Light Weight Standalone Runtime (LWSR) and Open Community Runtime (OCR). Please find the instructions related to both the backends below.
+
 =============================================
 HABANERO-C++ LIBRARY INSTALLATION PROCEDURE
 =============================================
+
+----------> LWSR backend
 
 1) Set the paths correctly in ./scripts/setup.sh
 
@@ -10,32 +15,33 @@ source ./setup.sh
 
 cd ..
 
-2) If you are compiling HClib with CUDA support, ensure the CUDA_HOME
-   environment variable is set.
+2) ./install.sh
 
-3) If you want to generate your own HPT configuration, you will need HWLOC
-   installed and the environment variable HWLOC_HOME pointed to its root
-   installation directory with $HWLOC_HOME/lib on your LD_LIBRARY_PATH.
+----------> OCR backend
 
-4) ./install.sh
-   a) If you would like to use different C/C++ compilers (the defaults are
-      gcc/g++) then you can specify them using the CC and CXX environment
-      variables at this step. For example, if I wanted to use icc instead I
-      would run:
+1) Clone hclib:
 
-          CC=icc CXX=icpc ./install.sh
+git clone https://github.com/habanero-rice/hclib.git
 
-=============================================
-DEPENDENCIES
-=============================================
+2) Follow the instructions inside hclib to build hclib with OCR support. Set the environment variables mentioned inside hclib properly.
 
-gcc (>= 4.9.0, must support -std=c++11)
+3) Once hclib and OCR is installed, do this in hcpp directory:
+
+a) Set the paths correctly in ./scripts/setup.sh
+
+cd scripts
+
+source ./setup.sh
+
+cd ..
+
+b) HCPP_FLAGS="--enable-ocr" ./install.sh
 
 =============================================
 BUILDING TESTCASES
 =============================================
 
-Setup all environment variables properly (see above)
+For both LWSR and OCR backend, setup all environment variables properly (see above)
 
 1) Tests are inside "./test" 
 
@@ -45,44 +51,37 @@ Setup all environment variables properly (see above)
 EXECUTING TESTCASES
 =============================================
 
-Setup all environment variables properly (see above)
+For both LWSR and OCR backend, setup all environment variables properly (see above)
+
+----------> LWSR backend
 
 1) Set total number of workers
 
-a) export HCLIB_WORKERS=N
+a) export HCPP_WORKERS=N
 
 OR 
 
 b) use an HPT xml file. Some sample files in directory ./hpt
 
-export HCLIB_HPT_FILE=/absolute/path/hclib/hpt/hpt-testing.xml
+export HCPP_HPT_FILE=/absolute/path/hcpp/hpt/hpt-testing.xml
 
 2) See runtime statistics
 
-export HCLIB_STATS=1
+export HCPP_STATS=1
 
 3) Pin worker threads in round-robin fashion (supported only on Linux)
 
-export HCLIB_BIND_THREADS=1
+export HCPP_BIND_THREADS=1
 
 4) Execute the testcase:
 
 ./a.out command_line_args
 
-=============================================
-STATIC CHECKS
-=============================================
+----------> OCR backend
 
-As part of the development workflow for HClib, any newly committed code should
-be checked using standard static checking tools.
+1) The work-stealing configuration file, which declares the total number of worker threads (OCR_CONFIG) is required to configure the total number of runtime workers (details in hclib repository). Then source the setup.sh script in hcpp repository (as mentioned earlier in this file).
 
-In particular, run cppcheck on all modified files. cppcheck is available online
-at [1]. cppcheck should be run by cd-ing to tools/cppcheck and executing the
-run.sh script from there (this assumes cppcheck is on your path). Any new errors
-printed by cppcheck should be addressed before committing.
+2) Execute the testcase:
 
-You should also run astyle on all modified fields. astyle is a source code
-auto-formatter. Simply cd to tools/astyle and execute the run.sh script from
-there. This assumes you have astyle installed and it is on your path.
+./a.out command_line_arg
 
-[1] https://sourceforge.net/projects/cppcheck/
