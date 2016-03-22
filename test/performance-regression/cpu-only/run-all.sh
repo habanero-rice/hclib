@@ -59,7 +59,8 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/nw/needle 2048 10 2"
         "rodinia/particlefilter/particle_filter -x 128 -y 128 -z 10 -np 10000"
         "rodinia/pathfinder/pathfinder 100000 100"
-        "rodinia/srad/srad 2048 2048 0 127 0 127 2 0.5 2")
+        "rodinia/srad/srad 2048 2048 0 127 0 127 2 0.5 2"
+        "rodinia/streamcluster/sc_omp 10 20 256 65536 65536 1000 none output.txt 4")
 
 NTRIALS=10
 
