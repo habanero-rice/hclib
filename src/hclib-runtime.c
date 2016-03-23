@@ -157,10 +157,10 @@ void hclib_global_init() {
                                   &hclib_context->workers, &hclib_context->nworkers);
 
 #ifdef HC_COMM_WORKER
-    assert(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
+    HASSERT(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
 #endif
 #ifdef HC_CUDA
-    assert(hclib_context->nworkers > GPU_WORKER_ID);
+    HASSERT(hclib_context->nworkers > GPU_WORKER_ID);
 #endif
 
     for (int i = 0; i < hclib_context->nworkers; i++) {
@@ -350,12 +350,18 @@ static inline void check_in_finish(finish_t *finish) {
     }
 }
 
-static inline void check_out_finish(finish_t *finish) {
+static inline void check_out_finish(finish_t *finish, bool do_promise_put) {
     if (finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            hclib_promise_put(finish->finish_deps[0]->owner, finish);
+            /*
+             * Don't do promise put when we're a communication worker who's just
+             * spinning in the end finish on other tasks to finish.
+             */
+            if (do_promise_put) {
+                hclib_promise_put(finish->finish_deps[0]->owner, finish);
+            }
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
@@ -375,7 +381,7 @@ static inline void execute_task(hclib_task_t *task) {
     fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
 #endif
     (task->_fp)(task->args);
-    check_out_finish(current_finish);
+    check_out_finish(current_finish, true);
     HC_FREE(task);
 }
 
@@ -714,7 +720,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                 exit(1);
             }
 
-            check_out_finish(get_current_finish((hclib_task_t *)task));
+            check_out_finish(get_current_finish((hclib_task_t *)task), true);
 
             if (op) {
 #ifdef VERBOSE
@@ -771,7 +777,7 @@ void *communication_worker_routine(void *finish_ptr) {
     worker_done_t *done_flag = hclib_context->done_flags + COMMUNICATION_WORKER_ID;
 
 #ifdef VERBOSE
-    fprintf(stderr, "communication worker spinning up\n");
+    fprintf(stderr, "communication worker spinning up, finish counter initially %d\n", finish->counter);
 #endif
 
     semi_conc_deque_t *deque = comm_worker_out_deque;
@@ -998,7 +1004,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * The main thread is now exiting the finish (albeit in a separate context),
      * so check it out.
      */
-    check_out_finish(finish);
+    check_out_finish(finish, true);
     // keep workstealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     HASSERT(0); // we should never return here
@@ -1124,10 +1130,19 @@ void hclib_end_finish() {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
     HASSERT(current_finish->counter > 0);
-    help_finish(current_finish);
+    /*
+     * Assume that if we don't currently have a lightweight context we must be
+     * the communication worker.
+     */
+    if (get_curr_lite_ctx()) {
+        help_finish(current_finish);
+    } else {
+        check_out_finish(current_finish, false);
+        while (current_finish->counter > 0) ;
+    }
     HASSERT(current_finish->counter == 0);
 
-    check_out_finish(current_finish->parent); // NULL check in check_out_finish
+    check_out_finish(current_finish->parent, true); // NULL check in check_out_finish
 
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
     HC_FREE(current_finish);
@@ -1147,10 +1162,10 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     current_finish->finish_deps = finish_deps;
 
     // Check out this "task" from the current finish
-    check_out_finish(current_finish);
+    check_out_finish(current_finish, true);
 
     // Check out the current finish from its parent
-    check_out_finish(current_finish->parent);
+    check_out_finish(current_finish->parent, true);
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
 }
 
@@ -1226,8 +1241,10 @@ void showStatsFooter() {
 /*
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
+ * 
+ * Visible for HUPC
  */
-static void hclib_init() {
+void hclib_init() {
     HASSERT(hclib_stats == NULL);
     HASSERT(bind_threads == -1);
     hclib_stats = getenv("HCLIB_STATS");
@@ -1244,14 +1261,21 @@ static void hclib_init() {
     }
 
     hclib_entrypoint();
+
+#ifdef HUPCPP
+    const bool master_thread_is_comm_worker = (COMMUNICATION_WORKER_ID == 0);
+    HASSERT(master_thread_is_comm_worker);
+#endif
 }
 
-
-static void hclib_finalize() {
+// Visible for HUPC
+void hclib_finalize() {
 #if HCLIB_LITECTX_STRATEGY
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
-    CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
+    if (CURRENT_WS_INTERNAL->root_ctx == NULL) {
+        CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
+    }
     ctx_swap(finalize_ctx, finish_ctx, __func__);
     // free resources
     LiteCtx_destroy(finalize_ctx->prev);
@@ -1295,14 +1319,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
 #elif HUPCPP
-    const bool master_thread_is_comm_worker = (COMMUNICATION_WORKER_ID == 0);
-    if (master_thread_is_comm_worker) {
-        hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-        (fct_ptr)(arg);
-        communication_worker_routine(ws->current_finish);
-    } else {
-        hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
-    }
+    HASSERT(false);
 #else
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 #endif
