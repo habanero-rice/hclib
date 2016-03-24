@@ -360,6 +360,7 @@ static inline void check_out_finish(finish_t *finish, bool do_promise_put) {
              * spinning in the end finish on other tasks to finish.
              */
             if (do_promise_put) {
+HASSERT(get_current_worker() != 0);
                 hclib_promise_put(finish->finish_deps[0]->owner, finish);
             }
 #endif /* HCLIB_LITECTX_STRATEGY */
@@ -1262,7 +1263,7 @@ void hclib_init() {
 
     hclib_entrypoint();
 
-#ifdef HUPCPP
+#if defined(HCSHMEM) || defined(HUPCPP)
     const bool master_thread_is_comm_worker = (COMMUNICATION_WORKER_ID == 0);
     HASSERT(master_thread_is_comm_worker);
 #endif
