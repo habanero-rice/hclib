@@ -36,8 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <functional>
 
+#include "hclib.h"
 #include "hclib-async-struct.h"
-#include "hcupc-support.h"
 #include "hclib_promise.h"
 
 #ifndef HCLIB_ASYNC_H_
