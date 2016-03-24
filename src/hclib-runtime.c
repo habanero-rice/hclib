@@ -1316,9 +1316,8 @@ void hclib_finalize() {
 
 void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     hclib_init();
-#ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#elif HUPCPP
+#if defined(HCSHMEM) || defined(HUPCPP)
+    // In this case the library must call  hclib_init() and hclib_finalize() 
     HASSERT(false);
 #else
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
