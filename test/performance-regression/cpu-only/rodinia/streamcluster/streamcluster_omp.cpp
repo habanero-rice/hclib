@@ -42,7 +42,7 @@ using namespace std;
 /* higher ITER also scales the running time almost linearly */
 #define ITER 3 // iterate ITER* k log k times; ITER >= 1
 
-#define PRINTINFO //comment this out to disable output
+//#define PRINTINFO //comment this out to disable output
 #define PROFILE // comment this out to disable instrumentation code
 //#define ENABLE_THREADS  // comment this out to disable threads
 //#define INSERT_WASTE //uncomment this to insert waste computation into dist function
@@ -373,6 +373,7 @@ typedef struct _pgain451 {
     double t1;
     double *lower;
     double *gl_lower;
+    pthread_mutex_t reduction_mutex;
  } pgain451;
 
 typedef struct _pgain539 {
@@ -454,6 +455,11 @@ static void pgain451_hclib_async(void *arg, const int ___iter) {
       lower[center_table[assign]] += current_cost - x_cost;			
     }
   }    } while (0);
+    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
+    assert(lock_err == 0);
+    ctx->cost_of_opening_x += cost_of_opening_x;
+    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
+    assert(unlock_err == 0);
 }
 
 static void pgain539_hclib_async(void *arg, const int ___iter) {
@@ -621,6 +627,8 @@ ctx->count = count;
 ctx->t1 = t1;
 ctx->lower = lower;
 ctx->gl_lower = gl_lower;
+ctx->cost_of_opening_x = 0;
+ctx->reduction_mutex = PTHREAD_MUTEX_INITIALIZER;
 hclib_loop_domain_t domain;
 domain.low = k1;
 domain.high = k2;
@@ -629,6 +637,7 @@ domain.tile = 1;
 hclib_future_t *fut = hclib_forasync_future((void *)pgain451_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
+cost_of_opening_x = ctx->cost_of_opening_x;
  } 
 
 #ifdef ENABLE_THREADS
@@ -995,9 +1004,6 @@ while(1) {
 
     /* if k is good, return the result */
     /* if we're stuck, just give up and return what we have */
-#ifdef PRINTINFO
-    printf("break on (%ld <= %ld && %ld >= %ld) || (%f >= %f)\n", k, kmax, k, kmin, loz, 0.999 * hiz);
-#endif
     if (((k <= kmax)&&(k >= kmin))||((loz >= (0.999)*hiz)) )
       { 
 	break;
