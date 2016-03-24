@@ -54,7 +54,7 @@
  * log factor in the critical path (left as homework).
  */
 
-#include "hcpp.h"
+#include "hclib_cpp.h"
 #include<sys/time.h>
 #include<stdlib.h>
 
@@ -144,9 +144,8 @@ void seqmerge(int low1, int high1, int low2, int high2, int lowdest, int* src, i
 }
 
 int binsplit(int val, int low, int high, int* src) {
-  int mid;
   while(low != high){
-    mid = low + ((high - low + 1) >> 1);
+    int mid = low + ((high - low + 1) >> 1);
     if(val <= src[mid]) 
       high = mid - 1;
     else 
@@ -187,8 +186,8 @@ void cilkmerge(int low1, int high1, int low2, int high2, int lowdest, int *src, 
     lowsize = split1 - low1 + split2 - low2;
     dest[(lowdest + lowsize + 1)] = src[split1];
 
-    hcpp::finish([=]() {
-      hcpp::async([=]() {
+    hclib::finish([=]() {
+      hclib::async([=]() {
         cilkmerge(low1, split1 - 1, low2, split2, lowdest, src, dest);
       });
       cilkmerge(split1 + 1, high1, split2 + 1, high2, lowdest + lowsize + 2, src, dest);
@@ -218,21 +217,21 @@ void cilksort(int low, int tmpx, int size) {
     D = C + quarter;
     tmpD = tmpC + quarter;
 
-    hcpp::finish([=]() {
-      hcpp::async([=]() {
+    hclib::finish([=]() {
+      hclib::async([=]() {
         cilksort(A, tmpA, quarter);
       });
-      hcpp::async([=]() {
+      hclib::async([=]() {
         cilksort(B, tmpB, quarter);
       });
-      hcpp::async([=]() {
+      hclib::async([=]() {
         cilksort(C, tmpC, quarter);
       });
       cilksort(D, tmpD, size - 3 * quarter);
     });
 
-    hcpp::finish([=]() {
-      hcpp::async([=]() {
+    hclib::finish([=]() {
+      hclib::async([=]() {
         cilkmerge(A, A + quarter - 1, B, B + quarter - 1, tmpA, array, tmpArr);
       });
       cilkmerge(C, C + quarter - 1, D, low + size - 1, tmpC, array, tmpArr);
@@ -258,10 +257,10 @@ long get_usecs (void)
 
 void scramble_array(int *arr, int size)
 {
-     int i, j;
+     int i;
 
      for (i = 0; i < size; ++i) {
-	  j = rand();
+	  int j = rand();
 	  j = j % size;
 	  swap(arr[i], arr[j]);
      }
@@ -269,41 +268,38 @@ void scramble_array(int *arr, int size)
 
 int main(int argc, char **argv)
 {
-     hcpp::init(&argc, argv);
-     int size = 10000000;
-     int check = 1;
-     int i, j, k;
-     
-     if(argc > 1) size = atoi(argv[1]);
-     if(argc > 2) check = atoi(argv[2]);
-     
-     array = (int*) malloc(size * sizeof(int));
-     back = (int*) malloc(size * sizeof(int));
-     tmpArr = (int*) malloc(size * sizeof(int));
-  
-     srand(1);
-     for(i=0; i<size; i++) {
-       back[i] = i;
-     }
-     scramble_array(back,size);
-    
-     long start = get_usecs();
-     memcpy(array, back,sizeof(int) * size);   
-     cilksort(0, 0, size);
-     long end = get_usecs();
-     double dur = ((double)(end-start))/1000000;
-     int passed = 0;
-     for (k = 0; k < size; ++k)
- 	if (array[k] != k)
-         	passed = 1;
+     hclib::launch(&argc, argv, [&]() {
+         int size = 10000000;
+         int i, k;
+         
+         if(argc > 1) size = atoi(argv[1]);
+         
+         array = (int*) malloc(size * sizeof(int));
+         back = (int*) malloc(size * sizeof(int));
+         tmpArr = (int*) malloc(size * sizeof(int));
+      
+         srand(1);
+         for(i=0; i<size; i++) {
+           back[i] = i;
+         }
+         scramble_array(back,size);
+        
+         long start = get_usecs();
+         memcpy(array, back,sizeof(int) * size);   
+         cilksort(0, 0, size);
+         long end = get_usecs();
+         double dur = ((double)(end-start))/1000000;
+         int passed = 0;
+         for (k = 0; k < size; ++k)
+        if (array[k] != k)
+                passed = 1;
 
-     printf("CilkSort (%d): Passed = %d, Time = %f\n",size,passed,dur);
+         printf("CilkSort (%d): Passed = %d, Time = %f\n",size,passed,dur);
 
-    free(array);
-    free(back);
-    free(tmpArr);
-
-    hcpp::finalize();
+        free(array);
+        free(back);
+        free(tmpArr);
+    });
 
     return 0;
 }

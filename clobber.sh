@@ -6,7 +6,7 @@ rm install
 # Cleanup the project 
 #
 
-rm -Rf compileTree hcpp-install
+rm -Rf compileTree hclib-install
 
 rm -Rf config autom4te.cache aclocal.m4 configure COPYING depcomp config.log config.status libtool
 

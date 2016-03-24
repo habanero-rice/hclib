@@ -35,12 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Author: Vivek Kumar (vivekk@rice.edu)
  */
 
-#include "hcpp-asyncStruct.h"
+#include "hclib-async-struct.h"
+#include "hclib.h"
 
 #ifndef HCUPC_SUPPORT_H_
 #define HCUPC_SUPPORT_H_
-
-namespace hcpp {
 
 #if defined(HUPCPP) && defined(DIST_WS)
 
@@ -52,10 +51,10 @@ typedef struct asyncAnyInfo {
 #define MAX_REMOTE_ASYNCANY_ARG_SIZE 384
 
 struct remoteAsyncAny_task  {
-	generic_framePtr _fp;
+	generic_frame_ptr _fp;
 	char _args[MAX_REMOTE_ASYNCANY_ARG_SIZE];
-	inline void init_remoteAsyncAny_task(generic_framePtr fp, size_t arg_sz, void *remoteAsyncAny_args) {
-		assert(arg_sz <= MAX_REMOTE_ASYNCANY_ARG_SIZE);
+	inline void init_remoteAsyncAny_task(generic_frame_ptr fp, size_t arg_sz, void *remoteAsyncAny_args) {
+		HASSERT(arg_sz <= MAX_REMOTE_ASYNCANY_ARG_SIZE);
 		this->_fp = fp;
 		if (arg_sz > 0) {
 			memcpy(&this->_args, remoteAsyncAny_args, arg_sz);
@@ -85,7 +84,7 @@ inline void execute_remoteAsyncAny_task(T lambda) {
 
 template <typename T>
 inline void execute_hcupc_lambda(T* lambda) {
-	const int wid = get_hc_wid();
+	const int wid = get_current_worker();
 	if(wid != 0) {
 		// only computation workers can enter
 		MARK_BUSY(wid);
@@ -126,23 +125,23 @@ inline void execute_hcupc_lambda(T* lambda) {
 }
 
 template <typename T>
-inline task_t* _allocate_async_hcupc(T lambda, bool await) {
-	const size_t hcpp_task_size = !await ? sizeof(task_t) : sizeof(hcpp_task_t);
-	task_t* task = (task_t*) HC_MALLOC(hcpp_task_size);
+inline hclib_task_t* _allocate_async_hcupc(T lambda, bool await) {
+	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
+	hclib_task_t* task = (hclib_task_t*) HC_MALLOC(hclib_task_size);
 	const size_t lambda_size = sizeof(T);
 	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);
-	task_t t = task_t(execute_hcupc_lambda<T>, lambda_onHeap);
-	memcpy(task, &t, sizeof(task_t));
+	hclib_task_t t = hclib_task_t(execute_hcupc_lambda<T>, lambda_onHeap);
+	memcpy(task, &t, sizeof(hclib_task_t));
 	return task;
 }
 
-void spawn_asyncAnyTask(task_t * task);
+void spawn_asyncAnyTask(hclib_task_t * task);
 
 template <typename T>
 inline void asyncAny(T lambda) {
 	MARK_OVH(current_ws()->id);
-	task_t* task = _allocate_async_hcupc<T>(lambda, false);
+	hclib_task_t* task = _allocate_async_hcupc<T>(lambda, false);
 	spawn_asyncAnyTask(task);
 }
 #endif	/* defined(HUPCPP) && defined(DIST_WS) */
@@ -152,18 +151,24 @@ inline void asyncAny(T lambda) {
  */
 void init_hcupc_related_datastructures(int w);
 void free_hcupc_related_datastructures();
-void check_if_hcupc_dddf(ddf_t** ddf_list);
+void check_if_hcupc_distributed_futures(hclib_future_t** future_list);
 void hcupc_reset_asyncAnyInfo(int id);
-void hcupc_check_if_asyncAny_stolen(task_t* buff, int victim, int id);
+void hcupc_check_if_asyncAny_stolen(hclib_task_t* buff, int victim, int id);
 void hcupc_inform_failedSteal(int id);
-void hcupc_check_if_asyncAny_pop(task_t* buff, int id);
+void hcupc_check_if_asyncAny_pop(hclib_task_t* buff, int id);
 
 #ifdef HUPCPP
-void gather_commWorker_Stats(int* push_outd, int* push_ind, int* steal_ind);
+#ifdef __cplusplus
+extern "C" {
+#endif
+void hclib_gather_comm_worker_stats(int* push_outd, int* push_ind,
+        int* steal_ind);
 int totalPendingLocalAsyncs();
-void display_runtime();
-volatile int* start_finish_special();
-void init(int * argc, char ** argv, void (*_dddf_register_callback)(ddf_t**));
+void hclib_display_runtime();
+volatile int* hclib_start_finish_special();
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #ifdef DIST_WS
@@ -171,7 +176,5 @@ int totalAsyncAnyAvailable();
 bool steal_fromComputeWorkers_forDistWS(remoteAsyncAny_task* remAsyncAnybuff);
 void registerHCUPC_callback(volatile int*);
 #endif
-
-}
 
 #endif /* HCUPC_SUPPORT_H_ */

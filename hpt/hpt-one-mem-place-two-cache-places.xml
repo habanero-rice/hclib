@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!DOCTYPE HPT SYSTEM "hpt.dtd">
+
+<HPT version="0.1" info="Auto-generated using hwloc">
+  <place num="1" type="mem">
+    <place num="1" type="cache">
+      <worker num="1"/>
+    </place>
+    <place num="1" type="cache">
+      <worker num="1"/>
+    </place>
+  </place>
+</HPT>
