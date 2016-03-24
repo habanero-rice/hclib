@@ -5,7 +5,7 @@ export TBB_MALLOC=/home/kumar/tbb
 export LIBXML2_INCLUDE=/usr/include/libxml2
 export LIBXML2_LIBS=/usr/lib/x86_64-linux-gnu
 export BASE=/home/mg1/hcpp
-export HC_CUDA_FLAGS=--enable-cuda
+# export HC_CUDA_FLAGS=--enable-cuda
 
 ################################################
 #
