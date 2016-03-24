@@ -31,7 +31,7 @@ AM_CXXFLAGS = $(HC_FLAGS_VERBOSE) $(PRODUCTION_SETTINGS_FLAGS) \
 			  -I$(LIBXML2_INCLUDE)
 libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-promise.c \
 					  hclib-timer.c hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c \
-					  hclib_module.cpp
+					  hclib_module.cpp hclib-fptr-list.c
 
 if X86
 if OSX

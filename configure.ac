@@ -2,7 +2,7 @@
 AC_PREREQ([2.59])
 
 # define distribution properties
-AC_INIT([hclib], [0.1], [vivekk@rice.edu])
+AC_INIT([hclib], [0.1], [jmg3@rice.edu])
 
 # check if srcdir is correct
 AC_CONFIG_SRCDIR([inc/hclib.h])

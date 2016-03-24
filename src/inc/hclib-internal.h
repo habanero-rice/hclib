@@ -108,7 +108,7 @@ typedef struct _hclib_deque_t {
     struct hclib_worker_state * ws;
     struct _hclib_deque_t *nnext;
     struct _hclib_deque_t *prev; /* the deque list of the worker */
-    hclib_locale *locale;
+    hclib_locale_t *locale;
 } hclib_deque_t;
 
 void log_(const char * file, int line, hclib_worker_state * ws, const char * format,

@@ -136,7 +136,7 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
 #endif
 
 template <typename T>
-inline void async_at(hclib_locale* locale, T lambda) {
+inline void async_at(hclib_locale_t *locale, T lambda) {
     MARK_OVH(current_ws()->id);
     hclib_task_t* task = _allocate_async<T>(lambda, false);
     spawn_at(task, locale);
@@ -198,7 +198,7 @@ inline void async_await(T lambda, future_list_t... futures) {
 }
 
 template <typename T>
-inline void async_await_at(T lambda, hclib_locale *locale,
+inline void async_await_at(T lambda, hclib_locale_t *locale,
         hclib_future_t **future_list) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
@@ -206,7 +206,7 @@ inline void async_await_at(T lambda, hclib_locale *locale,
 }
 
 template <typename T, typename... future_list_t>
-inline void async_await_at(T lambda, hclib_locale *locale, future_list_t... futures) {
+inline void async_await_at(T lambda, hclib_locale_t *locale, future_list_t... futures) {
     hclib_future_t **future_list = construct_future_list(futures...);
     async_await_at(lambda, locale, future_list);
 }

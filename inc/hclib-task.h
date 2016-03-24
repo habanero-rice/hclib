@@ -28,7 +28,7 @@ typedef struct _hclib_task_t {
     struct finish_t *current_finish;
     generic_frame_ptr _fp;
     hclib_future_t **future_list; // Null terminated list
-    hclib_locale *locale;
+    hclib_locale_t *locale;
 } hclib_task_t;
 
 /*

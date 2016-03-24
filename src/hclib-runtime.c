@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-hpt.h>
 #include <hclib-cuda.h>
 #include <hclib-locality-graph.h>
+#include <hclib-module.h>
 
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
@@ -222,6 +223,8 @@ void hclib_entrypoint() {
         hclib_display_runtime();
     }
 
+    hclib_call_module_pre_init_functions();
+
     srand(0);
 
     hc_context = (hclib_context *)malloc(sizeof(hclib_context));
@@ -269,6 +272,9 @@ void hclib_entrypoint() {
 
     }
     set_current_worker(0);
+
+    // Initialize any registered modules
+    hclib_call_module_post_init_functions();
 
     // allocate root finish
     hclib_start_finish();
@@ -400,7 +406,7 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
     }
 }
 
-void spawn_handler(hclib_task_t *task, hclib_locale *locale,
+void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         hclib_future_t **future_list, int escaping) {
 
     HASSERT(task);
@@ -431,7 +437,7 @@ void spawn_handler(hclib_task_t *task, hclib_locale *locale,
     try_schedule_async(task, ws);
 }
 
-void spawn_at(hclib_task_t *task, hclib_locale *locale) {
+void spawn_at(hclib_task_t *task, hclib_locale_t *locale) {
     spawn_handler(task, locale, NULL, 0);
 }
 
@@ -443,13 +449,13 @@ void spawn_escaping(hclib_task_t *task, hclib_future_t **future_list) {
     spawn_handler(task, NULL, future_list, 1);
 }
 
-void spawn_escaping_at(hclib_locale *locale, hclib_task_t *task,
+void spawn_escaping_at(hclib_locale_t *locale, hclib_task_t *task,
                        hclib_future_t **future_list) {
     spawn_handler(task, locale, future_list, 1);
 }
 
 void spawn_await_at(hclib_task_t *task, hclib_future_t **future_list,
-                    hclib_locale *locale) {
+                    hclib_locale_t *locale) {
     spawn_handler(task, locale, future_list, 0);
 }
 
@@ -1047,7 +1053,8 @@ static void hclib_finalize() {
  */
 
 void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
-    unsigned long long start_time, end_time;
+    unsigned long long start_time = 0;
+    unsigned long long end_time;
     hclib_init();
     if (profile_launch_body) {
         start_time = current_time_ns();

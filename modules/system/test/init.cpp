@@ -1,5 +1,4 @@
 #include "hclib_cpp.h"
-#include "hclib_cuda.h"
 #include "hclib_system.h"
 
 #include <iostream>

@@ -53,21 +53,23 @@ struct _hclib_task_t;
 extern "C" {
 #endif
 
-typedef struct _hclib_locale {
+typedef struct _hclib_locale_t {
     unsigned id;
+    unsigned type;
     const char *lbl;
+    void *metadata;
 
     struct _hclib_deque_t *deques;
-} hclib_locale;
+} hclib_locale_t;
 
 typedef struct _hclib_locality_graph {
-    hclib_locale *locales;
+    hclib_locale_t *locales;
     unsigned n_locales;
     unsigned *edges;
 } hclib_locality_graph;
 
 typedef struct _hclib_locality_path {
-    hclib_locale **locales;
+    hclib_locale_t **locales;
     unsigned path_length;
 } hclib_locality_path;
 
@@ -84,14 +86,18 @@ extern void generate_locality_info(int *nworkers_out,
         hclib_worker_paths **worker_paths_out);
 extern void print_locality_graph(hclib_locality_graph *graph);
 extern void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers);
-extern int deque_push_locale(hclib_worker_state *ws, hclib_locale *locale, void *ele);
+extern int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
+        void *ele);
 extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);
 
-
 extern int hclib_get_num_locales();
-extern hclib_locale *hclib_get_closest_locale();
-extern hclib_locale *hclib_get_all_locales();
+extern hclib_locale_t *hclib_get_closest_locale();
+extern hclib_locale_t *hclib_get_all_locales();
+extern hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
+        int locale_type);
+
+extern unsigned hclib_add_known_locale_type(const char *lbl);
 
 #ifdef __cplusplus
 }
