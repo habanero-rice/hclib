@@ -6,8 +6,8 @@ CC_FLAGS = -g -fopenmp -O2 $(PROJECT_CXXFLAGS)
 
 
 backprop: backprop.o facetrain.o imagenet.o backprop_kernel.o 
-	$(CC) $(CC_FLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) backprop.o facetrain.o \
-		imagenet.o backprop_kernel.o -o backprop -lm
+	$(CC) $(CC_FLAGS) backprop.o facetrain.o \
+		imagenet.o backprop_kernel.o $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) -o backprop -lm
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c

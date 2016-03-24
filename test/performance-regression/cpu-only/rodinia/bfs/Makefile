@@ -7,7 +7,7 @@ CC_FLAGS = -g -fopenmp -O2 $(PROJECT_CXXFLAGS)
 all: bfs
 
 bfs: bfs.cpp 
-	$(CC) $(CC_FLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) bfs.cpp -o bfs
+	$(CC) $(CC_FLAGS) bfs.cpp $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) -o bfs
 
 clean:
 	rm -f bfs result.txt

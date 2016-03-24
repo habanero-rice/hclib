@@ -66,6 +66,9 @@ NTRIALS=10
 
 TIMESTAMP=$(date +%s)
 MACHINE=$(hostname -d)
+if [[ -z "$MACHINE" ]]; then
+    MACHINE=$(hostname)
+fi
 PATH=.:${PATH}
 
 mkdir -p regression-logs-$MACHINE

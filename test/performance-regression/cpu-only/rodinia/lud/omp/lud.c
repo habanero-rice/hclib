@@ -158,7 +158,7 @@ ctx->input_file = input_file;
 ctx->m = m;
 ctx->mm = mm;
 ctx->sw = sw;
-hclib_launch(NULL, NULL, main_entrypoint, ctx);
+hclib_launch(main_entrypoint, ctx);
 free(ctx);
 ;
 #pragma omp_to_hclib body_end

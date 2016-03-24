@@ -15,7 +15,7 @@ MATRIX_DIR = ../meschach_lib
 leukocyte: detect_main.o avilib.o find_ellipse.o track_ellipse.o misc_math.o $(MATRIX_DIR)/meschach.a
 	$(CC) $(CC_FLAGS) -lm avilib.o find_ellipse.o track_ellipse.o misc_math.o detect_main.o -o leukocyte -lm $(MATRIX_DIR)/meschach.a -lpthread $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
 
-%.o: %.[ch]
+%.o: %.c
 	$(CC) $(OUTPUT) $(CC_FLAGS) $< -c
 
 detect_main.o: find_ellipse.h track_ellipse.h avilib.h

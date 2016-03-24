@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
   atomic = (int*) malloc(sizeof(int));;
   atomic[0]=0;
 
-  hclib::launch(&argc, argv, [&]() {
+  hclib::launch([&]() {
       hclib::finish([=] { 
           nqueens_kernel(a, 0, n);  
       });

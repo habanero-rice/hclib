@@ -118,7 +118,7 @@ void BFSGraph( int argc, char** argv)
 	
 	printf("Start traversing the tree\n");
 
-    hclib::launch(NULL, NULL, [=] {
+    hclib::launch([=] {
         int k=0;
         bool stop;
         do {

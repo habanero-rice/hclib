@@ -37,7 +37,7 @@ int main (int argc, char ** argv) {
   if(argc > 1) n = atoi(argv[1]);
   if(argc > 2) threshold = atoi(argv[2]);
 
-  hclib::launch(&argc, argv, [&]() {
+  hclib::launch([&]() {
       int res = fib(n);
       printf("Fib(%d) = %d\n",n,res);
   });

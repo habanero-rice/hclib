@@ -343,7 +343,7 @@ int main(int argc, char** argv)
 { main_ctx *ctx = (main_ctx *)malloc(sizeof(main_ctx));
 ctx->argc = argc;
 ctx->argv = argv;
-hclib_launch(NULL, NULL, (void (*)(void*))main_entrypoint, ctx);
+hclib_launch((void (*)(void*))main_entrypoint, ctx);
 free(ctx); return 0; }
 	
 

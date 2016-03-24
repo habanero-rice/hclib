@@ -583,7 +583,7 @@ int main(int argc, char *argv []){
     memcpy(ctx->private, private, ALL_POINTS * sizeof(private_struct));
     ctx->frames_processed = frames_processed;
 
-    hclib_launch(NULL, NULL, entrypoint, ctx);
+    hclib_launch(entrypoint, ctx);
     free(ctx);
 
 	//======================================================================================================================================================

@@ -312,7 +312,7 @@ main(	int argc,
     ctx->rv_cpu = rv_cpu;
     ctx->qv_cpu = qv_cpu;
     ctx->fv_cpu = fv_cpu;
-    hclib_launch(NULL, NULL, main_entrypoint, ctx);
+    hclib_launch(main_entrypoint, ctx);
 
 	time6 = get_time();
 

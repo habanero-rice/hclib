@@ -284,7 +284,7 @@ int main(int argc, char **argv)
     scramble_array(back,size);
     memcpy(array, back,sizeof(int) * size);   
 
-    hclib::launch(&argc, argv, [&]() {
+    hclib::launch([&]() {
             cilksort(0, 0, size);
             });
     int passed = 0;

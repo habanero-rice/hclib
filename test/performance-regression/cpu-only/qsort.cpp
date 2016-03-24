@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         data[i] = (ELEMENT_T)rand();
     }	
 
-	hclib::launch(&argc, argv, [&]() {
+	hclib::launch([&]() {
         sort(data, 0, N-1, threshold);
     });
  

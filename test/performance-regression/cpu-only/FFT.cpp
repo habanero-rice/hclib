@@ -3204,7 +3204,7 @@ void test_speed(long size)
 
 int main(int argc, char *argv[])
 {
-     hclib::launch(&argc, argv, [&]() {
+     hclib::launch([&]() {
          int correctness=0;
          int n = 2048;
          

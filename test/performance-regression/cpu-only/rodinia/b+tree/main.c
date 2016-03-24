@@ -2447,7 +2447,7 @@ main(	int argc,
     ctx->mem_used = mem_used;
     ctx->cores_arg = cores_arg;
 
-    hclib_launch(NULL, NULL, main_entrypoint, ctx);
+    hclib_launch(main_entrypoint, ctx);
     free(ctx);
 	printf("\n");
 

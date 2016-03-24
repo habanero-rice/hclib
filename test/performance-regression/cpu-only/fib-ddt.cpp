@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     int n = argc == 1 ? 30 : atoi(argv[1]);
     threshold = argc == 2 ? 10 : atoi(argv[2]);
 
-    hclib::launch(&argc, argv, [&]() {
+    hclib::launch([&]() {
         hclib::promise_t* promise = new hclib::promise_t();
         hclib::finish([=] {
             fib(n, promise);

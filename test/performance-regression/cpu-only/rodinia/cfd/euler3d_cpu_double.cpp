@@ -429,7 +429,7 @@ int main(int argc, char** argv)
 	// these need to be computed the first time in order to compute time step
 	std::cout << "Starting " << iterations << " iterations" << std::endl;
 
-    hclib::launch(NULL, NULL, [=] {
+    hclib::launch([=] {
         initialize_variables(nelr, variables);
         // Begin iterations
         for(int i = 0; i < iterations; i++)

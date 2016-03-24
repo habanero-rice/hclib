@@ -24,7 +24,7 @@ backprop_face()
   load(net);
   //entering the training kernel, only one iteration
   printf("Starting training kernel\n");
-  hclib_launch(NULL, NULL, backprop_face_entrypoint, net);
+  hclib_launch(backprop_face_entrypoint, net);
   bpnn_free(net);
   printf("Training done\n");
 }
