@@ -539,6 +539,7 @@ typedef struct _particleFilter438 {
     long long likelihood_time;
     long long exponential;
     double sumWeights;
+    pthread_mutex_t reduction_mutex;
  } particleFilter438;
 
 typedef struct _particleFilter444 {
@@ -620,6 +621,7 @@ typedef struct _particleFilter453 {
     double sumWeights;
     long long sum_time;
     long long normalize;
+    pthread_mutex_t reduction_mutex;
  } particleFilter453;
 
 typedef struct _particleFilter478 {
@@ -736,8 +738,8 @@ static void particleFilter371_hclib_async(void *arg, const int ___iter) {
     double *objxy; objxy = ctx->objxy;
     long long get_neighbors; get_neighbors = ctx->get_neighbors;
     double *weights; weights = ctx->weights;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 		weights[x] = 1/((double)(Nparticles));
 	}    } while (0);
@@ -773,8 +775,8 @@ static void particleFilter386_hclib_async(void *arg, const int ___iter) {
     double *CDF; CDF = ctx->CDF;
     double *u; u = ctx->u;
     int *ind; ind = ctx->ind;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 		arrayX[x] = xe;
 		arrayY[x] = ye;
@@ -815,8 +817,8 @@ static void particleFilter400_hclib_async(void *arg, const int ___iter) {
     int indX; indX = ctx->indX;
     int indY; indY = ctx->indY;
     long long set_arrays; set_arrays = ctx->set_arrays;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			arrayX[x] += 1 + 5*randn(seed, x);
 			arrayY[x] += -2 + 2*randn(seed, x);
@@ -858,8 +860,8 @@ static void particleFilter408_hclib_async(void *arg, const int ___iter) {
     int indY; indY = ctx->indY;
     long long set_arrays; set_arrays = ctx->set_arrays;
     long long error; error = ctx->error;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			//compute the likelihood: remember our assumption is that you know
 			// foreground and the background image intensity distribution.
@@ -916,8 +918,8 @@ static void particleFilter431_hclib_async(void *arg, const int ___iter) {
     long long set_arrays; set_arrays = ctx->set_arrays;
     long long error; error = ctx->error;
     long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			weights[x] = weights[x] * exp(likelihood[x]);
 		}    } while (0);
@@ -961,11 +963,16 @@ static void particleFilter438_hclib_async(void *arg, const int ___iter) {
     long long likelihood_time; likelihood_time = ctx->likelihood_time;
     long long exponential; exponential = ctx->exponential;
     double sumWeights; sumWeights = ctx->sumWeights;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			sumWeights += weights[x];
 		}    } while (0);
+    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
+    assert(lock_err == 0);
+    ctx->sumWeights += sumWeights;
+    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
+    assert(unlock_err == 0);
 }
 
 static void particleFilter444_hclib_async(void *arg, const int ___iter) {
@@ -1007,8 +1014,8 @@ static void particleFilter444_hclib_async(void *arg, const int ___iter) {
     long long exponential; exponential = ctx->exponential;
     double sumWeights; sumWeights = ctx->sumWeights;
     long long sum_time; sum_time = ctx->sum_time;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			weights[x] = weights[x]/sumWeights;
 		}    } while (0);
@@ -1054,12 +1061,18 @@ static void particleFilter453_hclib_async(void *arg, const int ___iter) {
     double sumWeights; sumWeights = ctx->sumWeights;
     long long sum_time; sum_time = ctx->sum_time;
     long long normalize; normalize = ctx->normalize;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			xe += arrayX[x] * weights[x];
 			ye += arrayY[x] * weights[x];
 		}    } while (0);
+    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
+    assert(lock_err == 0);
+    ctx->xe += xe;
+    ctx->ye += ye;
+    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
+    assert(unlock_err == 0);
 }
 
 static void particleFilter478_hclib_async(void *arg, const int ___iter) {
@@ -1106,8 +1119,8 @@ static void particleFilter478_hclib_async(void *arg, const int ___iter) {
     double distance; distance = ctx->distance;
     long long cum_sum; cum_sum = ctx->cum_sum;
     double u1; u1 = ctx->u1;
-    x = ___iter;
     do {
+    x = ___iter;
 {
 			u[x] = u1 + x/((double)(Nparticles));
 		}    } while (0);
@@ -1160,8 +1173,8 @@ static void particleFilter486_hclib_async(void *arg, const int ___iter) {
     long long u_time; u_time = ctx->u_time;
     int j; j = ctx->j;
     int i; i = ctx->i;
-    j = ___iter;
     do {
+    j = ___iter;
 {
 			i = findIndex(CDF, Nparticles, u[j]);
 			if(i == -1)
@@ -1469,6 +1482,9 @@ ctx->error = error;
 ctx->likelihood_time = likelihood_time;
 ctx->exponential = exponential;
 ctx->sumWeights = sumWeights;
+ctx->sumWeights = 0;
+const int init_err = pthread_mutex_init(&ctx->reduction_mutex, NULL);
+assert(init_err == 0);
 hclib_loop_domain_t domain;
 domain.low = 0;
 domain.high = Nparticles;
@@ -1477,6 +1493,7 @@ domain.tile = 1;
 hclib_future_t *fut = hclib_forasync_future((void *)particleFilter438_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
+sumWeights = ctx->sumWeights;
  } 
 		long long sum_time = get_time();
 		printf("TIME TO SUM WEIGHTS TOOK: %f\n", elapsed_time(exponential, sum_time));
@@ -1573,6 +1590,10 @@ ctx->exponential = exponential;
 ctx->sumWeights = sumWeights;
 ctx->sum_time = sum_time;
 ctx->normalize = normalize;
+ctx->xe = 0;
+ctx->ye = 0;
+const int init_err = pthread_mutex_init(&ctx->reduction_mutex, NULL);
+assert(init_err == 0);
 hclib_loop_domain_t domain;
 domain.low = 0;
 domain.high = Nparticles;
@@ -1581,6 +1602,8 @@ domain.tile = 1;
 hclib_future_t *fut = hclib_forasync_future((void *)particleFilter453_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
+xe = ctx->xe;
+ye = ctx->ye;
  } 
 		long long move_time = get_time();
 		printf("TIME TO MOVE OBJECT TOOK: %f\n", elapsed_time(normalize, move_time));

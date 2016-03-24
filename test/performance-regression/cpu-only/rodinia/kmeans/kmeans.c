@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
     ctx->nclusters = nclusters;
     ctx->threshold = threshold;
 
-    hclib_launch(NULL, NULL, main_entrypoint, ctx);
+    hclib_launch(main_entrypoint, ctx);
     timing = omp_get_wtime() - timing;
 	
 

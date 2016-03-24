@@ -106,75 +106,86 @@ float euclid_dist_2(float *pt1,
     int i;
     float ans=0.0;
 
-    for (i = 0; i < numdims; i++) { ans += (pt1[i] - pt2[i]) * (pt1[i] - pt2[i]); };
+    for (i=0; i<numdims; i++)
+        ans += (pt1[i]-pt2[i]) * (pt1[i]-pt2[i]);
 
     return(ans);
 }
 
 
 /*----< kmeans_clustering() >---------------------------------------------*/
-typedef struct _kmeans_clustering175 {
-    float ** feature;
+typedef struct _kmeans_clustering183 {
+    float **feature;
     int nfeatures;
     int npoints;
     int nclusters;
     float threshold;
-    int * membership;
+    int *membership;
     int i;
     int j;
     int k;
     int n;
     int index;
     int loop;
-    int * new_centers_len;
-    float ** new_centers;
-    float ** clusters;
+    int *new_centers_len;
+    float **new_centers;
+    float **clusters;
     float delta;
     double timing;
     int nthreads;
-    int ** partial_new_centers_len;
-    float *** partial_new_centers;
- } kmeans_clustering175;
+    int **partial_new_centers_len;
+    float ***partial_new_centers;
+    pthread_mutex_t reduction_mutex;
+ } kmeans_clustering183;
 
-static void kmeans_clustering175_hclib_async(void *arg, const int ___iter) {
-    kmeans_clustering175 *ctx = (kmeans_clustering175 *)arg;
-    float ** feature = ctx->feature;
-    int nfeatures = ctx->nfeatures;
-    int npoints = ctx->npoints;
-    int nclusters = ctx->nclusters;
-    float threshold = ctx->threshold;
-    int * membership = ctx->membership;
-    int i = ctx->i;
-    int j = ctx->j;
-    int k = ctx->k;
-    int n = ctx->n;
-    int index = ctx->index;
-    int loop = ctx->loop;
-    int * new_centers_len = ctx->new_centers_len;
-    float ** new_centers = ctx->new_centers;
-    float ** clusters = ctx->clusters;
-    float delta = ctx->delta;
-    double timing = ctx->timing;
-    int nthreads = ctx->nthreads;
-    int ** partial_new_centers_len = ctx->partial_new_centers_len;
-    float *** partial_new_centers = ctx->partial_new_centers;
-    i = ___iter;
+static void kmeans_clustering183_hclib_async(void *arg, const int ___iter) {
+    kmeans_clustering183 *ctx = (kmeans_clustering183 *)arg;
+    float **feature; feature = ctx->feature;
+    int nfeatures; nfeatures = ctx->nfeatures;
+    int npoints; npoints = ctx->npoints;
+    int nclusters; nclusters = ctx->nclusters;
+    float threshold; threshold = ctx->threshold;
+    int *membership; membership = ctx->membership;
+    int i; i = ctx->i;
+    int j; j = ctx->j;
+    int k; k = ctx->k;
+    int n; n = ctx->n;
+    int index; index = ctx->index;
+    int loop; loop = ctx->loop;
+    int *new_centers_len; new_centers_len = ctx->new_centers_len;
+    float **new_centers; new_centers = ctx->new_centers;
+    float **clusters; clusters = ctx->clusters;
+    float delta; delta = ctx->delta;
+    double timing; timing = ctx->timing;
+    int nthreads; nthreads = ctx->nthreads;
+    int **partial_new_centers_len; partial_new_centers_len = ctx->partial_new_centers_len;
+    float ***partial_new_centers; partial_new_centers = ctx->partial_new_centers;
     do {
+    i = ___iter;
 {
-    int tid = hclib_get_current_worker();
-    index = find_nearest_point(feature[i], nfeatures, clusters, nclusters);
-    if (membership[i] != index) {
-        delta += 1.;
-    }
-    ;
-    membership[i] = index;
-    partial_new_centers_len[tid][index]++;
-    for (j = 0; j < nfeatures; j++) {
-        partial_new_centers[tid][index][j] += feature[i][j];
-    }
-    ;
-}
-    } while (0);
+	        /* find the index of nestest cluster centers */					
+            int tid = hclib_get_current_worker();				
+	        index = find_nearest_point(feature[i],
+		             nfeatures,
+		             clusters,
+		             nclusters);				
+	        /* if membership changes, increase delta by 1 */
+	        if (membership[i] != index) delta += 1.0;
+
+	        /* assign the membership to object i */
+	        membership[i] = index;
+				
+	        /* update new cluster centers : sum of all objects located
+		       within */
+	        partial_new_centers_len[tid][index]++;				
+	        for (j=0; j<nfeatures; j++)
+		       partial_new_centers[tid][index][j] += feature[i][j];
+            }    } while (0);
+    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
+    assert(lock_err == 0);
+    ctx->delta += delta;
+    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
+    assert(unlock_err == 0);
 }
 
 float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
@@ -202,43 +213,50 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
     /* allocate space for returning variable clusters[] */
     clusters    = (float**) malloc(nclusters *             sizeof(float*));
     clusters[0] = (float*)  malloc(nclusters * nfeatures * sizeof(float));
-    for (i = 1; i < nclusters; i++) { clusters[i] = clusters[i - 1] + nfeatures; };
+    for (i=1; i<nclusters; i++)
+        clusters[i] = clusters[i-1] + nfeatures;
 
     /* randomly pick cluster centers */
     for (i=0; i<nclusters; i++) {
         //n = (int)rand() % npoints;
-        for (j = 0; j < nfeatures; j++) { clusters[i][j] = feature[n][j]; };
+        for (j=0; j<nfeatures; j++)
+            clusters[i][j] = feature[n][j];
 		n++;
     }
 
-    for (i = 0; i < npoints; i++) { membership[i] = -1; };
+    for (i=0; i<npoints; i++)
+		membership[i] = -1;
 
     /* need to initialize new_centers_len and new_centers[0] to all 0 */
     new_centers_len = (int*) calloc(nclusters, sizeof(int));
 
     new_centers    = (float**) malloc(nclusters *            sizeof(float*));
     new_centers[0] = (float*)  calloc(nclusters * nfeatures, sizeof(float));
-    for (i = 1; i < nclusters; i++) { new_centers[i] = new_centers[i - 1] + nfeatures; };
+    for (i=1; i<nclusters; i++)
+        new_centers[i] = new_centers[i-1] + nfeatures;
 
 
     partial_new_centers_len    = (int**) malloc(nthreads * sizeof(int*));
     partial_new_centers_len[0] = (int*)  calloc(nthreads*nclusters, sizeof(int));
-    for (i = 1; i < nthreads; i++) { partial_new_centers_len[i] = partial_new_centers_len[i - 1] + nclusters; };
+    for (i=1; i<nthreads; i++)
+		partial_new_centers_len[i] = partial_new_centers_len[i-1]+nclusters;
 
 	partial_new_centers    =(float***)malloc(nthreads * sizeof(float**));
     partial_new_centers[0] =(float**) malloc(nthreads*nclusters * sizeof(float*));
-    for (i = 1; i < nthreads; i++) { partial_new_centers[i] = partial_new_centers[i - 1] + nclusters; };
+    for (i=1; i<nthreads; i++)
+        partial_new_centers[i] = partial_new_centers[i-1] + nclusters;
 
 	for (i=0; i<nthreads; i++)
 	{
-        for (j = 0; j < nclusters; j++) { partial_new_centers[i][j] = (float *)calloc(nfeatures, sizeof(float)); };
+        for (j=0; j<nclusters; j++)
+            partial_new_centers[i][j] = (float*)calloc(nfeatures, sizeof(float));
 	}
 	printf("num of threads = %d\n", num_omp_threads);
     do {
         delta = 0.0;
         {
-            
-kmeans_clustering175 *ctx = (kmeans_clustering175 *)malloc(sizeof(kmeans_clustering175));
+             { 
+kmeans_clustering183 *ctx = (kmeans_clustering183 *)malloc(sizeof(kmeans_clustering183));
 ctx->feature = feature;
 ctx->nfeatures = nfeatures;
 ctx->npoints = npoints;
@@ -259,15 +277,19 @@ ctx->timing = timing;
 ctx->nthreads = nthreads;
 ctx->partial_new_centers_len = partial_new_centers_len;
 ctx->partial_new_centers = partial_new_centers;
+ctx->delta = 0;
+const int init_err = pthread_mutex_init(&ctx->reduction_mutex, NULL);
+assert(init_err == 0);
 hclib_loop_domain_t domain;
 domain.low = 0;
 domain.high = npoints;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)kmeans_clustering175_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)kmeans_clustering183_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
-
+delta = ctx->delta;
+ } 
         } /* end of #pragma omp parallel */
 
         /* let the main thread perform the array reduction */
@@ -285,7 +307,8 @@ free(ctx);
 		/* replace old cluster centers with new_centers */
 		for (i=0; i<nclusters; i++) {
             for (j=0; j<nfeatures; j++) {
-                if (new_centers_len[i] > 0) {clusters[i][j] = new_centers[i][j] / new_centers_len[i]; };
+                if (new_centers_len[i] > 0)
+					clusters[i][j] = new_centers[i][j] / new_centers_len[i];
 				new_centers[i][j] = 0.0;   /* set back to 0 */
 			}
 			new_centers_len[i] = 0;   /* set back to 0 */
