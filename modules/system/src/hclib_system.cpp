@@ -42,6 +42,11 @@ static void memset_func(void *ptr, int val, size_t nbytes,
     memset(ptr, val, nbytes);
 }
 
+static void copy_func(hclib_locale_t *dst_locale, void *dst,
+        hclib_locale_t *src_locale, void *src, size_t nbytes) {
+    memcpy(dst, src, nbytes);
+}
+
 HCLIB_MODULE_INITIALIZATION_FUNC(system_pre_initialize) {
     l1_locale_id = hclib_add_known_locale_type("L1");
     l2_locale_id = hclib_add_known_locale_type("L2");
@@ -69,6 +74,15 @@ HCLIB_MODULE_INITIALIZATION_FUNC(system_post_initialize) {
     hclib_register_memset_func(l2_locale_id, memset_func);
     hclib_register_memset_func(l3_locale_id, memset_func);
     hclib_register_memset_func(sysmem_locale_id, memset_func);
+
+    hclib_register_copy_func(l1_locale_id, copy_func, MAY_USE);
+    hclib_register_copy_func(l2_locale_id, copy_func, MAY_USE);
+    hclib_register_copy_func(l3_locale_id, copy_func, MAY_USE);
+    hclib_register_copy_func(sysmem_locale_id, copy_func, MAY_USE);
+}
+
+hclib::locale_t *hclib::get_closest_cpu_locale() {
+    return hclib_get_closest_locale_of_type(hclib_get_closest_locale(), 
 }
 
 HCLIB_REGISTER_MODULE("system", system_pre_initialize, system_post_initialize)

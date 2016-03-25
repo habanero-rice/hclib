@@ -24,6 +24,16 @@ int main(int argc, char **argv) {
         hclib_future_wait(fut);
         for (i = 0; i < 2 * N; i++) assert(new_alloc[i] == 0);
 
+        fut = hclib::allocate_at(2 * N * sizeof(double), locale);
+        double *other = (double *)hclib_future_wait(fut);
+        assert(other);
+        for (i = 0; i < 2 * N; i++) other[i] = i;
+
+        fut = hclib::async_copy(locale, new_alloc, locale, other,
+                2 * N * sizeof(double));
+        hclib_future_wait(fut);
+        for (i = 0; i < 2 * N; i++) assert(new_alloc[i] == i);
+
         hclib::free_at(new_alloc, locale);
     });
     return 0;

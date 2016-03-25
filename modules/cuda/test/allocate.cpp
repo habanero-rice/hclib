@@ -20,6 +20,11 @@ int main(int argc, char **argv) {
         hclib_future_t *fut = hclib::allocate_at(1024, gpu_locale);
         void *alloc = hclib_future_wait(fut);
         assert(alloc);
+
+        fut = hclib::async_copy(gpu_locale, alloc, cpu_locale,
+                host_alloc, 1024);
+        hclib_future_wait(fut);
+        //TODO verify and add the cpu_locale getter
     });
     return 0;
 }

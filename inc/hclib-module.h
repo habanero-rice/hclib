@@ -4,6 +4,17 @@
 #include "hclib-locality-graph.h"
 
 /*
+ * In some cases, multiple modules may have candidate functions for a particular
+ * operation (e.g. when doing a copy between an address space owned by one
+ * module to another). In those cases, we use MUST_USE to identify modules whose
+ * callbacks must be used for a particular operation involving it and MAY_USE to
+ * identify modules that are to be used only as a fallback if there are no
+ * MUST_USE modules.
+ */
+#define MUST_USE 1
+#define MAY_USE 2
+
+/*
  * Type for functions called for each module before the HClib runtime is
  * initialized.
  */
@@ -29,6 +40,8 @@ typedef void * (*hclib_module_realloc_impl_func_type)(void *, size_t,
 typedef void (*hclib_module_free_impl_func_type)(void *, hclib_locale_t *);
 typedef void (*hclib_module_memset_impl_func_type)(void *, int, size_t,
         hclib_locale_t *);
+typedef void (*hclib_module_copy_impl_func_type)(hclib_locale_t *, void *,
+        hclib_locale_t *, void *, size_t);
 
 #define HCLIB_MODULE_INITIALIZATION_FUNC(module_init_funcname) void module_init_funcname()
 #define HCLIB_REGISTER_MODULE(module_name,module_pre_init_func,module_post_init_func) const static int ____hclib_module_init = hclib_add_module_init_function(module_name, module_pre_init_func, module_post_init_func);
@@ -62,6 +75,8 @@ void hclib_register_free_func(int locale_id,
         hclib_module_free_impl_func_type func);
 void hclib_register_memset_func(int locale_id,
         hclib_module_memset_impl_func_type func);
+void hclib_register_copy_func(int locale_id,
+        hclib_module_copy_impl_func_type func, int priority);
 
 void hclib_call_module_pre_init_functions();
 void hclib_call_module_post_init_functions();

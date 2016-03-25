@@ -56,3 +56,8 @@ hclib_future_t *hclib::memset_at(void *ptr, int pattern, size_t nbytes,
         hclib::locale_t *locale) {
     return hclib_memset_at(ptr, pattern, nbytes, locale);
 }
+
+hclib_future_t *hclib::async_copy(hclib::locale_t *dst_locale, void *dst,
+        hclib::locale_t *src_locale, void *src, size_t nbytes) {
+    return hclib_async_copy(dst_locale, dst, src_locale, src, nbytes);
+}

@@ -36,6 +36,8 @@ hclib_future_t *reallocate_at(void *ptr, size_t nbytes,
 void free_at(void *ptr, hclib::locale_t *locale);
 hclib_future_t *memset_at(void *ptr, int pattern, size_t nbytes,
         hclib::locale_t *locale);
+hclib_future_t *async_copy(hclib::locale_t *dst_locale, void *dst,
+        hclib::locale_t *src_locale, void *src, size_t nbytes);
 
 }
 

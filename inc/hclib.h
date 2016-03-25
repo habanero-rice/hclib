@@ -100,6 +100,8 @@ hclib_future_t *hclib_reallocate_at(void *ptr, size_t new_nbytes,
 hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes,
         hclib_locale_t *locale);
 void hclib_free_at(void *ptr, hclib_locale_t *locale);
+hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
+        hclib_locale_t *src_locale, void *src, size_t nbytes);
 
 /*
  * Forasync definition and API
