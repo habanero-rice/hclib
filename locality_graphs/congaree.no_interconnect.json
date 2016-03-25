@@ -22,9 +22,11 @@
         ["sysmem", "GPU0"], ["sysmem", "GPU1"]
     ],
     "pop_paths": {
-        "default": ["L2_$(id / 6)_$(id % 6)", "L3_$(id / 6)", "sysmem"]
+        "default": ["L2_$(id / 6)_$(id % 6)", "L3_$(id / 6)", "sysmem"],
+        0: ["L2_0_0", "L3_0", "sysmem", "GPU0", "GPU1"]
     },
     "steal_paths": {
-        "default": ["L2_$(id / 6)_$(id % 6)", "L3_$(id / 6)", "sysmem"]
+        "default": ["L2_$(id / 6)_$(id % 6)", "L3_$(id / 6)", "sysmem"],
+        0: ["L2_0_0", "L3_0", "sysmem", "GPU0", "GPU1"]
     }
 }

@@ -10,7 +10,6 @@ static int get_cuda_device_id(hclib_locale_t *locale) {
 }
 
 static void *allocation_func(size_t nbytes, hclib_locale_t *locale) {
-    fprintf(stderr, "in allocation_func\n");
     assert(locale->type == gpu_locale_id);
     CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 

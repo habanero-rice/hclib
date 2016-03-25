@@ -273,7 +273,8 @@ static int parse_paths(int starting_token_index, int n_paths, char *json,
     *default_path_token = NULL;
 
     for (i = 0; i < n_paths; i++) {
-        if (string_token_equals(tokens + path_index, json, "default") == 0) {
+        if (tokens[path_index].type == JSMN_STRING &&
+                string_token_equals(tokens + path_index, json, "default") == 0) {
             path_index++;
 
             assert(tokens[path_index].type == JSMN_ARRAY);
