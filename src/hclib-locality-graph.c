@@ -566,14 +566,16 @@ void generate_locality_info(int *nworkers_out,
     graph->locales = (hclib_locale_t *)malloc(graph->n_locales *
             sizeof(hclib_locale_t));
     assert(graph->locales);
-    graph->edges = (unsigned *)malloc(graph->n_locales * graph->n_locales * sizeof(unsigned));
+    graph->edges = (unsigned *)malloc(graph->n_locales * graph->n_locales *
+            sizeof(unsigned));
     assert(graph->edges);
 
-    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers * sizeof(hclib_worker_paths));
+    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers *
+            sizeof(hclib_worker_paths));
     assert(worker_paths);
 
-    initialize_locale(graph->locales + 0, 0, create_heap_allocated_str("sysmem"),
-                nworkers);
+    initialize_locale(graph->locales + 0, 0,
+            create_heap_allocated_str("sysmem"), nworkers);
     for (i = 1; i <= nworkers; i++) {
         char buf[128];
         sprintf(buf, "L1%d", i - 1);
@@ -599,6 +601,32 @@ void generate_locality_info(int *nworkers_out,
     *nworkers_out = nworkers;
     *graph_out = graph;
     *worker_paths_out = worker_paths;
+}
+
+void check_locality_graph(hclib_locality_graph *graph,
+        hclib_worker_paths *worker_paths, int nworkers) {
+    int i;
+    int *reachable = (int *)malloc(sizeof(int) * graph->n_locales);
+    memset(reachable, 0x00, sizeof(int) * graph->n_locales);
+
+    for (i = 0; i < nworkers; i++) {
+        hclib_worker_paths *curr = worker_paths + i;
+        int j;
+        for (j = 0; j < curr->pop_path->path_length; j++) {
+            reachable[curr->pop_path->locales[j]->id] = 1;
+        }
+        for (j = 0; j < curr->steal_path->path_length; j++) {
+            reachable[curr->steal_path->locales[j]->id] = 1;
+        }
+    }
+
+    for (i = 0; i < graph->n_locales; i++) {
+        if (!reachable[i]) {
+            fprintf(stderr, "WARNING: Locale %d (%s) is unreachable along any "
+                    "pop or steal path, if a task is launched there this may "
+                    "lead to a hang\n", i, graph->locales[i].lbl);
+        }
+    }
 }
 
 void print_locality_graph(hclib_locality_graph *graph) {
@@ -789,6 +817,26 @@ static int contains(int target, int *list, int N) {
         if (list[i] == target) return true;
     }
     return false;
+}
+
+/*
+ * Return a list of all locales of the given type.
+ */
+hclib_locale_t **hclib_get_all_locales_of_type(int type, int *out_count) {
+    const int n_locales = hc_context->graph->n_locales;
+    int i;
+    int count = 0;
+    hclib_locale_t **list = (hclib_locale_t **)malloc(n_locales *
+            sizeof(hclib_locale_t *));
+    for (i = 0; i < n_locales; i++) {
+        if (hc_context->graph->locales[i].type == type) {
+            list[count++] = hc_context->graph->locales + i;
+        }
+    }
+
+    list = (hclib_locale_t **)realloc(list, count * sizeof(hclib_locale_t *));
+    *out_count = count;
+    return list;
 }
 
 /*

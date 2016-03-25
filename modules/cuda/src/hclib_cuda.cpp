@@ -10,6 +10,7 @@ static int get_cuda_device_id(hclib_locale_t *locale) {
 }
 
 static void *allocation_func(size_t nbytes, hclib_locale_t *locale) {
+    fprintf(stderr, "in allocation_func\n");
     assert(locale->type == gpu_locale_id);
     CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
@@ -55,6 +56,17 @@ int hclib::get_gpu_locale_id() { return gpu_locale_id; }
 hclib::locale_t *hclib::get_closest_gpu_locale() {
     return hclib_get_closest_locale_of_type(hclib_get_closest_locale(),
             gpu_locale_id);
+}
+
+hclib::locale_t **hclib::get_gpu_locales(int *ngpus) {
+    return hclib_get_all_locales_of_type(gpu_locale_id, ngpus);
+}
+
+std::string hclib::get_gpu_name(hclib::locale_t *locale) {
+    assert(locale->type == gpu_locale_id);
+    struct cudaDeviceProp prop;
+    CHECK_CUDA(cudaGetDeviceProperties(&prop, get_cuda_device_id(locale)));
+    return std::string(prop.name);
 }
 
 HCLIB_REGISTER_MODULE("cuda", cuda_pre_initialize, cuda_post_initialize)

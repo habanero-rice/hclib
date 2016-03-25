@@ -9,8 +9,13 @@ int main(int argc, char **argv) {
         int gpu_id = hclib::get_gpu_locale_id();
         hclib::locale_t *gpu_locale = hclib::get_closest_gpu_locale();
         std::cout << "Hello world, gpu locale id = " << gpu_id <<
-            ", closest gpu = " << gpu_locale << std::endl;
+            ", closest gpu = " << gpu_locale << " (" <<
+            hclib::get_gpu_name(gpu_locale) << ")" << std::endl;
         assert(gpu_locale);
+
+        int ngpus;
+        hclib::locale_t **gpu_locales = hclib::get_gpu_locales(&ngpus);
+        std::cout << "Got " << ngpus << " GPU locale(s)" << std::endl;
 
         hclib_future_t *fut = hclib::allocate_at(1024, gpu_locale);
         void *alloc = hclib_future_wait(fut);

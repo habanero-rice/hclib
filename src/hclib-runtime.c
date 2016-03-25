@@ -181,6 +181,7 @@ void hclib_global_init() {
                 "sane default locality information\n");
         generate_locality_info(&nworkers, &graph, &worker_paths);
     }
+    check_locality_graph(graph, worker_paths, nworkers);
 
 #ifdef VERBOSE
     print_locality_graph(graph);
