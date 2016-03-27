@@ -22,6 +22,7 @@ namespace hclib {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize);
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_post_initialize);
+HCLIB_MODULE_INITIALIZATION_FUNC(mpi_finalize);
 
 locale_t *MPI_Comm_rank(MPI_Comm comm);
 void MPI_Comm_size(MPI_Comm comm, int *size);

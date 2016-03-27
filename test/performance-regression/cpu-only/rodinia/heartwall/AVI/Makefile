@@ -1,4 +1,6 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 all: avimod.o avilib.o
 
 # compile supporting function file into object (binary)

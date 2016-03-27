@@ -1,4 +1,6 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 LOCAL_CC = gcc -g -O3 -Wall
 CC = gcc
 CFLAGS = -lm -fopenmp -Wall $(PROJECT_CXXFLAGS)
