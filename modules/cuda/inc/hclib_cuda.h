@@ -1,34 +1,34 @@
 #ifndef HCLIB_CUDA_H
 #define HCLIB_CUDA_H
 
-#include "hclib-module.h"
-#include "hclib-locality-graph.h"
-#include "hclib_cpp.h"
-
-#include <cuda_runtime.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-
-#define CHECK_CUDA(func) { \
-    const cudaError_t err = (func); \
-    if (err != cudaSuccess) { \
-        fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, \
-                cudaGetErrorString(err)); \
-        exit(1); \
-    } \
-}
+#include "hclib_cuda-internal.h"
 
 namespace hclib {
 
-HCLIB_MODULE_INITIALIZATION_FUNC(cuda_pre_initialize);
-HCLIB_MODULE_INITIALIZATION_FUNC(cuda_post_initialize);
+template<typename functor_type>
+inline __global__ void driver_kernel(functor_type functor, unsigned niters) {
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < niters) {
+        functor(tid);
+    }   
+}
 
-int get_gpu_locale_id();
-hclib::locale_t *get_closest_gpu_locale();
-hclib::locale_t **get_gpu_locales(int *ngpus);
-std::string get_gpu_name(hclib::locale_t *locale);
-int get_num_gpu_locales();
+template<class functor_type, typename... future_list_t>
+inline hclib::future_t *forasync_cuda(int niters, functor_type functor,
+        hclib::locale_t *locale, future_list_t... futures) {
+    HASSERT(locale->type == get_gpu_locale_id());
+
+    return hclib::async_future_await_at([locale, functor, niters] {
+        CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
+
+        const int threads_per_block = 256;
+        const int blocks_per_grid = (niters + threads_per_block - 1) /
+            threads_per_block;
+
+        driver_kernel<<<blocks_per_grid, threads_per_block>>>(functor, niters);
+        CHECK_CUDA(cudaDeviceSynchronize());
+    }, locale, futures...);
+}
 
 }
 

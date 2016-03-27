@@ -1,17 +1,17 @@
-#include "hclib_cuda.h"
+#include "hclib_cuda-internal.h"
 
 #include <iostream>
 
 static int gpu_locale_id;
 static int gpus_so_far = 0;
 
-static int get_cuda_device_id(hclib_locale_t *locale) {
+int hclib::get_cuda_device_id(hclib_locale_t *locale) {
     return *((int *)(locale->metadata));
 }
 
 static void *allocation_func(size_t nbytes, hclib_locale_t *locale) {
     assert(locale->type == gpu_locale_id);
-    CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
+    CHECK_CUDA(cudaSetDevice(hclib::get_cuda_device_id(locale)));
 
     void *ptr;
     CHECK_CUDA(cudaMalloc((void **)&ptr, nbytes));

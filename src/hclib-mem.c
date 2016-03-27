@@ -171,7 +171,8 @@ static void copy_kernel(void *arg) {
 }
 
 hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
-        hclib_locale_t *src_locale, void *src, size_t nbytes) {
+        hclib_locale_t *src_locale, void *src, size_t nbytes,
+        hclib_future_t **future_list) {
     hclib_promise_t *promise = hclib_promise_create();
 
     hclib_module_copy_impl_func_type dst_cb = hclib_get_func_for(
@@ -204,6 +205,6 @@ hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
     cs->promise = promise;
     cs->cb = copy_cb;
 
-    hclib_async(copy_kernel, cs, NULL, NULL, dst_locale);
+    hclib_async(copy_kernel, cs, future_list, NULL, dst_locale);
     return hclib_get_future_for_promise(promise);
 }

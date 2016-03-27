@@ -256,6 +256,28 @@ hclib::future_t *async_future_await(T lambda, future_list_t... futures) {
     return event->get_future();
 }
 
+template <typename T, typename... future_list_t>
+hclib::future_t *async_future_await_at(T lambda, hclib_locale_t *locale,
+        future_list_t... futures) {
+    hclib::promise_t *event = new hclib::promise_t();
+    hclib_promise_t *internal_event = &event->internal;
+    /*
+     * TODO creating this closure may be inefficient. While the capture list is
+     * precise, if the user-provided lambda is large then copying it by value
+     * will also take extra time.
+     */
+    auto wrapper = [internal_event, lambda]() {
+        lambda();
+        hclib_promise_put(internal_event, NULL);
+    };
+
+    hclib_future_t **future_list = construct_future_list(futures...);
+
+    hclib_task_t* task = _allocate_async(wrapper, true);
+    spawn_await_at(task, future_list, locale);
+    return event->get_future();
+}
+
 inline void finish(std::function<void()> lambda) {
     hclib_start_finish();
     lambda();

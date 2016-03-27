@@ -1,14 +1,15 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/../modules/cuda/inc/hclib_cuda.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
-# Depends on the system module
-include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.mak
-include $(HCLIB_ROOT)/../modules/cuda/inc/hclib_cuda.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include $(HCLIB_ROOT)/../modules/cuda/inc/hclib_cuda.post.mak
 
-TARGETS=init allocate
+TARGETS=init allocate kernel
 
 all: $(TARGETS)
 
-%: %.cpp
-	g++ -std=c++11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+%: %.cu
+	nvcc -std=c++11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean:
 	rm -f $(TARGETS)

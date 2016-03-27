@@ -21,38 +21,38 @@ int main(int argc, char **argv) {
         hclib::locale_t **gpu_locales = hclib::get_gpu_locales(&ngpus);
         std::cout << "Got " << ngpus << " GPU locale(s)" << std::endl;
 
-        hclib_future_t *fut = hclib::allocate_at(N * sizeof(int), gpu_locale);
-        void *alloc = hclib_future_wait(fut);
+        hclib::future_t *fut = hclib::allocate_at(N * sizeof(int), gpu_locale);
+        void *alloc = fut->wait();
         assert(alloc);
 
         hclib::locale_t *cpu_locale = hclib::get_closest_cpu_locale();
         fut = hclib::allocate_at(N * sizeof(int), cpu_locale);
-        int *host_alloc = (int *)hclib_future_wait(fut);
+        int *host_alloc = (int *)fut->wait();
         assert(host_alloc);
 
         for (int i = 0; i < N; i++) host_alloc[i] = i;
 
         fut = hclib::async_copy(gpu_locale, alloc, cpu_locale,
                 host_alloc, N * sizeof(int));
-        hclib_future_wait(fut);
+        fut->wait();
 
         fut = hclib::allocate_at(N * sizeof(int), cpu_locale);
-        int *out_host_alloc = (int *)hclib_future_wait(fut);
+        int *out_host_alloc = (int *)fut->wait();
         assert(out_host_alloc);
 
         fut = hclib::async_copy(cpu_locale, out_host_alloc, gpu_locale, alloc,
                 N * sizeof(int));
-        hclib_future_wait(fut);
+        fut->wait();
 
         for (int i = 0; i < N; i++) {
             assert(out_host_alloc[i] == i);
         }
 
         fut = hclib::memset_at(alloc, 0x00, N * sizeof(int), gpu_locale);
-        hclib_future_wait(fut);
+        fut->wait();
         fut = hclib::async_copy(cpu_locale, out_host_alloc, gpu_locale, alloc,
                 N * sizeof(int));
-        hclib_future_wait(fut);
+        fut->wait();
 
         for (int i = 0; i < N; i++) {
             assert(out_host_alloc[i] == 0);

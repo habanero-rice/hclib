@@ -12,10 +12,10 @@ int main(int argc, char **argv) {
             cout << "Total Workers: " << numWorkers << endl;
 
             int num_locales = hclib::get_num_locales();
-            hclib::hclib_locale *locales = hclib::get_all_locales();
+            hclib::locale_t *locales = hclib::get_all_locales();
 
             for (int i = 0; i < num_locales; i++) {
-                hclib::hclib_locale *locale = locales + i;
+                hclib::locale_t *locale = locales + i;
 
                 hclib::async_at(locale, [=] {
                     cerr << "Hello I'm Worker " << hclib::get_current_worker() << " of " << numWorkers << " workers" << endl;
