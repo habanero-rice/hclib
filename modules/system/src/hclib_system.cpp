@@ -81,6 +81,9 @@ HCLIB_MODULE_INITIALIZATION_FUNC(system_post_initialize) {
     hclib_register_copy_func(sysmem_locale_id, copy_func, MAY_USE);
 }
 
+HCLIB_MODULE_INITIALIZATION_FUNC(system_finalize) {
+}
+
 hclib::locale_t *hclib::get_closest_cpu_locale() {
     int type_arr[4] = { l1_locale_id, l2_locale_id, l3_locale_id,
         sysmem_locale_id };
@@ -88,4 +91,4 @@ hclib::locale_t *hclib::get_closest_cpu_locale() {
             type_arr, 4);
 }
 
-HCLIB_REGISTER_MODULE("system", system_pre_initialize, system_post_initialize)
+HCLIB_REGISTER_MODULE("system", system_pre_initialize, system_post_initialize, system_finalize)

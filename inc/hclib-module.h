@@ -27,6 +27,11 @@ typedef void (*hclib_module_pre_init_func_type)();
 typedef void (*hclib_module_post_init_func_type)();
 
 /*
+ * Type for finalize functions for each module.
+ */
+typedef void (*hclib_module_finalize_func_type)();
+
+/*
  * Callbacks on locale creation to allow for insertion of module-specific
  * metadata.
  */
@@ -44,7 +49,7 @@ typedef void (*hclib_module_copy_impl_func_type)(hclib_locale_t *, void *,
         hclib_locale_t *, void *, size_t);
 
 #define HCLIB_MODULE_INITIALIZATION_FUNC(module_init_funcname) void module_init_funcname()
-#define HCLIB_REGISTER_MODULE(module_name,module_pre_init_func,module_post_init_func) const static int ____hclib_module_init = hclib_add_module_init_function(module_name, module_pre_init_func, module_post_init_func);
+#define HCLIB_REGISTER_MODULE(module_name,module_pre_init_func,module_post_init_func,module_finalize_func) const static int ____hclib_module_init = hclib_add_module_init_function(module_name, module_pre_init_func, module_post_init_func, module_finalize_func);
 
 #ifdef __cplusplus
 namespace hclib {
@@ -61,7 +66,8 @@ extern "C" {
 #endif
 int hclib_add_module_init_function(const char *lbl,
         hclib_module_pre_init_func_type pre,
-        hclib_module_post_init_func_type post);
+        hclib_module_post_init_func_type post,
+        hclib_module_finalize_func_type finalize);
 
 void hclib_add_locale_metadata_functions(int locale_id,
         hclib_locale_metadata_size_func_type size_func,
@@ -80,6 +86,7 @@ void hclib_register_copy_func(int locale_id,
 
 void hclib_call_module_pre_init_functions();
 void hclib_call_module_post_init_functions();
+void hclib_call_finalize_functions();
 #ifdef __cplusplus
 }
 #endif

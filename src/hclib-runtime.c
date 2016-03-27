@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sched.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/time.h>
 
 #include <hclib.h>
@@ -98,7 +99,8 @@ static unsigned long long current_time_ns() {
 }
 
 static void set_current_worker(int wid) {
-    if (pthread_setspecific(ws_key, hc_context->workers[wid]) != 0) {
+    int err;
+    if (err = pthread_setspecific(ws_key, hc_context->workers[wid]) != 0) {
         log_die("Cannot set thread-local worker state");
     }
 
@@ -117,10 +119,12 @@ static void set_current_worker(int wid) {
         // Pin worker i to core i
         CPU_SET(wid, &cpu_set);
     }
-    if (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set),
+
+    if (err = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set),
                 &cpu_set) != 0) {
-        fprintf(stderr, "Error setting affinity of worker thread %d\n", wid);
-        exit(5);
+        fprintf(stderr, "WARNING: Failed setting pthread affinity of worker "
+                "thread %d, ncores=%d: %s\n", wid, hc_context->ncores,
+                strerror(err));
     }
 }
 
@@ -303,6 +307,8 @@ void hclib_join(int nb_workers) {
 
 void hclib_cleanup() {
     pthread_key_delete(ws_key);
+
+    hclib_call_finalize_functions();
 
     free(hc_context);
 }

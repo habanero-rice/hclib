@@ -23,7 +23,6 @@ void hclib_register_func(hclib_fptr_list_t **list, int index, void *fptr,
     if (needed_capacity > (*list)->capacity) {
         (*list)->fptrs = (void **)realloc((*list)->fptrs,
                 needed_capacity * sizeof(void *));
-        assert((*list)->fptrs);
         (*list)->priorities = (int *)realloc((*list)->priorities,
                 needed_capacity * sizeof(int));
 
@@ -45,7 +44,7 @@ void *hclib_get_func_for(hclib_fptr_list_t *list, int index) {
 }
 
 int hclib_has_func_for(hclib_fptr_list_t *list, int index) {
-    return list!= NULL && (list->fptrs)[index] != NULL;
+    return list != NULL && list->capacity > index && (list->fptrs)[index] != NULL;
 }
 
 int hclib_get_priority_for(hclib_fptr_list_t *list, int index) {

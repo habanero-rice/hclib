@@ -9,12 +9,17 @@ static void copy_func(hclib::locale_t *dst_locale, void *dst,
     //TODO
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(cuda_pre_initialize) {
+HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize) {
     nic_locale_id = hclib_add_known_locale_type("Interconnect");
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(cuda_post_initialize) {
+HCLIB_MODULE_INITIALIZATION_FUNC(mpi_post_initialize) {
     hclib_register_copy_func(nic_locale_id, copy_func, MUST_USE);
+    CHECK_MPI(MPI_Init(NULL, NULL));
+}
+
+HCLIB_MODULE_INITIALIZATION_FUNC(mpi_finalize) {
+    MPI_Finalize();
 }
 
 static hclib::locale_t *get_locale_for_rank(int rank, MPI_Comm comm) {
@@ -26,7 +31,7 @@ static hclib::locale_t *get_locale_for_rank(int rank, MPI_Comm comm) {
     new_locale->id = -1 * rank;
     new_locale->type = nic_locale_id;
     new_locale->lbl = (char *)malloc(strlen(name_buf) + 1);
-    memcpy(new_locale->lbl, name_buf, strlen(name_buf) + 1);
+    memcpy((void *)new_locale->lbl, name_buf, strlen(name_buf) + 1);
     new_locale->metadata = malloc(sizeof(MPI_Comm));
     *((MPI_Comm *)new_locale->metadata) = comm;
     new_locale->deques = NULL;
@@ -35,17 +40,22 @@ static hclib::locale_t *get_locale_for_rank(int rank, MPI_Comm comm) {
 
 hclib::locale_t *hclib::MPI_Comm_rank(MPI_Comm comm) {
     int rank;
-    CHECK_MPI(MPI_Comm_rank(comm, &rank));
+    CHECK_MPI(::MPI_Comm_rank(comm, &rank));
 
     return get_locale_for_rank(rank, comm);
 }
 
 void hclib::MPI_Comm_size(MPI_Comm comm, int *size) {
-    CHECK_MPI(MPI_Comm_size(comm, size));
+    CHECK_MPI(::MPI_Comm_size(comm, size));
 }
 
 hclib::locale_t *hclib::MPI_Comm_remote(MPI_Comm comm, int remote_rank) {
     return get_locale_for_rank(remote_rank, comm);
 }
 
-HCLIB_REGISTER_MODULE("mpi", mpi_pre_initialize, mpi_post_initialize)
+int hclib::integer_rank_for_locale(locale_t *locale) {
+    assert(locale->id <= 0);
+    return -1 * locale->id;
+}
+
+HCLIB_REGISTER_MODULE("mpi", mpi_pre_initialize, mpi_post_initialize, mpi_finalize)

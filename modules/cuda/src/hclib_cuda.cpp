@@ -67,6 +67,9 @@ HCLIB_MODULE_INITIALIZATION_FUNC(cuda_post_initialize) {
     hclib_register_copy_func(gpu_locale_id, copy_func, MUST_USE);
 }
 
+HCLIB_MODULE_INITIALIZATION_FUNC(cuda_finalize) {
+}
+
 int hclib::get_gpu_locale_id() { return gpu_locale_id; }
 
 hclib::locale_t *hclib::get_closest_gpu_locale() {
@@ -89,4 +92,4 @@ int hclib::get_num_gpu_locales() {
     return hclib_get_num_locales_of_type(gpu_locale_id);
 }
 
-HCLIB_REGISTER_MODULE("cuda", cuda_pre_initialize, cuda_post_initialize)
+HCLIB_REGISTER_MODULE("cuda", cuda_pre_initialize, cuda_post_initialize, cuda_finalize)

@@ -26,6 +26,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_post_initialize);
 locale_t *MPI_Comm_rank(MPI_Comm comm);
 void MPI_Comm_size(MPI_Comm comm, int *size);
 locale_t *MPI_Comm_remote(MPI_Comm comm, int remote_rank);
+int integer_rank_for_locale(locale_t *locale);
 
 void MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm);
