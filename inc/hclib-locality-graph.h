@@ -54,7 +54,7 @@ extern "C" {
 #endif
 
 typedef struct _hclib_locale_t {
-    unsigned id;
+    int id;
     unsigned type;
     const char *lbl;
     void *metadata;
