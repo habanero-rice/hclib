@@ -172,8 +172,6 @@ static void copy_kernel(void *arg) {
 
 hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
         hclib_locale_t *src_locale, void *src, size_t nbytes) {
-    assert(hclib_has_func_for(copy_registrations, dst_locale->type));
-
     hclib_promise_t *promise = hclib_promise_create();
 
     hclib_module_copy_impl_func_type dst_cb = hclib_get_func_for(

@@ -14,7 +14,7 @@ lib/libhclib_system.so: $(OBJS)
 	g++ -shared $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) -o $@ $(OBJS)
 
 obj/hclib_system.o: src/hclib_system.cpp
-	g++ -Iinc $^ -o $@ $(PROJECT_CFLAGS) --compile -fPIC $(DEFINES)
+	g++ -std=c++11 -Iinc $^ -o $@ $(PROJECT_CFLAGS) --compile -fPIC $(DEFINES)
 
 clean:
 	rm -f obj/*.o lib/*

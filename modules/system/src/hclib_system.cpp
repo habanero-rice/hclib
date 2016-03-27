@@ -82,7 +82,10 @@ HCLIB_MODULE_INITIALIZATION_FUNC(system_post_initialize) {
 }
 
 hclib::locale_t *hclib::get_closest_cpu_locale() {
-    return hclib_get_closest_locale_of_type(hclib_get_closest_locale(), 
+    int type_arr[4] = { l1_locale_id, l2_locale_id, l3_locale_id,
+        sysmem_locale_id };
+    return hclib_get_closest_locale_of_types(hclib_get_closest_locale(),
+            type_arr, 4);
 }
 
 HCLIB_REGISTER_MODULE("system", system_pre_initialize, system_post_initialize)

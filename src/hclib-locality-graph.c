@@ -24,9 +24,6 @@ static hclib_fptr_list_t *metadata_populate_registrations = NULL;
 
 // Add a known locale type to the list of known locale types.
 unsigned hclib_add_known_locale_type(const char *lbl) {
-#ifdef VERBOSE
-    fprintf(stderr, "Adding locale type \"%s\"\n", lbl);
-#endif
     int i;
     for (i = 0; i < n_known_locale_types; i++) {
         HASSERT(strcmp(lbl, known_locale_types[i]) != 0);
@@ -38,6 +35,10 @@ unsigned hclib_add_known_locale_type(const char *lbl) {
     known_locale_types[n_known_locale_types] = (char *)malloc(strlen(lbl) + 1);
     memcpy(known_locale_types[n_known_locale_types], lbl, strlen(lbl) + 1);
     n_known_locale_types += 1;
+#ifdef VERBOSE
+    fprintf(stderr, "Adding locale type \"%s\" - %d\n", lbl,
+            n_known_locale_types - 1);
+#endif
     return n_known_locale_types - 1;
 }
 
@@ -362,7 +363,7 @@ void load_locality_info(const char *filename, int *nworkers_out,
     int i;
     jsmn_parser parser;
     jsmn_init(&parser);
-    printf("loading locality graph from %s\n", filename);
+    printf("Loading locality graph from %s\n", filename);
 
     FILE *fp = fopen(filename, "r");
     assert(fp);
@@ -846,16 +847,16 @@ hclib_locale_t **hclib_get_all_locales_of_type(int type, int *out_count) {
  * to the provided locale. If multiple locales of the desired type are an
  * equivalent distance from the provided locale, a random one is returned.
  */
-hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
-        int locale_type) {
-    assert(locale_type < n_known_locale_types);
+hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,
+        int *locale_types, int n_locale_types) {
     const int n_locales = hc_context->graph->n_locales;
 
     int visiting_index = 0;
     int to_visit_index = 0;
     int *to_visit = (int *)malloc(sizeof(int) * n_locales);
     hclib_locale_t *curr = locale;
-    while (curr->type != locale_type && visiting_index <= n_locales) {
+    while (!contains(curr->type, locale_types, n_locale_types) &&
+            visiting_index <= n_locales) {
         const int id = curr->id;
         int i;
         for (i = 0; i < n_locales; i++) {
@@ -870,4 +871,23 @@ hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
 
     if (visiting_index > n_locales) return NULL; // none of that type found
     else return curr;
+}
+
+hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
+        int locale_type) {
+    int type_arr[1] = {locale_type};
+    return hclib_get_closest_locale_of_types(locale, type_arr, 1);
+}
+
+int hclib_get_num_locales_of_type(int locale_type) {
+    int i;
+    const int n_locales = hc_context->graph->n_locales;
+    int count = 0;
+
+    for (i = 0; i < n_locales; i++) {
+        if (hc_context->graph->locales[i].type == locale_type) {
+            count++;
+        }
+    }
+    return count;
 }

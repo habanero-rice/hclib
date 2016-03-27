@@ -28,6 +28,7 @@ int get_gpu_locale_id();
 hclib::locale_t *get_closest_gpu_locale();
 hclib::locale_t **get_gpu_locales(int *ngpus);
 std::string get_gpu_name(hclib::locale_t *locale);
+int get_num_gpu_locales();
 
 }
 

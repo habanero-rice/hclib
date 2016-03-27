@@ -96,9 +96,12 @@ extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);
 extern int hclib_get_num_locales();
 extern hclib_locale_t *hclib_get_closest_locale();
 extern hclib_locale_t *hclib_get_all_locales();
+extern hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,
+        int *locale_types, int n_locale_types);
 extern hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
         int locale_type);
 extern hclib_locale_t **hclib_get_all_locales_of_type(int type, int *out_count);
+extern int hclib_get_num_locales_of_type(int locale_type);
 
 extern unsigned hclib_add_known_locale_type(const char *lbl);
 
