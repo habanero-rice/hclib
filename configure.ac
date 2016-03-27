@@ -2,7 +2,7 @@
 AC_PREREQ([2.59])
 
 # define distribution properties
-AC_INIT([hclib], [0.1], [vivekk@rice.edu])
+AC_INIT([hclib], [0.1], [jmg3@rice.edu])
 
 # check if srcdir is correct
 AC_CONFIG_SRCDIR([inc/hclib.h])
@@ -34,76 +34,6 @@ CPPFLAGS=$CPPFLAGS_BACKUP
 ###################################################################
 ########### GET LOW LEVEL DETAILS IN THE INSTALLATION #############
 ###################################################################
-
-### INTERFACE HCLIB WITH PHASER LIBRARY
-AC_ARG_ENABLE(phaser,
-    AS_HELP_STRING([--enable-phaser],
-    [enable interface with Phaser (Default is false)]),
-    [with_phaser=$enableval],
-    [with_phaser=no;])
-
-AS_IF([test "x$with_phaser" != xno],
-      [ AC_MSG_NOTICE([Enabled Phaser support]) ],
-      [ AC_MSG_NOTICE([Disabled Phaser support]) ])
-
-AM_CONDITIONAL(_PHASERS_, test "x$with_phaser" != xno)
-### End Phaser
-
-### ENABLE DISTRIBUTED WORK_STEALING SUPPORT FOR HabaneroUPC++
-AC_ARG_ENABLE(distWS,
-    AS_HELP_STRING([--enable-distWS],
-    [enable dist. W.S. support (Default is false)]),
-    [with_distWS=$enableval],
-    [with_distWS=no;])
-
-AS_IF([test "x$with_distWS" != xno],
-      [ AC_MSG_NOTICE([Enabled Dist. W.S. support]) ],
-      [ AC_MSG_NOTICE([Disabled Dist. W.S. support]) ])
-
-AM_CONDITIONAL(DIST_WS, test "x$with_distWS" != xno)
-### End Dist WS
-
-### SUPPORT HabaneroOpenSHMEM++
-AC_ARG_ENABLE(hcshmem,
-    AS_HELP_STRING([--enable-hcshmem],
-    [support HabaneroOpenSHMEM++ runtime (Default is false)]),
-    [with_hcshmem=$enableval],
-    [with_hcshmem=no;])
-
-AS_IF([test "x$with_hcshmem" != xno],
-      [ AC_MSG_NOTICE([Enabled HabaneroOpenSHMEM++ support]) ],
-      [ AC_MSG_NOTICE([Disabled HabaneroOpenSHMEM++ support]) ])
-
-AM_CONDITIONAL(HCSHMEM, test "x$with_hcshmem" != xno)
-### End hupcpp
-
-### SUPPORT HabaneroUPC++
-AC_ARG_ENABLE(hupcpp,
-    AS_HELP_STRING([--enable-hupcpp],
-    [support HabaneroUPC++ runtime (Default is false)]),
-    [with_hupcpp=$enableval],
-    [with_hupcpp=no;])
-
-AS_IF([test "x$with_hupcpp" != xno],
-      [ AC_MSG_NOTICE([Enabled HabaneroUPC++ support]) ],
-      [ AC_MSG_NOTICE([Disabled HabaneroUPC++ support]) ])
-
-AM_CONDITIONAL(HUPCPP, test "x$with_hupcpp" != xno)
-### End hupcpp
-
-### SUPPORT CUDA-accelerated forasyncs
-AC_ARG_ENABLE(cuda,
-    AS_HELP_STRING([--enable-cuda],
-    [support CUDA-accelerated forasyncs (Default is false)]),
-    [with_cuda=$enableval],
-    [with_cuda=no;])
-
-AS_IF([test "x$with_cuda" != xno],
-      [ AC_MSG_NOTICE([Enabled CUDA support]) ],
-      [ AC_MSG_NOTICE([Disabled CUDA support]) ])
-
-AM_CONDITIONAL(HC_CUDA, test "x$with_cuda" != xno)
-### End cuda
 
 ### Turn on runtime verbosity
 AC_ARG_ENABLE(verbose,

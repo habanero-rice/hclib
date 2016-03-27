@@ -12,7 +12,7 @@
 namespace hclib {
 
 typedef hclib_triggered_task_t triggered_task_t;
-typedef hclib_locale hclib_locale;
+typedef hclib_locale_t locale_t;
 
 template <typename T>
 void launch(T lambda) {
@@ -27,8 +27,18 @@ int get_current_worker();
 int num_workers();
 
 int get_num_locales();
-hclib_locale *get_closest_locale();
-hclib_locale *get_all_locales();
+hclib_locale_t *get_closest_locale();
+hclib_locale_t *get_all_locales();
+
+hclib_future_t *allocate_at(size_t nbytes, hclib::locale_t *locale);
+hclib_future_t *reallocate_at(void *ptr, size_t nbytes,
+        hclib::locale_t *locale);
+void free_at(void *ptr, hclib::locale_t *locale);
+hclib_future_t *memset_at(void *ptr, int pattern, size_t nbytes,
+        hclib::locale_t *locale);
+hclib_future_t *async_copy(hclib::locale_t *dst_locale, void *dst,
+        hclib::locale_t *src_locale, void *src, size_t nbytes);
+
 }
 
 #endif

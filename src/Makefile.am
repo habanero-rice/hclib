@@ -8,35 +8,10 @@ CFLAGS = -Wall -g -O3 -std=c99
 CXXFLAGS = -Wall -g -O3 -std=c++11
 LDFLAGS = -lpthread -lrt
 
-if DIST_WS
-HC_FLAGS_1 = -DDIST_WS
-else
-HC_FLAGS_1 =
-endif
-
-if HCSHMEM
-HC_FLAGS_2 = -DHCSHMEM -DHC_COMM_WORKER
-else
-HC_FLAGS_2 =
-endif
-
-if HUPCPP
-HC_FLAGS_2 = -DHUPCPP -DHC_COMM_WORKER
-else
-HC_FLAGS_2 =
-endif
-
-if HC_CUDA
-HC_FLAGS_3 = -DHC_CUDA
-INCLUDES_DIR += -I${CUDA_HOME}/include
-else
-HC_FLAGS_3 = 
-endif
-
 if HC_VERBOSE
-HC_FLAGS_4 = -DVERBOSE
+HC_FLAGS_VERBOSE = -DVERBOSE
 else
-HC_FLAGS_4 =
+HC_FLAGS_VERBOSE =
 endif
 
 if PRODUCTION_SETTINGS
@@ -45,7 +20,6 @@ else
 PRODUCTION_SETTINGS_FLAGS = -DHC_ASSERTION_CHECK -DHC_COMM_WORKER_STATS
 endif
 
-
 # build the hclib library
 lib_LTLIBRARIES = libhclib.la
 
@@ -53,11 +27,11 @@ lib_LTLIBRARIES = libhclib.la
 noinst_LTLIBRARIES =
 libhclib_la_LIBADD =
 
-AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) $(HC_FLAGS_4) \
-			  $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c \
-					 hcshmem-support.c hclib-promise.c hclib-timer.c hcupc-support.c \
-					 hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c
+AM_CXXFLAGS = $(HC_FLAGS_VERBOSE) $(PRODUCTION_SETTINGS_FLAGS) \
+			  -I$(LIBXML2_INCLUDE)
+libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-promise.c \
+					  hclib-timer.c hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c \
+					  hclib_module.cpp hclib-fptr-list.c hclib-mem.c
 
 if X86
 if OSX

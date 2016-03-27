@@ -61,23 +61,14 @@ mkdir -p ${COMPTREE}
 
 cd ${COMPTREE}
 
-../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCLIB_FLAGS} ${HC_CUDA_FLAGS} $*
+../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCLIB_FLAGS} $*
 check_error "$?" "Configure failed";
 
 #
 # Make
 #
-echo "[${PROJECT_NAME}]] Make..."
-make -j${NPROC}
-check_error "$?" "Build failed";
-
-#
-# Make install
-#
-# if install root has been specified, perform make install
 echo "[${PROJECT_NAME}]] Make install... to ${INSTALL_ROOT}"
 make -j${NPROC} install
-check_error "$?" "Installation failed";
-
+check_error "$?" "Build failed";
 
 echo "[${PROJECT_NAME}]] Installation complete."

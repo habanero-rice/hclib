@@ -2,6 +2,8 @@
 #include "hclib-locality-graph.h"
 #include "hclib-rt.h"
 #include "hclib-internal.h"
+#include "hclib-module.h"
+#include "hclib-fptr-list.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -12,6 +14,49 @@
 
 extern hclib_context *hc_context;
 
+// List of known locale types, e.g. "L1", "L2", "GPU"
+static char **known_locale_types = NULL;
+// Length of the known_locale_types list
+static unsigned n_known_locale_types = 0;
+
+static hclib_fptr_list_t *metadata_size_registrations = NULL;
+static hclib_fptr_list_t *metadata_populate_registrations = NULL;
+
+// Add a known locale type to the list of known locale types.
+unsigned hclib_add_known_locale_type(const char *lbl) {
+#ifdef VERBOSE
+    fprintf(stderr, "Adding locale type \"%s\"\n", lbl);
+#endif
+    int i;
+    for (i = 0; i < n_known_locale_types; i++) {
+        HASSERT(strcmp(lbl, known_locale_types[i]) != 0);
+    }
+
+    known_locale_types = (char **)realloc(known_locale_types,
+            (n_known_locale_types + 1) * sizeof(char *));
+    HASSERT(known_locale_types);
+    known_locale_types[n_known_locale_types] = (char *)malloc(strlen(lbl) + 1);
+    memcpy(known_locale_types[n_known_locale_types], lbl, strlen(lbl) + 1);
+    n_known_locale_types += 1;
+    return n_known_locale_types - 1;
+}
+
+void hclib_add_locale_metadata_functions(int locale_id,
+        hclib_locale_metadata_size_func_type size_func,
+        hclib_locale_metadata_populate_func_type populate_func) {
+    assert(size_func); assert(populate_func);
+
+    hclib_register_func(&metadata_size_registrations, locale_id, size_func,
+            MAY_USE);
+    hclib_register_func(&metadata_populate_registrations, locale_id,
+            populate_func, MAY_USE);
+}
+
+// Check if the provided type ID is in the range of known locale types.
+int hclib_is_known_locale_type(int type) {
+    return type < n_known_locale_types;
+}
+
 typedef enum {
     DIVIDE = 0,
     REMAINDER = 1
@@ -19,15 +64,16 @@ typedef enum {
 
 static int string_token_equals(jsmntok_t *token, char *json, const char *str) {
     if (token->type != JSMN_STRING) {
-        fprintf(stderr, "token type is not JSMN_STRING when comparing to \"%s\"\n", str);
+        fprintf(stderr, "token type is not JSMN_STRING when comparing to "
+                "\"%s\"\n", str);
         exit(1);
     }
     const int token_length = token->end - token->start;
     return strncmp(json + token->start, str, token_length);
 }
 
-static hclib_locale *find_matching_locale(jsmntok_t *token, char *json,
-        hclib_locale *locales, int nlocales) {
+static hclib_locale_t *find_matching_locale(jsmntok_t *token, char *json,
+        hclib_locale_t *locales, int nlocales) {
     int i;
     for (i = 0; i < nlocales; i++) {
         if (string_token_equals(token, json, locales[i].lbl) == 0) {
@@ -37,8 +83,8 @@ static hclib_locale *find_matching_locale(jsmntok_t *token, char *json,
     return NULL;
 }
 
-static hclib_locale *find_matching_locale_by_str(char *locale_name,
-        hclib_locale *locales, int nlocales) {
+static hclib_locale_t *find_matching_locale_by_str(char *locale_name,
+        hclib_locale_t *locales, int nlocales) {
     int i;
     for (i = 0; i < nlocales; i++) {
         if (strcmp(locale_name, locales[i].lbl) == 0) {
@@ -185,7 +231,7 @@ static char *interpret_locale(char *locale_name, int worker_id) {
 
 static hclib_locality_path *parse_locality_path_from_array(
         jsmntok_t *starting_token, char *json, int worker_id,
-        hclib_locale *locales, int nlocales) {
+        hclib_locale_t *locales, int nlocales) {
     assert(starting_token->type == JSMN_ARRAY);
     const int path_length = starting_token->size;
     assert(path_length > 0);
@@ -193,8 +239,8 @@ static hclib_locality_path *parse_locality_path_from_array(
     hclib_locality_path *path = (hclib_locality_path *)malloc(
             sizeof(hclib_locality_path));
     assert(path);
-    path->locales = (hclib_locale **)malloc(
-            path_length * sizeof(hclib_locale *));
+    path->locales = (hclib_locale_t **)malloc(
+            path_length * sizeof(hclib_locale_t *));
     assert(path->locales);
     path->path_length = path_length;
 
@@ -207,7 +253,7 @@ static hclib_locality_path *parse_locality_path_from_array(
         char *interpreted_str = interpret_locale(str, worker_id);
         free(str);
 
-        hclib_locale *locale = find_matching_locale_by_str(interpreted_str,
+        hclib_locale_t *locale = find_matching_locale_by_str(interpreted_str,
                 locales, nlocales);
         if (!locale) {
             fprintf(stderr, "failed finding locale to match lbl \"%s\"\n", interpreted_str);
@@ -221,14 +267,15 @@ static hclib_locality_path *parse_locality_path_from_array(
 }
 
 static int parse_paths(int starting_token_index, int n_paths, char *json,
-        jsmntok_t *tokens, hclib_locale *locales, int nlocales,
+        jsmntok_t *tokens, hclib_locale_t *locales, int nlocales,
         hclib_locality_path **worker_paths, jsmntok_t **default_path_token) {
     int i;
     int path_index = starting_token_index;
     *default_path_token = NULL;
 
     for (i = 0; i < n_paths; i++) {
-        if (string_token_equals(tokens + path_index, json, "default") == 0) {
+        if (tokens[path_index].type == JSMN_STRING &&
+                string_token_equals(tokens + path_index, json, "default") == 0) {
             path_index++;
 
             assert(tokens[path_index].type == JSMN_ARRAY);
@@ -252,7 +299,7 @@ static int parse_paths(int starting_token_index, int n_paths, char *json,
     return path_index;
 }
 
-inline void init_hclib_deque_t(hclib_deque_t *hcdeq, hclib_locale *locale) {
+inline void init_hclib_deque_t(hclib_deque_t *hcdeq, hclib_locale_t *locale) {
     hcdeq->deque.head = hcdeq->deque.tail = 0;
     hcdeq->locale = locale;
     hcdeq->ws = NULL;
@@ -265,18 +312,44 @@ inline void init_hclib_deque_t(hclib_deque_t *hcdeq, hclib_locale *locale) {
 #endif
 }
 
-static void initialize_locale(hclib_locale *locale, int id, const char *lbl,
+static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
         int nworkers) {
     int i;
     assert(locale);
 
+    int locale_type_id = -1;
+    for (i = 0; i < n_known_locale_types; i++) {
+        if (strncmp(lbl, known_locale_types[i], strlen(known_locale_types[i])) == 0) {
+            locale_type_id = i;
+            break;
+        }
+    }
+    if (locale_type_id < 0) {
+        fprintf(stderr, "Unknown locale type for locale \"%s\"\n", lbl);
+        fprintf(stderr, "No module registered for these locales\n");
+        exit(1);
+    }
+
     locale->id = id;
     locale->lbl = lbl;
+    locale->type = locale_type_id;
     locale->deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
     assert(locale->deques);
     for (i = 0; i < nworkers; i++) {
         hclib_deque_t *deq = locale->deques + i;
         init_hclib_deque_t(deq, locale);
+    }
+
+    if (hclib_has_func_for(metadata_size_registrations, locale_type_id)) {
+        hclib_locale_metadata_size_func_type size_func = hclib_get_func_for(
+                metadata_size_registrations, locale_type_id);
+        hclib_locale_metadata_populate_func_type populate_func =
+            hclib_get_func_for(metadata_populate_registrations, locale_type_id);
+
+        locale->metadata = malloc(size_func());
+        populate_func(locale);
+    } else {
+        locale->metadata = NULL;
     }
 }
 
@@ -335,7 +408,8 @@ void load_locality_info(const char *filename, int *nworkers_out,
     token_index++;
 
     // Initialize locales array from the array of declared locales
-    hclib_locale *locales = (hclib_locale *)malloc(nlocales * sizeof(hclib_locale));
+    hclib_locale_t *locales = (hclib_locale_t *)malloc(nlocales *
+            sizeof(hclib_locale_t));
     assert(locales);
     for (i = token_index; i < token_index + nlocales; i++) {
         assert(tokens[i].type == JSMN_STRING);
@@ -379,14 +453,14 @@ void load_locality_info(const char *filename, int *nworkers_out,
         assert(tokens[edge_index].size == 2);
         edge_index++;
 
-        hclib_locale *locale1 = find_matching_locale(tokens + edge_index, json, locales, nlocales);
+        hclib_locale_t *locale1 = find_matching_locale(tokens + edge_index, json, locales, nlocales);
         if (!locale1) {
             char *lbl = get_copy_of_string_token(tokens + edge_index, json);
             fprintf(stderr, "Locale %s undeclared but referenced in reachability definition\n", lbl);
             exit(1);
         }
         edge_index++;
-        hclib_locale *locale2 = find_matching_locale(tokens + edge_index, json, locales, nlocales);
+        hclib_locale_t *locale2 = find_matching_locale(tokens + edge_index, json, locales, nlocales);
         if (!locale2) {
             char *lbl = get_copy_of_string_token(tokens + edge_index, json);
             fprintf(stderr, "Locale %s undeclared but referenced in reachability definition\n", lbl);
@@ -487,22 +561,26 @@ void generate_locality_info(int *nworkers_out,
                 "default of %u\n", nworkers);
     }
 
-    hclib_locality_graph *graph = (hclib_locality_graph *)malloc(sizeof(hclib_locality_graph));
+    hclib_locality_graph *graph = (hclib_locality_graph *)malloc(
+            sizeof(hclib_locality_graph));
     assert(graph);
     graph->n_locales = 1 + nworkers;
-    graph->locales = (hclib_locale *)malloc(graph->n_locales * sizeof(hclib_locale));
+    graph->locales = (hclib_locale_t *)malloc(graph->n_locales *
+            sizeof(hclib_locale_t));
     assert(graph->locales);
-    graph->edges = (unsigned *)malloc(graph->n_locales * graph->n_locales * sizeof(unsigned));
+    graph->edges = (unsigned *)malloc(graph->n_locales * graph->n_locales *
+            sizeof(unsigned));
     assert(graph->edges);
 
-    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers * sizeof(hclib_worker_paths));
+    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers *
+            sizeof(hclib_worker_paths));
     assert(worker_paths);
 
-    initialize_locale(graph->locales + 0, 0, create_heap_allocated_str("sysmem"),
-                nworkers);
+    initialize_locale(graph->locales + 0, 0,
+            create_heap_allocated_str("sysmem"), nworkers);
     for (i = 1; i <= nworkers; i++) {
         char buf[128];
-        sprintf(buf, "cache%d", i - 1);
+        sprintf(buf, "L1%d", i - 1);
         initialize_locale(graph->locales + i, i, create_heap_allocated_str(buf),
                     nworkers);
 
@@ -511,13 +589,13 @@ void generate_locality_info(int *nworkers_out,
 
         worker_paths[i - 1].pop_path = (hclib_locality_path *)malloc(sizeof(hclib_locality_path));
         worker_paths[i - 1].pop_path->path_length = 2;
-        worker_paths[i - 1].pop_path->locales = (hclib_locale **)malloc(2 * sizeof(hclib_locale *));
+        worker_paths[i - 1].pop_path->locales = (hclib_locale_t **)malloc(2 * sizeof(hclib_locale_t *));
         worker_paths[i - 1].pop_path->locales[0] = graph->locales + i;
         worker_paths[i - 1].pop_path->locales[1] = graph->locales + 0;
 
         worker_paths[i - 1].steal_path = (hclib_locality_path *)malloc(sizeof(hclib_locality_path));
         worker_paths[i - 1].steal_path->path_length = 2;
-        worker_paths[i - 1].steal_path->locales = (hclib_locale **)malloc(2 * sizeof(hclib_locale *));
+        worker_paths[i - 1].steal_path->locales = (hclib_locale_t **)malloc(2 * sizeof(hclib_locale_t *));
         worker_paths[i - 1].steal_path->locales[0] = graph->locales + i;
         worker_paths[i - 1].steal_path->locales[1] = graph->locales + 0;
     }
@@ -527,13 +605,39 @@ void generate_locality_info(int *nworkers_out,
     *worker_paths_out = worker_paths;
 }
 
+void check_locality_graph(hclib_locality_graph *graph,
+        hclib_worker_paths *worker_paths, int nworkers) {
+    int i;
+    int *reachable = (int *)malloc(sizeof(int) * graph->n_locales);
+    memset(reachable, 0x00, sizeof(int) * graph->n_locales);
+
+    for (i = 0; i < nworkers; i++) {
+        hclib_worker_paths *curr = worker_paths + i;
+        int j;
+        for (j = 0; j < curr->pop_path->path_length; j++) {
+            reachable[curr->pop_path->locales[j]->id] = 1;
+        }
+        for (j = 0; j < curr->steal_path->path_length; j++) {
+            reachable[curr->steal_path->locales[j]->id] = 1;
+        }
+    }
+
+    for (i = 0; i < graph->n_locales; i++) {
+        if (!reachable[i]) {
+            fprintf(stderr, "WARNING: Locale %d (%s) is unreachable along any "
+                    "pop or steal path, if a task is launched there this may "
+                    "lead to a hang\n", i, graph->locales[i].lbl);
+        }
+    }
+}
+
 void print_locality_graph(hclib_locality_graph *graph) {
     int i;
     printf("==========================================================\n");
     printf("==== Locality graph %p\n", graph);
     printf("==== # locales = %d\n", graph->n_locales);
     for (i = 0; i < graph->n_locales; i++) {
-        hclib_locale *curr = graph->locales + i;
+        hclib_locale_t *curr = graph->locales + i;
         printf("======== locale %d - %s - connected to ", curr->id, curr->lbl);
         int count_connected = 0;
         int j;
@@ -587,7 +691,7 @@ void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers) {
  * Get the deque owned by the current worker at the specified locale.
  */
 static inline hclib_deque_t *get_deque_locale(hclib_worker_state *ws,
-        hclib_locale *locale) {
+        hclib_locale_t *locale) {
     assert(locale);
     return &(locale->deques[ws->id]);
 }
@@ -595,7 +699,8 @@ static inline hclib_deque_t *get_deque_locale(hclib_worker_state *ws,
 /*
  * Push a task onto the deque for this thread at the specified locale.
  */
-int deque_push_locale(hclib_worker_state *ws, hclib_locale *locale, void *ele) {
+int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
+        void *ele) {
     hclib_deque_t *deq = get_deque_locale(ws, locale);
     return deque_push(&deq->deque, ele);
 }
@@ -616,7 +721,7 @@ hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
 #endif
 
     for (i = 0; i < pop->path_length; i++) {
-        hclib_locale *locale = pop->locales[i];
+        hclib_locale_t *locale = pop->locales[i];
 #ifdef VERBOSE
         fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
                 "locale->deques=%p locale->lbl=%s\n", wid, i, locale,
@@ -657,7 +762,7 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
     MARK_SEARCH(wid); // Set the state of this worker for timing
 
     for (i = 0; i < steal->path_length; i++) {
-        hclib_locale *locale = steal->locales[i];
+        hclib_locale_t *locale = steal->locales[i];
         hclib_deque_t *deqs = locale->deques;
 
         for (j = 1; j < nworkers; j++) {
@@ -696,7 +801,7 @@ int hclib_get_num_locales() {
  * Fetch the locale that is assumed to be closest to our current worker thread,
  * as measured by the distance along the pop path.
  */
-hclib_locale *hclib_get_closest_locale() {
+hclib_locale_t *hclib_get_closest_locale() {
     return CURRENT_WS_INTERNAL->paths->pop_path->locales[0];
 }
 
@@ -704,6 +809,65 @@ hclib_locale *hclib_get_closest_locale() {
  * Return a list of all the locales in the current runtime. The length of this
  * list can be determined by hclib_get_num_locales.
  */
-hclib_locale *hclib_get_all_locales() {
+hclib_locale_t *hclib_get_all_locales() {
     return hc_context->graph->locales;
+}
+
+static int contains(int target, int *list, int N) {
+    int i;
+    for (i = 0; i < N; i++) {
+        if (list[i] == target) return true;
+    }
+    return false;
+}
+
+/*
+ * Return a list of all locales of the given type.
+ */
+hclib_locale_t **hclib_get_all_locales_of_type(int type, int *out_count) {
+    const int n_locales = hc_context->graph->n_locales;
+    int i;
+    int count = 0;
+    hclib_locale_t **list = (hclib_locale_t **)malloc(n_locales *
+            sizeof(hclib_locale_t *));
+    for (i = 0; i < n_locales; i++) {
+        if (hc_context->graph->locales[i].type == type) {
+            list[count++] = hc_context->graph->locales + i;
+        }
+    }
+
+    list = (hclib_locale_t **)realloc(list, count * sizeof(hclib_locale_t *));
+    *out_count = count;
+    return list;
+}
+
+/*
+ * Using a breadth-first traversal, find the closest locale of the provided type
+ * to the provided locale. If multiple locales of the desired type are an
+ * equivalent distance from the provided locale, a random one is returned.
+ */
+hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
+        int locale_type) {
+    assert(locale_type < n_known_locale_types);
+    const int n_locales = hc_context->graph->n_locales;
+
+    int visiting_index = 0;
+    int to_visit_index = 0;
+    int *to_visit = (int *)malloc(sizeof(int) * n_locales);
+    hclib_locale_t *curr = locale;
+    while (curr->type != locale_type && visiting_index <= n_locales) {
+        const int id = curr->id;
+        int i;
+        for (i = 0; i < n_locales; i++) {
+            if (hc_context->graph->edges[id * n_locales + i] &&
+                    !contains(i, to_visit, to_visit_index)) {
+                to_visit[to_visit_index++] = i;
+            }
+        }
+
+        curr = hc_context->graph->locales + to_visit[visiting_index++];
+    }
+
+    if (visiting_index > n_locales) return NULL; // none of that type found
+    else return curr;
 }

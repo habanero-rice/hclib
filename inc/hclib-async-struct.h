@@ -52,8 +52,8 @@ inline hclib_future_t ** get_future_list(hclib_task_t *t) {
 
 extern void spawn(hclib_task_t * task);
 extern void spawn_await_at(hclib_task_t * task, hclib_future_t** future_list,
-        hclib_locale *locale);
-extern void spawn_at(hclib_task_t *task, hclib_locale *locale);
+        hclib_locale_t *locale);
+extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale);
 extern void spawn_await(hclib_task_t * task, hclib_future_t** future_list);
 extern void spawn_comm_task(hclib_task_t * task);
 extern void spawn_gpu_task(hclib_task_t *task);
