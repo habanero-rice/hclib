@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=48000m
-#SBATCH --time=00:30:00
+#SBATCH --time=00:45:00
 #SBATCH --mail-user=jmg3@rice.edu
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -32,7 +32,7 @@ make -j
 
 for FOLDER in $(ls rodinia/); do
     if [[ -d rodinia/$FOLDER ]]; then
-        cd rodinia/$FOLDER && make clean && make -j && cd ../../
+        cd rodinia/$FOLDER && make clean && make && cd ../../
     fi
 done
 
