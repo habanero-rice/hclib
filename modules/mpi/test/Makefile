@@ -4,7 +4,7 @@ include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 include $(HCLIB_ROOT)/../modules/mpi/inc/hclib_mpi.post.mak
 
-TARGETS=init
+TARGETS=init send_recv isend_irecv
 
 all: $(TARGETS)
 

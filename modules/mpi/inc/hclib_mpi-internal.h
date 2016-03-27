@@ -28,10 +28,15 @@ void MPI_Comm_size(MPI_Comm comm, int *size);
 locale_t *MPI_Comm_remote(MPI_Comm comm, int remote_rank);
 int integer_rank_for_locale(locale_t *locale);
 
-void MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
-        int tag, MPI_Comm comm);
-void MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-        MPI_Comm comm, MPI_Status *status);
+void MPI_Send(const void *buf, int count, MPI_Datatype datatype,
+        hclib::locale_t *dest, int tag, MPI_Comm comm);
+void MPI_Recv(void *buf, int count, MPI_Datatype datatype,
+        hclib::locale_t *source, int tag, MPI_Comm comm, MPI_Status *status);
+
+hclib::future_t *MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
+        hclib::locale_t *dest, int tag, MPI_Comm comm);
+hclib::future_t *MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
+        hclib::locale_t *source, int tag, MPI_Comm comm);
 
 }
 

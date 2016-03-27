@@ -40,6 +40,10 @@ hclib::locale_t *hclib::get_all_locales() {
     return hclib_get_all_locales();
 }
 
+hclib_locale_t **hclib::get_all_locales_of_type(int type, int *out_count) {
+    return hclib_get_all_locales_of_type(type, out_count);
+}
+
 hclib::future_t *hclib::allocate_at(size_t nbytes, hclib::locale_t *locale) {
     return new hclib::future_t(hclib_allocate_at(nbytes, locale));
 }

@@ -1,6 +1,6 @@
 include $(HCLIB_ROOT)/include/hclib.mak
 
-DEFINES=
+DEFINES=-DHC_ASSERTION_CHECK
 # DEFINES=-DVERBOSE
 
 OBJS=obj/hclib_system.o

@@ -29,6 +29,7 @@ int num_workers();
 int get_num_locales();
 hclib_locale_t *get_closest_locale();
 hclib_locale_t *get_all_locales();
+hclib_locale_t **get_all_locales_of_type(int type, int *out_count);
 
 hclib::future_t *allocate_at(size_t nbytes, hclib::locale_t *locale);
 hclib::future_t *reallocate_at(void *ptr, size_t nbytes,
