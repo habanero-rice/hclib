@@ -7,6 +7,8 @@ OBJS=obj/hclib_system.o
 
 TARGETS=lib/libhclib_system.so lib/libhclib_system.a
 
+all: $(TARGETS)
+
 lib/libhclib_system.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 

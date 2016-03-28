@@ -4,5 +4,5 @@ PROJECT_CFLAGS+=-I$(HCLIB_ROOT)/../modules/system/inc
 PROJECT_CXXFLAGS+=-I$(HCLIB_ROOT)/../modules/system/inc
 PROJECT_LDFLAGS+=-L$(HCLIB_ROOT)/../modules/system/lib
 PROJECT_LDLIBS += $(call GET_LINK_FLAG,--whole-archive) \
-				  $(call GET_LINK_FLAG,-lhclib_system) \
+				  $(call GET_LINK_FLAG,$(HCLIB_ROOT)/../modules/system/lib/libhclib_system.a) \
 				  $(call GET_LINK_FLAG,--no-whole-archive)
