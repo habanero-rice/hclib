@@ -11,7 +11,7 @@ UNAME_S := $(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
 	PROJECT_LDLIBS+=-lrt
 	IS_MAC_OS = 0
-	PROJECT_LDLIBS=-lhclib -lxml2 $(JSMN_HOME)/libjsmn.a
+	PROJECT_LDLIBS=-lhclib -lxml2 $(JSMN_HOME)/libjsmn.a -lrt
 else
 	IS_MAC_OS = 1
 	PROJECT_LDLIBS=-lhclib -lxml2 $(call GET_LINK_FLAG,-force_load) \
