@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void entrypoint(void *arg) {
     int i;
     int nlocales = hclib_get_num_locales();
-    hclib_locale *locales = hclib_get_all_locales();
+    hclib_locale_t *locales = hclib_get_all_locales();
 
     for (i = 0; i < nlocales; i++) {
         hclib_future_t *future = hclib_allocate_at(30, locales + i);

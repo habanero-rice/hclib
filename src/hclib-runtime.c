@@ -55,6 +55,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-locality-graph.h>
 #include <hclib-module.h>
 
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
@@ -92,18 +97,34 @@ void log_(const char *file, int line, hclib_worker_state *ws,
 }
 
 static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
     struct timespec t ={0,0};
     clock_gettime(CLOCK_MONOTONIC, &t);
     unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
     return (((unsigned long long)t.tv_nsec)) + s;
+#endif
 }
 
 static void set_current_worker(int wid) {
     int err;
-    if (err = pthread_setspecific(ws_key, hc_context->workers[wid]) != 0) {
+    if ((err = pthread_setspecific(ws_key, hc_context->workers[wid])) != 0) {
         log_die("Cannot set thread-local worker state");
     }
 
+    /*
+     * don't bother worrying about core affinity on Mac OS since no one will be
+     * running performance tests there anyway and it doesn't support
+     * pthread_setaffinity_np.
+     */
+#ifndef __MACH__
     cpu_set_t cpu_set;
     CPU_ZERO(&cpu_set);
     if (wid >= hc_context->ncores) {
@@ -126,6 +147,7 @@ static void set_current_worker(int wid) {
                 "thread %d, ncores=%d: %s\n", wid, hc_context->ncores,
                 strerror(err));
     }
+#endif
 }
 
 int hclib_get_current_worker() {
