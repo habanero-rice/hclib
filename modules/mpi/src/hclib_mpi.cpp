@@ -75,7 +75,7 @@ int hclib::integer_rank_for_locale(locale_t *locale) {
     return locale_id_to_mpi_rank(locale->id);
 }
 
-void hclib::MPI_Send(const void *buf, int count, MPI_Datatype datatype, hclib::locale_t *dest,
+void hclib::MPI_Send(void *buf, int count, MPI_Datatype datatype, hclib::locale_t *dest,
         int tag, MPI_Comm comm) {
     hclib::finish([buf, count, datatype, dest, tag, comm] {
         hclib::async_at(nic, [buf, count, datatype, dest, tag, comm] {
@@ -95,7 +95,7 @@ void hclib::MPI_Recv(void *buf, int count, MPI_Datatype datatype, hclib::locale_
     });
 }
 
-hclib::future_t *hclib::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
+hclib::future_t *hclib::MPI_Isend(void *buf, int count, MPI_Datatype datatype,
         hclib::locale_t *dest, int tag, MPI_Comm comm) {
     return hclib::async_future_at([buf, count, datatype, dest, tag, comm] {
         CHECK_MPI(::MPI_Send(buf, count, datatype,

@@ -12,7 +12,7 @@ FLAGS=-g
 all: $(TARGETS)
 
 %: %.c
-	gcc ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	g++ ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean:
 	rm -f $(TARGETS)

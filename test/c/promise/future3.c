@@ -68,7 +68,7 @@ void entrypoint(void *arg) {
     init_ran(ran, H1);
     hclib_loop_domain_t loop = {0, H1, 1, T1};
 
-    hclib_future_t *event = hclib_forasync_future(forasync_fct1, (void*)ran,
+    hclib_future_t *event = hclib_forasync_future((void *)forasync_fct1, (void*)ran,
             NULL, 1, &loop, FORASYNC_MODE_FLAT);
 
     hclib_future_wait(event);

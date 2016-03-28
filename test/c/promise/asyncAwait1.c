@@ -51,7 +51,7 @@ void entrypoint(void *arg) {
     for(index=n-1; index>=1; index--) {
         // Build async's arguments
         // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
-        void ** argv = malloc(sizeof(void *) * 3);
+        void ** argv = (void **)malloc(sizeof(void *) * 3);
         argv[0] = malloc(sizeof(int) *1);
         *((int *)argv[0]) = index;
         argv[1] = (void *)promise_list;

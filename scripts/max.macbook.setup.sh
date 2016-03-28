@@ -31,8 +31,8 @@ export BASE=${HOME}/pgas/habanero-upc
 ################################################
 
 # COMPILERS (fixed values unless you are building on Edison)
-export CXX=mpicxx
-export CXX_LINKER=mpicxx
+export CXX=g++
+export CXX_LINKER=g++
 export CC=gcc
 
 export HCLIB_ROOT=${HCLIB_BASE}/hclib-install

@@ -45,7 +45,7 @@ void entrypoint(void *arg) {
     for (index = n - 1; index >= 1; index--) {
         printf("Creating async %d\n", index);
         // Build async's arguments
-        void ** argv = malloc(sizeof(void *) * 2);
+        void ** argv = (void **)malloc(sizeof(void *) * 2);
         argv[0] = malloc(sizeof(int) *1);
         *((int *)argv[0]) = index*2;
         argv[1] = (void *)(promise_list[index*2]);
