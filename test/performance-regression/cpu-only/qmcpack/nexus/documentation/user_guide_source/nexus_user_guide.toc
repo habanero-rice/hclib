@@ -1,0 +1,42 @@
+\contentsline {chapter}{Contents}{ii}{section*.1}
+\contentsline {chapter}{\chapternumberline {1}Using this document}{1}{chapter.1}
+\contentsline {chapter}{\chapternumberline {2}Overview of Nexus}{2}{chapter.2}
+\contentsline {section}{\numberline {2.1}What Nexus is}{2}{section.2.1}
+\contentsline {section}{\numberline {2.2}What Nexus can do}{2}{section.2.2}
+\contentsline {section}{\numberline {2.3}How Nexus is used}{2}{section.2.3}
+\contentsline {chapter}{\chapternumberline {3}Nexus Installation}{4}{chapter.3}
+\contentsline {chapter}{\chapternumberline {4}Complete Examples}{6}{chapter.4}
+\contentsline {section}{\numberline {4.1}Simple QMC Calculations}{7}{section.4.1}
+\contentsline {subsection}{Example: Graphene Sheet DMC}{8}{section*.2}
+\contentsline {subsection}{Example: C 20 Molecule DMC}{16}{section*.3}
+\contentsline {chapter}{\chapternumberline {5}Nexus User Reference}{23}{chapter.5}
+\contentsline {section}{\numberline {5.1}Reading what you wrote}{23}{section.5.1}
+\contentsline {section}{\numberline {5.2}Nexus settings: global state and user-specific information}{23}{section.5.2}
+\contentsline {subsection}{\textbf {\relax $\@@underline {\hbox {How to use the \texttt {settings} function}}\mathsurround \z@ $\relax }}{23}{section*.4}
+\contentsline {subsection}{\textbf {\relax $\@@underline {\hbox {Accessing settings data}}\mathsurround \z@ $\relax }}{24}{section*.5}
+\contentsline {chapter}{\chapternumberline {6}QMC Practice \\in a Nutshell}{25}{chapter.6}
+\contentsline {section}{\numberline {6.1}VMC and DMC in the abstract}{25}{section.6.1}
+\contentsline {section}{\numberline {6.2}From expectation values to random walks}{26}{section.6.2}
+\contentsline {section}{\numberline {6.3}Quality orbitals: planewaves, cutoffs, splines, and meshes}{26}{section.6.3}
+\contentsline {section}{\numberline {6.4}Quality Jastrows: less variance = more efficient}{27}{section.6.4}
+\contentsline {section}{\numberline {6.5}Finite size effects: k-points, supercells, and corrections}{28}{section.6.5}
+\contentsline {section}{\numberline {6.6}Imaginary time discretization: the DMC timestep}{29}{section.6.6}
+\contentsline {section}{\numberline {6.7}Population control bias: safety in numbers}{29}{section.6.7}
+\contentsline {section}{\numberline {6.8}The fixed node/phase approximation: varying the nodes/phase}{30}{section.6.8}
+\contentsline {section}{\numberline {6.9}Pseudopotentials: theoretical dissonance, the locality approximation, and T-moves}{31}{section.6.9}
+\contentsline {section}{\numberline {6.10}Other approximations: what else is missing?}{32}{section.6.10}
+\contentsline {chapter}{\chapternumberline {7}Recommended Reading}{33}{chapter.7}
+\contentsline {section}{\numberline {7.1}Helpful Links for Installing Python Modules}{33}{section.7.1}
+\contentsline {section}{\numberline {7.2}Helpful Links for Installing Electronic Structure Codes}{33}{section.7.2}
+\contentsline {subsection}{PWSCF: pw.x, pw2qmcpack.x, pw2casino.x}{33}{section*.6}
+\contentsline {subsubsection}{Publicly available version}{33}{section*.7}
+\contentsline {subsubsection}{Developer's version:}{33}{section*.8}
+\contentsline {subsection}{Wfconvert: wfconvert}{34}{section*.9}
+\contentsline {subsection}{QMCPACK: sqd, qmcapp, qmcapp\_complex}{34}{section*.10}
+\contentsline {section}{\numberline {7.3}Brushing Up On Python}{34}{section.7.3}
+\contentsline {subsection}{Python}{34}{section*.11}
+\contentsline {subsection}{NumPy}{34}{section*.12}
+\contentsline {subsection}{Matplotlib}{34}{section*.13}
+\contentsline {subsection}{Scipy and H5Py}{35}{section*.14}
+\contentsline {section}{\numberline {7.4}Quantum Monte Carlo: Theory and Practice}{35}{section.7.4}
+\contentsline {chapter}{Index}{36}{section*.15}
