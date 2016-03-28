@@ -7,6 +7,9 @@ PROJECT_LDLIBS=-lhclib -lxml2 $(JSMN_HOME)/libjsmn.a
 UNAME_S := $(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
 	PROJECT_LDLIBS+=-lrt
+	IS_MAC_OS = 0
+else
+	IS_MAC_OS = 1
 endif
 
 ifndef GET_LINK_FLAG
