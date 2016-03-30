@@ -10,6 +10,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
 #SBATCH --partition=commons
+#SBATCH --exclusive
 
 set -e
 
