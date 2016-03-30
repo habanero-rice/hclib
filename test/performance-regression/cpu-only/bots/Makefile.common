@@ -1,0 +1,224 @@
+##############################################################################################
+#  This program is part of the Barcelona OpenMP Tasks Suite                                  #
+#  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  #
+#  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   #
+#                                                                                            #
+#  This program is free software; you can redistribute it and/or modify                      #
+#  it under the terms of the GNU General Public License as published by                      #
+#  the Free Software Foundation; either version 2 of the License, or                         #
+#  (at your option) any later version.                                                       #
+#                                                                                            #
+#  This program is distributed in the hope that it will be useful,                           #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of                            #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             #
+#  GNU General Public License for more details.                                              #
+#                                                                                            #
+#  You should have received a copy of the GNU General Public License                         #
+#  along with this program; if not, write to the Free Software                               #
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            #
+##############################################################################################
+
+config_ready=$(wildcard $(BASE_DIR)/config/make.config)
+ifeq ($(config_ready),)
+   $(error Configure script not executed. Please run ./configure in the base directory)
+endif
+
+include $(BASE_DIR)/config/make.config
+
+# Don't change below this line
+##############################
+
+#directories
+
+BIN_DIR=.
+COMMON_DIR=$(BASE_DIR)/common
+
+TODAY := $(shell date "+%Y/%m/%d;%H:%M")
+
+# Compile commands
+
+OMPC_ALL_FLAGS=-c -I$(COMMON_DIR) $(OPT_FLAGS) $(OMPC_FLAGS) $(APP_FLAGS)
+CC_ALL_FLAGS=-c -I$(COMMON_DIR) $(OPT_FLAGS) $(CC_FLAGS) $(APP_FLAGS) 
+
+# Link commands
+
+OMPLINK_ALL_FLAGS=$(OPT_FLAGS) $(OMPLINK_FLAGS) $(APP_FLAGS)
+CLINK_ALL_FLAGS=$(OPT_FLAGS) $(CC_FLAGS) $(APP_FLAGS)
+
+# generic rules
+
+ifndef PROGRAM
+	PROGRAM = $(shell basename `pwd`)
+endif
+
+ifneq ( ,$(findstring _,$(PROGRAM)))
+    SUB := $(shell echo $(PROGRAM) | cut -d _ -f 2)-
+    PROGRAM := $(shell echo $(PROGRAM) | cut -d _ -f 1)
+endif
+
+ifndef PROGRAM_OBJS
+	PROGRAM_OBJS = $(PROGRAM).o
+endif
+
+COMMON_OBJS = $(COMMON_DIR)/bots_common.o
+
+ifeq ($(VERSION),common)
+.c.o: Makefile $(COMMON_DIR)/Makefile.common
+	$(CC) $(CC_ALL_FLAGS) -o $@ $<
+endif
+
+ifeq ($(VERSION),serial)
+
+TARGETS = $(BIN_DIR)/$(PROGRAM).$(LABEL).$(VERSION)
+
+all: $(TARGETS)
+
+.c.o: Makefile $(COMMON_DIR)/Makefile.common 
+	$(CC) $(CC_ALL_FLAGS) -o $@ $<
+
+INFO_FLAGS=-DCDATE="\"$(TODAY)\"" -DCC="\"$(CC)\"" -DLD="\"$(CLINK)\"" -DCMESSAGE="\"$(CMESSAGE)\"" \
+	  -DLDFLAGS="\"$(CLINK_ALL_FLAGS) $(LIBS)\""
+
+main.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(CC) $(CC_ALL_FLAGS) -I. -o $@ $< $(INFO_FLAGS) -DCFLAGS="\"$(CC_ALL_FLAGS) -I.\""
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(VERSION): main.o $(PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(CLINK) $(CLINK_ALL_FLAGS) -o $@ main.o $(PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+endif
+
+ifeq ($(VERSION),omp-tasks)
+
+TARGETS = $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)
+
+ifdef CUTOFF_VERSIONS
+	TARGETS += $(CUTOFF_VERSIONS:%=$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-%)
+
+	MANUAL_PROGRAM_OBJS := $(PROGRAM_OBJS:%.o=%-manual.o)
+	IF_PROGRAM_OBJS := $(PROGRAM_OBJS:%.o=%-if.o)
+	FINAL_PROGRAM_OBJS := $(PROGRAM_OBJS:%.o=%-final.o)
+
+	MANUAL_FLAGS = -DMANUAL_CUTOFF
+	IF_FLAGS = -DIF_CUTOFF
+	FINAL_FLAGS = -DFINAL_CUTOFF $(OMPC_FINAL_FLAGS)
+endif
+
+ifdef TIED_VERSIONS
+	TIED_TARGETS := $(TARGETS:%=%-tied)
+	TARGETS += $(TIED_TARGETS)
+
+	TIED_PROGRAM_OBJS := $(PROGRAM_OBJS:%.o=%-tied.o)
+	TIED_MANUAL_PROGRAM_OBJS := $(MANUAL_PROGRAM_OBJS:%.o=%-tied.o)
+	TIED_IF_PROGRAM_OBJS := $(IF_PROGRAM_OBJS:%.o=%-tied.o)
+	TIED_FINAL_PROGRAM_OBJS := $(FINAL_PROGRAM_OBJS:%.o=%-tied.o)
+
+	TIED_FLAGS = -DFORCE_TIED_TASKS
+endif
+
+
+all: $(TARGETS)
+
+.c.o: Makefile $(COMMON_DIR)/Makefile.common 
+	$(OMPC) $(OMPC_ALL_FLAGS) -o $@ $<
+
+%-if.o: %.c Makefile $(COMMON_DIR)/Makefile.common 
+	$(OMPC) $(OMPC_ALL_FLAGS) $(IF_FLAGS) -o $@ $<
+
+%-final.o: %.c Makefile $(COMMON_DIR)/Makefile.common 
+	$(OMPC) $(OMPC_ALL_FLAGS) $(FINAL_FLAGS) -o $@ $<
+
+%-manual.o: %.c Makefile $(COMMON_DIR)/Makefile.common 
+	$(OMPC) $(OMPC_ALL_FLAGS) $(MANUAL_FLAGS) -o $@ $<
+
+# we remove the untied clause with sed.
+# For this to work it must be the first clause of the task directive
+# Ugly... but there's no easy solutions because it is a pragma
+
+%-tied.o: %.c Makefile $(COMMON_DIR)/Makefile.common
+	cat $< | sed -e "s/task \{1,\}untied/task/g" > tied-$< ;\
+	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) -o $@ tied-$<;\
+	rm tied-$<
+
+%-if-tied.o: %.c Makefile $(COMMON_DIR)/Makefile.common
+	cat $< | sed -e "s/task \{1,\}untied/task/g" > tied-$< ;\
+	$(OMPC) $(OMPC_ALL_FLAGS) $(IF_FLAGS) $(TIED_FLAGS) -o $@ $<;\
+	rm tied-$<
+
+%-manual-tied.o: %.c Makefile $(COMMON_DIR)/Makefile.common
+	cat $< | sed -e "s/task \{1,\}untied/task/g" > tied-$< ;\
+	$(OMPC) $(OMPC_ALL_FLAGS) $(MANUAL_FLAGS) $(TIED_FLAGS) -o $@ $<;\
+	rm tied-$<
+
+%-final-tied.o: %.c Makefile $(COMMON_DIR)/Makefile.common
+	cat $< | sed -e "s/task \{1,\}untied/task/g" > tied-$< ;\
+	$(OMPC) $(OMPC_ALL_FLAGS) $(FINAL_FLAGS) $(TIED_FLAGS) -o $@ $<;\
+	rm tied-$<
+
+INFO_FLAGS_OMP=-DCDATE="\"$(TODAY)\"" -DCC="\"$(OMPC)\"" -DLD="\"$(OMPLINK)\"" -DCMESSAGE="\"$(CMESSAGE)\"" \
+               -DLDFLAGS="\"$(OMPLINK_ALL_FLAGS) $(LIBS)\""
+
+main.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) -I.\""
+
+main-if.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(IF_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(IF_FLAGS)-I.\""
+
+main-final.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(FINAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(FINAL_FLAGS)-I.\""
+
+main-manual.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(MANUAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(MANUAL_FLAGS) -I.\""
+
+main-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) -I.\""
+
+main-if-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(IF_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(IF_FLAGS) -I.\""
+
+main-manual-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(MANUAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(MANUAL_FLAGS) -I.\""
+
+main-final-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(FINAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(FINAL_FLAGS) -I.\""
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION): main.o $(PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main.o $(PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-manual: main-manual.o $(MANUAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-manual.o $(MANUAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-if_clause: main-if.o $(IF_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS) 
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-if.o $(IF_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-tied: main-tied.o $(TIED_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-tied.o $(TIED_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-manual-tied: main-manual-tied.o $(TIED_MANUAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-manual-tied.o $(TIED_MANUAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-if_clause-tied: main-if-tied.o $(TIED_IF_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-if-tied.o $(TIED_IF_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+ifdef USE_FINAL_CLAUSE
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-final: main-final.o $(FINAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS) 
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-final.o $(FINAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-final-tied: main-final-tied.o $(TIED_FINAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
+	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-if-tied.o $(TIED_FINAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+
+else
+
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-final: 
+$(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-final-tied: 
+
+endif
+
+endif
+
+
+clean:
+	rm -fr *.o
+
+dist-clean: clean
+
