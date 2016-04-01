@@ -100,8 +100,9 @@ static void run99_hclib_async(void *arg, const int ___iter) {
     int *temp; temp = ctx->temp;
     int min; min = ctx->min;
     int t; t = ctx->t;
-    int n;     n = ___iter;
+    hclib_start_finish();
     do {
+    int n;     n = ___iter;
 {
           min = src[n];
           if (n > 0)
@@ -110,6 +111,7 @@ static void run99_hclib_async(void *arg, const int ___iter) {
             min = MIN(min, src[n+1]);
           dst[n] = wall[t+1][n]+min;
         }    } while (0);
+    hclib_end_finish();
 }
 
 typedef struct _main_entrypoint_ctx {

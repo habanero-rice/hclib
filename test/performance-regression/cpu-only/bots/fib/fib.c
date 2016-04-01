@@ -1,3 +1,4 @@
+#include "hclib.h"
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -104,7 +105,7 @@ long long fib (int n)
 	#pragma omp task untied shared(y) firstprivate(n)
 	y = fib(n - 2);
 
-	#pragma omp taskwait
+hclib_end_finish(); hclib_start_finish();
 	return x + y;
 }
 
@@ -112,15 +113,31 @@ long long fib (int n)
 
 static long long par_res, seq_res;
 
-void fib0 (int n)
+typedef struct _main_entrypoint_ctx {
+    int n;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int n; n = ctx->n;
 {
-	#pragma omp parallel
-	#pragma omp single
+        hclib_start_finish(); {
 #if defined(MANUAL_CUTOFF) || defined(IF_CUTOFF) || defined(FINAL_CUTOFF)
 	par_res = fib(n,0);
 #else
 	par_res = fib(n);
 #endif
+        } hclib_end_finish(); 
+    }; }
+
+void fib0 (int n)
+{
+
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->n = n;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+
 	bots_message("Fibonacci result for %d is %lld\n",n,par_res);
 }
 

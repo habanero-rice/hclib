@@ -42,8 +42,8 @@ typedef struct _main_entrypoint_ctx {
     MAT *grad_y;
  } main_entrypoint_ctx;
 
-static void main_entrypoint(void *arg) {
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)arg;
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
     int argc; argc = ctx->argc;
     char **argv; argv = ctx->argv;
     long long program_start_time; program_start_time = ctx->program_start_time;
@@ -79,131 +79,135 @@ static void main_entrypoint(void *arg) {
     MAT *image_chopped; image_chopped = ctx->image_chopped;
     MAT *grad_x; grad_x = ctx->grad_x;
     MAT *grad_y; grad_y = ctx->grad_y;
-long long GICOV_start_time = get_time();
-; MAT *gicov = ellipsematching(grad_x, grad_y);
-; MAT *max_gicov = m_get(gicov->m, gicov->n);
-; for (i = 0; i < gicov->m; i++) {
-    for (j = 0; j < gicov->n; j++) {
-        double val = ((gicov)->me[(i)][(j)]);
-        ((max_gicov)->me[(i)][(j)] = (val * val));
-    }
-}
-; long long GICOV_end_time = get_time();
-; long long dilate_start_time = get_time();
-; MAT *strel = structuring_element(12);
-; MAT *img_dilated = dilate_f(max_gicov, strel);
-; long long dilate_end_time = get_time();
-; pair_counter = 0; crow = (int *)malloc(max_gicov->m * max_gicov->n * sizeof(int)); ccol = (int *)malloc(max_gicov->m * max_gicov->n * sizeof(int)); for (i = 0; i < max_gicov->m; i++) {
-    for (j = 0; j < max_gicov->n; j++) {
-        if (!(((max_gicov)->me[(i)][(j)]) == 0.) && (((img_dilated)->me[(i)][(j)]) == ((max_gicov)->me[(i)][(j)]))) {
-            crow[pair_counter] = i;
-            ccol[pair_counter] = j;
-            pair_counter++;
-        }
-    }
-}
-; GICOV_spots = (double *)malloc(sizeof(double) * pair_counter); for (i = 0; i < pair_counter; i++) {
-    GICOV_spots[i] = ((gicov)->me[(crow[i])][(ccol[i])]);
-}
-; G = (double *)calloc(pair_counter, sizeof(double)); x_result = (double *)calloc(pair_counter, sizeof(double)); y_result = (double *)calloc(pair_counter, sizeof(double)); x_result_len = 0; for (i = 0; i < pair_counter; i++) {
-    if ((crow[i] > 29) && (crow[i] < 328 - 110 + 39)) {
-        x_result[x_result_len] = ccol[i];
-        y_result[x_result_len] = crow[i] - 40;
-        G[x_result_len] = GICOV_spots[i];
-        x_result_len++;
-    }
-}
-; t = (double *)malloc(sizeof(double) * 36); for (i = 0; i < 36; i++) {
-    t[i] = (double)i * 2. * 3.1415899999999999 / 36.;
-}
-; cellx = m_get(x_result_len, 36); celly = m_get(x_result_len, 36); for (i = 0; i < x_result_len; i++) {
-    for (j = 0; j < 36; j++) {
-        ((cellx)->me[(i)][(j)] = (x_result[i] + radius * cos(t[j])));
-        ((celly)->me[(i)][(j)] = (y_result[i] + radius * sin(t[j])));
-    }
-}
-; A = TMatrix(9, 4); V = (double *)malloc(sizeof(double) * pair_counter); QAX_CENTERS = (double *)malloc(sizeof(double) * pair_counter); QAY_CENTERS = (double *)malloc(sizeof(double) * pair_counter); memset(V, 0, sizeof(double) * pair_counter); memset(QAX_CENTERS, 0, sizeof(double) * pair_counter); memset(QAY_CENTERS, 0, sizeof(double) * pair_counter); k_count = 0; for (n = 0; n < x_result_len; n++) {
-    if ((G[n] < -1 * threshold) || G[n] > threshold) {
-        MAT *x, *y;
-        VEC *x_row, *y_row;
-        x = m_get(1, 36);
-        y = m_get(1, 36);
-        x_row = v_get(36);
-        y_row = v_get(36);
-        x_row = get_row(cellx, n, x_row);
-        y_row = get_row(celly, n, y_row);
-        uniformseg(x_row, y_row, x, y);
-        if ((m_min(x) > b) && (m_min(y) > b) && (m_max(x) < cell_file->width - b) && (m_max(y) < cell_file->height - b)) {
-            MAT *Cx, *Cy, *Cy_temp, *Ix1, *Iy1;
-            VEC *Xs, *Ys, *W, *Nx, *Ny, *X, *Y;
-            Cx = m_get(1, 36);
-            Cy = m_get(1, 36);
-            Cx = mmtr_mlt(A, x, Cx);
-            Cy = mmtr_mlt(A, y, Cy);
-            Cy_temp = m_get(Cy->m, Cy->n);
-            for (i = 0; i < 9; i++) {
-                ((Cy)->me[(i)][(0)] = (((Cy)->me[(i)][(0)]) + 40.));
-            }
-            for (i = 0; i < Iter; i++) {
-                int typeofcell;
-                if (G[n] > 0.) {
-                    typeofcell = 0;
-                } else {
-                    typeofcell = 1;
+long long GICOV_start_time = get_time();; MAT *gicov = ellipsematching(grad_x, grad_y);; MAT *max_gicov = m_get(gicov->m, gicov->n);; for (i = 0; i < gicov->m; i++) {
+		for (j = 0; j < gicov->n; j++) {
+			double val = m_get_val(gicov, i, j);
+			m_set_val(max_gicov, i, j, val * val);
+		}
+	}; long long GICOV_end_time = get_time();; long long dilate_start_time = get_time();; MAT *strel = structuring_element(12);; MAT *img_dilated = dilate_f(max_gicov, strel);; long long dilate_end_time = get_time();; pair_counter = 0; crow = (int *) malloc(max_gicov->m * max_gicov->n * sizeof(int)); ccol = (int *) malloc(max_gicov->m * max_gicov->n * sizeof(int)); for (i = 0; i < max_gicov->m; i++) {
+		for (j = 0; j < max_gicov->n; j++) {
+			if (!(m_get_val(max_gicov,i,j) == 0.0) && (m_get_val(img_dilated,i,j) == m_get_val(max_gicov,i,j))) {
+				crow[pair_counter] = i;
+				ccol[pair_counter] = j;
+				pair_counter++;
+			}
+		}
+	}; GICOV_spots = (double *) malloc(sizeof(double)*pair_counter); for (i = 0; i < pair_counter; i++) {
+		GICOV_spots[i] = m_get_val(gicov, crow[i], ccol[i]);
+    }; G = (double *) calloc(pair_counter, sizeof(double)); x_result = (double *) calloc(pair_counter, sizeof(double)); y_result = (double *) calloc(pair_counter, sizeof(double)); x_result_len = 0; for (i = 0; i < pair_counter; i++) {
+		if ((crow[i] > 29) && (crow[i] < BOTTOM - TOP + 39)) {
+			x_result[x_result_len] = ccol[i];
+			y_result[x_result_len] = crow[i] - 40;
+			G[x_result_len] = GICOV_spots[i];
+			x_result_len++;
+		}
+	}; t = (double *) malloc(sizeof(double) * 36); for (i = 0; i < 36; i++) {
+		t[i] = (double)i * 2.0 * PI / 36.0;
+	}; cellx = m_get(x_result_len, 36); celly = m_get(x_result_len, 36); for(i = 0; i < x_result_len; i++) {
+		for(j = 0; j < 36; j++) {
+			m_set_val(cellx, i, j, x_result[i] + radius * cos(t[j]));
+			m_set_val(celly, i, j, y_result[i] + radius * sin(t[j]));
+		}
+	}; A = TMatrix(9,4); V = (double *) calloc(pair_counter, sizeof(double)); QAX_CENTERS = (double * )calloc(pair_counter, sizeof(double)); QAY_CENTERS = (double *) calloc(pair_counter, sizeof(double)); k_count = 0; for (n = 0; n < x_result_len; n++) {
+		if ((G[n] < -1 * threshold) || G[n] > threshold) {
+			MAT * x, *y;
+			VEC * x_row, * y_row;
+			x = m_get(1, 36);
+			y = m_get(1, 36);
+
+			x_row = v_get(36);
+			y_row = v_get(36);
+
+			// Get current values of possible cells from cellx/celly matrices
+			x_row = get_row(cellx, n, x_row);
+			y_row = get_row(celly, n, y_row);
+			uniformseg(x_row, y_row, x, y);
+
+			// Make sure that the possible leukocytes are not too close to the edge of the frame
+			if ((m_min(x) > b) && (m_min(y) > b) && (m_max(x) < cell_file->width - b) && (m_max(y) < cell_file->height - b)) {
+				MAT * Cx, * Cy, *Cy_temp, * Ix1, * Iy1;
+				VEC  *Xs, *Ys, *W, *Nx, *Ny, *X, *Y;
+				Cx = m_get(1, 36);
+				Cy = m_get(1, 36);
+				Cx = mmtr_mlt(A, x, Cx);
+				Cy = mmtr_mlt(A, y, Cy);
+				
+				Cy_temp = m_get(Cy->m, Cy->n);
+				
+				for (i = 0; i < 9; i++) {
+					m_set_val(Cy, i, 0, m_get_val(Cy, i, 0) + 40.0);
                 }
-                splineenergyform01(Cx, Cy, grad_x, grad_y, ns, delta, 2. * dt, typeofcell);
-            }
-            X = getsampling(Cx, ns);
-            for (i = 0; i < Cy->m; i++) {
-                ((Cy_temp)->me[(i)][(0)] = (((Cy)->me[(i)][(0)]) - 40.));
-            }
-            Y = getsampling(Cy_temp, ns);
-            Ix1 = linear_interp2(grad_x, X, Y);
-            Iy1 = linear_interp2(grad_x, X, Y);
-            Xs = getfdriv(Cx, ns);
-            Ys = getfdriv(Cy, ns);
-            Nx = v_get(Ys->dim);
-            for (i = 0; i < Ys->dim; i++) {
-                ((Nx)->ve[(i)] = (((Ys)->ve[(i)]) / sqrt(((Xs)->ve[(i)]) * ((Xs)->ve[(i)]) + ((Ys)->ve[(i)]) * ((Ys)->ve[(i)]))));
-            }
-            Ny = v_get(Xs->dim);
-            for (i = 0; i < Xs->dim; i++) {
-                ((Ny)->ve[(i)] = (-1. * ((Xs)->ve[(i)]) / sqrt(((Xs)->ve[(i)]) * ((Xs)->ve[(i)]) + ((Ys)->ve[(i)]) * ((Ys)->ve[(i)]))));
-            }
-            W = v_get(Nx->dim);
-            for (i = 0; i < Nx->dim; i++) {
-                ((W)->ve[(i)] = (((Ix1)->me[(0)][(i)]) * ((Nx)->ve[(i)]) + ((Iy1)->me[(0)][(i)]) * ((Ny)->ve[(i)])));
-            }
-            V[n] = mean(W) / std_dev(W);
-            QAX_CENTERS[k_count] = mean(X);
-            QAY_CENTERS[k_count] = mean(Y) + 110;
-            k_count++;
-            v_free(W);
-            v_free(Ny);
-            v_free(Nx);
-            v_free(Ys);
-            v_free(Xs);
-            m_free(Iy1);
-            m_free(Ix1);
-            v_free(Y);
-            v_free(X);
-            m_free(Cy_temp);
-            m_free(Cy);
-            m_free(Cx);
-        }
-        v_free(y_row);
-        v_free(x_row);
-        m_free(y);
-        m_free(x);
-    }
-}
-; free(V); free(ccol); free(crow); free(GICOV_spots); free(t); free(G); free(x_result); free(y_result); m_free(A); m_free(celly); m_free(cellx); m_free(img_dilated); m_free(max_gicov); m_free(gicov); m_free(grad_y); m_free(grad_x); printf("Cells detected: %d\n\n", k_count); printf("Detection runtime\n"); printf("-----------------\n"); printf("GICOV computation: %.5f seconds\n", ((float)(GICOV_end_time - GICOV_start_time)) / (1000 * 1000)); printf("   GICOV dilation: %.5f seconds\n", ((float)(dilate_end_time - dilate_start_time)) / (1000 * 1000)); printf("            Total: %.5f seconds\n", ((float)(get_time() - program_start_time)) / (1000 * 1000)); if (num_frames > 1)
-    printf("\nTracking cells across %d frames\n", num_frames);
-else
-    printf("\nTracking cells across 1 frame\n");
-; long long tracking_start_time = get_time();
-; int num_snaxels = 20;
-; ellipsetrack(cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames); printf("           Total: %.5f seconds\n", ((float)(get_time() - tracking_start_time)) / (float)(1000 * 1000 * num_frames)); }
+					
+				// Iteratively refine the snake/spline
+				for (i = 0; i < Iter; i++) {
+					int typeofcell;
+					
+					if(G[n] > 0.0) {
+                        typeofcell = 0;
+                    } else {
+                        typeofcell = 1;
+                    }
+					
+					splineenergyform01(Cx, Cy, grad_x, grad_y, ns, delta, 2.0 * dt, typeofcell);
+				}
+				
+				X = getsampling(Cx, ns);
+				for (i = 0; i < Cy->m; i++) {
+					m_set_val(Cy_temp, i, 0, m_get_val(Cy, i, 0) - 40.0);
+                }
+				Y = getsampling(Cy_temp, ns);
+				
+				Ix1 = linear_interp2(grad_x, X, Y);
+				Iy1 = linear_interp2(grad_x, X, Y);
+				Xs = getfdriv(Cx, ns);
+				Ys = getfdriv(Cy, ns);
+				
+				Nx = v_get(Ys->dim);
+				for (i = 0; i < Ys->dim; i++) {
+					v_set_val(Nx, i, v_get_val(Ys, i) / sqrt(v_get_val(Xs, i)*v_get_val(Xs, i) + v_get_val(Ys, i)*v_get_val(Ys, i)));
+                }
+					
+				Ny = v_get(Xs->dim);
+				for (i = 0; i < Xs->dim; i++) {
+					v_set_val(Ny, i, -1.0 * v_get_val(Xs, i) / sqrt(v_get_val(Xs, i)*v_get_val(Xs, i) + v_get_val(Ys, i)*v_get_val(Ys, i)));
+                }
+					
+				W = v_get(Nx->dim);
+				for (i = 0; i < Nx->dim; i++) {
+					v_set_val(W, i, m_get_val(Ix1, 0, i) * v_get_val(Nx, i) + m_get_val(Iy1, 0, i) * v_get_val(Ny, i));
+                }
+					
+				V[n] = mean(W) / std_dev(W);
+				
+				//get means of X and Y values for all "snaxels" of the spline contour, thus finding the cell centers
+				QAX_CENTERS[k_count] = mean(X);
+				QAY_CENTERS[k_count] = mean(Y) + TOP;
+				
+				k_count++;
+				
+				// Free memory
+				v_free(W);
+				v_free(Ny);
+				v_free(Nx);
+				v_free(Ys);
+				v_free(Xs);
+				m_free(Iy1);
+				m_free(Ix1);
+				v_free(Y);
+				v_free(X);
+				m_free(Cy_temp);
+				m_free(Cy);
+				m_free(Cx);				
+			}
+			
+			// Free memory
+			v_free(y_row);
+			v_free(x_row);
+			m_free(y);
+			m_free(x);
+		}
+	}; free(V); free(ccol); free(crow); free(GICOV_spots); free(t); free(G); free(x_result); free(y_result); m_free(A); m_free(celly); m_free(cellx); m_free(img_dilated); m_free(max_gicov); m_free(gicov); m_free(grad_y); m_free(grad_x); printf("Cells detected: %d\n\n", k_count); printf("Detection runtime\n"); printf("-----------------\n"); printf("GICOV computation: %.5f seconds\n", ((float) (GICOV_end_time - GICOV_start_time)) / (1000*1000)); printf("   GICOV dilation: %.5f seconds\n", ((float) (dilate_end_time - dilate_start_time)) / (1000*1000)); printf("            Total: %.5f seconds\n", ((float) (get_time() - program_start_time)) / (1000*1000)); if (num_frames > 1) printf("\nTracking cells across %d frames\n", num_frames);
+	else                printf("\nTracking cells across 1 frame\n"); long long tracking_start_time = get_time();; int num_snaxels = 20;; ellipsetrack(cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames); printf("           Total: %.5f seconds\n", ((float) (get_time() - tracking_start_time)) / (float) (1000*1000*num_frames)); }
 
 int main(int argc, char ** argv) {
 
@@ -247,7 +251,6 @@ int main(int argc, char ** argv) {
 	MAT *grad_y = gradient_y(image_chopped);
 	
 	m_free(image_chopped);
-#pragma omp_to_hclib body_start
 	// Get GICOV matrix corresponding to image gradients
 	main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->argc = argc;
@@ -288,7 +291,6 @@ ctx->grad_y = grad_y;
 hclib_launch(main_entrypoint, ctx);
 free(ctx);
 ;
-#pragma omp_to_hclib body_end
 	
 	// Report total program execution time
     printf("\nTotal application run time: %.5f seconds\n", ((float) (get_time() - program_start_time)) / (1000*1000));

@@ -174,6 +174,7 @@ static void main125_hclib_async(void *arg, const int ___iter) {
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nthreads; nthreads = ctx->nthreads;
+    hclib_start_finish();
     do {
     int i;     i = ___iter;
 {
@@ -208,6 +209,7 @@ static void main125_hclib_async(void *arg, const int ___iter) {
 		}
   
     }    } while (0);
+    hclib_end_finish();
 }
 
 static void main158_hclib_async(void *arg, const int ___iter) {
@@ -257,6 +259,7 @@ static void main158_hclib_async(void *arg, const int ___iter) {
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nthreads; nthreads = ctx->nthreads;
+    hclib_start_finish();
     do {
     int i;     i = ___iter;
 {
@@ -284,6 +287,7 @@ static void main158_hclib_async(void *arg, const int ___iter) {
                 //printf("\n"); 
                 #endif //output
 	     }    } while (0);
+    hclib_end_finish();
 }
 
 typedef struct _main_entrypoint_ctx {

@@ -82,7 +82,7 @@ MAT * chop_flip_image(unsigned char *image, int height, int width, int top, int 
 
 // Given x- and y-gradients of a video frame, computes the GICOV
 //  score for each sample ellipse at every pixel in the frame
-typedef struct _ellipsematching112 {
+typedef struct _ellipsematching113 {
     MAT *grad_x;
     MAT *grad_y;
     int i;
@@ -97,58 +97,9 @@ typedef struct _ellipsematching112 {
     int height;
     int width;
     MAT *gicov;
- } ellipsematching112;
+ } ellipsematching113;
 
-static void ellipsematching112_hclib_async(void *arg, const int ___iter) {
-    ellipsematching112 *ctx = (ellipsematching112 *)arg;
-    MAT *grad_x; grad_x = ctx->grad_x;
-    MAT *grad_y; grad_y = ctx->grad_y;
-    int i; i = ctx->i;
-    int n; n = ctx->n;
-    int k; k = ctx->k;
-    double sin_angle[150]; memcpy(sin_angle, ctx->sin_angle, 150 * (sizeof(double))); 
-    double cos_angle[150]; memcpy(cos_angle, ctx->cos_angle, 150 * (sizeof(double))); 
-    double theta[150]; memcpy(theta, ctx->theta, 150 * (sizeof(double))); 
-    int tX[7][150]; memcpy(tX, ctx->tX, 7 * (150 * (sizeof(int)))); 
-    int tY[7][150]; memcpy(tY, ctx->tY, 7 * (150 * (sizeof(int)))); 
-    int MaxR; MaxR = ctx->MaxR;
-    int height; height = ctx->height;
-    int width; width = ctx->width;
-    MAT *gicov; gicov = ctx->gicov;
-    i = ___iter;
-    do {
-{
-    double Grad[150];
-    int j, k, n, x, y;
-    for (j = MaxR; j < height - MaxR; j++) {
-        double max_GICOV = 0;
-        for (k = 0; k < 7; k++) {
-            for (n = 0; n < 150; n++) {
-                y = j + tY[k][n];
-                x = i + tX[k][n];
-                Grad[n] = ((grad_x)->me[(y)][(x)]) * cos_angle[n] + ((grad_y)->me[(y)][(x)]) * sin_angle[n];
-            }
-            double sum = 0.;
-            for (n = 0; n < 150; n++) 
-                sum += Grad[n];
-            double mean = sum / (double)150;
-            double var = 0.;
-            for (n = 0; n < 150; n++) {
-                sum = Grad[n] - mean;
-                var += sum * sum;
-            }
-            var = var / (double)(150 - 1);
-            if (mean * mean / var > max_GICOV) {
-                ((gicov)->me[(j)][(i)] = (mean / sqrt(var)));
-                max_GICOV = mean * mean / var;
-            }
-        }
-    }
-}
-    } while (0);
-}
-
-MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
+static void ellipsematching113_hclib_async(void *____arg, const int ___iter);MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	int i, n, k;
 	// Compute the sine and cosine of the angle to each point in each sample circle
 	//  (which are the same across all sample circles)
@@ -178,7 +129,7 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	// Split the work among multiple threads, if OPEN is defined
 	// Scan from left to right, top to bottom, computing GICOV values
 	 { 
-ellipsematching112 *ctx = (ellipsematching112 *)malloc(sizeof(ellipsematching112));
+ellipsematching113 *ctx = (ellipsematching113 *)malloc(sizeof(ellipsematching113));
 ctx->grad_x = grad_x;
 ctx->grad_y = grad_y;
 ctx->i = i;
@@ -198,13 +149,76 @@ domain.low = MaxR;
 domain.high = width - MaxR;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)ellipsematching112_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)ellipsematching113_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 	
 	return gicov;
+} static void ellipsematching113_hclib_async(void *____arg, const int ___iter) {
+    ellipsematching113 *ctx = (ellipsematching113 *)____arg;
+    MAT *grad_x; grad_x = ctx->grad_x;
+    MAT *grad_y; grad_y = ctx->grad_y;
+    int i; i = ctx->i;
+    int n; n = ctx->n;
+    int k; k = ctx->k;
+    double sin_angle[150]; memcpy(sin_angle, ctx->sin_angle, 150 * (sizeof(double))); 
+    double cos_angle[150]; memcpy(cos_angle, ctx->cos_angle, 150 * (sizeof(double))); 
+    double theta[150]; memcpy(theta, ctx->theta, 150 * (sizeof(double))); 
+    int tX[7][150]; memcpy(tX, ctx->tX, 7 * (150 * (sizeof(int)))); 
+    int tY[7][150]; memcpy(tY, ctx->tY, 7 * (150 * (sizeof(int)))); 
+    int MaxR; MaxR = ctx->MaxR;
+    int height; height = ctx->height;
+    int width; width = ctx->width;
+    MAT *gicov; gicov = ctx->gicov;
+    hclib_start_finish();
+    do {
+    i = ___iter;
+{
+		double Grad[NPOINTS];
+		int j, k, n, x, y;
+		
+		for (j = MaxR; j < height - MaxR; j++) {
+			// Initialize the maximal GICOV score to 0
+			double max_GICOV = 0;	
+			
+			// Iterate across each stencil
+			for (k = 0; k < NCIRCLES; k++) {
+				// Iterate across each sample point in the current stencil
+				for (n = 0; n < NPOINTS; n++)	{
+					// Determine the x- and y-coordinates of the current sample point
+					y = j + tY[k][n];
+					x = i + tX[k][n];
+					
+					// Compute the combined gradient value at the current sample point
+					Grad[n] = m_get_val(grad_x, y, x) * cos_angle[n] + m_get_val(grad_y, y, x) * sin_angle[n];
+				}
+				
+				// Compute the mean gradient value across all sample points
+				double sum = 0.0;
+				for (n = 0; n < NPOINTS; n++) sum += Grad[n];
+				double mean = sum / (double)NPOINTS;
+				
+				// Compute the variance of the gradient values
+				double var = 0.0;				
+				for (n = 0; n < NPOINTS; n++)	{
+					sum = Grad[n] - mean;
+					var += sum * sum;
+				}				
+				var = var / (double) (NPOINTS - 1);
+				
+				// Keep track of the maximal GICOV value seen so far
+				if (mean * mean / var > max_GICOV) {
+					m_set_val(gicov, j, i, mean / sqrt(var));
+					max_GICOV = mean * mean / var;
+				}
+			}
+		}
+	}    } while (0);
+    ; hclib_end_finish();
 }
+
+
 
 
 // Returns a circular structuring element of the specified radius
@@ -227,47 +241,16 @@ MAT * structuring_element(int radius) {
 
 // Performs an image dilation on the specified matrix
 //  using the specified structuring element
-typedef struct _dilate_f186 {
+typedef struct _dilate_f188 {
     MAT *img_in;
     MAT *strel;
     MAT *dilated;
     int el_center_i;
     int el_center_j;
     int i;
- } dilate_f186;
+ } dilate_f188;
 
-static void dilate_f186_hclib_async(void *arg, const int ___iter) {
-    dilate_f186 *ctx = (dilate_f186 *)arg;
-    MAT *img_in; img_in = ctx->img_in;
-    MAT *strel; strel = ctx->strel;
-    MAT *dilated; dilated = ctx->dilated;
-    int el_center_i; el_center_i = ctx->el_center_i;
-    int el_center_j; el_center_j = ctx->el_center_j;
-    int i; i = ctx->i;
-    i = ___iter;
-    do {
-{
-    int j, el_i, el_j, x, y;
-    for (j = 0; j < img_in->n; j++) {
-        double max = 0., temp;
-        for (el_i = 0; el_i < strel->m; el_i++) {
-            for (el_j = 0; el_j < strel->n; el_j++) {
-                y = i - el_center_i + el_i;
-                x = j - el_center_j + el_j;
-                if (y >= 0 && x >= 0 && y < img_in->m && x < img_in->n && ((strel)->me[(el_i)][(el_j)]) != 0) {
-                    temp = ((img_in)->me[(y)][(x)]);
-                    if (temp > max)
-                        max = temp;
-                }
-            }
-        }
-        ((dilated)->me[(i)][(j)] = (max));
-    }
-}
-    } while (0);
-}
-
-MAT * dilate_f(MAT * img_in, MAT * strel) {
+static void dilate_f188_hclib_async(void *____arg, const int ___iter);MAT * dilate_f(MAT * img_in, MAT * strel) {
 	MAT * dilated = m_get(img_in->m, img_in->n);
 	
 	// Find the center of the structuring element
@@ -276,7 +259,7 @@ MAT * dilate_f(MAT * img_in, MAT * strel) {
 	// Split the work among multiple threads, if OPEN is defined
 	// Iterate across the input matrix
 	 { 
-dilate_f186 *ctx = (dilate_f186 *)malloc(sizeof(dilate_f186));
+dilate_f188 *ctx = (dilate_f188 *)malloc(sizeof(dilate_f188));
 ctx->img_in = img_in;
 ctx->strel = strel;
 ctx->dilated = dilated;
@@ -288,13 +271,48 @@ domain.low = 0;
 domain.high = img_in->m;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)dilate_f186_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)dilate_f188_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 
 	return dilated;
+} static void dilate_f188_hclib_async(void *____arg, const int ___iter) {
+    dilate_f188 *ctx = (dilate_f188 *)____arg;
+    MAT *img_in; img_in = ctx->img_in;
+    MAT *strel; strel = ctx->strel;
+    MAT *dilated; dilated = ctx->dilated;
+    int el_center_i; el_center_i = ctx->el_center_i;
+    int el_center_j; el_center_j = ctx->el_center_j;
+    int i; i = ctx->i;
+    hclib_start_finish();
+    do {
+    i = ___iter;
+{
+		int j, el_i, el_j, x, y;
+		for (j = 0; j < img_in->n; j++) {
+			double max = 0.0, temp;
+			// Iterate across the structuring element
+			for (el_i = 0; el_i < strel->m; el_i++) {
+				for (el_j = 0; el_j < strel->n; el_j++) {
+					y = i - el_center_i + el_i;
+					x = j - el_center_j + el_j;
+					// Make sure we have not gone off the edge of the matrix
+					if (y >=0 && x >= 0 && y < img_in->m && x < img_in->n && m_get_val(strel, el_i, el_j) != 0) {
+						// Determine if this is maximal value seen so far
+						temp = m_get_val(img_in, y, x);
+						if (temp > max)	max = temp;
+					}
+				}
+			}
+			// Store the maximum value found
+			m_set_val(dilated, i, j, max);
+		}
+	}    } while (0);
+    ; hclib_end_finish();
 }
+
+
 
 
 //M = # of sampling points in each segment

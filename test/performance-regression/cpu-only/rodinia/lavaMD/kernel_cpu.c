@@ -38,13 +38,13 @@ extern "C" {
 //	PLASMAKERNEL_GPU
 //========================================================================================================================================================================================================200
 
-typedef struct _kernel_cpu110 {
+typedef struct _kernel_cpu111 {
     par_str par;
     dim_str dim;
-    box_str * box;
-    FOUR_VECTOR * rv;
-    double * qv;
-    FOUR_VECTOR * fv;
+    box_str *box;
+    FOUR_VECTOR *rv;
+    double *qv;
+    FOUR_VECTOR *fv;
     long long time0;
     long long time1;
     long long time2;
@@ -57,12 +57,12 @@ typedef struct _kernel_cpu110 {
     int k;
     int l;
     long first_i;
-    FOUR_VECTOR * rA;
-    FOUR_VECTOR * fA;
+    FOUR_VECTOR *rA;
+    FOUR_VECTOR *fA;
     int pointer;
     long first_j;
-    FOUR_VECTOR * rB;
-    double * qB;
+    FOUR_VECTOR *rB;
+    double *qB;
     double r2;
     double u2;
     double fs;
@@ -71,81 +71,9 @@ typedef struct _kernel_cpu110 {
     double fyij;
     double fzij;
     THREE_VECTOR d;
- } kernel_cpu110;
+ } kernel_cpu111;
 
-static void kernel_cpu110_hclib_async(void *arg, const int ___iter) {
-    kernel_cpu110 *ctx = (kernel_cpu110 *)arg;
-    par_str par = ctx->par;
-    dim_str dim = ctx->dim;
-    box_str * box = ctx->box;
-    FOUR_VECTOR * rv = ctx->rv;
-    double * qv = ctx->qv;
-    FOUR_VECTOR * fv = ctx->fv;
-    long long time0 = ctx->time0;
-    long long time1 = ctx->time1;
-    long long time2 = ctx->time2;
-    long long time3 = ctx->time3;
-    long long time4 = ctx->time4;
-    double alpha = ctx->alpha;
-    double a2 = ctx->a2;
-    int i = ctx->i;
-    int j = ctx->j;
-    int k = ctx->k;
-    int l = ctx->l;
-    long first_i = ctx->first_i;
-    FOUR_VECTOR * rA = ctx->rA;
-    FOUR_VECTOR * fA = ctx->fA;
-    int pointer = ctx->pointer;
-    long first_j = ctx->first_j;
-    FOUR_VECTOR * rB = ctx->rB;
-    double * qB = ctx->qB;
-    double r2 = ctx->r2;
-    double u2 = ctx->u2;
-    double fs = ctx->fs;
-    double vij = ctx->vij;
-    double fxij = ctx->fxij;
-    double fyij = ctx->fyij;
-    double fzij = ctx->fzij;
-    THREE_VECTOR d = ctx->d;
-    l = ___iter;
-    do {
-{
-    first_i = box[l].offset;
-    rA = &rv[first_i];
-    fA = &fv[first_i];
-    for (k = 0; k < (1 + box[l].nn); k++) {
-        if (k == 0) {
-            pointer = l;
-        } else {
-            pointer = box[l].nei[k - 1].number;
-        }
-        first_j = box[pointer].offset;
-        rB = &rv[first_j];
-        qB = &qv[first_j];
-        for (i = 0; i < 100; i = i + 1) {
-            for (j = 0; j < 100; j = j + 1) {
-                r2 = rA[i].v + rB[j].v - ((rA[i].x) * (rB[j].x) + (rA[i].y) * (rB[j].y) + (rA[i].z) * (rB[j].z));
-                u2 = a2 * r2;
-                vij = exp(-u2);
-                fs = 2. * vij;
-                d.x = rA[i].x - rB[j].x;
-                d.y = rA[i].y - rB[j].y;
-                d.z = rA[i].z - rB[j].z;
-                fxij = fs * d.x;
-                fyij = fs * d.y;
-                fzij = fs * d.z;
-                fA[i].v += qB[j] * vij;
-                fA[i].x += qB[j] * fxij;
-                fA[i].y += qB[j] * fyij;
-                fA[i].z += qB[j] * fzij;
-            }
-        }
-    }
-}
-    } while (0);
-}
-
-void  kernel_cpu(	par_str par, 
+static void kernel_cpu111_hclib_async(void *____arg, const int ___iter);void  kernel_cpu(	par_str par, 
 					dim_str dim,
 					box_str* box,
 					FOUR_VECTOR* rv,
@@ -215,8 +143,8 @@ void  kernel_cpu(	par_str par,
 	//	PROCESS INTERACTIONS
 	//======================================================================================================================================================150
 
-	
-kernel_cpu110 *ctx = (kernel_cpu110 *)malloc(sizeof(kernel_cpu110));
+	 { 
+kernel_cpu111 *ctx = (kernel_cpu111 *)malloc(sizeof(kernel_cpu111));
 ctx->par = par;
 ctx->dim = dim;
 ctx->box = box;
@@ -254,10 +182,10 @@ domain.low = 0;
 domain.high = dim.number_boxes;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)kernel_cpu110_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)kernel_cpu111_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
- // for l
+ }  // for l
 
 	time4 = get_time();
 
@@ -275,7 +203,127 @@ free(ctx);
 	printf("Total time:\n");
 	printf("%.12f s\n", 												(float) (time4-time0) / 1000000);
 
-} // main
+} static void kernel_cpu111_hclib_async(void *____arg, const int ___iter) {
+    kernel_cpu111 *ctx = (kernel_cpu111 *)____arg;
+    par_str par; par = ctx->par;
+    dim_str dim; dim = ctx->dim;
+    box_str *box; box = ctx->box;
+    FOUR_VECTOR *rv; rv = ctx->rv;
+    double *qv; qv = ctx->qv;
+    FOUR_VECTOR *fv; fv = ctx->fv;
+    long long time0; time0 = ctx->time0;
+    long long time1; time1 = ctx->time1;
+    long long time2; time2 = ctx->time2;
+    long long time3; time3 = ctx->time3;
+    long long time4; time4 = ctx->time4;
+    double alpha; alpha = ctx->alpha;
+    double a2; a2 = ctx->a2;
+    int i; i = ctx->i;
+    int j; j = ctx->j;
+    int k; k = ctx->k;
+    int l; l = ctx->l;
+    long first_i; first_i = ctx->first_i;
+    FOUR_VECTOR *rA; rA = ctx->rA;
+    FOUR_VECTOR *fA; fA = ctx->fA;
+    int pointer; pointer = ctx->pointer;
+    long first_j; first_j = ctx->first_j;
+    FOUR_VECTOR *rB; rB = ctx->rB;
+    double *qB; qB = ctx->qB;
+    double r2; r2 = ctx->r2;
+    double u2; u2 = ctx->u2;
+    double fs; fs = ctx->fs;
+    double vij; vij = ctx->vij;
+    double fxij; fxij = ctx->fxij;
+    double fyij; fyij = ctx->fyij;
+    double fzij; fzij = ctx->fzij;
+    THREE_VECTOR d; d = ctx->d;
+    hclib_start_finish();
+    do {
+    l = ___iter;
+{
+
+		//------------------------------------------------------------------------------------------100
+		//	home box - box parameters
+		//------------------------------------------------------------------------------------------100
+
+		first_i = box[l].offset;												// offset to common arrays
+
+		//------------------------------------------------------------------------------------------100
+		//	home box - distance, force, charge and type parameters from common arrays
+		//------------------------------------------------------------------------------------------100
+
+		rA = &rv[first_i];
+		fA = &fv[first_i];
+
+		//------------------------------------------------------------------------------------------100
+		//	Do for the # of (home+neighbor) boxes
+		//------------------------------------------------------------------------------------------100
+
+		for (k=0; k<(1+box[l].nn); k++) 
+		{
+
+			//----------------------------------------50
+			//	neighbor box - get pointer to the right box
+			//----------------------------------------50
+
+			if(k==0){
+				pointer = l;													// set first box to be processed to home box
+			}
+			else{
+				pointer = box[l].nei[k-1].number;							// remaining boxes are neighbor boxes
+			}
+
+			//----------------------------------------50
+			//	neighbor box - box parameters
+			//----------------------------------------50
+
+			first_j = box[pointer].offset; 
+
+			//----------------------------------------50
+			//	neighbor box - distance, force, charge and type parameters
+			//----------------------------------------50
+
+			rB = &rv[first_j];
+			qB = &qv[first_j];
+
+			//----------------------------------------50
+			//	Do for the # of particles in home box
+			//----------------------------------------50
+
+			for (i=0; i<NUMBER_PAR_PER_BOX; i=i+1){
+
+				// do for the # of particles in current (home or neighbor) box
+				for (j=0; j<NUMBER_PAR_PER_BOX; j=j+1){
+
+					// // coefficients
+					r2 = rA[i].v + rB[j].v - DOT(rA[i],rB[j]); 
+					u2 = a2*r2;
+					vij= exp(-u2);
+					fs = 2.*vij;
+					d.x = rA[i].x  - rB[j].x; 
+					d.y = rA[i].y  - rB[j].y; 
+					d.z = rA[i].z  - rB[j].z; 
+					fxij=fs*d.x;
+					fyij=fs*d.y;
+					fzij=fs*d.z;
+
+					// forces
+					fA[i].v +=  qB[j]*vij;
+					fA[i].x +=  qB[j]*fxij;
+					fA[i].y +=  qB[j]*fyij;
+					fA[i].z +=  qB[j]*fzij;
+
+				} // for j
+
+			} // for i
+
+		} // for k
+
+	}    } while (0);
+    ; hclib_end_finish();
+}
+
+ // main
 
 #ifdef __cplusplus
 }

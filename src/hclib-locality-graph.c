@@ -322,9 +322,11 @@ static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
 
     int locale_type_id = -1;
     for (i = 0; i < n_known_locale_types; i++) {
-        if (strncmp(lbl, known_locale_types[i], strlen(known_locale_types[i])) == 0) {
-            locale_type_id = i;
-            break;
+        if (strlen(known_locale_types[i]) <= strlen(lbl)) {
+            if (strncmp(lbl, known_locale_types[i], strlen(known_locale_types[i])) == 0) {
+                locale_type_id = i;
+                break;
+            }
         }
     }
     if (locale_type_id < 0) {

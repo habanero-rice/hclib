@@ -341,7 +341,7 @@ int findIndexBin(double * CDF, int beginIndex, int endIndex, double value){
 * @param seed The seed array used for random number generation
 * @param Nparticles The number of particles to be used
 */
-typedef struct _particleFilter371 {
+typedef struct _particleFilter372 {
     int *I;
     int IszX;
     int IszY;
@@ -361,9 +361,9 @@ typedef struct _particleFilter371 {
     double *objxy;
     long long get_neighbors;
     double *weights;
- } particleFilter371;
+ } particleFilter372;
 
-typedef struct _particleFilter386 {
+typedef struct _particleFilter387 {
     int *I;
     int IszX;
     int IszY;
@@ -392,9 +392,9 @@ typedef struct _particleFilter386 {
     double *CDF;
     double *u;
     int *ind;
- } particleFilter386;
+ } particleFilter387;
 
-typedef struct _particleFilter400 {
+typedef struct _particleFilter401 {
     int *I;
     int IszX;
     int IszY;
@@ -427,9 +427,9 @@ typedef struct _particleFilter400 {
     int indX;
     int indY;
     long long set_arrays;
- } particleFilter400;
+ } particleFilter401;
 
-typedef struct _particleFilter408 {
+typedef struct _particleFilter409 {
     int *I;
     int IszX;
     int IszY;
@@ -463,9 +463,9 @@ typedef struct _particleFilter408 {
     int indY;
     long long set_arrays;
     long long error;
- } particleFilter408;
+ } particleFilter409;
 
-typedef struct _particleFilter431 {
+typedef struct _particleFilter432 {
     int *I;
     int IszX;
     int IszY;
@@ -500,9 +500,9 @@ typedef struct _particleFilter431 {
     long long set_arrays;
     long long error;
     long long likelihood_time;
- } particleFilter431;
+ } particleFilter432;
 
-typedef struct _particleFilter438 {
+typedef struct _particleFilter439 {
     int *I;
     int IszX;
     int IszY;
@@ -540,9 +540,9 @@ typedef struct _particleFilter438 {
     long long exponential;
     double sumWeights;
     pthread_mutex_t reduction_mutex;
- } particleFilter438;
+ } particleFilter439;
 
-typedef struct _particleFilter444 {
+typedef struct _particleFilter445 {
     int *I;
     int IszX;
     int IszY;
@@ -580,9 +580,9 @@ typedef struct _particleFilter444 {
     long long exponential;
     double sumWeights;
     long long sum_time;
- } particleFilter444;
+ } particleFilter445;
 
-typedef struct _particleFilter453 {
+typedef struct _particleFilter454 {
     int *I;
     int IszX;
     int IszY;
@@ -622,9 +622,9 @@ typedef struct _particleFilter453 {
     long long sum_time;
     long long normalize;
     pthread_mutex_t reduction_mutex;
- } particleFilter453;
+ } particleFilter454;
 
-typedef struct _particleFilter478 {
+typedef struct _particleFilter479 {
     int *I;
     int IszX;
     int IszY;
@@ -667,9 +667,9 @@ typedef struct _particleFilter478 {
     double distance;
     long long cum_sum;
     double u1;
- } particleFilter478;
+ } particleFilter479;
 
-typedef struct _particleFilter486 {
+typedef struct _particleFilter487 {
     int *I;
     int IszX;
     int IszY;
@@ -715,477 +715,9 @@ typedef struct _particleFilter486 {
     long long u_time;
     int j;
     int i;
- } particleFilter486;
+ } particleFilter487;
 
-static void particleFilter371_hclib_async(void *arg, const int ___iter) {
-    particleFilter371 *ctx = (particleFilter371 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    do {
-    x = ___iter;
-{
-		weights[x] = 1/((double)(Nparticles));
-	}    } while (0);
-}
-
-static void particleFilter386_hclib_async(void *arg, const int ___iter) {
-    particleFilter386 *ctx = (particleFilter386 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    do {
-    x = ___iter;
-{
-		arrayX[x] = xe;
-		arrayY[x] = ye;
-	}    } while (0);
-}
-
-static void particleFilter400_hclib_async(void *arg, const int ___iter) {
-    particleFilter400 *ctx = (particleFilter400 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    do {
-    x = ___iter;
-{
-			arrayX[x] += 1 + 5*randn(seed, x);
-			arrayY[x] += -2 + 2*randn(seed, x);
-		}    } while (0);
-}
-
-static void particleFilter408_hclib_async(void *arg, const int ___iter) {
-    particleFilter408 *ctx = (particleFilter408 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    do {
-    x = ___iter;
-{
-			//compute the likelihood: remember our assumption is that you know
-			// foreground and the background image intensity distribution.
-			// Notice that we consider here a likelihood ratio, instead of
-			// p(z|x). It is possible in this case. why? a hometask for you.		
-			//calc ind
-			for(y = 0; y < countOnes; y++){
-				indX = roundDouble(arrayX[x]) + objxy[y*2 + 1];
-				indY = roundDouble(arrayY[x]) + objxy[y*2];
-				ind[x*countOnes + y] = fabs(indX*IszY*Nfr + indY*Nfr + k);
-				if(ind[x*countOnes + y] >= max_size)
-					ind[x*countOnes + y] = 0;
-			}
-			likelihood[x] = 0;
-			for(y = 0; y < countOnes; y++)
-				likelihood[x] += (pow((I[ind[x*countOnes + y]] - 100),2) - pow((I[ind[x*countOnes + y]]-228),2))/50.0;
-			likelihood[x] = likelihood[x]/((double) countOnes);
-		}    } while (0);
-}
-
-static void particleFilter431_hclib_async(void *arg, const int ___iter) {
-    particleFilter431 *ctx = (particleFilter431 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    do {
-    x = ___iter;
-{
-			weights[x] = weights[x] * exp(likelihood[x]);
-		}    } while (0);
-}
-
-static void particleFilter438_hclib_async(void *arg, const int ___iter) {
-    particleFilter438 *ctx = (particleFilter438 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    long long exponential; exponential = ctx->exponential;
-    double sumWeights; sumWeights = ctx->sumWeights;
-    do {
-    x = ___iter;
-{
-			sumWeights += weights[x];
-		}    } while (0);
-    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
-    assert(lock_err == 0);
-    ctx->sumWeights += sumWeights;
-    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
-    assert(unlock_err == 0);
-}
-
-static void particleFilter444_hclib_async(void *arg, const int ___iter) {
-    particleFilter444 *ctx = (particleFilter444 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    long long exponential; exponential = ctx->exponential;
-    double sumWeights; sumWeights = ctx->sumWeights;
-    long long sum_time; sum_time = ctx->sum_time;
-    do {
-    x = ___iter;
-{
-			weights[x] = weights[x]/sumWeights;
-		}    } while (0);
-}
-
-static void particleFilter453_hclib_async(void *arg, const int ___iter) {
-    particleFilter453 *ctx = (particleFilter453 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    long long exponential; exponential = ctx->exponential;
-    double sumWeights; sumWeights = ctx->sumWeights;
-    long long sum_time; sum_time = ctx->sum_time;
-    long long normalize; normalize = ctx->normalize;
-    do {
-    x = ___iter;
-{
-			xe += arrayX[x] * weights[x];
-			ye += arrayY[x] * weights[x];
-		}    } while (0);
-    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
-    assert(lock_err == 0);
-    ctx->xe += xe;
-    ctx->ye += ye;
-    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
-    assert(unlock_err == 0);
-}
-
-static void particleFilter478_hclib_async(void *arg, const int ___iter) {
-    particleFilter478 *ctx = (particleFilter478 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    long long exponential; exponential = ctx->exponential;
-    double sumWeights; sumWeights = ctx->sumWeights;
-    long long sum_time; sum_time = ctx->sum_time;
-    long long normalize; normalize = ctx->normalize;
-    long long move_time; move_time = ctx->move_time;
-    double distance; distance = ctx->distance;
-    long long cum_sum; cum_sum = ctx->cum_sum;
-    double u1; u1 = ctx->u1;
-    do {
-    x = ___iter;
-{
-			u[x] = u1 + x/((double)(Nparticles));
-		}    } while (0);
-}
-
-static void particleFilter486_hclib_async(void *arg, const int ___iter) {
-    particleFilter486 *ctx = (particleFilter486 *)arg;
-    int *I; I = ctx->I;
-    int IszX; IszX = ctx->IszX;
-    int IszY; IszY = ctx->IszY;
-    int Nfr; Nfr = ctx->Nfr;
-    int *seed; seed = ctx->seed;
-    int Nparticles; Nparticles = ctx->Nparticles;
-    int max_size; max_size = ctx->max_size;
-    long long start; start = ctx->start;
-    double xe; xe = ctx->xe;
-    double ye; ye = ctx->ye;
-    int radius; radius = ctx->radius;
-    int diameter; diameter = ctx->diameter;
-    int *disk; disk = ctx->disk;
-    int countOnes; countOnes = ctx->countOnes;
-    int x; x = ctx->x;
-    int y; y = ctx->y;
-    double *objxy; objxy = ctx->objxy;
-    long long get_neighbors; get_neighbors = ctx->get_neighbors;
-    double *weights; weights = ctx->weights;
-    long long get_weights; get_weights = ctx->get_weights;
-    double *likelihood; likelihood = ctx->likelihood;
-    double *arrayX; arrayX = ctx->arrayX;
-    double *arrayY; arrayY = ctx->arrayY;
-    double *xj; xj = ctx->xj;
-    double *yj; yj = ctx->yj;
-    double *CDF; CDF = ctx->CDF;
-    double *u; u = ctx->u;
-    int *ind; ind = ctx->ind;
-    int k; k = ctx->k;
-    int indX; indX = ctx->indX;
-    int indY; indY = ctx->indY;
-    long long set_arrays; set_arrays = ctx->set_arrays;
-    long long error; error = ctx->error;
-    long long likelihood_time; likelihood_time = ctx->likelihood_time;
-    long long exponential; exponential = ctx->exponential;
-    double sumWeights; sumWeights = ctx->sumWeights;
-    long long sum_time; sum_time = ctx->sum_time;
-    long long normalize; normalize = ctx->normalize;
-    long long move_time; move_time = ctx->move_time;
-    double distance; distance = ctx->distance;
-    long long cum_sum; cum_sum = ctx->cum_sum;
-    double u1; u1 = ctx->u1;
-    long long u_time; u_time = ctx->u_time;
-    int j; j = ctx->j;
-    int i; i = ctx->i;
-    do {
-    j = ___iter;
-{
-			i = findIndex(CDF, Nparticles, u[j]);
-			if(i == -1)
-				i = Nparticles-1;
-			xj[j] = arrayX[i];
-			yj[j] = arrayY[i];
-			
-		}    } while (0);
-}
-
-void particleFilter(int * I, int IszX, int IszY, int Nfr, int * seed, int Nparticles){
+static void particleFilter372_hclib_async(void *____arg, const int ___iter);static void particleFilter387_hclib_async(void *____arg, const int ___iter);static void particleFilter401_hclib_async(void *____arg, const int ___iter);static void particleFilter409_hclib_async(void *____arg, const int ___iter);static void particleFilter432_hclib_async(void *____arg, const int ___iter);static void particleFilter439_hclib_async(void *____arg, const int ___iter);static void particleFilter445_hclib_async(void *____arg, const int ___iter);static void particleFilter454_hclib_async(void *____arg, const int ___iter);static void particleFilter479_hclib_async(void *____arg, const int ___iter);static void particleFilter487_hclib_async(void *____arg, const int ___iter);void particleFilter(int * I, int IszX, int IszY, int Nfr, int * seed, int Nparticles){
 	
 	int max_size = IszX*IszY*Nfr;
 	long long start = get_time();
@@ -1214,7 +746,7 @@ void particleFilter(int * I, int IszX, int IszY, int Nfr, int * seed, int Nparti
 	//initial weights are all equal (1/Nparticles)
 	double * weights = (double *)malloc(sizeof(double)*Nparticles);
 	 { 
-particleFilter371 *ctx = (particleFilter371 *)malloc(sizeof(particleFilter371));
+particleFilter372 *ctx = (particleFilter372 *)malloc(sizeof(particleFilter372));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1239,7 +771,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter371_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter372_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1255,7 +787,7 @@ free(ctx);
 	double * u = (double *)malloc(sizeof(double)*Nparticles);
 	int * ind = (int*)malloc(sizeof(int)*countOnes*Nparticles);
 	 { 
-particleFilter386 *ctx = (particleFilter386 *)malloc(sizeof(particleFilter386));
+particleFilter387 *ctx = (particleFilter387 *)malloc(sizeof(particleFilter387));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1289,7 +821,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter386_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter387_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1303,7 +835,7 @@ free(ctx);
 		//draws sample from motion model (random walk). The only prior information
 		//is that the object moves 2x as fast as in the y direction
 		 { 
-particleFilter400 *ctx = (particleFilter400 *)malloc(sizeof(particleFilter400));
+particleFilter401 *ctx = (particleFilter401 *)malloc(sizeof(particleFilter401));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1341,7 +873,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter400_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter401_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1349,7 +881,7 @@ free(ctx);
 		printf("TIME TO SET ERROR TOOK: %f\n", elapsed_time(set_arrays, error));
 		//particle filter likelihood
 		 { 
-particleFilter408 *ctx = (particleFilter408 *)malloc(sizeof(particleFilter408));
+particleFilter409 *ctx = (particleFilter409 *)malloc(sizeof(particleFilter409));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1388,7 +920,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter408_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter409_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1397,7 +929,7 @@ free(ctx);
 		// update & normalize weights
 		// using equation (63) of Arulampalam Tutorial
 		 { 
-particleFilter431 *ctx = (particleFilter431 *)malloc(sizeof(particleFilter431));
+particleFilter432 *ctx = (particleFilter432 *)malloc(sizeof(particleFilter432));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1437,7 +969,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter431_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter432_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1445,7 +977,7 @@ free(ctx);
 		printf("TIME TO GET EXP TOOK: %f\n", elapsed_time(likelihood_time, exponential));
 		double sumWeights = 0;
 		 { 
-particleFilter438 *ctx = (particleFilter438 *)malloc(sizeof(particleFilter438));
+particleFilter439 *ctx = (particleFilter439 *)malloc(sizeof(particleFilter439));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1490,7 +1022,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter438_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter439_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
 sumWeights = ctx->sumWeights;
@@ -1498,7 +1030,7 @@ sumWeights = ctx->sumWeights;
 		long long sum_time = get_time();
 		printf("TIME TO SUM WEIGHTS TOOK: %f\n", elapsed_time(exponential, sum_time));
 		 { 
-particleFilter444 *ctx = (particleFilter444 *)malloc(sizeof(particleFilter444));
+particleFilter445 *ctx = (particleFilter445 *)malloc(sizeof(particleFilter445));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1541,7 +1073,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter444_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter445_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1551,7 +1083,7 @@ free(ctx);
 		ye = 0;
 		// estimate the object location by expected values
 		 { 
-particleFilter453 *ctx = (particleFilter453 *)malloc(sizeof(particleFilter453));
+particleFilter454 *ctx = (particleFilter454 *)malloc(sizeof(particleFilter454));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1599,7 +1131,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter453_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter454_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
 xe = ctx->xe;
@@ -1626,7 +1158,7 @@ ye = ctx->ye;
 		printf("TIME TO CALC CUM SUM TOOK: %f\n", elapsed_time(move_time, cum_sum));
 		double u1 = (1/((double)(Nparticles)))*randu(seed, 0);
 		 { 
-particleFilter478 *ctx = (particleFilter478 *)malloc(sizeof(particleFilter478));
+particleFilter479 *ctx = (particleFilter479 *)malloc(sizeof(particleFilter479));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1674,7 +1206,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter478_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter479_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1683,7 +1215,7 @@ free(ctx);
 		int j, i;
 		
 		 { 
-particleFilter486 *ctx = (particleFilter486 *)malloc(sizeof(particleFilter486));
+particleFilter487 *ctx = (particleFilter487 *)malloc(sizeof(particleFilter487));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1734,7 +1266,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter486_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)particleFilter487_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1762,7 +1294,495 @@ free(ctx);
 	free(CDF);
 	free(u);
 	free(ind);
+} static void particleFilter372_hclib_async(void *____arg, const int ___iter) {
+    particleFilter372 *ctx = (particleFilter372 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+		weights[x] = 1/((double)(Nparticles));
+	}    } while (0);
+    ; hclib_end_finish();
 }
+
+static void particleFilter387_hclib_async(void *____arg, const int ___iter) {
+    particleFilter387 *ctx = (particleFilter387 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+		arrayX[x] = xe;
+		arrayY[x] = ye;
+	}    } while (0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter401_hclib_async(void *____arg, const int ___iter) {
+    particleFilter401 *ctx = (particleFilter401 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			arrayX[x] += 1 + 5*randn(seed, x);
+			arrayY[x] += -2 + 2*randn(seed, x);
+		}    } while (0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter409_hclib_async(void *____arg, const int ___iter) {
+    particleFilter409 *ctx = (particleFilter409 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			//compute the likelihood: remember our assumption is that you know
+			// foreground and the background image intensity distribution.
+			// Notice that we consider here a likelihood ratio, instead of
+			// p(z|x). It is possible in this case. why? a hometask for you.		
+			//calc ind
+			for(y = 0; y < countOnes; y++){
+				indX = roundDouble(arrayX[x]) + objxy[y*2 + 1];
+				indY = roundDouble(arrayY[x]) + objxy[y*2];
+				ind[x*countOnes + y] = fabs(indX*IszY*Nfr + indY*Nfr + k);
+				if(ind[x*countOnes + y] >= max_size)
+					ind[x*countOnes + y] = 0;
+			}
+			likelihood[x] = 0;
+			for(y = 0; y < countOnes; y++)
+				likelihood[x] += (pow((I[ind[x*countOnes + y]] - 100),2) - pow((I[ind[x*countOnes + y]]-228),2))/50.0;
+			likelihood[x] = likelihood[x]/((double) countOnes);
+		}    } while (0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter432_hclib_async(void *____arg, const int ___iter) {
+    particleFilter432 *ctx = (particleFilter432 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    long long likelihood_time; likelihood_time = ctx->likelihood_time;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			weights[x] = weights[x] * exp(likelihood[x]);
+		}    } while (0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter439_hclib_async(void *____arg, const int ___iter) {
+    particleFilter439 *ctx = (particleFilter439 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    long long likelihood_time; likelihood_time = ctx->likelihood_time;
+    long long exponential; exponential = ctx->exponential;
+    double sumWeights; sumWeights = ctx->sumWeights;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			sumWeights += weights[x];
+		}    } while (0);
+    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
+    assert(lock_err == 0);
+    ctx->sumWeights += sumWeights;
+    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
+    assert(unlock_err == 0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter445_hclib_async(void *____arg, const int ___iter) {
+    particleFilter445 *ctx = (particleFilter445 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    long long likelihood_time; likelihood_time = ctx->likelihood_time;
+    long long exponential; exponential = ctx->exponential;
+    double sumWeights; sumWeights = ctx->sumWeights;
+    long long sum_time; sum_time = ctx->sum_time;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			weights[x] = weights[x]/sumWeights;
+		}    } while (0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter454_hclib_async(void *____arg, const int ___iter) {
+    particleFilter454 *ctx = (particleFilter454 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    long long likelihood_time; likelihood_time = ctx->likelihood_time;
+    long long exponential; exponential = ctx->exponential;
+    double sumWeights; sumWeights = ctx->sumWeights;
+    long long sum_time; sum_time = ctx->sum_time;
+    long long normalize; normalize = ctx->normalize;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			xe += arrayX[x] * weights[x];
+			ye += arrayY[x] * weights[x];
+		}    } while (0);
+    const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
+    assert(lock_err == 0);
+    ctx->xe += xe;
+    ctx->ye += ye;
+    const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
+    assert(unlock_err == 0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter479_hclib_async(void *____arg, const int ___iter) {
+    particleFilter479 *ctx = (particleFilter479 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    long long likelihood_time; likelihood_time = ctx->likelihood_time;
+    long long exponential; exponential = ctx->exponential;
+    double sumWeights; sumWeights = ctx->sumWeights;
+    long long sum_time; sum_time = ctx->sum_time;
+    long long normalize; normalize = ctx->normalize;
+    long long move_time; move_time = ctx->move_time;
+    double distance; distance = ctx->distance;
+    long long cum_sum; cum_sum = ctx->cum_sum;
+    double u1; u1 = ctx->u1;
+    hclib_start_finish();
+    do {
+    x = ___iter;
+{
+			u[x] = u1 + x/((double)(Nparticles));
+		}    } while (0);
+    ; hclib_end_finish();
+}
+
+static void particleFilter487_hclib_async(void *____arg, const int ___iter) {
+    particleFilter487 *ctx = (particleFilter487 *)____arg;
+    int *I; I = ctx->I;
+    int IszX; IszX = ctx->IszX;
+    int IszY; IszY = ctx->IszY;
+    int Nfr; Nfr = ctx->Nfr;
+    int *seed; seed = ctx->seed;
+    int Nparticles; Nparticles = ctx->Nparticles;
+    int max_size; max_size = ctx->max_size;
+    long long start; start = ctx->start;
+    double xe; xe = ctx->xe;
+    double ye; ye = ctx->ye;
+    int radius; radius = ctx->radius;
+    int diameter; diameter = ctx->diameter;
+    int *disk; disk = ctx->disk;
+    int countOnes; countOnes = ctx->countOnes;
+    int x; x = ctx->x;
+    int y; y = ctx->y;
+    double *objxy; objxy = ctx->objxy;
+    long long get_neighbors; get_neighbors = ctx->get_neighbors;
+    double *weights; weights = ctx->weights;
+    long long get_weights; get_weights = ctx->get_weights;
+    double *likelihood; likelihood = ctx->likelihood;
+    double *arrayX; arrayX = ctx->arrayX;
+    double *arrayY; arrayY = ctx->arrayY;
+    double *xj; xj = ctx->xj;
+    double *yj; yj = ctx->yj;
+    double *CDF; CDF = ctx->CDF;
+    double *u; u = ctx->u;
+    int *ind; ind = ctx->ind;
+    int k; k = ctx->k;
+    int indX; indX = ctx->indX;
+    int indY; indY = ctx->indY;
+    long long set_arrays; set_arrays = ctx->set_arrays;
+    long long error; error = ctx->error;
+    long long likelihood_time; likelihood_time = ctx->likelihood_time;
+    long long exponential; exponential = ctx->exponential;
+    double sumWeights; sumWeights = ctx->sumWeights;
+    long long sum_time; sum_time = ctx->sum_time;
+    long long normalize; normalize = ctx->normalize;
+    long long move_time; move_time = ctx->move_time;
+    double distance; distance = ctx->distance;
+    long long cum_sum; cum_sum = ctx->cum_sum;
+    double u1; u1 = ctx->u1;
+    long long u_time; u_time = ctx->u_time;
+    int j; j = ctx->j;
+    int i; i = ctx->i;
+    hclib_start_finish();
+    do {
+    j = ___iter;
+{
+			i = findIndex(CDF, Nparticles, u[j]);
+			if(i == -1)
+				i = Nparticles-1;
+			xj[j] = arrayX[i];
+			yj[j] = arrayY[i];
+			
+		}    } while (0);
+    ; hclib_end_finish();
+}
+
+
 typedef struct _main_entrypoint_ctx {
     int argc;
     char **argv;
@@ -1778,8 +1798,8 @@ typedef struct _main_entrypoint_ctx {
     long long endVideoSequence;
  } main_entrypoint_ctx;
 
-static void main_entrypoint(void *arg) {
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)arg;
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
     int argc; argc = ctx->argc;
     char **argv; argv = ctx->argv;
     char *usage; usage = ctx->usage;
@@ -1867,7 +1887,6 @@ int main(int argc, char * argv[]){
 	long long endVideoSequence = get_time();
 	printf("VIDEO SEQUENCE TOOK %f\n", elapsed_time(start, endVideoSequence));
 	//call particle filter
-#pragma omp_to_hclib body_start
 	main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->argc = argc;
 ctx->argv = argv;
@@ -1884,7 +1903,6 @@ ctx->endVideoSequence = endVideoSequence;
 hclib_launch(main_entrypoint, ctx);
 free(ctx);
 ;
-#pragma omp_to_hclib body_end
 	long long endParticleFilter = get_time();
 	printf("PARTICLE FILTER TOOK %f\n", elapsed_time(endVideoSequence, endParticleFilter));
 	printf("ENTIRE PROGRAM TOOK %f\n", elapsed_time(start, endParticleFilter));

@@ -34,20 +34,21 @@ void readinput(float *vect, int grid_rows, int grid_cols, int layers, char *file
     char str[STR_SIZE];
     float val;
 
-    if ((fp = fopen(file, "r")) == 0) {fatal("The file was not opened"); };
+    if( (fp  = fopen(file, "r" )) ==0 )
+      fatal( "The file was not opened" );
 
 
-    for (i = 0; i <= grid_rows - 1; i++) { for (j = 0; j <= grid_cols - 1; j++) 
-    for (k = 0; k <= layers - 1; k++) {
-        if (fgets(str, (256), fp) == ((void *)0))
-            fatal("Error reading file\n");
-        if (feof(fp))
-            fatal("not enough lines in file");
-        if ((sscanf(str, "%f", &val) != 1))
-            fatal("invalid file format");
-        vect[i * grid_cols + j + k * grid_rows * grid_cols] = val;
-    }
-; }
+    for (i=0; i <= grid_rows-1; i++) 
+      for (j=0; j <= grid_cols-1; j++)
+        for (k=0; k <= layers-1; k++)
+          {
+            if (fgets(str, STR_SIZE, fp) == NULL) fatal("Error reading file\n");
+            if (feof(fp))
+              fatal("not enough lines in file");
+            if ((sscanf(str, "%f", &val) != 1))
+              fatal("invalid file format");
+            vect[i*grid_cols+j+k*grid_rows*grid_cols] = val;
+          }
 
     fclose(fp);	
 
@@ -60,15 +61,17 @@ void writeoutput(float *vect, int grid_rows, int grid_cols, int layers, char *fi
     FILE *fp;
     char str[STR_SIZE];
 
-    if ((fp = fopen(file, "w")) == 0) {printf("The file was not opened\n"); };
+    if( (fp = fopen(file, "w" )) == 0 )
+      printf( "The file was not opened\n" );
 
-    for (i = 0; i < grid_rows; i++) { for (j = 0; j < grid_cols; j++) 
-    for (k = 0; k < layers; k++) {
-        sprintf(str, "%d\t%g\n", index, vect[i * grid_cols + j + k * grid_rows * grid_cols]);
-        fputs(str, fp);
-        index++;
-    }
-; }
+    for (i=0; i < grid_rows; i++) 
+      for (j=0; j < grid_cols; j++)
+        for (k=0; k < layers; k++)
+          {
+            sprintf(str, "%d\t%g\n", index, vect[i*grid_cols+j+k*grid_rows*grid_cols]);
+            fputs(str,fp);
+            index++;
+          }
 
     fclose(fp);	
 }
@@ -91,18 +94,22 @@ void computeTempCPU(float *pIn, float* tIn, float *tOut,
     int x,y,z;
     int i = 0;
     do{
-        for (z = 0; z < nz; z++) { for (y = 0; y < ny; y++) 
-    for (x = 0; x < nx; x++) {
-        c = x + y * nx + z * nx * ny;
-        w = (x == 0) ? c : c - 1;
-        e = (x == nx - 1) ? c : c + 1;
-        n = (y == 0) ? c : c - nx;
-        s = (y == ny - 1) ? c : c + nx;
-        b = (z == 0) ? c : c - nx * ny;
-        t = (z == nz - 1) ? c : c + nx * ny;
-        tOut[c] = tIn[c] * cc + tIn[n] * cn + tIn[s] * cs + tIn[e] * ce + tIn[w] * cw + tIn[t] * ct + tIn[b] * cb + (dt / Cap) * pIn[c] + ct * amb_temp;
-    }
-; }
+        for(z = 0; z < nz; z++)
+            for(y = 0; y < ny; y++)
+                for(x = 0; x < nx; x++)
+                {
+                    c = x + y * nx + z * nx * ny;
+
+                    w = (x == 0) ? c      : c - 1;
+                    e = (x == nx - 1) ? c : c + 1;
+                    n = (y == 0) ? c      : c - nx;
+                    s = (y == ny - 1) ? c : c + nx;
+                    b = (z == 0) ? c      : c - nx * ny;
+                    t = (z == nz - 1) ? c : c + nx * ny;
+
+
+                    tOut[c] = tIn[c]*cc + tIn[n]*cn + tIn[s]*cs + tIn[e]*ce + tIn[w]*cw + tIn[t]*ct + tIn[b]*cb + (dt/Cap) * pIn[c] + ct*amb_temp;
+                }
         float *temp = tIn;
         tIn = tOut;
         tOut = temp; 
@@ -125,10 +132,10 @@ float accuracy(float *arr1, float *arr2, int len)
 
 
 }
-typedef struct _computeTempOMP150 {
-    float * pIn;
-    float * tIn;
-    float * tOut;
+typedef struct _computeTempOMP157 {
+    float *pIn;
+    float *tIn;
+    float *tOut;
     int nx;
     int ny;
     int nz;
@@ -147,57 +154,59 @@ typedef struct _computeTempOMP150 {
     float cc;
     float stepDivCap;
     int count;
-    float * tIn_t;
-    float * tOut_t;
+    float *tIn_t;
+    float *tOut_t;
     int z;
- } computeTempOMP150;
+ } computeTempOMP157;
 
-static void computeTempOMP150_hclib_async(void *arg, const int ___iter) {
-    computeTempOMP150 *ctx = (computeTempOMP150 *)arg;
-    float * pIn = ctx->pIn;
-    float * tIn = ctx->tIn;
-    float * tOut = ctx->tOut;
-    int nx = ctx->nx;
-    int ny = ctx->ny;
-    int nz = ctx->nz;
-    float Cap = ctx->Cap;
-    float Rx = ctx->Rx;
-    float Ry = ctx->Ry;
-    float Rz = ctx->Rz;
-    float dt = ctx->dt;
-    int numiter = ctx->numiter;
-    float ce = ctx->ce;
-    float cw = ctx->cw;
-    float cn = ctx->cn;
-    float cs = ctx->cs;
-    float ct = ctx->ct;
-    float cb = ctx->cb;
-    float cc = ctx->cc;
-    float stepDivCap = ctx->stepDivCap;
-    int count = ctx->count;
-    float * tIn_t = ctx->tIn_t;
-    float * tOut_t = ctx->tOut_t;
-    int z = ctx->z;
-    z = ___iter;
+static void computeTempOMP157_hclib_async(void *arg, const int ___iter) {
+    computeTempOMP157 *ctx = (computeTempOMP157 *)arg;
+    float *pIn; pIn = ctx->pIn;
+    float *tIn; tIn = ctx->tIn;
+    float *tOut; tOut = ctx->tOut;
+    int nx; nx = ctx->nx;
+    int ny; ny = ctx->ny;
+    int nz; nz = ctx->nz;
+    float Cap; Cap = ctx->Cap;
+    float Rx; Rx = ctx->Rx;
+    float Ry; Ry = ctx->Ry;
+    float Rz; Rz = ctx->Rz;
+    float dt; dt = ctx->dt;
+    int numiter; numiter = ctx->numiter;
+    float ce; ce = ctx->ce;
+    float cw; cw = ctx->cw;
+    float cn; cn = ctx->cn;
+    float cs; cs = ctx->cs;
+    float ct; ct = ctx->ct;
+    float cb; cb = ctx->cb;
+    float cc; cc = ctx->cc;
+    float stepDivCap; stepDivCap = ctx->stepDivCap;
+    int count; count = ctx->count;
+    float *tIn_t; tIn_t = ctx->tIn_t;
+    float *tOut_t; tOut_t = ctx->tOut_t;
+    int z; z = ctx->z;
+    hclib_start_finish();
     do {
+    z = ___iter;
 {
-    int y;
-    for (y = 0; y < ny; y++) {
-        int x;
-        for (x = 0; x < nx; x++) {
-            int c, w, e, n, s, b, t;
-            c = x + y * nx + z * nx * ny;
-            w = (x == 0) ? c : c - 1;
-            e = (x == nx - 1) ? c : c + 1;
-            n = (y == 0) ? c : c - nx;
-            s = (y == ny - 1) ? c : c + nx;
-            b = (z == 0) ? c : c - nx * ny;
-            t = (z == nz - 1) ? c : c + nx * ny;
-            tOut_t[c] = cc * tIn_t[c] + cw * tIn_t[w] + ce * tIn_t[e] + cs * tIn_t[s] + cn * tIn_t[n] + cb * tIn_t[b] + ct * tIn_t[t] + (dt / Cap) * pIn[c] + ct * amb_temp;
-        }
-    }
-}
-    } while (0);
+                int y;
+                for (y = 0; y < ny; y++) {
+                    int x;
+                    for (x = 0; x < nx; x++) {
+                        int c, w, e, n, s, b, t;
+                        c =  x + y * nx + z * nx * ny;
+                        w = (x == 0)    ? c : c - 1;
+                        e = (x == nx-1) ? c : c + 1;
+                        n = (y == 0)    ? c : c - nx;
+                        s = (y == ny-1) ? c : c + nx;
+                        b = (z == 0)    ? c : c - nx * ny;
+                        t = (z == nz-1) ? c : c + nx * ny;
+                        tOut_t[c] = cc * tIn_t[c] + cw * tIn_t[w] + ce * tIn_t[e]
+                            + cs * tIn_t[s] + cn * tIn_t[n] + cb * tIn_t[b] + ct * tIn_t[t]+(dt/Cap) * pIn[c] + ct*amb_temp;
+                    }
+                }
+            }    } while (0);
+    hclib_end_finish();
 }
 
 void computeTempOMP(float *pIn, float* tIn, float *tOut, 
@@ -223,8 +232,8 @@ void computeTempOMP(float *pIn, float* tIn, float *tOut,
 
         do {
             int z; 
-            
-computeTempOMP150 *ctx = (computeTempOMP150 *)malloc(sizeof(computeTempOMP150));
+             { 
+computeTempOMP157 *ctx = (computeTempOMP157 *)malloc(sizeof(computeTempOMP157));
 ctx->pIn = pIn;
 ctx->tIn = tIn;
 ctx->tOut = tOut;
@@ -254,10 +263,10 @@ domain.low = 0;
 domain.high = nz;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)computeTempOMP150_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)computeTempOMP157_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
-
+ } 
             float *t = tIn_t;
             tIn_t = tOut_t;
             tOut_t = t; 
@@ -282,69 +291,72 @@ void usage(int argc, char **argv)
 
 
 
-typedef struct _main_ctx {
-  int argc;
-  char **argv;
-} main_ctx;
-
-static int main_entrypoint(void *arg) {
-    main_ctx *ctx = (main_ctx *)arg;
-    int argc = ctx->argc;
-    char **argv = ctx->argv;
+int main(int argc, char** argv)
 {
-    if (argc != 7) {
-        usage(argc, argv);
+    if (argc != 7)
+    {
+        usage(argc,argv);
     }
-    char *pfile, *tfile, *ofile;
+
+    char *pfile, *tfile, *ofile;// *testFile;
     int iterations = atoi(argv[3]);
+
     pfile = argv[4];
     tfile = argv[5];
     ofile = argv[6];
+    //testFile = argv[7];
     int numCols = atoi(argv[1]);
     int numRows = atoi(argv[1]);
     int layers = atoi(argv[2]);
-    float dx = chip_height / numRows;
-    float dy = chip_width / numCols;
-    float dz = t_chip / layers;
-    float Cap = 0.5 * 1.75E+6 * t_chip * dx * dy;
-    float Rx = dy / (2. * 100 * t_chip * dx);
-    float Ry = dx / (2. * 100 * t_chip * dy);
-    float Rz = dz / (100 * dx * dy);
-    float max_slope = (3.0E+6) / (0.5 * t_chip * 1.75E+6);
-    float dt = 0.001 / max_slope;
-    float *powerIn, *tempOut, *tempIn, *tempCopy;
+
+    /* calculating parameters*/
+
+    float dx = chip_height/numRows;
+    float dy = chip_width/numCols;
+    float dz = t_chip/layers;
+
+    float Cap = FACTOR_CHIP * SPEC_HEAT_SI * t_chip * dx * dy;
+    float Rx = dy / (2.0 * K_SI * t_chip * dx);
+    float Ry = dx / (2.0 * K_SI * t_chip * dy);
+    float Rz = dz / (K_SI * dx * dy);
+
+    // cout << Rx << " " << Ry << " " << Rz << endl;
+    float max_slope = MAX_PD / (FACTOR_CHIP * t_chip * SPEC_HEAT_SI);
+    float dt = PRECISION / max_slope;
+
+
+    float *powerIn, *tempOut, *tempIn, *tempCopy;// *pCopy;
+    //    float *d_powerIn, *d_tempIn, *d_tempOut;
     int size = numCols * numRows * layers;
-    powerIn = (float *)calloc(size, sizeof(float));
-    tempCopy = (float *)malloc(size * sizeof(float));
-    tempIn = (float *)calloc(size, sizeof(float));
-    tempOut = (float *)calloc(size, sizeof(float));
-    float *answer = (float *)calloc(size, sizeof(float));
-    readinput(powerIn, numRows, numCols, layers, pfile);
+
+    powerIn = (float*)calloc(size, sizeof(float));
+    tempCopy = (float*)malloc(size * sizeof(float));
+    tempIn = (float*)calloc(size,sizeof(float));
+    tempOut = (float*)calloc(size, sizeof(float));
+    //pCopy = (float*)calloc(size,sizeof(float));
+    float* answer = (float*)calloc(size, sizeof(float));
+
+    // outCopy = (float*)calloc(size, sizeof(float));
+    readinput(powerIn,numRows, numCols, layers,pfile);
     readinput(tempIn, numRows, numCols, layers, tfile);
-    memcpy(tempCopy, tempIn, size * sizeof(float));
+
+    memcpy(tempCopy,tempIn, size * sizeof(float));
+
     struct timeval start, stop;
     float time;
-    gettimeofday(&start, ((void *)0));
-    computeTempOMP(powerIn, tempIn, tempOut, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt, iterations);
-    gettimeofday(&stop, ((void *)0));
-    time = (stop.tv_usec - start.tv_usec) * 9.9999999999999995E-7 + stop.tv_sec - start.tv_sec;
-    computeTempCPU(powerIn, tempCopy, answer, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt, iterations);
-    float acc = accuracy(tempOut, answer, numRows * numCols * layers);
-    printf("Time: %.3f (s)\n", time);
-    printf("Accuracy: %e\n", acc);
-    writeoutput(tempOut, numRows, numCols, layers, ofile);
+    gettimeofday(&start,NULL);
+    computeTempOMP(powerIn, tempIn, tempOut, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt,iterations);
+    gettimeofday(&stop,NULL);
+    time = (stop.tv_usec-start.tv_usec)*1.0e-6 + stop.tv_sec - start.tv_sec;
+    computeTempCPU(powerIn, tempCopy, answer, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt,iterations);
+
+    float acc = accuracy(tempOut,answer,numRows*numCols*layers);
+    printf("Time: %.3f (s)\n",time);
+    printf("Accuracy: %e\n",acc);
+    writeoutput(tempOut,numRows, numCols, layers, ofile);
     free(tempIn);
-    free(tempOut);
-    free(powerIn);
+    free(tempOut); free(powerIn);
     return 0;
-}
-}
-int main(int argc, char** argv)
-{ main_ctx *ctx = (main_ctx *)malloc(sizeof(main_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-hclib_launch((void (*)(void*))main_entrypoint, ctx);
-free(ctx); return 0; }
-	
+}	
 
 
