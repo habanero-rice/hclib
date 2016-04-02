@@ -469,6 +469,8 @@ hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
     return hclib_end_finish_nonblocking();
 }
 
+void hclib_pragma_marker(const char *pragma_name, const char *pragma_arguments) {
+}
 
 /*** END FORASYNC IMPLEMENTATION ***/
 

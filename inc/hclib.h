@@ -188,6 +188,7 @@ void hclib_end_finish();
 hclib_future_t *hclib_end_finish_nonblocking();
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event);
 
+void hclib_pragma_marker(const char *pragma_name, const char *pragma_arguments);
 
 /**
  * @}
