@@ -1,3 +1,4 @@
+#include "hclib.h"
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
 //	DEFINE / INCLUDE
@@ -15,8 +16,6 @@
 
 #include "define.c"
 #include "kernel.c"
-
-#include <hclib.h>
 
 
 //===============================================================================================================================================================================================================200
@@ -90,29 +89,57 @@ void write_data(	char* filename,
 
 }
 
-typedef struct _entrypoint_ctx {
-    public_struct public;
-    private_struct private[ALL_POINTS];
+//===============================================================================================================================================================================================================
+//===============================================================================================================================================================================================================
+//	MAIN FUNCTION
+//===============================================================================================================================================================================================================
+//===============================================================================================================================================================================================================
+
+typedef struct _pragma548 {
+    int argc;
+    char **argv;
+    int i;
     int frames_processed;
-} entrypoint_ctx;
+    public_struct public;
+    private_struct private[51];
+    char *video_file_name;
+    avi_t *d_frames;
+    int omp_num_threads;
+ } pragma548;
 
-void kernel_caller(void *arg, int i) {
-    entrypoint_ctx *ctx = (entrypoint_ctx *)arg;
-    kernel(ctx->public, ctx->private[i]);
-}
+static void pragma548_hclib_async(void *____arg, const int ___iter);
+typedef struct _main_entrypoint_ctx {
+    int argc;
+    char **argv;
+    int i;
+    int frames_processed;
+    public_struct public;
+    private_struct private[51];
+    char *video_file_name;
+    avi_t *d_frames;
+    int omp_num_threads;
+ } main_entrypoint_ctx;
 
-void entrypoint(void *arg) {
-    entrypoint_ctx *ctx = (entrypoint_ctx *)arg;
-
-	for(ctx->public.frame_no=0; ctx->public.frame_no<ctx->frames_processed; ctx->public.frame_no++){
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int argc; argc = ctx->argc;
+    char **argv; argv = ctx->argv;
+    int i; i = ctx->i;
+    int frames_processed; frames_processed = ctx->frames_processed;
+    public_struct public; public = ctx->public;
+    private_struct private[51]; memcpy(private, ctx->private, 51 * (sizeof(private_struct))); 
+    char *video_file_name; video_file_name = ctx->video_file_name;
+    avi_t *d_frames; d_frames = ctx->d_frames;
+    int omp_num_threads; omp_num_threads = ctx->omp_num_threads;
+for(public.frame_no=0; public.frame_no<frames_processed; public.frame_no++){
 
 	//====================================================================================================
 	//	GETTING FRAME
 	//====================================================================================================
 
 		// Extract a cropped version of the first frame from the video file
-		ctx->public.d_frame = get_frame(ctx->public.d_frames,				// pointer to video file
-													ctx->public.frame_no,				// number of frame that needs to be returned
+		public.d_frame = get_frame(public.d_frames,				// pointer to video file
+													public.frame_no,				// number of frame that needs to be returned
 													0,										// cropped?
 													0,										// scaled?
 													1);									// converted
@@ -121,39 +148,42 @@ void entrypoint(void *arg) {
 	//	PROCESSING
 	//====================================================================================================
 
-        hclib_loop_domain_t loop;
-        loop.low = 0;
-        loop.high = ctx->public.allPoints;
-        loop.stride = 1;
-        loop.tile = 1;
-
-        hclib_future_t *fut = hclib_forasync_future(kernel_caller, ctx, NULL, 1,
-                &loop, FORASYNC_MODE_RECURSIVE);
-        hclib_future_wait(fut);
+ { 
+pragma548 *ctx = (pragma548 *)malloc(sizeof(pragma548));
+ctx->argc = argc;
+ctx->argv = argv;
+ctx->i = i;
+ctx->frames_processed = frames_processed;
+ctx->public = public;
+memcpy(ctx->private, private, 51 * (sizeof(private_struct))); 
+ctx->video_file_name = video_file_name;
+ctx->d_frames = d_frames;
+ctx->omp_num_threads = omp_num_threads;
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = public.allPoints;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma548_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ } 
 
 	//====================================================================================================
 	//	FREE MEMORY FOR FRAME
 	//====================================================================================================
 
 		// free frame after each loop iteration, since AVI library allocates memory for every frame fetched
-		free(ctx->public.d_frame);
+		free(public.d_frame);
 
 	//====================================================================================================
 	//	PRINT FRAME PROGRESS
 	//====================================================================================================
 
-		printf("%d ", ctx->public.frame_no);
+		printf("%d ", public.frame_no);
 		fflush(NULL);
 
-	}
-
-}
-
-//===============================================================================================================================================================================================================
-//===============================================================================================================================================================================================================
-//	MAIN FUNCTION
-//===============================================================================================================================================================================================================
-//===============================================================================================================================================================================================================
+	} ; }
 
 int main(int argc, char *argv []){
 
@@ -194,7 +224,7 @@ int main(int argc, char *argv []){
 	public.frame_rows = AVI_video_height(public.d_frames);
 	public.frame_cols = AVI_video_width(public.d_frames);
 	public.frame_elem = public.frame_rows * public.frame_cols;
-	public.frame_mem = sizeof(float) * public.frame_elem;
+	public.frame_mem = sizeof(fp) * public.frame_elem;
 
 	//======================================================================================================================================================
 	// 	CHECK INPUT ARGUMENTS
@@ -206,6 +236,15 @@ int main(int argc, char *argv []){
 		printf("ERROR: %d is an incorrect number of frames specified, select in the range of 0-%d\n", frames_processed, public.frames);
 		return 0;
 	}
+	
+	int omp_num_threads;
+	omp_num_threads = atoi(argv[3]);
+	if (omp_num_threads <=0){
+	   printf ("num of threads must be a positive integer");
+	   return 0;
+	}
+	
+	printf("num of threads: %d\n", omp_num_threads);
 	
 	//======================================================================================================================================================
 	//	INPUTS
@@ -355,9 +394,9 @@ int main(int argc, char *argv []){
 	//======================================================================================================================================================
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].in_partial_sum = (float *)malloc(sizeof(float) * 2*public.tSize+1);
-		private[i].in_sqr_partial_sum = (float *)malloc(sizeof(float) * 2*public.tSize+1);
-		private[i].par_max_val = (float *)malloc(sizeof(float) * (2*public.tSize+2*public.sSize+1));
+		private[i].in_partial_sum = (fp *)malloc(sizeof(fp) * 2*public.tSize+1);
+		private[i].in_sqr_partial_sum = (fp *)malloc(sizeof(fp) * 2*public.tSize+1);
+		private[i].par_max_val = (fp *)malloc(sizeof(fp) * (2*public.tSize+2*public.sSize+1));
 		private[i].par_max_coo = (int *)malloc(sizeof(int) * (2*public.tSize+2*public.sSize+1));
 	}
 
@@ -368,11 +407,11 @@ int main(int argc, char *argv []){
 	public.in2_rows = 2 * public.sSize + 1;
 	public.in2_cols = 2 * public.sSize + 1;
 	public.in2_elem = public.in2_rows * public.in2_cols;
-	public.in2_mem = sizeof(float) * public.in2_elem;
+	public.in2_mem = sizeof(fp) * public.in2_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_in2 = (float *)malloc(public.in2_mem);
-		private[i].d_in2_sqr = (float *)malloc(public.in2_mem);
+		private[i].d_in2 = (fp *)malloc(public.in2_mem);
+		private[i].d_in2_sqr = (fp *)malloc(public.in2_mem);
 	}
 
 	//======================================================================================================================================================
@@ -382,19 +421,19 @@ int main(int argc, char *argv []){
 	public.in_mod_rows = public.tSize+1+public.tSize;
 	public.in_mod_cols = public.in_mod_rows;
 	public.in_mod_elem = public.in_mod_rows * public.in_mod_cols;
-	public.in_mod_mem = sizeof(float) * public.in_mod_elem;
+	public.in_mod_mem = sizeof(fp) * public.in_mod_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_in_mod = (float *)malloc(public.in_mod_mem);
-		private[i].d_in_sqr = (float *)malloc(public.in_mod_mem);
+		private[i].d_in_mod = (fp *)malloc(public.in_mod_mem);
+		private[i].d_in_sqr = (fp *)malloc(public.in_mod_mem);
 	}
 
 	//======================================================================================================================================================
 	// 	ARRAY OF TEMPLATES FOR ALL POINTS
 	//======================================================================================================================================================
 
-	public.d_endoT = (float *)malloc(public.in_mod_mem * public.endoPoints);
-	public.d_epiT = (float *)malloc(public.in_mod_mem * public.epiPoints);
+	public.d_endoT = (fp *)malloc(public.in_mod_mem * public.endoPoints);
+	public.d_epiT = (fp *)malloc(public.in_mod_mem * public.epiPoints);
 
 	//======================================================================================================================================================
 	// 	SETUP private POINTERS TO ROWS, COLS  AND TEMPLATE
@@ -429,10 +468,10 @@ int main(int argc, char *argv []){
 	public.conv_rows = public.in_mod_rows + public.in2_rows - 1;												// number of rows in I
 	public.conv_cols = public.in_mod_cols + public.in2_cols - 1;												// number of columns in I
 	public.conv_elem = public.conv_rows * public.conv_cols;												// number of elements
-	public.conv_mem = sizeof(float) * public.conv_elem;
+	public.conv_mem = sizeof(fp) * public.conv_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_conv = (float *)malloc(public.conv_mem);
+		private[i].d_conv = (fp *)malloc(public.conv_mem);
 	}
 
 	//======================================================================================================================================================
@@ -451,10 +490,10 @@ int main(int argc, char *argv []){
 	public.in2_pad_rows = public.in2_rows + 2*public.in2_pad_add_rows;
 	public.in2_pad_cols = public.in2_cols + 2*public.in2_pad_add_cols;
 	public.in2_pad_elem = public.in2_pad_rows * public.in2_pad_cols;
-	public.in2_pad_mem = sizeof(float) * public.in2_pad_elem;
+	public.in2_pad_mem = sizeof(fp) * public.in2_pad_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_in2_pad = (float *)malloc(public.in2_pad_mem);
+		private[i].d_in2_pad = (fp *)malloc(public.in2_pad_mem);
 	}
 
 	//====================================================================================================
@@ -475,10 +514,10 @@ int main(int argc, char *argv []){
 	public.in2_sub_rows = public.in2_pad_cumv_sel_rowhig - public.in2_pad_cumv_sel_rowlow + 1;
 	public.in2_sub_cols = public.in2_pad_cumv_sel_colhig - public.in2_pad_cumv_sel_collow + 1;
 	public.in2_sub_elem = public.in2_sub_rows * public.in2_sub_cols;
-	public.in2_sub_mem = sizeof(float) * public.in2_sub_elem;
+	public.in2_sub_mem = sizeof(fp) * public.in2_sub_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_in2_sub = (float *)malloc(public.in2_sub_mem);
+		private[i].d_in2_sub = (fp *)malloc(public.in2_sub_mem);
 	}
 
 	//====================================================================================================
@@ -496,10 +535,10 @@ int main(int argc, char *argv []){
 	public.in2_sub2_sqr_rows = public.in2_sub_cumh_sel_rowhig - public.in2_sub_cumh_sel_rowlow + 1;
 	public.in2_sub2_sqr_cols = public.in2_sub_cumh_sel_colhig - public.in2_sub_cumh_sel_collow + 1;
 	public.in2_sub2_sqr_elem = public.in2_sub2_sqr_rows * public.in2_sub2_sqr_cols;
-	public.in2_sub2_sqr_mem = sizeof(float) * public.in2_sub2_sqr_elem;
+	public.in2_sub2_sqr_mem = sizeof(fp) * public.in2_sub2_sqr_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_in2_sub2_sqr = (float *)malloc(public.in2_sub2_sqr_mem);
+		private[i].d_in2_sub2_sqr = (fp *)malloc(public.in2_sub2_sqr_mem);
 	}
 
 	//======================================================================================================================================================
@@ -531,10 +570,10 @@ int main(int argc, char *argv []){
 	public.tMask_rows = public.in_mod_rows + (public.sSize+1+public.sSize) - 1;
 	public.tMask_cols = public.tMask_rows;
 	public.tMask_elem = public.tMask_rows * public.tMask_cols;
-	public.tMask_mem = sizeof(float) * public.tMask_elem;
+	public.tMask_mem = sizeof(fp) * public.tMask_elem;
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_tMask = (float *)malloc(public.tMask_mem);
+		private[i].d_tMask = (fp *)malloc(public.tMask_mem);
 	}
 
 	//======================================================================================================================================================
@@ -544,7 +583,7 @@ int main(int argc, char *argv []){
 	public.mask_rows = public.maxMove;
 	public.mask_cols = public.mask_rows;
 	public.mask_elem = public.mask_rows * public.mask_cols;
-	public.mask_mem = sizeof(float) * public.mask_elem;
+	public.mask_mem = sizeof(fp) * public.mask_elem;
 
 	//======================================================================================================================================================
 	//	MASK CONVOLUTION
@@ -553,7 +592,7 @@ int main(int argc, char *argv []){
 	public.mask_conv_rows = public.tMask_rows;												// number of rows in I
 	public.mask_conv_cols = public.tMask_cols;												// number of columns in I
 	public.mask_conv_elem = public.mask_conv_rows * public.mask_conv_cols;												// number of elements
-	public.mask_conv_mem = sizeof(float) * public.mask_conv_elem;
+	public.mask_conv_mem = sizeof(fp) * public.mask_conv_elem;
 	public.mask_conv_ioffset = (public.mask_rows-1)/2;
 	if((public.mask_rows-1) % 2 > 0.5){
 		public.mask_conv_ioffset = public.mask_conv_ioffset + 1;
@@ -564,7 +603,7 @@ int main(int argc, char *argv []){
 	}
 
 	for(i=0; i<public.allPoints; i++){
-		private[i].d_mask_conv = (float *)malloc(public.mask_conv_mem);
+		private[i].d_mask_conv = (fp *)malloc(public.mask_conv_mem);
 	}
 
 	//======================================================================================================================================================
@@ -578,13 +617,19 @@ int main(int argc, char *argv []){
 	//	KERNEL
 	//======================================================================================================================================================
 
-    entrypoint_ctx *ctx = (entrypoint_ctx *)malloc(sizeof(entrypoint_ctx));
-    ctx->public = public;
-    memcpy(ctx->private, private, ALL_POINTS * sizeof(private_struct));
-    ctx->frames_processed = frames_processed;
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->argc = argc;
+ctx->argv = argv;
+ctx->i = i;
+ctx->frames_processed = frames_processed;
+ctx->public = public;
+memcpy(ctx->private, private, 51 * (sizeof(private_struct))); 
+ctx->video_file_name = video_file_name;
+ctx->d_frames = d_frames;
+ctx->omp_num_threads = omp_num_threads;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
 
-    hclib_launch(entrypoint, ctx);
-    free(ctx);
 
 	//======================================================================================================================================================
 	//	PRINT FRAME PROGRESS END
@@ -659,8 +704,28 @@ int main(int argc, char *argv []){
 		free(private[i].d_mask_conv);
 	}
 
-    return 0;
+}  static void pragma548_hclib_async(void *____arg, const int ___iter) {
+    pragma548 *ctx = (pragma548 *)____arg;
+    int argc; argc = ctx->argc;
+    char **argv; argv = ctx->argv;
+    int i; i = ctx->i;
+    int frames_processed; frames_processed = ctx->frames_processed;
+    public_struct public; public = ctx->public;
+    private_struct private[51]; memcpy(private, ctx->private, 51 * (sizeof(private_struct))); 
+    char *video_file_name; video_file_name = ctx->video_file_name;
+    avi_t *d_frames; d_frames = ctx->d_frames;
+    int omp_num_threads; omp_num_threads = ctx->omp_num_threads;
+    hclib_start_finish();
+    do {
+    i = ___iter;
+{
+			kernel(	public,
+						private[i]);
+		} ;     } while (0);
+    ; hclib_end_finish();
 }
+
+
 
 //========================================================================================================================================================================================================
 //========================================================================================================================================================================================================

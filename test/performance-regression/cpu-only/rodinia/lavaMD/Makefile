@@ -22,7 +22,7 @@ a.out:		main.o \
 			kernel_cpu.o \
 			num.o \
 			timer.o
-	$(C_C)	main.o \
+	g++	main.o \
 			kernel_cpu.o \
 			num.o \
 			timer.o \

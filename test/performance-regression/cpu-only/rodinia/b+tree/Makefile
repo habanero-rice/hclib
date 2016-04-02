@@ -12,7 +12,7 @@ b+tree.out:	./main.o \
 		./kernel/kernel_cpu_2.o \
 		./util/timer/timer.o \
 		./util/num/num.o
-	$(C_C)	./main.o \
+	g++	./main.o \
 			./kernel/kernel_cpu.o \
 			./kernel/kernel_cpu_2.o \
 			./util/timer/timer.o \

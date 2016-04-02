@@ -82,7 +82,7 @@ MAT * chop_flip_image(unsigned char *image, int height, int width, int top, int 
 
 // Given x- and y-gradients of a video frame, computes the GICOV
 //  score for each sample ellipse at every pixel in the frame
-typedef struct _ellipsematching113 {
+typedef struct _pragma113 {
     MAT *grad_x;
     MAT *grad_y;
     int i;
@@ -97,9 +97,10 @@ typedef struct _ellipsematching113 {
     int height;
     int width;
     MAT *gicov;
- } ellipsematching113;
+ } pragma113;
 
-static void ellipsematching113_hclib_async(void *____arg, const int ___iter);MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
+static void pragma113_hclib_async(void *____arg, const int ___iter);
+MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	int i, n, k;
 	// Compute the sine and cosine of the angle to each point in each sample circle
 	//  (which are the same across all sample circles)
@@ -127,9 +128,8 @@ static void ellipsematching113_hclib_async(void *____arg, const int ___iter);MAT
 	MAT * gicov = m_get(height, width);
 	
 	// Split the work among multiple threads, if OPEN is defined
-	// Scan from left to right, top to bottom, computing GICOV values
-	 { 
-ellipsematching113 *ctx = (ellipsematching113 *)malloc(sizeof(ellipsematching113));
+ { 
+pragma113 *ctx = (pragma113 *)malloc(sizeof(pragma113));
 ctx->grad_x = grad_x;
 ctx->grad_y = grad_y;
 ctx->i = i;
@@ -149,14 +149,14 @@ domain.low = MaxR;
 domain.high = width - MaxR;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)ellipsematching113_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma113_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 	
 	return gicov;
-} static void ellipsematching113_hclib_async(void *____arg, const int ___iter) {
-    ellipsematching113 *ctx = (ellipsematching113 *)____arg;
+} static void pragma113_hclib_async(void *____arg, const int ___iter) {
+    pragma113 *ctx = (pragma113 *)____arg;
     MAT *grad_x; grad_x = ctx->grad_x;
     MAT *grad_y; grad_y = ctx->grad_y;
     int i; i = ctx->i;
@@ -214,7 +214,7 @@ free(ctx);
 				}
 			}
 		}
-	}    } while (0);
+	} ;     } while (0);
     ; hclib_end_finish();
 }
 
@@ -241,25 +241,25 @@ MAT * structuring_element(int radius) {
 
 // Performs an image dilation on the specified matrix
 //  using the specified structuring element
-typedef struct _dilate_f188 {
+typedef struct _pragma188 {
     MAT *img_in;
     MAT *strel;
     MAT *dilated;
     int el_center_i;
     int el_center_j;
     int i;
- } dilate_f188;
+ } pragma188;
 
-static void dilate_f188_hclib_async(void *____arg, const int ___iter);MAT * dilate_f(MAT * img_in, MAT * strel) {
+static void pragma188_hclib_async(void *____arg, const int ___iter);
+MAT * dilate_f(MAT * img_in, MAT * strel) {
 	MAT * dilated = m_get(img_in->m, img_in->n);
 	
 	// Find the center of the structuring element
 	int el_center_i = strel->m / 2, el_center_j = strel->n / 2, i;
 	
 	// Split the work among multiple threads, if OPEN is defined
-	// Iterate across the input matrix
-	 { 
-dilate_f188 *ctx = (dilate_f188 *)malloc(sizeof(dilate_f188));
+ { 
+pragma188 *ctx = (pragma188 *)malloc(sizeof(pragma188));
 ctx->img_in = img_in;
 ctx->strel = strel;
 ctx->dilated = dilated;
@@ -271,14 +271,14 @@ domain.low = 0;
 domain.high = img_in->m;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)dilate_f188_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma188_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 
 	return dilated;
-} static void dilate_f188_hclib_async(void *____arg, const int ___iter) {
-    dilate_f188 *ctx = (dilate_f188 *)____arg;
+} static void pragma188_hclib_async(void *____arg, const int ___iter) {
+    pragma188 *ctx = (pragma188 *)____arg;
     MAT *img_in; img_in = ctx->img_in;
     MAT *strel; strel = ctx->strel;
     MAT *dilated; dilated = ctx->dilated;
@@ -308,7 +308,7 @@ free(ctx);
 			// Store the maximum value found
 			m_set_val(dilated, i, j, max);
 		}
-	}    } while (0);
+	} ;     } while (0);
     ; hclib_end_finish();
 }
 

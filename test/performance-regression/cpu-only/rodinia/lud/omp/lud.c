@@ -39,33 +39,6 @@ static struct option long_options[] = {
 extern void
 lud_omp(float *m, int matrix_dim);
 
-typedef struct _main_entrypoint_ctx {
-    int argc;
-    char **argv;
-    int matrix_dim;
-    int opt;
-    int option_index;
-    func_ret_t ret;
-    const char *input_file;
-    float *m;
-    float *mm;
-    stopwatch sw;
- } main_entrypoint_ctx;
-
-static void main_entrypoint(void *arg) {
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    int matrix_dim; matrix_dim = ctx->matrix_dim;
-    int opt; opt = ctx->opt;
-    int option_index; option_index = ctx->option_index;
-    func_ret_t ret; ret = ctx->ret;
-    const char *input_file; input_file = ctx->input_file;
-    float *m; m = ctx->m;
-    float *mm; mm = ctx->mm;
-    stopwatch sw; sw = ctx->sw;
-lud_omp(m, matrix_dim); }
-
 int
 main ( int argc, char *argv[] )
 {
@@ -146,22 +119,8 @@ main ( int argc, char *argv[] )
 
 
   stopwatch_start(&sw);
-#pragma omp_to_hclib body_start
-  main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->matrix_dim = matrix_dim;
-ctx->opt = opt;
-ctx->option_index = option_index;
-ctx->ret = ret;
-ctx->input_file = input_file;
-ctx->m = m;
-ctx->mm = mm;
-ctx->sw = sw;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
-;
-#pragma omp_to_hclib body_end
+  lud_omp(m, matrix_dim);
+
   stopwatch_stop(&sw);
   printf("Time consumed(ms): %lf\n", 1000*get_interval_by_sec(&sw));
 

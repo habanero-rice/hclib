@@ -1,8 +1,11 @@
+#include "hclib.h"
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
 //	KERNEL FUNCTION
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
+
+#include "define.c"
 
 void kernel(public_struct public,
 				private_struct private){
@@ -12,7 +15,7 @@ void kernel(public_struct public,
 	//======================================================================================================================================================
 
 	int ei_new;
-	float* d_in;
+	fp* d_in;
 	int rot_row;
 	int rot_col;
 	int in2_rowlow;
@@ -25,7 +28,7 @@ void kernel(public_struct public,
 	int ia1, ia2;
 	int ja, jb;
 	int ia, ib;
-	float s;
+	fp s;
 	int i;
 	int j;
 	int row;
@@ -33,31 +36,31 @@ void kernel(public_struct public,
 	int ori_row;
 	int ori_col;
 	int position;
-	float sum;
+	fp sum;
 	int pos_ori;
-	float temp;
-	float temp2;
+	fp temp;
+	fp temp2;
 	int location;
 	int cent;
 	int tMask_row; 
 	int tMask_col;
-	float largest_value_current = 0;
-	float largest_value = 0;
+	fp largest_value_current = 0;
+	fp largest_value = 0;
 	int largest_coordinate_current = 0;
 	int largest_coordinate = 0;
-	float fin_max_val = 0;
+	fp fin_max_val = 0;
 	int fin_max_coo = 0;
 	int largest_row;
 	int largest_col;
 	int offset_row;
 	int offset_col;
-	float in_final_sum;
-	float in_sqr_final_sum;
-	float mean;
-	float mean_sqr;
-	float variance;
-	float deviation;
-	float denomT;
+	fp in_final_sum;
+	fp in_sqr_final_sum;
+	fp mean;
+	fp mean_sqr;
+	fp variance;
+	fp deviation;
+	fp denomT;
 	int pointer;
 	int ori_pointer;
 	int loc_pointer;
@@ -181,7 +184,7 @@ void kernel(public_struct public,
 		variance  = (in_sqr_final_sum / public.in_mod_elem) - mean_sqr;							// gets variance of ROI
 		deviation = sqrt(variance);																// gets standard deviation of ROI
 
-		denomT = sqrt((float)(public.in_mod_elem-1))*deviation;
+		denomT = sqrt((fp)(public.in_mod_elem-1))*deviation;
 
 		//====================================================================================================
 		//	1) CONVOLVE INPUT 2 WITH ROTATED INPUT 1					SAVE IN d_conv

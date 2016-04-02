@@ -341,7 +341,7 @@ int findIndexBin(double * CDF, int beginIndex, int endIndex, double value){
 * @param seed The seed array used for random number generation
 * @param Nparticles The number of particles to be used
 */
-typedef struct _particleFilter372 {
+typedef struct _pragma372 {
     int *I;
     int IszX;
     int IszY;
@@ -361,9 +361,9 @@ typedef struct _particleFilter372 {
     double *objxy;
     long long get_neighbors;
     double *weights;
- } particleFilter372;
+ } pragma372;
 
-typedef struct _particleFilter387 {
+typedef struct _pragma387 {
     int *I;
     int IszX;
     int IszY;
@@ -392,9 +392,9 @@ typedef struct _particleFilter387 {
     double *CDF;
     double *u;
     int *ind;
- } particleFilter387;
+ } pragma387;
 
-typedef struct _particleFilter401 {
+typedef struct _pragma401 {
     int *I;
     int IszX;
     int IszY;
@@ -427,9 +427,9 @@ typedef struct _particleFilter401 {
     int indX;
     int indY;
     long long set_arrays;
- } particleFilter401;
+ } pragma401;
 
-typedef struct _particleFilter409 {
+typedef struct _pragma409 {
     int *I;
     int IszX;
     int IszY;
@@ -463,9 +463,9 @@ typedef struct _particleFilter409 {
     int indY;
     long long set_arrays;
     long long error;
- } particleFilter409;
+ } pragma409;
 
-typedef struct _particleFilter432 {
+typedef struct _pragma432 {
     int *I;
     int IszX;
     int IszY;
@@ -500,9 +500,9 @@ typedef struct _particleFilter432 {
     long long set_arrays;
     long long error;
     long long likelihood_time;
- } particleFilter432;
+ } pragma432;
 
-typedef struct _particleFilter439 {
+typedef struct _pragma439 {
     int *I;
     int IszX;
     int IszY;
@@ -540,9 +540,9 @@ typedef struct _particleFilter439 {
     long long exponential;
     double sumWeights;
     pthread_mutex_t reduction_mutex;
- } particleFilter439;
+ } pragma439;
 
-typedef struct _particleFilter445 {
+typedef struct _pragma445 {
     int *I;
     int IszX;
     int IszY;
@@ -580,9 +580,9 @@ typedef struct _particleFilter445 {
     long long exponential;
     double sumWeights;
     long long sum_time;
- } particleFilter445;
+ } pragma445;
 
-typedef struct _particleFilter454 {
+typedef struct _pragma454 {
     int *I;
     int IszX;
     int IszY;
@@ -622,9 +622,9 @@ typedef struct _particleFilter454 {
     long long sum_time;
     long long normalize;
     pthread_mutex_t reduction_mutex;
- } particleFilter454;
+ } pragma454;
 
-typedef struct _particleFilter479 {
+typedef struct _pragma479 {
     int *I;
     int IszX;
     int IszY;
@@ -667,9 +667,9 @@ typedef struct _particleFilter479 {
     double distance;
     long long cum_sum;
     double u1;
- } particleFilter479;
+ } pragma479;
 
-typedef struct _particleFilter487 {
+typedef struct _pragma487 {
     int *I;
     int IszX;
     int IszY;
@@ -715,9 +715,19 @@ typedef struct _particleFilter487 {
     long long u_time;
     int j;
     int i;
- } particleFilter487;
+ } pragma487;
 
-static void particleFilter372_hclib_async(void *____arg, const int ___iter);static void particleFilter387_hclib_async(void *____arg, const int ___iter);static void particleFilter401_hclib_async(void *____arg, const int ___iter);static void particleFilter409_hclib_async(void *____arg, const int ___iter);static void particleFilter432_hclib_async(void *____arg, const int ___iter);static void particleFilter439_hclib_async(void *____arg, const int ___iter);static void particleFilter445_hclib_async(void *____arg, const int ___iter);static void particleFilter454_hclib_async(void *____arg, const int ___iter);static void particleFilter479_hclib_async(void *____arg, const int ___iter);static void particleFilter487_hclib_async(void *____arg, const int ___iter);void particleFilter(int * I, int IszX, int IszY, int Nfr, int * seed, int Nparticles){
+static void pragma372_hclib_async(void *____arg, const int ___iter);
+static void pragma387_hclib_async(void *____arg, const int ___iter);
+static void pragma401_hclib_async(void *____arg, const int ___iter);
+static void pragma409_hclib_async(void *____arg, const int ___iter);
+static void pragma432_hclib_async(void *____arg, const int ___iter);
+static void pragma439_hclib_async(void *____arg, const int ___iter);
+static void pragma445_hclib_async(void *____arg, const int ___iter);
+static void pragma454_hclib_async(void *____arg, const int ___iter);
+static void pragma479_hclib_async(void *____arg, const int ___iter);
+static void pragma487_hclib_async(void *____arg, const int ___iter);
+void particleFilter(int * I, int IszX, int IszY, int Nfr, int * seed, int Nparticles){
 	
 	int max_size = IszX*IszY*Nfr;
 	long long start = get_time();
@@ -745,8 +755,8 @@ static void particleFilter372_hclib_async(void *____arg, const int ___iter);stat
 	printf("TIME TO GET NEIGHBORS TOOK: %f\n", elapsed_time(start, get_neighbors));
 	//initial weights are all equal (1/Nparticles)
 	double * weights = (double *)malloc(sizeof(double)*Nparticles);
-	 { 
-particleFilter372 *ctx = (particleFilter372 *)malloc(sizeof(particleFilter372));
+ { 
+pragma372 *ctx = (pragma372 *)malloc(sizeof(pragma372));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -771,7 +781,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter372_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma372_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -786,8 +796,8 @@ free(ctx);
 	double * CDF = (double *)malloc(sizeof(double)*Nparticles);
 	double * u = (double *)malloc(sizeof(double)*Nparticles);
 	int * ind = (int*)malloc(sizeof(int)*countOnes*Nparticles);
-	 { 
-particleFilter387 *ctx = (particleFilter387 *)malloc(sizeof(particleFilter387));
+ { 
+pragma387 *ctx = (pragma387 *)malloc(sizeof(pragma387));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -821,7 +831,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter387_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma387_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -834,8 +844,8 @@ free(ctx);
 		//apply motion model
 		//draws sample from motion model (random walk). The only prior information
 		//is that the object moves 2x as fast as in the y direction
-		 { 
-particleFilter401 *ctx = (particleFilter401 *)malloc(sizeof(particleFilter401));
+ { 
+pragma401 *ctx = (pragma401 *)malloc(sizeof(pragma401));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -873,15 +883,15 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter401_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma401_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 		long long error = get_time();
 		printf("TIME TO SET ERROR TOOK: %f\n", elapsed_time(set_arrays, error));
 		//particle filter likelihood
-		 { 
-particleFilter409 *ctx = (particleFilter409 *)malloc(sizeof(particleFilter409));
+ { 
+pragma409 *ctx = (pragma409 *)malloc(sizeof(pragma409));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -920,7 +930,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter409_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma409_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -928,8 +938,8 @@ free(ctx);
 		printf("TIME TO GET LIKELIHOODS TOOK: %f\n", elapsed_time(error, likelihood_time));
 		// update & normalize weights
 		// using equation (63) of Arulampalam Tutorial
-		 { 
-particleFilter432 *ctx = (particleFilter432 *)malloc(sizeof(particleFilter432));
+ { 
+pragma432 *ctx = (pragma432 *)malloc(sizeof(pragma432));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -969,15 +979,15 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter432_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma432_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 		long long exponential = get_time();
 		printf("TIME TO GET EXP TOOK: %f\n", elapsed_time(likelihood_time, exponential));
 		double sumWeights = 0;
-		 { 
-particleFilter439 *ctx = (particleFilter439 *)malloc(sizeof(particleFilter439));
+ { 
+pragma439 *ctx = (pragma439 *)malloc(sizeof(pragma439));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1022,15 +1032,15 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter439_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma439_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
 sumWeights = ctx->sumWeights;
  } 
 		long long sum_time = get_time();
 		printf("TIME TO SUM WEIGHTS TOOK: %f\n", elapsed_time(exponential, sum_time));
-		 { 
-particleFilter445 *ctx = (particleFilter445 *)malloc(sizeof(particleFilter445));
+ { 
+pragma445 *ctx = (pragma445 *)malloc(sizeof(pragma445));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1073,7 +1083,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter445_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma445_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1082,8 +1092,8 @@ free(ctx);
 		xe = 0;
 		ye = 0;
 		// estimate the object location by expected values
-		 { 
-particleFilter454 *ctx = (particleFilter454 *)malloc(sizeof(particleFilter454));
+ { 
+pragma454 *ctx = (pragma454 *)malloc(sizeof(pragma454));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1131,7 +1141,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter454_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma454_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
 xe = ctx->xe;
@@ -1157,8 +1167,8 @@ ye = ctx->ye;
 		long long cum_sum = get_time();
 		printf("TIME TO CALC CUM SUM TOOK: %f\n", elapsed_time(move_time, cum_sum));
 		double u1 = (1/((double)(Nparticles)))*randu(seed, 0);
-		 { 
-particleFilter479 *ctx = (particleFilter479 *)malloc(sizeof(particleFilter479));
+ { 
+pragma479 *ctx = (pragma479 *)malloc(sizeof(pragma479));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1206,7 +1216,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter479_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma479_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1214,8 +1224,8 @@ free(ctx);
 		printf("TIME TO CALC U TOOK: %f\n", elapsed_time(cum_sum, u_time));
 		int j, i;
 		
-		 { 
-particleFilter487 *ctx = (particleFilter487 *)malloc(sizeof(particleFilter487));
+ { 
+pragma487 *ctx = (pragma487 *)malloc(sizeof(pragma487));
 ctx->I = I;
 ctx->IszX = IszX;
 ctx->IszY = IszY;
@@ -1266,7 +1276,7 @@ domain.low = 0;
 domain.high = Nparticles;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)particleFilter487_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma487_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -1294,8 +1304,8 @@ free(ctx);
 	free(CDF);
 	free(u);
 	free(ind);
-} static void particleFilter372_hclib_async(void *____arg, const int ___iter) {
-    particleFilter372 *ctx = (particleFilter372 *)____arg;
+} static void pragma372_hclib_async(void *____arg, const int ___iter) {
+    pragma372 *ctx = (pragma372 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1320,12 +1330,12 @@ free(ctx);
     x = ___iter;
 {
 		weights[x] = 1/((double)(Nparticles));
-	}    } while (0);
+	} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter387_hclib_async(void *____arg, const int ___iter) {
-    particleFilter387 *ctx = (particleFilter387 *)____arg;
+static void pragma387_hclib_async(void *____arg, const int ___iter) {
+    pragma387 *ctx = (pragma387 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1360,12 +1370,12 @@ static void particleFilter387_hclib_async(void *____arg, const int ___iter) {
 {
 		arrayX[x] = xe;
 		arrayY[x] = ye;
-	}    } while (0);
+	} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter401_hclib_async(void *____arg, const int ___iter) {
-    particleFilter401 *ctx = (particleFilter401 *)____arg;
+static void pragma401_hclib_async(void *____arg, const int ___iter) {
+    pragma401 *ctx = (pragma401 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1404,12 +1414,12 @@ static void particleFilter401_hclib_async(void *____arg, const int ___iter) {
 {
 			arrayX[x] += 1 + 5*randn(seed, x);
 			arrayY[x] += -2 + 2*randn(seed, x);
-		}    } while (0);
+		} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter409_hclib_async(void *____arg, const int ___iter) {
-    particleFilter409 *ctx = (particleFilter409 *)____arg;
+static void pragma409_hclib_async(void *____arg, const int ___iter) {
+    pragma409 *ctx = (pragma409 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1463,12 +1473,12 @@ static void particleFilter409_hclib_async(void *____arg, const int ___iter) {
 			for(y = 0; y < countOnes; y++)
 				likelihood[x] += (pow((I[ind[x*countOnes + y]] - 100),2) - pow((I[ind[x*countOnes + y]]-228),2))/50.0;
 			likelihood[x] = likelihood[x]/((double) countOnes);
-		}    } while (0);
+		} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter432_hclib_async(void *____arg, const int ___iter) {
-    particleFilter432 *ctx = (particleFilter432 *)____arg;
+static void pragma432_hclib_async(void *____arg, const int ___iter) {
+    pragma432 *ctx = (pragma432 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1508,12 +1518,12 @@ static void particleFilter432_hclib_async(void *____arg, const int ___iter) {
     x = ___iter;
 {
 			weights[x] = weights[x] * exp(likelihood[x]);
-		}    } while (0);
+		} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter439_hclib_async(void *____arg, const int ___iter) {
-    particleFilter439 *ctx = (particleFilter439 *)____arg;
+static void pragma439_hclib_async(void *____arg, const int ___iter) {
+    pragma439 *ctx = (pragma439 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1555,7 +1565,7 @@ static void particleFilter439_hclib_async(void *____arg, const int ___iter) {
     x = ___iter;
 {
 			sumWeights += weights[x];
-		}    } while (0);
+		} ;     } while (0);
     const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
     assert(lock_err == 0);
     ctx->sumWeights += sumWeights;
@@ -1564,8 +1574,8 @@ static void particleFilter439_hclib_async(void *____arg, const int ___iter) {
     ; hclib_end_finish();
 }
 
-static void particleFilter445_hclib_async(void *____arg, const int ___iter) {
-    particleFilter445 *ctx = (particleFilter445 *)____arg;
+static void pragma445_hclib_async(void *____arg, const int ___iter) {
+    pragma445 *ctx = (pragma445 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1608,12 +1618,12 @@ static void particleFilter445_hclib_async(void *____arg, const int ___iter) {
     x = ___iter;
 {
 			weights[x] = weights[x]/sumWeights;
-		}    } while (0);
+		} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter454_hclib_async(void *____arg, const int ___iter) {
-    particleFilter454 *ctx = (particleFilter454 *)____arg;
+static void pragma454_hclib_async(void *____arg, const int ___iter) {
+    pragma454 *ctx = (pragma454 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1658,7 +1668,7 @@ static void particleFilter454_hclib_async(void *____arg, const int ___iter) {
 {
 			xe += arrayX[x] * weights[x];
 			ye += arrayY[x] * weights[x];
-		}    } while (0);
+		} ;     } while (0);
     const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
     assert(lock_err == 0);
     ctx->xe += xe;
@@ -1668,8 +1678,8 @@ static void particleFilter454_hclib_async(void *____arg, const int ___iter) {
     ; hclib_end_finish();
 }
 
-static void particleFilter479_hclib_async(void *____arg, const int ___iter) {
-    particleFilter479 *ctx = (particleFilter479 *)____arg;
+static void pragma479_hclib_async(void *____arg, const int ___iter) {
+    pragma479 *ctx = (pragma479 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1717,12 +1727,12 @@ static void particleFilter479_hclib_async(void *____arg, const int ___iter) {
     x = ___iter;
 {
 			u[x] = u1 + x/((double)(Nparticles));
-		}    } while (0);
+		} ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void particleFilter487_hclib_async(void *____arg, const int ___iter) {
-    particleFilter487 *ctx = (particleFilter487 *)____arg;
+static void pragma487_hclib_async(void *____arg, const int ___iter) {
+    pragma487 *ctx = (pragma487 *)____arg;
     int *I; I = ctx->I;
     int IszX; IszX = ctx->IszX;
     int IszY; IszY = ctx->IszY;
@@ -1778,7 +1788,7 @@ static void particleFilter487_hclib_async(void *____arg, const int ___iter) {
 			xj[j] = arrayX[i];
 			yj[j] = arrayY[i];
 			
-		}    } while (0);
+		} ;     } while (0);
     ; hclib_end_finish();
 }
 
@@ -1812,7 +1822,7 @@ static void main_entrypoint(void *____arg) {
     int *I; I = ctx->I;
     long long start; start = ctx->start;
     long long endVideoSequence; endVideoSequence = ctx->endVideoSequence;
-particleFilter(I, IszX, IszY, Nfr, seed, Nparticles); }
+particleFilter(I, IszX, IszY, Nfr, seed, Nparticles) ; }
 
 int main(int argc, char * argv[]){
 	
@@ -1887,7 +1897,7 @@ int main(int argc, char * argv[]){
 	long long endVideoSequence = get_time();
 	printf("VIDEO SEQUENCE TOOK %f\n", elapsed_time(start, endVideoSequence));
 	//call particle filter
-	main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->argc = argc;
 ctx->argv = argv;
 ctx->usage = usage;
@@ -1903,6 +1913,7 @@ ctx->endVideoSequence = endVideoSequence;
 hclib_launch(main_entrypoint, ctx);
 free(ctx);
 ;
+
 	long long endParticleFilter = get_time();
 	printf("PARTICLE FILTER TOOK %f\n", elapsed_time(endVideoSequence, endParticleFilter));
 	printf("ENTIRE PROGRAM TOOK %f\n", elapsed_time(start, endParticleFilter));
@@ -1910,4 +1921,4 @@ free(ctx);
 	free(seed);
 	free(I);
 	return 0;
-}
+} 

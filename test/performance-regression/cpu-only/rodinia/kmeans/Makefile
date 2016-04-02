@@ -6,7 +6,7 @@ CC = gcc
 CC_FLAGS = -g -fopenmp -O2 
 
 kmeans: cluster.o getopt.o kmeans.o kmeans_clustering.o 
-	$(CC) $(CC_FLAGS) cluster.o getopt.o kmeans.o kmeans_clustering.o  -o kmeans $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+	g++ $(CC_FLAGS) cluster.o getopt.o kmeans.o kmeans_clustering.o  -o kmeans $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c $(PROJECT_CXXFLAGS)

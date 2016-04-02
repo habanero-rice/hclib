@@ -13,7 +13,7 @@ typedef float FP_NUMBER;
 #define GET_RAND_FP ((FP_NUMBER)rand()/((FP_NUMBER)(RAND_MAX)+(FP_NUMBER)(1)))
 char L_FNAME[32], U_FNAME[32], A_FNAME[32];
 
-typedef struct _main68 {
+typedef struct _pragma67 {
     int argc;
     char **argv;
     int i;
@@ -27,9 +27,9 @@ typedef struct _main68 {
     FILE *fl;
     FILE *fu;
     FILE *fa;
- } main68;
+ } pragma67;
 
-typedef struct _main87 {
+typedef struct _pragma83 {
     int argc;
     char **argv;
     int i;
@@ -43,9 +43,11 @@ typedef struct _main87 {
     FILE *fl;
     FILE *fu;
     FILE *fa;
- } main87;
+ } pragma83;
 
-static void main68_hclib_async(void *____arg, const int ___iter);static void main87_hclib_async(void *____arg, const int ___iter);int main (int argc, char **argv){
+static void pragma67_hclib_async(void *____arg, const int ___iter);
+static void pragma83_hclib_async(void *____arg, const int ___iter);
+int main (int argc, char **argv){
     int i,j,k,MatrixDim;
     FP_NUMBER sum, **L, **U, **A;
     FILE *fl,*fu,*fa;
@@ -96,10 +98,8 @@ static void main68_hclib_async(void *____arg, const int ___iter);static void mai
         U[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
         A[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
     }
-#if 1
-#endif
-     { 
-main68 *ctx = (main68 *)malloc(sizeof(main68));
+ { 
+pragma67 *ctx = (pragma67 *)malloc(sizeof(pragma67));
 ctx->argc = argc;
 ctx->argv = argv;
 ctx->i = i;
@@ -118,15 +118,13 @@ domain.low = 0;
 domain.high = MatrixDim;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)main68_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma67_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
 
-#if 1
-#endif
-     { 
-main87 *ctx = (main87 *)malloc(sizeof(main87));
+ { 
+pragma83 *ctx = (pragma83 *)malloc(sizeof(pragma83));
 ctx->argc = argc;
 ctx->argv = argv;
 ctx->i = i;
@@ -145,7 +143,7 @@ domain.low = 0;
 domain.high = MatrixDim;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)main87_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma83_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -182,8 +180,8 @@ free(ctx);
     free(A);
 
     return 0;
-} static void main68_hclib_async(void *____arg, const int ___iter) {
-    main68 *ctx = (main68 *)____arg;
+} static void pragma67_hclib_async(void *____arg, const int ___iter) {
+    pragma67 *ctx = (pragma67 *)____arg;
     int argc; argc = ctx->argc;
     char **argv; argv = ctx->argv;
     int i; i = ctx->i;
@@ -213,12 +211,12 @@ free(ctx);
                 U[i][j] = 0;
             }
         }
-    }    } while (0);
+    } ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void main87_hclib_async(void *____arg, const int ___iter) {
-    main87 *ctx = (main87 *)____arg;
+static void pragma83_hclib_async(void *____arg, const int ___iter) {
+    pragma83 *ctx = (pragma83 *)____arg;
     int argc; argc = ctx->argc;
     char **argv; argv = ctx->argv;
     int i; i = ctx->i;
@@ -242,7 +240,7 @@ static void main87_hclib_async(void *____arg, const int ___iter) {
                 sum += L[i][k]*U[k][j];
             A[i][j] = sum;
         }
-    }    } while (0);
+    } ;     } while (0);
     ; hclib_end_finish();
 }
 

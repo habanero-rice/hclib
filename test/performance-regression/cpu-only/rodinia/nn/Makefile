@@ -12,7 +12,7 @@ clean :
 	rm -rf *.o nn hurricane_gen
 
 nn : nn_openmp.c
-	$(CC) -o $@ $< $(LDFLAGS) $(CFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+	g++ -o $@ $< $(LDFLAGS) $(CFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
 
 hurricane_gen : hurricane_gen.c
 	$(LOCAL_CC) -o $@ $< -lm

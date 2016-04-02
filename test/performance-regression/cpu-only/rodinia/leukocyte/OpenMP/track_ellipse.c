@@ -2,7 +2,7 @@
 #include "track_ellipse.h"
 
 
-typedef struct _ellipsetrack84 {
+typedef struct _pragma84 {
     avi_t *video;
     double *xc0;
     double *yc0;
@@ -26,9 +26,10 @@ typedef struct _ellipsetrack84 {
     MAT *I;
     int Ih;
     int Iw;
- } ellipsetrack84;
+ } pragma84;
 
-static void ellipsetrack84_hclib_async(void *____arg, const int ___iter);void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np, int Nf) {
+static void pragma84_hclib_async(void *____arg, const int ___iter);
+void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np, int Nf) {
 	/*
 	% ELLIPSETRACK tracks cells in the movie specified by 'video', at
 	%  locations 'xc0'/'yc0' with radii R using an ellipse with Np discrete
@@ -107,9 +108,8 @@ static void ellipsetrack84_hclib_async(void *____arg, const int ___iter);void el
 		}
 		
 		// Split the work among multiple threads, if OPEN is defined
-		// Track each cell
-		 { 
-ellipsetrack84 *ctx = (ellipsetrack84 *)malloc(sizeof(ellipsetrack84));
+ { 
+pragma84 *ctx = (pragma84 *)malloc(sizeof(pragma84));
 ctx->video = video;
 ctx->xc0 = xc0;
 ctx->yc0 = yc0;
@@ -138,7 +138,7 @@ domain.low = 0;
 domain.high = Nc;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)ellipsetrack84_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma84_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -176,8 +176,8 @@ free(ctx);
 	printf("------------------------------------\n");
 	printf("MGVF computation: %.5f seconds\n", ((float) (MGVF_time)) / (float) (1000*1000*Nf));
 	printf(" Snake evolution: %.5f seconds\n", ((float) (snake_time)) / (float) (1000*1000*Nf));
-} static void ellipsetrack84_hclib_async(void *____arg, const int ___iter) {
-    ellipsetrack84 *ctx = (ellipsetrack84 *)____arg;
+} static void pragma84_hclib_async(void *____arg, const int ___iter) {
+    pragma84 *ctx = (pragma84 *)____arg;
     avi_t *video; video = ctx->video;
     double *xc0; xc0 = ctx->xc0;
     double *yc0; yc0 = ctx->yc0;
@@ -283,7 +283,7 @@ free(ctx);
 			// Free temporary memory
 			m_free(IMGVF);
 			free(ri);
-	    }    } while (0);
+	    } ;     } while (0);
     ; hclib_end_finish();
 }
 

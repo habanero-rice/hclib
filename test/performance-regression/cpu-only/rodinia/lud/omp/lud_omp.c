@@ -32,7 +32,7 @@ void lud_diagonal_omp (float* a, int size, int offset)
 }
 
 // implements block LU factorization 
-typedef struct _lud_omp50 {
+typedef struct _pragma52 {
     float *a;
     int size;
     int offset;
@@ -40,9 +40,9 @@ typedef struct _lud_omp50 {
     int size_inter;
     int chunks_in_inter_row;
     int chunks_per_inter;
- } lud_omp50;
+ } pragma52;
 
-typedef struct _lud_omp104 {
+typedef struct _pragma104 {
     float *a;
     int size;
     int offset;
@@ -50,9 +50,19 @@ typedef struct _lud_omp104 {
     int size_inter;
     int chunks_in_inter_row;
     int chunks_per_inter;
- } lud_omp104;
+ } pragma104;
 
-static void lud_omp50_hclib_async(void *____arg, const int ___iter);static void lud_omp104_hclib_async(void *____arg, const int ___iter);void lud_omp(float *a, int size)
+static void pragma52_hclib_async(void *____arg, const int ___iter);
+static void pragma104_hclib_async(void *____arg, const int ___iter);
+typedef struct _main_entrypoint_ctx {
+    float *a;
+    int size;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    float *a; a = ctx->a;
+    int size; size = ctx->size;
 {
     int offset, chunk_idx, size_inter, chunks_in_inter_row, chunks_per_inter;
 
@@ -67,8 +77,8 @@ static void lud_omp50_hclib_async(void *____arg, const int ___iter);static void 
         
         // calculate perimeter block matrices
         // 
-         { 
-lud_omp50 *ctx = (lud_omp50 *)malloc(sizeof(lud_omp50));
+ { 
+pragma52 *ctx = (pragma52 *)malloc(sizeof(pragma52));
 ctx->a = a;
 ctx->size = size;
 ctx->offset = offset;
@@ -81,7 +91,7 @@ domain.low = 0;
 domain.high = chunks_in_inter_row;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)lud_omp50_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma52_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
@@ -90,8 +100,8 @@ free(ctx);
         //
         chunks_per_inter = chunks_in_inter_row*chunks_in_inter_row;
 
-         { 
-lud_omp104 *ctx = (lud_omp104 *)malloc(sizeof(lud_omp104));
+ { 
+pragma104 *ctx = (pragma104 *)malloc(sizeof(pragma104));
 ctx->a = a;
 ctx->size = size;
 ctx->offset = offset;
@@ -104,15 +114,25 @@ domain.low = 0;
 domain.high = chunks_per_inter;
 domain.stride = 1;
 domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)lud_omp104_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma104_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(ctx);
  } 
     }
 
     lud_diagonal_omp(a, size, offset);
-} static void lud_omp50_hclib_async(void *____arg, const int ___iter) {
-    lud_omp50 *ctx = (lud_omp50 *)____arg;
+    } ; }
+
+void lud_omp(float *a, int size)
+{
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->a = a;
+ctx->size = size;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+
+}  static void pragma52_hclib_async(void *____arg, const int ___iter) {
+    pragma52 *ctx = (pragma52 *)____arg;
     float *a; a = ctx->a;
     int size; size = ctx->size;
     int offset; offset = ctx->offset;
@@ -129,8 +149,7 @@ free(ctx);
             float temp[BS*BS] __attribute__ ((aligned (64)));
 
             for (i = 0; i < BS; i++) {
-                #pragma omp simd
-                for (j =0; j < BS; j++){
+for (j =0; j < BS; j++){
                     temp[i*BS + j] = a[size*(i + offset) + offset + j ];
                 }
             }
@@ -168,12 +187,12 @@ free(ctx);
                 }
             }
 
-        }    } while (0);
+        } ;     } while (0);
     ; hclib_end_finish();
 }
 
-static void lud_omp104_hclib_async(void *____arg, const int ___iter) {
-    lud_omp104 *ctx = (lud_omp104 *)____arg;
+static void pragma104_hclib_async(void *____arg, const int ___iter) {
+    pragma104 *ctx = (pragma104 *)____arg;
     float *a; a = ctx->a;
     int size; size = ctx->size;
     int offset; offset = ctx->offset;
@@ -194,8 +213,7 @@ static void lud_omp104_hclib_async(void *____arg, const int ___iter) {
             j_global = offset + BS * (1 + chunk_idx%chunks_in_inter_row);
 
             for (i = 0; i < BS; i++) {
-#pragma omp simd
-                for (j =0; j < BS; j++){
+for (j =0; j < BS; j++){
                     temp_top[i*BS + j]  = a[size*(i + offset) + j + j_global ];
                     temp_left[i*BS + j] = a[size*(i + i_global) + offset + j];
                 }
@@ -204,18 +222,16 @@ static void lud_omp104_hclib_async(void *____arg, const int ___iter) {
             for (i = 0; i < BS; i++)
             {
                 for (k=0; k < BS; k++) {
-#pragma omp simd 
-                    for (j = 0; j < BS; j++) {
+for (j = 0; j < BS; j++) {
                         sum[j] += temp_left[BS*i + k] * temp_top[BS*k + j];
                     }
                 }
-#pragma omp simd 
-                for (j = 0; j < BS; j++) {
+for (j = 0; j < BS; j++) {
                     BB((i+i_global),(j+j_global)) -= sum[j];
                     sum[j] = 0.f;
                 }
             }
-        }    } while (0);
+        } ;     } while (0);
     ; hclib_end_finish();
 }
 

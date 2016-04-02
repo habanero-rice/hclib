@@ -48,7 +48,7 @@ int num_omp_threads;
  * advances the solution of the discretized difference equations 
  * by one time step
  */
-typedef struct _single_iteration62 {
+typedef struct _pragma63 {
     FLOAT *result;
     FLOAT *temp;
     FLOAT *power;
@@ -66,10 +66,51 @@ typedef struct _single_iteration62 {
     int num_chunk;
     int chunks_in_row;
     int chunks_in_col;
- } single_iteration62;
+ } pragma63;
 
-static void single_iteration62_hclib_async(void *arg, const int ___iter) {
-    single_iteration62 *ctx = (single_iteration62 *)arg;
+static void pragma63_hclib_async(void *____arg, const int ___iter);
+void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col,
+					  FLOAT Cap_1, FLOAT Rx_1, FLOAT Ry_1, FLOAT Rz_1, 
+					  FLOAT step)
+{
+    FLOAT delta;
+    int r, c;
+    int chunk;
+    int num_chunk = row*col / (BLOCK_SIZE_R * BLOCK_SIZE_C);
+    int chunks_in_row = col/BLOCK_SIZE_C;
+    int chunks_in_col = row/BLOCK_SIZE_R;
+
+	// omp_set_num_threads(num_omp_threads);
+ { 
+pragma63 *ctx = (pragma63 *)malloc(sizeof(pragma63));
+ctx->result = result;
+ctx->temp = temp;
+ctx->power = power;
+ctx->row = row;
+ctx->col = col;
+ctx->Cap_1 = Cap_1;
+ctx->Rx_1 = Rx_1;
+ctx->Ry_1 = Ry_1;
+ctx->Rz_1 = Rz_1;
+ctx->step = step;
+ctx->delta = delta;
+ctx->r = r;
+ctx->c = c;
+ctx->chunk = chunk;
+ctx->num_chunk = num_chunk;
+ctx->chunks_in_row = chunks_in_row;
+ctx->chunks_in_col = chunks_in_col;
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = num_chunk;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma63_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ } 
+} static void pragma63_hclib_async(void *____arg, const int ___iter) {
+    pragma63 *ctx = (pragma63 *)____arg;
     FLOAT *result; result = ctx->result;
     FLOAT *temp; temp = ctx->temp;
     FLOAT *power; power = ctx->power;
@@ -156,7 +197,7 @@ static void single_iteration62_hclib_async(void *arg, const int ___iter) {
         }
 
         for ( r = r_start; r < r_start + BLOCK_SIZE_R; ++r ) {
-            for ( c = c_start; c < c_start + BLOCK_SIZE_C; ++c ) {
+for ( c = c_start; c < c_start + BLOCK_SIZE_C; ++c ) {
             /* Update Temperatures */
                 result[r*col+c] =temp[r*col+c]+ 
                      ( Cap_1 * (power[r*col+c] + 
@@ -165,51 +206,11 @@ static void single_iteration62_hclib_async(void *arg, const int ___iter) {
                     (amb_temp - temp[r*col+c]) * Rz_1));
             }
         }
-    }    } while (0);
-    hclib_end_finish();
+    } ;     } while (0);
+    ; hclib_end_finish();
 }
 
-void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col,
-					  FLOAT Cap_1, FLOAT Rx_1, FLOAT Ry_1, FLOAT Rz_1, 
-					  FLOAT step)
-{
-    FLOAT delta;
-    int r, c;
-    int chunk;
-    int num_chunk = row*col / (BLOCK_SIZE_R * BLOCK_SIZE_C);
-    int chunks_in_row = col/BLOCK_SIZE_C;
-    int chunks_in_col = row/BLOCK_SIZE_R;
 
-	// omp_set_num_threads(num_omp_threads);
-     { 
-single_iteration62 *ctx = (single_iteration62 *)malloc(sizeof(single_iteration62));
-ctx->result = result;
-ctx->temp = temp;
-ctx->power = power;
-ctx->row = row;
-ctx->col = col;
-ctx->Cap_1 = Cap_1;
-ctx->Rx_1 = Rx_1;
-ctx->Ry_1 = Ry_1;
-ctx->Rz_1 = Rz_1;
-ctx->step = step;
-ctx->delta = delta;
-ctx->r = r;
-ctx->c = c;
-ctx->chunk = chunk;
-ctx->num_chunk = num_chunk;
-ctx->chunks_in_row = chunks_in_row;
-ctx->chunks_in_col = chunks_in_col;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = num_chunk;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)single_iteration62_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
-hclib_future_wait(fut);
-free(ctx);
- } 
-}
 
 /* Transient solver driver routine: simply converts the heat 
  * transfer differential equations to difference equations 
@@ -324,6 +325,39 @@ void usage(int argc, char **argv)
 	exit(1);
 }
 
+typedef struct _main_entrypoint_ctx {
+    int argc;
+    char **argv;
+    int grid_rows;
+    int grid_cols;
+    int sim_time;
+    int i;
+    FLOAT *temp;
+    FLOAT *power;
+    FLOAT *result;
+    char *tfile;
+    char *pfile;
+    char *ofile;
+    long long start_time;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int argc; argc = ctx->argc;
+    char **argv; argv = ctx->argv;
+    int grid_rows; grid_rows = ctx->grid_rows;
+    int grid_cols; grid_cols = ctx->grid_cols;
+    int sim_time; sim_time = ctx->sim_time;
+    int i; i = ctx->i;
+    FLOAT *temp; temp = ctx->temp;
+    FLOAT *power; power = ctx->power;
+    FLOAT *result; result = ctx->result;
+    char *tfile; tfile = ctx->tfile;
+    char *pfile; pfile = ctx->pfile;
+    char *ofile; ofile = ctx->ofile;
+    long long start_time; start_time = ctx->start_time;
+compute_tran_temp(result,sim_time, temp, power, grid_rows, grid_cols) ; }
+
 int main(int argc, char **argv)
 {
 	int grid_rows, grid_cols, sim_time, i;
@@ -359,7 +393,23 @@ int main(int argc, char **argv)
 	
     long long start_time = get_time();
 
-    compute_tran_temp(result,sim_time, temp, power, grid_rows, grid_cols);
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->argc = argc;
+ctx->argv = argv;
+ctx->grid_rows = grid_rows;
+ctx->grid_cols = grid_cols;
+ctx->sim_time = sim_time;
+ctx->i = i;
+ctx->temp = temp;
+ctx->power = power;
+ctx->result = result;
+ctx->tfile = tfile;
+ctx->pfile = pfile;
+ctx->ofile = ofile;
+ctx->start_time = start_time;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+;
 
     long long end_time = get_time();
 
@@ -382,5 +432,5 @@ int main(int argc, char **argv)
 	free(power);
 
 	return 0;
-}
+} 
 /* vim: set ts=4 sw=4  sts=4 et si ai: */

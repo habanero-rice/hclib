@@ -38,7 +38,7 @@ extern "C" {
 //	PLASMAKERNEL_GPU
 //========================================================================================================================================================================================================200
 
-typedef struct _kernel_cpu111 {
+typedef struct _pragma114 {
     par_str par;
     dim_str dim;
     box_str *box;
@@ -71,9 +71,130 @@ typedef struct _kernel_cpu111 {
     double fyij;
     double fzij;
     THREE_VECTOR d;
- } kernel_cpu111;
+ } pragma114;
 
-static void kernel_cpu111_hclib_async(void *____arg, const int ___iter);void  kernel_cpu(	par_str par, 
+static void pragma114_hclib_async(void *____arg, const int ___iter);
+typedef struct _main_entrypoint_ctx {
+    par_str par;
+    dim_str dim;
+    box_str *box;
+    FOUR_VECTOR *rv;
+    double *qv;
+    FOUR_VECTOR *fv;
+    long long time0;
+    long long time1;
+    long long time2;
+    long long time3;
+    long long time4;
+    double alpha;
+    double a2;
+    int i;
+    int j;
+    int k;
+    int l;
+    long first_i;
+    FOUR_VECTOR *rA;
+    FOUR_VECTOR *fA;
+    int pointer;
+    long first_j;
+    FOUR_VECTOR *rB;
+    double *qB;
+    double r2;
+    double u2;
+    double fs;
+    double vij;
+    double fxij;
+    double fyij;
+    double fzij;
+    THREE_VECTOR d;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    par_str par; par = ctx->par;
+    dim_str dim; dim = ctx->dim;
+    box_str *box; box = ctx->box;
+    FOUR_VECTOR *rv; rv = ctx->rv;
+    double *qv; qv = ctx->qv;
+    FOUR_VECTOR *fv; fv = ctx->fv;
+    long long time0; time0 = ctx->time0;
+    long long time1; time1 = ctx->time1;
+    long long time2; time2 = ctx->time2;
+    long long time3; time3 = ctx->time3;
+    long long time4; time4 = ctx->time4;
+    double alpha; alpha = ctx->alpha;
+    double a2; a2 = ctx->a2;
+    int i; i = ctx->i;
+    int j; j = ctx->j;
+    int k; k = ctx->k;
+    int l; l = ctx->l;
+    long first_i; first_i = ctx->first_i;
+    FOUR_VECTOR *rA; rA = ctx->rA;
+    FOUR_VECTOR *fA; fA = ctx->fA;
+    int pointer; pointer = ctx->pointer;
+    long first_j; first_j = ctx->first_j;
+    FOUR_VECTOR *rB; rB = ctx->rB;
+    double *qB; qB = ctx->qB;
+    double r2; r2 = ctx->r2;
+    double u2; u2 = ctx->u2;
+    double fs; fs = ctx->fs;
+    double vij; vij = ctx->vij;
+    double fxij; fxij = ctx->fxij;
+    double fyij; fyij = ctx->fyij;
+    double fzij; fzij = ctx->fzij;
+    THREE_VECTOR d; d = ctx->d;
+{
+
+	//======================================================================================================================================================150
+	//	PROCESS INTERACTIONS
+	//======================================================================================================================================================150
+
+ { 
+pragma114 *ctx = (pragma114 *)malloc(sizeof(pragma114));
+ctx->par = par;
+ctx->dim = dim;
+ctx->box = box;
+ctx->rv = rv;
+ctx->qv = qv;
+ctx->fv = fv;
+ctx->time0 = time0;
+ctx->time1 = time1;
+ctx->time2 = time2;
+ctx->time3 = time3;
+ctx->time4 = time4;
+ctx->alpha = alpha;
+ctx->a2 = a2;
+ctx->i = i;
+ctx->j = j;
+ctx->k = k;
+ctx->l = l;
+ctx->first_i = first_i;
+ctx->rA = rA;
+ctx->fA = fA;
+ctx->pointer = pointer;
+ctx->first_j = first_j;
+ctx->rB = rB;
+ctx->qB = qB;
+ctx->r2 = r2;
+ctx->u2 = u2;
+ctx->fs = fs;
+ctx->vij = vij;
+ctx->fxij = fxij;
+ctx->fyij = fyij;
+ctx->fzij = fzij;
+ctx->d = d;
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = dim.number_boxes;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma114_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ }  // for l
+    } ; }
+
+void  kernel_cpu(	par_str par, 
 					dim_str dim,
 					box_str* box,
 					FOUR_VECTOR* rv,
@@ -139,12 +260,7 @@ static void kernel_cpu111_hclib_async(void *____arg, const int ___iter);void  ke
 
 	time3 = get_time();
 
-	//======================================================================================================================================================150
-	//	PROCESS INTERACTIONS
-	//======================================================================================================================================================150
-
-	 { 
-kernel_cpu111 *ctx = (kernel_cpu111 *)malloc(sizeof(kernel_cpu111));
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->par = par;
 ctx->dim = dim;
 ctx->box = box;
@@ -177,15 +293,9 @@ ctx->fxij = fxij;
 ctx->fyij = fyij;
 ctx->fzij = fzij;
 ctx->d = d;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = dim.number_boxes;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)kernel_cpu111_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
-hclib_future_wait(fut);
+hclib_launch(main_entrypoint, ctx);
 free(ctx);
- }  // for l
+
 
 	time4 = get_time();
 
@@ -203,8 +313,8 @@ free(ctx);
 	printf("Total time:\n");
 	printf("%.12f s\n", 												(float) (time4-time0) / 1000000);
 
-} static void kernel_cpu111_hclib_async(void *____arg, const int ___iter) {
-    kernel_cpu111 *ctx = (kernel_cpu111 *)____arg;
+}  static void pragma114_hclib_async(void *____arg, const int ___iter) {
+    pragma114 *ctx = (pragma114 *)____arg;
     par_str par; par = ctx->par;
     dim_str dim; dim = ctx->dim;
     box_str *box; box = ctx->box;
@@ -319,7 +429,7 @@ free(ctx);
 
 		} // for k
 
-	}    } while (0);
+	} ;     } while (0);
     ; hclib_end_finish();
 }
 

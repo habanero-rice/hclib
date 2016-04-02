@@ -93,7 +93,7 @@ void usage(int argc, char **argv)
 	exit(1);
 }
 
-typedef struct _nw_optimized100 {
+typedef struct _pragma101 {
     int *input_itemsets;
     int *output_itemsets;
     int *referrence;
@@ -101,9 +101,9 @@ typedef struct _nw_optimized100 {
     int max_cols;
     int penalty;
     int blk;
- } nw_optimized100;
+ } pragma101;
 
-typedef struct _nw_optimized155 {
+typedef struct _pragma153 {
     int *input_itemsets;
     int *output_itemsets;
     int *referrence;
@@ -111,10 +111,61 @@ typedef struct _nw_optimized155 {
     int max_cols;
     int penalty;
     int blk;
- } nw_optimized155;
+ } pragma153;
 
-static void nw_optimized100_hclib_async(void *arg, const int ___iter) {
-    nw_optimized100 *ctx = (nw_optimized100 *)arg;
+static void pragma101_hclib_async(void *____arg, const int ___iter);
+static void pragma153_hclib_async(void *____arg, const int ___iter);
+void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
+        int max_rows, int max_cols, int penalty)
+{
+    for( int blk = 1; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
+    {
+ { 
+pragma101 *ctx = (pragma101 *)malloc(sizeof(pragma101));
+ctx->input_itemsets = input_itemsets;
+ctx->output_itemsets = output_itemsets;
+ctx->referrence = referrence;
+ctx->max_rows = max_rows;
+ctx->max_cols = max_cols;
+ctx->penalty = penalty;
+ctx->blk = blk;
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = blk;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma101_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ } 
+    }    
+        
+    printf("Processing bottom-right matrix\n");
+
+    for ( int blk = 2; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
+    {
+ { 
+pragma153 *ctx = (pragma153 *)malloc(sizeof(pragma153));
+ctx->input_itemsets = input_itemsets;
+ctx->output_itemsets = output_itemsets;
+ctx->referrence = referrence;
+ctx->max_rows = max_rows;
+ctx->max_cols = max_cols;
+ctx->penalty = penalty;
+ctx->blk = blk;
+hclib_loop_domain_t domain;
+domain.low = blk - 1;
+domain.high = (max_cols - 1) / 16;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma153_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ } 
+    }
+
+} static void pragma101_hclib_async(void *____arg, const int ___iter) {
+    pragma101 *ctx = (pragma101 *)____arg;
     int *input_itemsets; input_itemsets = ctx->input_itemsets;
     int *output_itemsets; output_itemsets = ctx->output_itemsets;
     int *referrence; referrence = ctx->referrence;
@@ -133,7 +184,7 @@ static void nw_optimized100_hclib_async(void *arg, const int ___iter) {
             // Copy referrence to local memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     reference_l[i*BLOCK_SIZE + j] = referrence[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1];
                 }
@@ -142,7 +193,7 @@ static void nw_optimized100_hclib_async(void *arg, const int ___iter) {
             // Copy input_itemsets to local memory
             for ( int i = 0; i < BLOCK_SIZE + 1; ++i )
             {
-                for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
+for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
                 {
                     input_itemsets_l[i*(BLOCK_SIZE + 1) + j] = input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i) + b_index_x*BLOCK_SIZE +  j];
                 }
@@ -162,18 +213,18 @@ static void nw_optimized100_hclib_async(void *arg, const int ___iter) {
             // Copy results to global memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1] = input_itemsets_l[(i + 1)*(BLOCK_SIZE+1) + j + 1];
                 }
             }
             
-        }    } while (0);
-    hclib_end_finish();
+        } ;     } while (0);
+    ; hclib_end_finish();
 }
 
-static void nw_optimized155_hclib_async(void *arg, const int ___iter) {
-    nw_optimized155 *ctx = (nw_optimized155 *)arg;
+static void pragma153_hclib_async(void *____arg, const int ___iter) {
+    pragma153 *ctx = (pragma153 *)____arg;
     int *input_itemsets; input_itemsets = ctx->input_itemsets;
     int *output_itemsets; output_itemsets = ctx->output_itemsets;
     int *referrence; referrence = ctx->referrence;
@@ -193,7 +244,7 @@ static void nw_optimized155_hclib_async(void *arg, const int ___iter) {
             // Copy referrence to local memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     reference_l[i*BLOCK_SIZE + j] = referrence[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1];
                 }
@@ -202,7 +253,7 @@ static void nw_optimized155_hclib_async(void *arg, const int ___iter) {
             // Copy input_itemsets to local memory
             for ( int i = 0; i < BLOCK_SIZE + 1; ++i )
             {
-                for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
+for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
                 {
                     input_itemsets_l[i*(BLOCK_SIZE + 1) + j] = input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i) + b_index_x*BLOCK_SIZE +  j];
                 }
@@ -222,65 +273,16 @@ static void nw_optimized155_hclib_async(void *arg, const int ___iter) {
             // Copy results to global memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1] = input_itemsets_l[(i + 1)*(BLOCK_SIZE+1) + j +1];
                 }
             }
-        }    } while (0);
-    hclib_end_finish();
+        } ;     } while (0);
+    ; hclib_end_finish();
 }
 
-void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
-        int max_rows, int max_cols, int penalty)
-{
-    for( int blk = 1; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
-    {
-         { 
-nw_optimized100 *ctx = (nw_optimized100 *)malloc(sizeof(nw_optimized100));
-ctx->input_itemsets = input_itemsets;
-ctx->output_itemsets = output_itemsets;
-ctx->referrence = referrence;
-ctx->max_rows = max_rows;
-ctx->max_cols = max_cols;
-ctx->penalty = penalty;
-ctx->blk = blk;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = blk;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)nw_optimized100_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
-hclib_future_wait(fut);
-free(ctx);
- } 
-    }    
-        
-    printf("Processing bottom-right matrix\n");
 
-    for ( int blk = 2; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
-    {
-         { 
-nw_optimized155 *ctx = (nw_optimized155 *)malloc(sizeof(nw_optimized155));
-ctx->input_itemsets = input_itemsets;
-ctx->output_itemsets = output_itemsets;
-ctx->referrence = referrence;
-ctx->max_rows = max_rows;
-ctx->max_cols = max_cols;
-ctx->penalty = penalty;
-ctx->blk = blk;
-hclib_loop_domain_t domain;
-domain.low = blk - 1;
-domain.high = (max_cols - 1) / 16;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)nw_optimized155_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
-hclib_future_wait(fut);
-free(ctx);
- } 
-    }
-
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Run a simple test for CUDA
@@ -298,8 +300,8 @@ typedef struct _main_entrypoint_ctx {
     long long start_time;
  } main_entrypoint_ctx;
 
-static void main_entrypoint(void *arg) {
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)arg;
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
     int argc; argc = ctx->argc;
     char **argv; argv = ctx->argv;
     int max_rows; max_rows = ctx->max_rows;
@@ -311,7 +313,7 @@ static void main_entrypoint(void *arg) {
     int omp_num_threads; omp_num_threads = ctx->omp_num_threads;
     long long start_time; start_time = ctx->start_time;
 nw_optimized( input_itemsets, output_itemsets, referrence,
-        max_rows, max_cols, penalty ); }
+        max_rows, max_cols, penalty ) ; }
 
 void
 runTest( int argc, char** argv) 
@@ -380,9 +382,8 @@ runTest( int argc, char** argv)
     printf("Processing top-left matrix\n");
    
     long long start_time = get_time();
-#pragma omp_to_hclib body_start
 
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->argc = argc;
 ctx->argv = argv;
 ctx->max_rows = max_rows;
@@ -397,7 +398,6 @@ hclib_launch(main_entrypoint, ctx);
 free(ctx);
 ;
 
-#pragma omp_to_hclib body_end
     long long end_time = get_time();
 
     printf("Total time: %.3f seconds\n", ((float) (end_time - start_time)) / (1000*1000));
@@ -467,7 +467,7 @@ free(ctx);
     free(input_itemsets);
     free(output_itemsets);
 
-}
+} 
 
 
 

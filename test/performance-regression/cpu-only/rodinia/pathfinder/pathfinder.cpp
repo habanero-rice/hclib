@@ -79,7 +79,7 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
-typedef struct _run99 {
+typedef struct _pragma101 {
     int argc;
     char **argv;
     unsigned long long cycles;
@@ -88,10 +88,97 @@ typedef struct _run99 {
     int *temp;
     int min;
     int t;
- } run99;
+ } pragma101;
 
-static void run99_hclib_async(void *arg, const int ___iter) {
-    run99 *ctx = (run99 *)arg;
+static void pragma101_hclib_async(void *____arg, const int ___iter);
+typedef struct _main_entrypoint_ctx {
+    int argc;
+    char **argv;
+    unsigned long long cycles;
+    int *src;
+    int *dst;
+    int *temp;
+    int min;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int argc; argc = ctx->argc;
+    char **argv; argv = ctx->argv;
+    unsigned long long cycles; cycles = ctx->cycles;
+    int *src; src = ctx->src;
+    int *dst; dst = ctx->dst;
+    int *temp; temp = ctx->temp;
+    int min; min = ctx->min;
+for (int t = 0; t < rows-1; t++) {
+        temp = src;
+        src = dst;
+        dst = temp;
+ { 
+pragma101 *ctx = (pragma101 *)malloc(sizeof(pragma101));
+ctx->argc = argc;
+ctx->argv = argv;
+ctx->cycles = cycles;
+ctx->src = src;
+ctx->dst = dst;
+ctx->temp = temp;
+ctx->min = min;
+ctx->t = t;
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = cols;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma101_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ } 
+    } ; }
+
+void run(int argc, char** argv)
+{
+    init(argc, argv);
+
+    unsigned long long cycles;
+
+    int *src, *dst, *temp;
+    int min;
+
+    dst = result;
+    src = new int[cols];
+
+    pin_stats_reset();
+
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->argc = argc;
+ctx->argv = argv;
+ctx->cycles = cycles;
+ctx->src = src;
+ctx->dst = dst;
+ctx->temp = temp;
+ctx->min = min;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+
+
+    pin_stats_pause(cycles);
+    pin_stats_dump(cycles);
+
+#ifdef BENCH_PRINT
+    for (int i = 0; i < cols; i++)
+            printf("%d ",data[i]) ;
+    printf("\n") ;
+    for (int i = 0; i < cols; i++)
+            printf("%d ",dst[i]) ;
+    printf("\n") ;
+#endif
+
+    delete [] data;
+    delete [] wall;
+    delete [] dst;
+    delete [] src;
+}  static void pragma101_hclib_async(void *____arg, const int ___iter) {
+    pragma101 *ctx = (pragma101 *)____arg;
     int argc; argc = ctx->argc;
     char **argv; argv = ctx->argv;
     unsigned long long cycles; cycles = ctx->cycles;
@@ -110,96 +197,9 @@ static void run99_hclib_async(void *arg, const int ___iter) {
           if (n < cols-1)
             min = MIN(min, src[n+1]);
           dst[n] = wall[t+1][n]+min;
-        }    } while (0);
-    hclib_end_finish();
+        } ;     } while (0);
+    ; hclib_end_finish();
 }
 
-typedef struct _main_entrypoint_ctx {
-    int argc;
-    char **argv;
-    unsigned long long cycles;
-    int *src;
-    int *dst;
-    int *temp;
-    int min;
- } main_entrypoint_ctx;
 
-static void main_entrypoint(void *arg) {
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    unsigned long long cycles; cycles = ctx->cycles;
-    int *src; src = ctx->src;
-    int *dst; dst = ctx->dst;
-    int *temp; temp = ctx->temp;
-    int min; min = ctx->min;
-for (int t = 0; t < rows-1; t++) {
-        temp = src;
-        src = dst;
-        dst = temp;
-         { 
-run99 *ctx = (run99 *)malloc(sizeof(run99));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->cycles = cycles;
-ctx->src = src;
-ctx->dst = dst;
-ctx->temp = temp;
-ctx->min = min;
-ctx->t = t;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = cols;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)run99_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
-hclib_future_wait(fut);
-free(ctx);
- } 
-    }; }
-
-void run(int argc, char** argv)
-{
-    init(argc, argv);
-
-    unsigned long long cycles;
-
-    int *src, *dst, *temp;
-    int min;
-
-    dst = result;
-    src = new int[cols];
-
-    pin_stats_reset();
-#pragma omp_to_hclib body_start
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->cycles = cycles;
-ctx->src = src;
-ctx->dst = dst;
-ctx->temp = temp;
-ctx->min = min;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
-
-#pragma omp_to_hclib body_end
-
-    pin_stats_pause(cycles);
-    pin_stats_dump(cycles);
-
-#ifdef BENCH_PRINT
-    for (int i = 0; i < cols; i++)
-            printf("%d ",data[i]) ;
-    printf("\n") ;
-    for (int i = 0; i < cols; i++)
-            printf("%d ",dst[i]) ;
-    printf("\n") ;
-#endif
-
-    delete [] data;
-    delete [] wall;
-    delete [] dst;
-    delete [] src;
-}
 

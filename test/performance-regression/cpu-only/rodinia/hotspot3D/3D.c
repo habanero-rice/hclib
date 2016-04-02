@@ -132,7 +132,7 @@ float accuracy(float *arr1, float *arr2, int len)
 
 
 }
-typedef struct _computeTempOMP157 {
+typedef struct _pragma158 {
     float *pIn;
     float *tIn;
     float *tOut;
@@ -157,10 +157,76 @@ typedef struct _computeTempOMP157 {
     float *tIn_t;
     float *tOut_t;
     int z;
- } computeTempOMP157;
+ } pragma158;
 
-static void computeTempOMP157_hclib_async(void *arg, const int ___iter) {
-    computeTempOMP157 *ctx = (computeTempOMP157 *)arg;
+static void pragma158_hclib_async(void *____arg, const int ___iter);
+void computeTempOMP(float *pIn, float* tIn, float *tOut, 
+        int nx, int ny, int nz, float Cap, 
+        float Rx, float Ry, float Rz, 
+        float dt, int numiter) 
+{  
+
+    float ce, cw, cn, cs, ct, cb, cc;
+
+    float stepDivCap = dt / Cap;
+    ce = cw =stepDivCap/ Rx;
+    cn = cs =stepDivCap/ Ry;
+    ct = cb =stepDivCap/ Rz;
+
+    cc = 1.0 - (2.0*ce + 2.0*cn + 3.0*ct);
+
+
+    {
+        int count = 0;
+        float *tIn_t = tIn;
+        float *tOut_t = tOut;
+
+        do {
+            int z; 
+ { 
+pragma158 *ctx = (pragma158 *)malloc(sizeof(pragma158));
+ctx->pIn = pIn;
+ctx->tIn = tIn;
+ctx->tOut = tOut;
+ctx->nx = nx;
+ctx->ny = ny;
+ctx->nz = nz;
+ctx->Cap = Cap;
+ctx->Rx = Rx;
+ctx->Ry = Ry;
+ctx->Rz = Rz;
+ctx->dt = dt;
+ctx->numiter = numiter;
+ctx->ce = ce;
+ctx->cw = cw;
+ctx->cn = cn;
+ctx->cs = cs;
+ctx->ct = ct;
+ctx->cb = cb;
+ctx->cc = cc;
+ctx->stepDivCap = stepDivCap;
+ctx->count = count;
+ctx->tIn_t = tIn_t;
+ctx->tOut_t = tOut_t;
+ctx->z = z;
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = nz;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma158_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ } 
+            float *t = tIn_t;
+            tIn_t = tOut_t;
+            tOut_t = t; 
+            count++;
+        } while (count < numiter);
+    } 
+    return; 
+} static void pragma158_hclib_async(void *____arg, const int ___iter) {
+    pragma158 *ctx = (pragma158 *)____arg;
     float *pIn; pIn = ctx->pIn;
     float *tIn; tIn = ctx->tIn;
     float *tOut; tOut = ctx->tOut;
@@ -205,76 +271,11 @@ static void computeTempOMP157_hclib_async(void *arg, const int ___iter) {
                             + cs * tIn_t[s] + cn * tIn_t[n] + cb * tIn_t[b] + ct * tIn_t[t]+(dt/Cap) * pIn[c] + ct*amb_temp;
                     }
                 }
-            }    } while (0);
-    hclib_end_finish();
+            } ;     } while (0);
+    ; hclib_end_finish();
 }
 
-void computeTempOMP(float *pIn, float* tIn, float *tOut, 
-        int nx, int ny, int nz, float Cap, 
-        float Rx, float Ry, float Rz, 
-        float dt, int numiter) 
-{  
-
-    float ce, cw, cn, cs, ct, cb, cc;
-
-    float stepDivCap = dt / Cap;
-    ce = cw =stepDivCap/ Rx;
-    cn = cs =stepDivCap/ Ry;
-    ct = cb =stepDivCap/ Rz;
-
-    cc = 1.0 - (2.0*ce + 2.0*cn + 3.0*ct);
-
-
-    {
-        int count = 0;
-        float *tIn_t = tIn;
-        float *tOut_t = tOut;
-
-        do {
-            int z; 
-             { 
-computeTempOMP157 *ctx = (computeTempOMP157 *)malloc(sizeof(computeTempOMP157));
-ctx->pIn = pIn;
-ctx->tIn = tIn;
-ctx->tOut = tOut;
-ctx->nx = nx;
-ctx->ny = ny;
-ctx->nz = nz;
-ctx->Cap = Cap;
-ctx->Rx = Rx;
-ctx->Ry = Ry;
-ctx->Rz = Rz;
-ctx->dt = dt;
-ctx->numiter = numiter;
-ctx->ce = ce;
-ctx->cw = cw;
-ctx->cn = cn;
-ctx->cs = cs;
-ctx->ct = ct;
-ctx->cb = cb;
-ctx->cc = cc;
-ctx->stepDivCap = stepDivCap;
-ctx->count = count;
-ctx->tIn_t = tIn_t;
-ctx->tOut_t = tOut_t;
-ctx->z = z;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = nz;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)computeTempOMP157_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
-hclib_future_wait(fut);
-free(ctx);
- } 
-            float *t = tIn_t;
-            tIn_t = tOut_t;
-            tOut_t = t; 
-            count++;
-        } while (count < numiter);
-    } 
-    return; 
-} 
+ 
 
 void usage(int argc, char **argv)
 {
@@ -290,6 +291,73 @@ void usage(int argc, char **argv)
 }
 
 
+
+typedef struct _main_entrypoint_ctx {
+    int argc;
+    char **argv;
+    char *pfile;
+    char *tfile;
+    char *ofile;
+    int iterations;
+    int numCols;
+    int numRows;
+    int layers;
+    float dx;
+    float dy;
+    float dz;
+    float Cap;
+    float Rx;
+    float Ry;
+    float Rz;
+    float max_slope;
+    float dt;
+    float *powerIn;
+    float *tempOut;
+    float *tempIn;
+    float *tempCopy;
+    int size;
+    float *answer;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int argc; argc = ctx->argc;
+    char **argv; argv = ctx->argv;
+    char *pfile; pfile = ctx->pfile;
+    char *tfile; tfile = ctx->tfile;
+    char *ofile; ofile = ctx->ofile;
+    int iterations; iterations = ctx->iterations;
+    int numCols; numCols = ctx->numCols;
+    int numRows; numRows = ctx->numRows;
+    int layers; layers = ctx->layers;
+    float dx; dx = ctx->dx;
+    float dy; dy = ctx->dy;
+    float dz; dz = ctx->dz;
+    float Cap; Cap = ctx->Cap;
+    float Rx; Rx = ctx->Rx;
+    float Ry; Ry = ctx->Ry;
+    float Rz; Rz = ctx->Rz;
+    float max_slope; max_slope = ctx->max_slope;
+    float dt; dt = ctx->dt;
+    float *powerIn; powerIn = ctx->powerIn;
+    float *tempOut; tempOut = ctx->tempOut;
+    float *tempIn; tempIn = ctx->tempIn;
+    float *tempCopy; tempCopy = ctx->tempCopy;
+    int size; size = ctx->size;
+    float *answer; answer = ctx->answer;
+{
+    struct timeval start, stop;
+    float time;
+    gettimeofday(&start,NULL);
+    computeTempOMP(powerIn, tempIn, tempOut, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt,iterations);
+    gettimeofday(&stop,NULL);
+    time = (stop.tv_usec-start.tv_usec)*1.0e-6 + stop.tv_sec - start.tv_sec;
+    computeTempCPU(powerIn, tempCopy, answer, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt,iterations);
+
+    float acc = accuracy(tempOut,answer,numRows*numCols*layers);
+    printf("Time: %.3f (s)\n",time);
+    printf("Accuracy: %e\n",acc);
+    } ; }
 
 int main(int argc, char** argv)
 {
@@ -342,21 +410,38 @@ int main(int argc, char** argv)
 
     memcpy(tempCopy,tempIn, size * sizeof(float));
 
-    struct timeval start, stop;
-    float time;
-    gettimeofday(&start,NULL);
-    computeTempOMP(powerIn, tempIn, tempOut, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt,iterations);
-    gettimeofday(&stop,NULL);
-    time = (stop.tv_usec-start.tv_usec)*1.0e-6 + stop.tv_sec - start.tv_sec;
-    computeTempCPU(powerIn, tempCopy, answer, numCols, numRows, layers, Cap, Rx, Ry, Rz, dt,iterations);
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->argc = argc;
+ctx->argv = argv;
+ctx->pfile = pfile;
+ctx->tfile = tfile;
+ctx->ofile = ofile;
+ctx->iterations = iterations;
+ctx->numCols = numCols;
+ctx->numRows = numRows;
+ctx->layers = layers;
+ctx->dx = dx;
+ctx->dy = dy;
+ctx->dz = dz;
+ctx->Cap = Cap;
+ctx->Rx = Rx;
+ctx->Ry = Ry;
+ctx->Rz = Rz;
+ctx->max_slope = max_slope;
+ctx->dt = dt;
+ctx->powerIn = powerIn;
+ctx->tempOut = tempOut;
+ctx->tempIn = tempIn;
+ctx->tempCopy = tempCopy;
+ctx->size = size;
+ctx->answer = answer;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
 
-    float acc = accuracy(tempOut,answer,numRows*numCols*layers);
-    printf("Time: %.3f (s)\n",time);
-    printf("Accuracy: %e\n",acc);
     writeoutput(tempOut,numRows, numCols, layers, ofile);
     free(tempIn);
     free(tempOut); free(powerIn);
     return 0;
-}	
+} 	
 
 
