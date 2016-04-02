@@ -61,7 +61,19 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/particlefilter/particle_filter -x 128 -y 128 -z 10 -np 10000"
         "rodinia/pathfinder/pathfinder 100000 100"
         "rodinia/srad/srad 2048 2048 0 127 0 127 2 0.5 2"
-        "rodinia/streamcluster/sc_omp 10 20 256 65536 65536 1000 none output.txt 4")
+        "rodinia/streamcluster/sc_omp 10 20 256 65536 65536 1000 none output.txt 4"
+        "bots/alignment/alignment_for/alignment.icc.for-omp-tasks -f $BOTS_ROOT/inputs/alignment/prot.100.aa"
+        "bots/alignment/alignment_single/alignment.icc.for-omp-tasks -f $BOTS_ROOT/inputs/alignment/prot.100.aa"
+        "bots/fft/fft.icc.omp-tasks"
+        "bots/fib/fib.icc.omp-tasks -n 30"
+        "bots/floorplan/floorplan.icc.omp-tasks -f $BOTS_ROOT/inputs/floorplan/input.20"
+        "bots/health/health.icc.omp-tasks -f $BOTS_ROOT/inputs/health/large.input"
+        "bots/nqueens/nqueens.icc.omp-tasks -n 13"
+        "bots/sort/sort.icc.omp-tasks -n 100000000"
+        "bots/sparselu/sparselu_for/sparselu.icc.for-omp-tasks -n 50"
+        "bots/sparselu/sparselu_single/sparselu.icc.single-omp-tasks -n 50"
+        "bots/strassen/strassen.icc.omp-tasks -n 4096"
+        "bots/uts/uts.icc.omp-tasks -f $BOTS_ROOT/inputs/uts/small.input")
 
 NTRIALS=10
 
