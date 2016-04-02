@@ -49,7 +49,7 @@ void entrypoint(void *arg) {
         argv[1] = (void *)(promise_list[index*2]);
         printf("Creating async %d await on %p will enable %p\n", index,
                 &(promise_list[(index-1)*2]), &(promise_list[index*2]));
-        hclib_async(async_fct, argv, &(future_list[(index-1)*2]), NO_PHASER,
+        hclib_async(async_fct, argv, &(future_list[(index-1)*2]),
                 ANY_PLACE);
     }
     printf("Putting in promise 0\n");

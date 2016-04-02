@@ -1088,7 +1088,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     if (profile_launch_body) {
         start_time = current_time_ns();
     }
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE);
+    hclib_async(fct_ptr, arg, NO_FUTURE, ANY_PLACE);
     hclib_finalize();
     if (profile_launch_body) {
         end_time = current_time_ns();

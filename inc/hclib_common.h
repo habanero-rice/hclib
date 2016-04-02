@@ -13,12 +13,8 @@
 #define NO_DATUM NULL
 /** @brief No promse argument provided. */
 #define NO_FUTURE NULL
-/** @brief No phaser argument provided. */
-#define NO_PHASER NULL
 /** @brief No provided place, location is up to the runtime */
 #define ANY_PLACE NULL
-/** @brief To indicate an async must register with all phasers. */
-#define PHASER_TRANSMIT_ALL ((int) 0x1) 
 /** @brief No accumulator argument provided. */
 #define NO_ACCUM NULL
 

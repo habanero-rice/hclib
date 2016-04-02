@@ -36,10 +36,9 @@ void entrypoint(void *arg) {
             assert(future_list);
             future_list[0] = prev;
             future_list[1] = NULL;
-            prev = hclib_async_future(async_fct, count, future_list, NULL,
-                    NULL);
+            prev = hclib_async_future(async_fct, count, future_list, NULL);
         } else {
-            prev = hclib_async_future(async_fct, count, NULL, NULL, NULL);
+            prev = hclib_async_future(async_fct, count, NULL, NULL);
         }
     }
     hclib_end_finish();

@@ -74,7 +74,7 @@ hclib_future_t *hclib_allocate_at(size_t nbytes, hclib_locale_t *locale) {
     ms->promise = promise;
     ms->cb = hclib_get_func_for(alloc_registrations, locale->type);
 
-    hclib_async(allocate_kernel, ms, NULL, NULL, locale);
+    hclib_async(allocate_kernel, ms, NULL, locale);
     return hclib_get_future_for_promise(promise);
 }
 
@@ -106,7 +106,7 @@ hclib_future_t *hclib_reallocate_at(void *ptr, size_t new_nbytes,
     rs->promise = promise;
     rs->cb = hclib_get_func_for(realloc_registrations, locale->type);
 
-    hclib_async(reallocate_kernel, rs, NULL, NULL, locale);
+    hclib_async(reallocate_kernel, rs, NULL, locale);
     return hclib_get_future_for_promise(promise);
 }
 
@@ -140,7 +140,7 @@ hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes,
     ms->promise = promise;
     ms->cb = hclib_get_func_for(memset_registrations, locale->type);
 
-    hclib_async(memset_kernel, ms, NULL, NULL, locale);
+    hclib_async(memset_kernel, ms, NULL, locale);
     return hclib_get_future_for_promise(promise);
 }
 
@@ -205,6 +205,6 @@ hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
     cs->promise = promise;
     cs->cb = copy_cb;
 
-    hclib_async(copy_kernel, cs, future_list, NULL, dst_locale);
+    hclib_async(copy_kernel, cs, future_list, dst_locale);
     return hclib_get_future_for_promise(promise);
 }

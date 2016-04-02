@@ -15,8 +15,7 @@ extern "C" {
 /*** START ASYNC IMPLEMENTATION ***/
 
 void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
-        struct _phased_t *phased_clause, hclib_locale_t *locale) {
-    HASSERT(phased_clause == NULL);
+        hclib_locale_t *locale) {
 
     if (future_list) {
         hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
@@ -58,13 +57,12 @@ static void future_caller(void *in) {
 }
 
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t **future_list, struct _phased_t *phased_clause,
-        hclib_locale_t *locale) {
+        hclib_future_t **future_list, hclib_locale_t *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, future_list, phased_clause, locale);
+    hclib_async(future_caller, wrapper, future_list, locale);
 
     return hclib_get_future_for_promise(&wrapper->event);
 }

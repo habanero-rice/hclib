@@ -51,9 +51,6 @@ extern "C" {
  * @{
  **/
 
-//TODO make this conditional in phased.h
-struct _phased_t;
-
 /**
  * @brief Function prototype executable by an async.
  * @param[in] arg           Arguments to the function
@@ -67,8 +64,6 @@ void hclib_launch(async_fct_t fct_ptr, void * arg);
  * Async definition and API
  */
 
-// forward declaration for phased clause defined in phased.h
-struct _phased_t;
 // forward declaration for promise_st in hclib-promise.h
 struct hclib_promise_st;
 
@@ -77,19 +72,17 @@ struct hclib_promise_st;
  * @param[in] fct_ptr           The function to execute
  * @param[in] arg               Argument to the async
  * @param[in] future_list       The list of promises the async depends on
- * @param[in] phased_clause     Phased clause to specify which phasers the async registers on
  * @param[in] property          Flag to pass information to the runtime
  */
 void hclib_async(async_fct_t fct_ptr, void * arg,
-        hclib_future_t **future_list, struct _phased_t * phased_clause,
+        hclib_future_t **future_list,
         hclib_locale_t *locale);
 
 /*
  * Spawn an async that automatically puts a promise on termination.
  */
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t **future_list, struct _phased_t *phased_clause,
-        hclib_locale_t *locale);
+        hclib_future_t **future_list, hclib_locale_t *locale);
 
 /*
  * Locale-aware memory management functions.
@@ -154,7 +147,6 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  * @param[in] forasync_fct      The function pointer to execute.
  * @param[in] argv              Argument to the function
  * @param[in] future_list       dependences 
- * @param[in] phased_clause     Phasers registration
  * @param[in] dim               Dimension of the loop
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
