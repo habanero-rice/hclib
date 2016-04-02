@@ -19,6 +19,16 @@ if [[ -z "$RODINIA_DATA_DIR" ]]; then
     exit 1
 fi
 
+if [[ -z "$BOTS_ROOT" ]]; then
+    echo BOTS_ROOT must be set to the root directory of the BOTS benchmark suite
+    exit 1
+fi
+
+NTRIALS=10
+if [[ $# -eq 1 ]]; then
+    NTRIALS=$1
+fi
+
 RUNNING_UNDER_SLURM=1
 if [[ -z "$SLURM_JOB_ID" ]]; then
     echo Not executing under SLURM
@@ -46,7 +56,7 @@ BENCHMARKS=("cilksort 100000000"
         "nqueens 14"
         "qsort 100000000"
         "rodinia/backprop/backprop 4194304"
-        "rodinia/bfs/bfs rodinia/bfs/graph1MW_6.txt"
+        "rodinia/bfs/bfs 4 rodinia/bfs/graph1MW_6.txt"
         "rodinia/b+tree/b+tree.out core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt"
         "rodinia/cfd/euler3d_cpu_double rodinia/cfd/fvcorr.domn.193K"
         "rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4"
@@ -75,13 +85,13 @@ BENCHMARKS=("cilksort 100000000"
         "bots/strassen/strassen.icc.omp-tasks -n 4096"
         "bots/uts/uts.icc.omp-tasks -f $BOTS_ROOT/inputs/uts/small.input")
 
-NTRIALS=10
-
 TIMESTAMP=$(date +%s)
+set +e
 MACHINE=$(hostname -d)
 if [[ -z "$MACHINE" ]]; then
     MACHINE=$(hostname)
 fi
+set -e
 PATH=.:${PATH}
 
 mkdir -p regression-logs-$MACHINE
