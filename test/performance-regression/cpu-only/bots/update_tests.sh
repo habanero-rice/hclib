@@ -1,0 +1,1 @@
+../rodinia/update_tests.sh

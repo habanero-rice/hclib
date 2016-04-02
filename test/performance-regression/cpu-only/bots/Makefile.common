@@ -27,6 +27,8 @@ ifeq ($(config_ready),)
 endif
 
 include $(BASE_DIR)/config/make.config
+OMPC=g++ -fopenmp
+OMPLINK=g++ -fopenmp
 
 # Don't change below this line
 ##############################
@@ -40,8 +42,8 @@ TODAY := $(shell date "+%Y/%m/%d;%H:%M")
 
 # Compile commands
 
-OMPC_ALL_FLAGS=-c -I$(COMMON_DIR) $(OPT_FLAGS) $(OMPC_FLAGS) $(APP_FLAGS) $(PROJECT_CFLAGS) -g -O0
-CC_ALL_FLAGS=-c -I$(COMMON_DIR) $(OPT_FLAGS) $(CC_FLAGS) $(APP_FLAGS) $(PROJECT_CFLAGS) -g -O0
+OMPC_ALL_FLAGS=-c -I../ -I$(COMMON_DIR) $(OPT_FLAGS) $(OMPC_FLAGS) $(APP_FLAGS) $(PROJECT_CFLAGS) -g -O0
+CC_ALL_FLAGS=-c -I../ -I$(COMMON_DIR) $(OPT_FLAGS) $(CC_FLAGS) $(APP_FLAGS) $(PROJECT_CFLAGS) -g -O0
 
 # Link commands
 
@@ -82,7 +84,7 @@ all: $(TARGETS)
 INFO_FLAGS=-DCDATE="\"$(TODAY)\"" -DCC="\"$(CC)\"" -DLD="\"$(CLINK)\"" -DCMESSAGE="\"$(CMESSAGE)\"" \
 	  -DLDFLAGS="\"$(CLINK_ALL_FLAGS) $(LIBS)\""
 
-main.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(CC) $(CC_ALL_FLAGS) -I. -o $@ $< $(INFO_FLAGS) -DCFLAGS="\"$(CC_ALL_FLAGS) -I.\""
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(VERSION): main.o $(PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
@@ -160,28 +162,28 @@ all: $(TARGETS)
 INFO_FLAGS_OMP=-DCDATE="\"$(TODAY)\"" -DCC="\"$(OMPC)\"" -DLD="\"$(OMPLINK)\"" -DCMESSAGE="\"$(CMESSAGE)\"" \
                -DLDFLAGS="\"$(OMPLINK_ALL_FLAGS) $(LIBS)\""
 
-main.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) -I.\""
 
-main-if.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-if.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(IF_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(IF_FLAGS)-I.\""
 
-main-final.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-final.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(FINAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(FINAL_FLAGS)-I.\""
 
-main-manual.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-manual.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(MANUAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(MANUAL_FLAGS) -I.\""
 
-main-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-tied.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) -I.\""
 
-main-if-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-if-tied.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(IF_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(IF_FLAGS) -I.\""
 
-main-manual-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-manual-tied.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(MANUAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(MANUAL_FLAGS) -I.\""
 
-main-final-tied.o: $(COMMON_DIR)/bots_main.c app-desc.h Makefile $(COMMON_DIR)/Makefile.common
+main-final-tied.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(FINAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(FINAL_FLAGS) -I.\""
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION): main.o $(PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)

@@ -1,4 +1,5 @@
 *.o
+*.dSYM
 alignment/alignment_for/alignment.gcc.for-omp-tasks
 alignment/alignment_for/alignment.gcc.for-omp-tasks-tied
 alignment/alignment_single/alignment.gcc.single-omp-tasks
@@ -55,3 +56,11 @@ strassen/strassen.icc.omp-tasks-manual-tied
 strassen/strassen.icc.omp-tasks-tied
 uts/uts.icc.omp-tasks
 uts/uts.icc.omp-tasks-tied
+alignment_for/alignment.gcc.for-omp-tasks
+alignment_for/alignment.gcc.for-omp-tasks-tied
+alignment_single/alignment.gcc.single-omp-tasks
+alignment_single/alignment.gcc.single-omp-tasks-tied
+sparselu_for/sparselu.gcc.for-omp-tasks
+sparselu_for/sparselu.gcc.for-omp-tasks-tied
+sparselu_single/sparselu.gcc.single-omp-tasks
+sparselu_single/sparselu.gcc.single-omp-tasks-tied

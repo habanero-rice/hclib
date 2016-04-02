@@ -43,13 +43,13 @@ long long fib (int n,int d)
 	long long x, y;
 	if (n < 2) return n;
 
-	#pragma omp task untied shared(x) firstprivate(n) if(d < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied shared(x) firstprivate(n) if(d < bots_cutoff_value)");
 	x = fib(n - 1,d+1);
 
-	#pragma omp task untied shared(y) firstprivate(n) if(d < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied shared(y) firstprivate(n) if(d < bots_cutoff_value)");
 	y = fib(n - 2,d+1);
 
-	#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
 	return x + y;
 }
 
@@ -60,13 +60,13 @@ long long fib (int n,int d)
 	long long x, y;
 	if (n < 2) return n;
 
-	#pragma omp task untied shared(x) firstprivate(n) final(d+1 >= bots_cutoff_value) mergeable
+hclib_pragma_marker("omp", "task untied shared(x) firstprivate(n) final(d+1 >= bots_cutoff_value) mergeable");
 	x = fib(n - 1,d+1);
 
-	#pragma omp task untied shared(y) firstprivate(n) final(d+1 >= bots_cutoff_value) mergeable
+hclib_pragma_marker("omp", "task untied shared(y) firstprivate(n) final(d+1 >= bots_cutoff_value) mergeable");
 	y = fib(n - 2,d+1);
 
-	#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
 	return x + y;
 }
 
@@ -78,13 +78,13 @@ long long fib (int n, int d)
 	if (n < 2) return n;
 
 	if ( d < bots_cutoff_value ) {
-		#pragma omp task untied shared(x) firstprivate(n)
+hclib_pragma_marker("omp", "task untied shared(x) firstprivate(n)");
 		x = fib(n - 1,d+1);
 
-		#pragma omp task untied shared(y) firstprivate(n)
+hclib_pragma_marker("omp", "task untied shared(y) firstprivate(n)");
 		y = fib(n - 2,d+1);
 
-		#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
 	} else {
 		x = fib_seq(n-1);
 		y = fib_seq(n-2);
@@ -95,19 +95,61 @@ long long fib (int n, int d)
 
 #else
 
+typedef struct _pragma103 {
+    int n;
+    long long x;
+    long long y;
+ } pragma103;
+
+typedef struct _pragma105 {
+    int n;
+    long long x;
+    long long y;
+ } pragma105;
+
+static void pragma103_hclib_async(void *____arg);
+static void pragma105_hclib_async(void *____arg);
 long long fib (int n)
 {
 	long long x, y;
 	if (n < 2) return n;
 
-	#pragma omp task untied shared(x) firstprivate(n)
-	x = fib(n - 1);
-	#pragma omp task untied shared(y) firstprivate(n)
-	y = fib(n - 2);
+ { 
+pragma103 *ctx = (pragma103 *)malloc(sizeof(pragma103));
+ctx->n = n;
+ctx->x = x;
+ctx->y = y;
+hclib_async(pragma103_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
+ { 
+pragma105 *ctx = (pragma105 *)malloc(sizeof(pragma105));
+ctx->n = n;
+ctx->x = x;
+ctx->y = y;
+hclib_async(pragma105_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
-hclib_end_finish(); hclib_start_finish();
+ hclib_end_finish(); hclib_start_finish(); ;
 	return x + y;
+} static void pragma103_hclib_async(void *____arg) {
+    pragma103 *ctx = (pragma103 *)____arg;
+    int n; n = ctx->n;
+    long long x; x = ctx->x;
+    long long y; y = ctx->y;
+    hclib_start_finish();
+x = fib(n - 1) ;     ; hclib_end_finish();
 }
+
+static void pragma105_hclib_async(void *____arg) {
+    pragma105 *ctx = (pragma105 *)____arg;
+    int n; n = ctx->n;
+    long long x; x = ctx->x;
+    long long y; y = ctx->y;
+    hclib_start_finish();
+y = fib(n - 2) ;     ; hclib_end_finish();
+}
+
+
 
 #endif
 
@@ -121,25 +163,24 @@ static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
     int n; n = ctx->n;
 {
-        hclib_start_finish(); {
+hclib_start_finish(); {
 #if defined(MANUAL_CUTOFF) || defined(IF_CUTOFF) || defined(FINAL_CUTOFF)
-	par_res = fib(n,0);
+                par_res = fib(n,0);
 #else
-	par_res = fib(n);
+                par_res = fib(n);
 #endif
-        } hclib_end_finish(); 
-    }; }
+            } ; hclib_end_finish(); 
+    } ; }
 
 void fib0 (int n)
 {
-
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->n = n;
 hclib_launch(main_entrypoint, ctx);
 free(ctx);
 
-	bots_message("Fibonacci result for %d is %lld\n",n,par_res);
-}
+    bots_message("Fibonacci result for %d is %lld\n",n,par_res);
+} 
 
 void fib0_seq (int n)
 {

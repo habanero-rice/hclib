@@ -28,8 +28,8 @@
 #include <math.h>
 #include <sys/time.h>
 #include <libgen.h>
-#include "param.h"
 #include "sequence.h"
+#include "param.h"
 #include "alignment.h"
 #include "bots.h"
 
@@ -67,7 +67,6 @@ int clustalw = FALSE;
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define tbgap(k) ((k) <= 0 ? 0 : tb + gh * (k))
 #define tegap(k) ((k) <= 0 ? 0 : te + gh * (k))
-
 
 /***********************************************************************
  * : 
@@ -432,7 +431,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pairalign464 {
+typedef struct _pragma462 {
     int i;
     int n;
     int m;
@@ -445,9 +444,26 @@ typedef struct _pairalign464 {
     double mm_score;
     int *mat_xref;
     int *matptr;
- } pairalign464;
+ } pragma462;
 
-static void pairalign464_hclib_async(void *____arg);typedef struct _main_entrypoint_ctx {
+static void pragma462_hclib_async(void *____arg);
+typedef struct _pragma465 {
+    int i;
+    int n;
+    int m;
+    int si;
+    int sj;
+    int len1;
+    int len2;
+    int maxres;
+    double gg;
+    double mm_score;
+    int *mat_xref;
+    int *matptr;
+ } pragma465;
+
+static void pragma465_hclib_async(void *____arg, const int ___iter);
+typedef struct _main_entrypoint_ctx {
     int i;
     int n;
     int m;
@@ -477,20 +493,9 @@ static void main_entrypoint(void *____arg) {
     int *mat_xref; mat_xref = ctx->mat_xref;
     int *matptr; matptr = ctx->matptr;
 {
-      hclib_start_finish(); for (si = 0; si < nseqs; si++) {
-         n = seqlen_array[si+1];
-         for (i = 1, len1 = 0; i <= n; i++) {
-            char c = seq_array[si+1][i];
-            if ((c != gap_pos1) && (c != gap_pos2)) len1++;
-         }
-         for (sj = si + 1; sj < nseqs; sj++)
-         {
-            m = seqlen_array[sj+1];
-            if ( n == 0 || m == 0 ) {
-               bench_output[si*nseqs+sj] = (int) 1.0;
-            } else {
-                { 
-pairalign464 *ctx = (pairalign464 *)malloc(sizeof(pairalign464));
+
+ { 
+pragma465 *ctx = (pragma465 *)malloc(sizeof(pragma465));
 ctx->i = i;
 ctx->n = n;
 ctx->m = m;
@@ -503,12 +508,16 @@ ctx->gg = gg;
 ctx->mm_score = mm_score;
 ctx->mat_xref = mat_xref;
 ctx->matptr = matptr;
-hclib_async(pairalign464_hclib_async, ctx, NO_FUTURE, NO_PHASER, ANY_PLACE);
- }  // end task
-            } // end if (n == 0 || m == 0)
-         } // for (j)
-      } hclib_end_finish();  // end parallel for (i)
-   }; }
+hclib_loop_domain_t domain;
+domain.low = 0;
+domain.high = nseqs;
+domain.stride = 1;
+domain.tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma465_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_wait(fut);
+free(ctx);
+ }  // end parallel for (i)
+   } ; }
 
 int pairalign()
 {
@@ -522,8 +531,7 @@ int pairalign()
    maxres = get_matrix(matptr, mat_xref, 10);
    if (maxres == 0) return(-1);
 
-
-   main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 ctx->i = i;
 ctx->n = n;
 ctx->m = m;
@@ -538,10 +546,61 @@ ctx->mat_xref = mat_xref;
 ctx->matptr = matptr;
 hclib_launch(main_entrypoint, ctx);
 free(ctx);
- // end parallel
+
    return 0;
-} static void pairalign464_hclib_async(void *____arg) {
-    pairalign464 *ctx = (pairalign464 *)____arg;
+}  static void pragma465_hclib_async(void *____arg, const int ___iter) {
+    pragma465 *ctx = (pragma465 *)____arg;
+    int i; i = ctx->i;
+    int n; n = ctx->n;
+    int m; m = ctx->m;
+    int si; si = ctx->si;
+    int sj; sj = ctx->sj;
+    int len1; len1 = ctx->len1;
+    int len2; len2 = ctx->len2;
+    int maxres; maxres = ctx->maxres;
+    double gg; gg = ctx->gg;
+    double mm_score; mm_score = ctx->mm_score;
+    int *mat_xref; mat_xref = ctx->mat_xref;
+    int *matptr; matptr = ctx->matptr;
+    hclib_start_finish();
+    do {
+    si = ___iter;
+{
+     n = seqlen_array[si+1];
+     for (i = 1, len1 = 0; i <= n; i++) {
+        char c = seq_array[si+1][i];
+        if ((c != gap_pos1) && (c != gap_pos2)) len1++;
+     }
+     for (sj = si + 1; sj < nseqs; sj++) 
+     {
+        m = seqlen_array[sj+1];
+        if ( n == 0 || m == 0 ) {
+           bench_output[si*nseqs+sj] = (int) 1.0;
+        } else {
+ { 
+pragma462 *ctx = (pragma462 *)malloc(sizeof(pragma462));
+ctx->i = i;
+ctx->n = n;
+ctx->m = m;
+ctx->si = si;
+ctx->sj = sj;
+ctx->len1 = len1;
+ctx->len2 = len2;
+ctx->maxres = maxres;
+ctx->gg = gg;
+ctx->mm_score = mm_score;
+ctx->mat_xref = mat_xref;
+ctx->matptr = matptr;
+hclib_async(pragma462_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ }  // end task
+        } // end if (n == 0 || m == 0)
+     } // for (j)
+  } ;     } while (0);
+    ; hclib_end_finish();
+}
+
+ static void pragma462_hclib_async(void *____arg) {
+    pragma462 *ctx = (pragma462 *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
@@ -556,40 +615,41 @@ free(ctx);
     int *matptr; matptr = ctx->matptr;
     hclib_start_finish();
 {
-                  int se1, se2, sb1, sb2, maxscore, seq1, seq2, g, gh;
-                  int displ[2*MAX_ALN_LENGTH+1];
-                  int print_ptr, last_print;
+              int se1, se2, sb1, sb2, maxscore, seq1, seq2, g, gh;
+              int displ[2*MAX_ALN_LENGTH+1];
+              int print_ptr, last_print;
 
-                  for (i = 1, len2 = 0; i <= m; i++) {
-                     char c = seq_array[sj+1][i];
-                     if ((c != gap_pos1) && (c != gap_pos2)) len2++;
-                  }
-                  if ( dnaFlag == TRUE ) {
-                     g  = (int) ( 2 * INT_SCALE * pw_go_penalty * gap_open_scale ); // gapOpen
-                     gh = (int) (INT_SCALE * pw_ge_penalty * gap_extend_scale); //gapExtend
-                  } else {
-                     gg = pw_go_penalty + log((double) MIN(n, m)); // temporary value
-                     g  = (int) ((mat_avscore <= 0) ? (2 * INT_SCALE * gg) : (2 * mat_avscore * gg * gap_open_scale) ); // gapOpen
-                     gh = (int) (INT_SCALE * pw_ge_penalty); //gapExtend
-                  }
+              for (i = 1, len2 = 0; i <= m; i++) {
+                 char c = seq_array[sj+1][i];
+                 if ((c != gap_pos1) && (c != gap_pos2)) len2++;
+              }
 
-                  seq1 = si + 1;
-                  seq2 = sj + 1;
+              if ( dnaFlag == TRUE ) {
+                 g  = (int) ( 2 * INT_SCALE * pw_go_penalty * gap_open_scale ); // gapOpen
+                 gh = (int) (INT_SCALE * pw_ge_penalty * gap_extend_scale); //gapExtend
+              } else {
+                 gg = pw_go_penalty + log((double) MIN(n, m)); // temporary value
+                 g  = (int) ((mat_avscore <= 0) ? (2 * INT_SCALE * gg) : (2 * mat_avscore * gg * gap_open_scale) ); // gapOpen
+                 gh = (int) (INT_SCALE * pw_ge_penalty); //gapExtend
+              }
 
-                  forward_pass(&seq_array[seq1][0], &seq_array[seq2][0], n, m, &se1, &se2, &maxscore, g, gh);
-                  reverse_pass(&seq_array[seq1][0], &seq_array[seq2][0], se1, se2, &sb1, &sb2, maxscore, g, gh);
+              seq1 = si + 1;
+              seq2 = sj + 1;
 
-                  print_ptr  = 1;
-                  last_print = 0;
+              forward_pass(&seq_array[seq1][0], &seq_array[seq2][0], n, m, &se1, &se2, &maxscore, g, gh);
+              reverse_pass(&seq_array[seq1][0], &seq_array[seq2][0], se1, se2, &sb1, &sb2, maxscore, g, gh);
 
-                  diff(sb1-1, sb2-1, se1-sb1+1, se2-sb2+1, 0, 0, &print_ptr, &last_print, displ, seq1, seq2, g, gh);
-                  mm_score = tracepath(sb1, sb2, &print_ptr, displ, seq1, seq2);
+              print_ptr  = 1;
+              last_print = 0;
 
-                  if (len1 == 0 || len2 == 0) mm_score  = 0.0;
-                  else                        mm_score /= (double) MIN(len1,len2);
+              diff(sb1-1, sb2-1, se1-sb1+1, se2-sb2+1, 0, 0, &print_ptr, &last_print, displ, seq1, seq2, g, gh);
+              mm_score = tracepath(sb1, sb2, &print_ptr, displ, seq1, seq2);
 
-                  bench_output[si*nseqs+sj] = (int) mm_score;
-               }    ; hclib_end_finish();
+              if (len1 == 0 || len2 == 0) mm_score  = 0.0;
+              else                        mm_score /= (double) MIN(len1,len2);
+
+              bench_output[si*nseqs+sj] = (int) mm_score;
+           } ;     ; hclib_end_finish();
 }
 
 
@@ -615,7 +675,7 @@ int pairalign_seq()
 
       for (sj = si + 1; sj < nseqs; sj++) {
          m = seqlen_array[sj+1];
-         if ( n == 0 || m == 0 ) {
+         if ( n == 0 || m == 0) {
             seq_output[si*nseqs+sj] = (int) 1.0;
          } else {
             int se1, se2, sb1, sb2, maxscore, seq1, seq2, g, gh;
@@ -635,6 +695,7 @@ int pairalign_seq()
                g  = (int) ((mat_avscore <= 0) ? (2 * INT_SCALE * gg) : (2 * mat_avscore * gg * gap_open_scale) ); // gapOpen
                gh = (int) (INT_SCALE * pw_ge_penalty); //gapExtend
             }
+
             seq1 = si + 1;
             seq2 = sj + 1;
 
@@ -687,10 +748,9 @@ void pairalign_init (char *filename)
 
    init_matrix();
 
-
    nseqs = readseqs(filename);
 
-        bots_message("Multiple Pairwise Alignment (%d sequences)\n",nseqs);
+   bots_message("Multiple Pairwise Alignment (%d sequences)\n", nseqs);
 
    for (i = 1; i <= nseqs; i++)
       bots_debug("Sequence %d: %s %6.d aa\n", i, names[i], seqlen_array[i]);
@@ -762,28 +822,23 @@ void align_end ()
    for(i = 0; i<nseqs; i++)
       for(j = 0; j<nseqs; j++)
          if (bench_output[i*nseqs+j] != 0)
-            bots_debug("Benchmark sequences (%d:%d) Aligned. Score: %d\n", i+1 , j+1 , (int) bench_output[i*nseqs+j]);
-
+            bots_debug("Benchmark sequences (%d:%d) Aligned. Score: %d\n",
+               i+1 , j+1 , (int) bench_output[i*nseqs+j]);
 }
 
 int align_verify ()
 {
    int i,j;
    int result = BOTS_RESULT_SUCCESSFUL;
-   
    for(i = 0; i<nseqs; i++)
-   {
       for(j = 0; j<nseqs; j++)
-      {
          if (bench_output[i*nseqs+j] != seq_output[i*nseqs+j])
          {
-                                bots_message("Error: Optimized prot. (%3d:%3d)=%5d Sequential prot. (%3d:%3d)=%5d\n",
-                                        i+1, j+1, (int) bench_output[i*nseqs+j],
-                                        i+1, j+1, (int) seq_output[i*nseqs+j]);
+            bots_message("Error: Optimized prot. (%3d:%3d)=%5d Sequential prot. (%3d:%3d)=%5d\n",
+               i+1, j+1, (int) bench_output[i*nseqs+j],
+               i+1, j+1, (int) seq_output[i*nseqs+j]);
             result = BOTS_RESULT_UNSUCCESSFUL;
          }
-      }
-   }
    return result;
 }
       

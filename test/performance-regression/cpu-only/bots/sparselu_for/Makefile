@@ -18,22 +18,18 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            #
 ##############################################################################################
 
-DIRS=sparselu_single sparselu_for
+#LIBS = 
+#PROGRAM_OBJS=
 
-RECURSIVE=all-recursive clean-recursive dist-clean-recursive
+TIED_VERSIONS = yes
 
-all: all-recursive
-clean: clean-recursive
-dist-clean: dist-clean-recursive
+BASE_DIR = $(BOTS_ROOT)
 
-$(RECURSIVE): 
-	@failcom='exit 1';\
-        target=`echo $@ | sed s/-recursive//`; \
-        for subdir in $(DIRS); do \
-                (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$target) \
-          || eval $$failcom; \
-        done;
+#
+# Don't change below here 
+#
 
-dist: dist-clean
-	echo "TODO"
+include ../Makefile.version
+include ../Makefile.common
+
 

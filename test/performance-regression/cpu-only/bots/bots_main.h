@@ -18,39 +18,42 @@
 /*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
 /**********************************************************************************************/
 
-#include "omp-tasks-app.h"
-#include "fft.h"
+#define BOTS_PARAM_TYPE_NONE 0
+#define BOTS_PARAM_TYPE_INT 1
+#define BOTS_PARAM_TYPE_BOOL 2
+#define BOTS_PARAM_TYPE_STR 3
 
-#define BOTS_APP_NAME "FFT"
-#define BOTS_APP_PARAMETERS_DESC "Size=%d"
-#define BOTS_APP_PARAMETERS_LIST ,bots_arg_size
+#ifdef _OPENMP
+# include <omp.h>
+#else
+# define omp_get_max_threads()  1
+# define omp_get_thread_num()   0
+# define omp_set_num_threads(x)
+#endif
 
-#define BOTS_APP_USES_ARG_SIZE
-#define BOTS_APP_DEF_ARG_SIZE 32*1024*1024
-#define BOTS_APP_DESC_ARG_SIZE "Matrix Size"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define BOTS_APP_INIT int i;\
-     COMPLEX *in, *out1=NULL, *out2=NULL;\
-     in = (COMPLEX *)malloc(bots_arg_size * sizeof(COMPLEX));\
+void bots_print_usage(void);
+void bots_print_usage_option(char opt, int type, char* description, char *val, int subc, char **subv);
 
-#define KERNEL_INIT\
-     out1 = (COMPLEX *)malloc(bots_arg_size * sizeof(COMPLEX));\
-     for (i = 0; i < bots_arg_size; ++i) {\
-          c_re(in[i]) = 1.0;\
-          c_im(in[i]) = 1.0;\
-     }
-#define KERNEL_CALL fft(bots_arg_size, in, out1);
-#define KERNEL_FINI 
+/***********************************************************************
+ * BENCHMARK HEADERS 
+ *********************************************************************/
+void bots_initialize();
+void bots_finalize();
+void bots_sequential_ini();
+long bots_sequential();
+void bots_sequential_fini();
+int bots_check_result();
+void bots_print_usage_specific();
+void bots_get_params_specific(int argc, char **argv);
+void bots_set_info();
 
-#define KERNEL_SEQ_INIT\
-     out2 = (COMPLEX *)malloc(bots_arg_size * sizeof(COMPLEX));\
-     for (i = 0; i < bots_arg_size; ++i) {\
-          c_re(in[i]) = 1.0;\
-          c_im(in[i]) = 1.0;\
-     }
-#define KERNEL_SEQ_CALL fft_seq(bots_arg_size, in, out2);
-#define KERNEL_SEQ_FINI
+void bots_get_params_common(int argc, char **argv);
+void bots_get_params(int argc, char **argv);
 
-#define BOTS_APP_CHECK_USES_SEQ_RESULT
-#define KERNEL_CHECK test_correctness(bots_arg_size, out1, out2)
-
+#ifdef __cplusplus
+}
+#endif

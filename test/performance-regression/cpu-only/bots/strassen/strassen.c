@@ -1,3 +1,4 @@
+#include "hclib.h"
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -423,7 +424,7 @@ void OptimizedStrassenMultiply_seq(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   C22 = C21 + QuadrantSize;
 
   /* Allocate Heap Space Here */
-  StartHeap = Heap = malloc(QuadrantSizeInBytes * NumberOfVariables);
+  StartHeap = Heap = (char *)malloc(QuadrantSizeInBytes * NumberOfVariables);
   /* ensure that heap is on cache boundary */
   if ( ((PTR) Heap) & 31)
      Heap = (char*) ( ((PTR) Heap) + 32 - ( ((PTR) Heap) & 31) );
@@ -622,7 +623,7 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   C22 = C21 + QuadrantSize;
 
   /* Allocate Heap Space Here */
-  StartHeap = Heap = malloc(QuadrantSizeInBytes * NumberOfVariables);
+  StartHeap = Heap = (char *)malloc(QuadrantSizeInBytes * NumberOfVariables);
   /* ensure that heap is on cache boundary */
   if ( ((PTR) Heap) & 31)
      Heap = (char*) ( ((PTR) Heap) + 32 - ( ((PTR) Heap) & 31) );
@@ -686,37 +687,37 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   } /* end column loop */
 
   /* M2 = A11 x B11 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(M2, A11, B11, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1);
 
   /* M5 = S1 * S5 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of T1 = S2 x S6 + M2 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of T2 = T1 + S3 x S7 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of C11 = M2 + A12 * B21 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(C11, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1);
   
   /* Step 1 of C12 = S4 x B22 + T1 + M5 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1);
 
   /* Step 1 of C21 = T2 - A22 * S8 */
-  #pragma omp task untied if (Depth < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if (Depth < bots_cutoff_value)");
   OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1);
 
   /**********************************************
   ** Synchronization Point
   **********************************************/
-  #pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
   /***************************************************************************
   ** Step through all columns row by row (vertically)
   ** (jumps in memory by RowWidth => bad locality)
@@ -832,7 +833,7 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   C22 = C21 + QuadrantSize;
 
   /* Allocate Heap Space Here */
-  StartHeap = Heap = malloc(QuadrantSizeInBytes * NumberOfVariables);
+  StartHeap = Heap = (char *)malloc(QuadrantSizeInBytes * NumberOfVariables);
   /* ensure that heap is on cache boundary */
   if ( ((PTR) Heap) & 31)
      Heap = (char*) ( ((PTR) Heap) + 32 - ( ((PTR) Heap) & 31) );
@@ -898,37 +899,37 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   if (Depth < bots_cutoff_value)
   {
     /* M2 = A11 x B11 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(M2, A11, B11, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1);
 
     /* M5 = S1 * S5 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
     /* Step 1 of T1 = S2 x S6 + M2 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
     /* Step 1 of T2 = T1 + S3 x S7 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1);
 
     /* Step 1 of C11 = M2 + A12 * B21 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(C11, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1);
   
     /* Step 1 of C12 = S4 x B22 + T1 + M5 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1);
 
     /* Step 1 of C21 = T2 - A22 * S8 */
-    #pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
     OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1);
 
     /**********************************************
     ** Synchronization Point
     **********************************************/
-    #pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
   }
   else
   {
@@ -1007,6 +1008,314 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   free(StartHeap);
 }
 #else
+typedef struct _pragma1131 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1131;
+
+typedef struct _pragma1135 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1135;
+
+typedef struct _pragma1139 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1139;
+
+typedef struct _pragma1143 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1143;
+
+typedef struct _pragma1147 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1147;
+
+typedef struct _pragma1151 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1151;
+
+typedef struct _pragma1155 {
+    REAL *C;
+    REAL *A;
+    REAL *B;
+    unsigned int MatrixSize;
+    unsigned int RowWidthC;
+    unsigned int RowWidthA;
+    unsigned int RowWidthB;
+    int Depth;
+    unsigned int QuadrantSize;
+    unsigned int QuadrantSizeInBytes;
+    unsigned int Column;
+    unsigned int Row;
+    REAL *A12;
+    REAL *B12;
+    REAL *C12;
+    REAL *A21;
+    REAL *B21;
+    REAL *C21;
+    REAL *A22;
+    REAL *B22;
+    REAL *C22;
+    REAL *S1;
+    REAL *S2;
+    REAL *S3;
+    REAL *S4;
+    REAL *S5;
+    REAL *S6;
+    REAL *S7;
+    REAL *S8;
+    REAL *M2;
+    REAL *M5;
+    REAL *T1sMULT;
+    PTR TempMatrixOffset;
+    PTR MatrixOffsetA;
+    PTR MatrixOffsetB;
+    char *Heap;
+    void *StartHeap;
+    PTR RowIncrementA;
+    PTR RowIncrementB;
+    PTR RowIncrementC;
+ } pragma1155;
+
+static void pragma1131_hclib_async(void *____arg);
+static void pragma1135_hclib_async(void *____arg);
+static void pragma1139_hclib_async(void *____arg);
+static void pragma1143_hclib_async(void *____arg);
+static void pragma1147_hclib_async(void *____arg);
+static void pragma1151_hclib_async(void *____arg);
+static void pragma1155_hclib_async(void *____arg);
 void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSize,
      unsigned RowWidthC, unsigned RowWidthA, unsigned RowWidthB, int Depth)
 {
@@ -1063,7 +1372,7 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   C22 = C21 + QuadrantSize;
 
   /* Allocate Heap Space Here */
-  StartHeap = Heap = malloc(QuadrantSizeInBytes * NumberOfVariables);
+  StartHeap = Heap = (char *)malloc(QuadrantSizeInBytes * NumberOfVariables);
   /* ensure that heap is on cache boundary */
   if ( ((PTR) Heap) & 31)
      Heap = (char*) ( ((PTR) Heap) + 32 - ( ((PTR) Heap) & 31) );
@@ -1127,37 +1436,331 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   } /* end column loop */
 
   /* M2 = A11 x B11 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(M2, A11, B11, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1);
+ { 
+pragma1131 *ctx = (pragma1131 *)malloc(sizeof(pragma1131));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1131_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
   /* M5 = S1 * S5 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
+ { 
+pragma1135 *ctx = (pragma1135 *)malloc(sizeof(pragma1135));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1135_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
   /* Step 1 of T1 = S2 x S6 + M2 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
+ { 
+pragma1139 *ctx = (pragma1139 *)malloc(sizeof(pragma1139));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1139_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
   /* Step 1 of T2 = T1 + S3 x S7 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1);
+ { 
+pragma1143 *ctx = (pragma1143 *)malloc(sizeof(pragma1143));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1143_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
   /* Step 1 of C11 = M2 + A12 * B21 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(C11, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1);
+ { 
+pragma1147 *ctx = (pragma1147 *)malloc(sizeof(pragma1147));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1147_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
   
   /* Step 1 of C12 = S4 x B22 + T1 + M5 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1);
+ { 
+pragma1151 *ctx = (pragma1151 *)malloc(sizeof(pragma1151));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1151_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
   /* Step 1 of C21 = T2 - A22 * S8 */
-  #pragma omp task untied
-  OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1);
+ { 
+pragma1155 *ctx = (pragma1155 *)malloc(sizeof(pragma1155));
+ctx->C = C;
+ctx->A = A;
+ctx->B = B;
+ctx->MatrixSize = MatrixSize;
+ctx->RowWidthC = RowWidthC;
+ctx->RowWidthA = RowWidthA;
+ctx->RowWidthB = RowWidthB;
+ctx->Depth = Depth;
+ctx->QuadrantSize = QuadrantSize;
+ctx->QuadrantSizeInBytes = QuadrantSizeInBytes;
+ctx->Column = Column;
+ctx->Row = Row;
+ctx->A12 = A12;
+ctx->B12 = B12;
+ctx->C12 = C12;
+ctx->A21 = A21;
+ctx->B21 = B21;
+ctx->C21 = C21;
+ctx->A22 = A22;
+ctx->B22 = B22;
+ctx->C22 = C22;
+ctx->S1 = S1;
+ctx->S2 = S2;
+ctx->S3 = S3;
+ctx->S4 = S4;
+ctx->S5 = S5;
+ctx->S6 = S6;
+ctx->S7 = S7;
+ctx->S8 = S8;
+ctx->M2 = M2;
+ctx->M5 = M5;
+ctx->T1sMULT = T1sMULT;
+ctx->TempMatrixOffset = TempMatrixOffset;
+ctx->MatrixOffsetA = MatrixOffsetA;
+ctx->MatrixOffsetB = MatrixOffsetB;
+ctx->Heap = Heap;
+ctx->StartHeap = StartHeap;
+ctx->RowIncrementA = RowIncrementA;
+ctx->RowIncrementB = RowIncrementB;
+ctx->RowIncrementC = RowIncrementC;
+hclib_async(pragma1155_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
 
   /**********************************************
   ** Synchronization Point
   **********************************************/
-  #pragma omp taskwait
+ hclib_end_finish(); hclib_start_finish(); ;
   /***************************************************************************
   ** Step through all columns row by row (vertically)
   ** (jumps in memory by RowWidth => bad locality)
@@ -1215,7 +1818,329 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
     C22 = (REAL*) ( ((PTR) C22 ) + RowIncrementC);
   }
   free(StartHeap);
+} static void pragma1131_hclib_async(void *____arg) {
+    pragma1131 *ctx = (pragma1131 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(M2, A11, B11, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1) ;     ; hclib_end_finish();
 }
+
+static void pragma1135_hclib_async(void *____arg) {
+    pragma1135 *ctx = (pragma1135 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1) ;     ; hclib_end_finish();
+}
+
+static void pragma1139_hclib_async(void *____arg) {
+    pragma1139 *ctx = (pragma1139 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1) ;     ; hclib_end_finish();
+}
+
+static void pragma1143_hclib_async(void *____arg) {
+    pragma1143 *ctx = (pragma1143 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1) ;     ; hclib_end_finish();
+}
+
+static void pragma1147_hclib_async(void *____arg) {
+    pragma1147 *ctx = (pragma1147 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(C11, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1) ;     ; hclib_end_finish();
+}
+
+static void pragma1151_hclib_async(void *____arg) {
+    pragma1151 *ctx = (pragma1151 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1) ;     ; hclib_end_finish();
+}
+
+static void pragma1155_hclib_async(void *____arg) {
+    pragma1155 *ctx = (pragma1155 *)____arg;
+    REAL *C; C = ctx->C;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    unsigned int MatrixSize; MatrixSize = ctx->MatrixSize;
+    unsigned int RowWidthC; RowWidthC = ctx->RowWidthC;
+    unsigned int RowWidthA; RowWidthA = ctx->RowWidthA;
+    unsigned int RowWidthB; RowWidthB = ctx->RowWidthB;
+    int Depth; Depth = ctx->Depth;
+    unsigned int QuadrantSize; QuadrantSize = ctx->QuadrantSize;
+    unsigned int QuadrantSizeInBytes; QuadrantSizeInBytes = ctx->QuadrantSizeInBytes;
+    unsigned int Column; Column = ctx->Column;
+    unsigned int Row; Row = ctx->Row;
+    REAL *A12; A12 = ctx->A12;
+    REAL *B12; B12 = ctx->B12;
+    REAL *C12; C12 = ctx->C12;
+    REAL *A21; A21 = ctx->A21;
+    REAL *B21; B21 = ctx->B21;
+    REAL *C21; C21 = ctx->C21;
+    REAL *A22; A22 = ctx->A22;
+    REAL *B22; B22 = ctx->B22;
+    REAL *C22; C22 = ctx->C22;
+    REAL *S1; S1 = ctx->S1;
+    REAL *S2; S2 = ctx->S2;
+    REAL *S3; S3 = ctx->S3;
+    REAL *S4; S4 = ctx->S4;
+    REAL *S5; S5 = ctx->S5;
+    REAL *S6; S6 = ctx->S6;
+    REAL *S7; S7 = ctx->S7;
+    REAL *S8; S8 = ctx->S8;
+    REAL *M2; M2 = ctx->M2;
+    REAL *M5; M5 = ctx->M5;
+    REAL *T1sMULT; T1sMULT = ctx->T1sMULT;
+    PTR TempMatrixOffset; TempMatrixOffset = ctx->TempMatrixOffset;
+    PTR MatrixOffsetA; MatrixOffsetA = ctx->MatrixOffsetA;
+    PTR MatrixOffsetB; MatrixOffsetB = ctx->MatrixOffsetB;
+    char *Heap; Heap = ctx->Heap;
+    void *StartHeap; StartHeap = ctx->StartHeap;
+    PTR RowIncrementA; RowIncrementA = ctx->RowIncrementA;
+    PTR RowIncrementB; RowIncrementB = ctx->RowIncrementB;
+    PTR RowIncrementC; RowIncrementC = ctx->RowIncrementC;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1) ;     ; hclib_end_finish();
+}
+
+
 #endif
 /*
  * Set an n by n matrix A to random values.  The distance between
@@ -1261,18 +2186,67 @@ int compare_matrix(int n, REAL *A, int an, REAL *B, int bn)
  */
 REAL *alloc_matrix(int n) 
 {
-     return malloc(n * n * sizeof(REAL));
+     return (REAL *)malloc(n * n * sizeof(REAL));
 }
+
+typedef struct _pragma1277 {
+    REAL *A;
+    REAL *B;
+    REAL *C;
+    int n;
+ } pragma1277;
+
+static void pragma1277_hclib_async(void *____arg);
+typedef struct _main_entrypoint_ctx {
+    REAL *A;
+    REAL *B;
+    REAL *C;
+    int n;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    REAL *C; C = ctx->C;
+    int n; n = ctx->n;
+{
+hclib_start_finish(); {
+ { 
+pragma1277 *ctx = (pragma1277 *)malloc(sizeof(pragma1277));
+ctx->A = A;
+ctx->B = B;
+ctx->C = C;
+ctx->n = n;
+hclib_async(pragma1277_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
+            } ; hclib_end_finish(); 
+	bots_message(" completed!\n");
+    } ; }
 
 void strassen_main_par(REAL *A, REAL *B, REAL *C, int n)
 {
 	bots_message("Computing parallel Strassen algorithm (n=%d) ", n);
-	#pragma omp parallel
-	#pragma omp single
-	#pragma omp task untied     
-		OptimizedStrassenMultiply_par(C, A, B, n, n, n, n, 1);
-	bots_message(" completed!\n");
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->A = A;
+ctx->B = B;
+ctx->C = C;
+ctx->n = n;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+
+}  static void pragma1277_hclib_async(void *____arg) {
+    pragma1277 *ctx = (pragma1277 *)____arg;
+    REAL *A; A = ctx->A;
+    REAL *B; B = ctx->B;
+    REAL *C; C = ctx->C;
+    int n; n = ctx->n;
+    hclib_start_finish();
+OptimizedStrassenMultiply_par(C, A, B, n, n, n, n, 1) ;     ; hclib_end_finish();
 }
+
+
+
 void strassen_main_seq(REAL *A, REAL *B, REAL *C, int n)
 {
 	bots_message("Computing sequential Strassen algorithm (n=%d) ", n);

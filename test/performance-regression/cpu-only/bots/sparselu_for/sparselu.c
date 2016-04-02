@@ -1,3 +1,4 @@
+#include "hclib.h"
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -35,21 +36,21 @@ int checkmat (float *M, float *N)
    int i, j;
    float r_err;
 
-   for (i = 0; i < bots_arg_size_1; i++)
+   for (i = 0; i < bots_arg_size_1; i++) 
    {
-      for (j = 0; j < bots_arg_size_1; j++)
+      for (j = 0; j < bots_arg_size_1; j++) 
       {
          r_err = M[i*bots_arg_size_1+j] - N[i*bots_arg_size_1+j];
          if ( r_err == 0.0 ) continue;
 
          if (r_err < 0.0 ) r_err = -r_err;
 
-         if ( M[i*bots_arg_size_1+j] == 0 ) 
+         if ( M[i*bots_arg_size_1+j] == 0 )
          {
            bots_message("Checking failure: A[%d][%d]=%f  B[%d][%d]=%f; \n",
                     i,j, M[i*bots_arg_size_1+j], i,j, N[i*bots_arg_size_1+j]);
            return FALSE;
-         }  
+         }
          r_err = r_err / M[i*bots_arg_size_1+j];
          if(r_err > EPSILON)
          {
@@ -68,6 +69,7 @@ void genmat (float *M[])
 {
    int null_entry, init_val, i, j, ii, jj;
    float *p;
+   int a=0,b=0;
 
    init_val = 1325;
 
@@ -87,6 +89,7 @@ void genmat (float *M[])
          if (ii-1 == jj) null_entry = FALSE; 
          /* allocating matrix */
          if (null_entry == FALSE){
+            a++;
             M[ii*bots_arg_size+jj] = (float *) malloc(bots_arg_size_1*bots_arg_size_1*sizeof(float));
 	    if ((M[ii*bots_arg_size+jj] == NULL))
             {
@@ -107,10 +110,12 @@ void genmat (float *M[])
          }
          else
          {
+            b++;
             M[ii*bots_arg_size+jj] = NULL;
          }
       }
    }
+   bots_debug("allo = %d, no = %d, total = %d, factor = %f\n",a,b,a+b,(float)((float)a/(float)(a+b)));
 }
 /***********************************************************************
  * print_structure: 
@@ -204,54 +209,11 @@ void fwd(float *diag, float *col)
             col[i*bots_arg_size_1+j] = col[i*bots_arg_size_1+j] - diag[i*bots_arg_size_1+k]*col[k*bots_arg_size_1+j];
 }
 
-
 void sparselu_init (float ***pBENCH, char *pass)
 {
    *pBENCH = (float **) malloc(bots_arg_size*bots_arg_size*sizeof(float *));
    genmat(*pBENCH);
    print_structure(pass, *pBENCH);
-}
-
-void sparselu_par_call(float **BENCH)
-{
-   int ii, jj, kk;
-
-   bots_message("Computing SparseLU Factorization (%dx%d matrix with %dx%d blocks) ",
-           bots_arg_size,bots_arg_size,bots_arg_size_1,bots_arg_size_1);
-#pragma omp parallel
-#pragma omp single nowait
-#pragma omp task untied
-   for (kk=0; kk<bots_arg_size; kk++) 
-   {
-      lu0(BENCH[kk*bots_arg_size+kk]);
-      for (jj=kk+1; jj<bots_arg_size; jj++)
-         if (BENCH[kk*bots_arg_size+jj] != NULL)
-            #pragma omp task untied firstprivate(kk, jj) shared(BENCH)
-         {
-            fwd(BENCH[kk*bots_arg_size+kk], BENCH[kk*bots_arg_size+jj]);
-         }
-      for (ii=kk+1; ii<bots_arg_size; ii++) 
-         if (BENCH[ii*bots_arg_size+kk] != NULL)
-            #pragma omp task untied firstprivate(kk, ii) shared(BENCH)
-         {
-            bdiv (BENCH[kk*bots_arg_size+kk], BENCH[ii*bots_arg_size+kk]);
-         }
-
-      #pragma omp taskwait
-
-      for (ii=kk+1; ii<bots_arg_size; ii++)
-         if (BENCH[ii*bots_arg_size+kk] != NULL)
-            for (jj=kk+1; jj<bots_arg_size; jj++)
-               if (BENCH[kk*bots_arg_size+jj] != NULL)
-               #pragma omp task untied firstprivate(kk, jj, ii) shared(BENCH)
-               {
-                     if (BENCH[ii*bots_arg_size+jj]==NULL) BENCH[ii*bots_arg_size+jj] = allocate_clean_block();
-                     bmod(BENCH[ii*bots_arg_size+kk], BENCH[kk*bots_arg_size+jj], BENCH[ii*bots_arg_size+jj]);
-               }
-
-      #pragma omp taskwait
-   }
-   bots_message(" completed!\n");
 }
 
 
@@ -267,7 +229,7 @@ void sparselu_seq_call(float **BENCH)
          {
             fwd(BENCH[kk*bots_arg_size+kk], BENCH[kk*bots_arg_size+jj]);
          }
-      for (ii=kk+1; ii<bots_arg_size; ii++)
+      for (ii=kk+1; ii<bots_arg_size; ii++) 
          if (BENCH[ii*bots_arg_size+kk] != NULL)
          {
             bdiv (BENCH[kk*bots_arg_size+kk], BENCH[ii*bots_arg_size+kk]);
@@ -283,6 +245,145 @@ void sparselu_seq_call(float **BENCH)
 
    }
 }
+
+typedef struct _pragma267 {
+    float **BENCH;
+    int ii;
+    int jj;
+    int kk;
+ } pragma267;
+
+typedef struct _pragma275 {
+    float **BENCH;
+    int ii;
+    int jj;
+    int kk;
+ } pragma275;
+
+typedef struct _pragma286 {
+    float **BENCH;
+    int ii;
+    int jj;
+    int kk;
+ } pragma286;
+
+static void pragma267_hclib_async(void *____arg);
+static void pragma275_hclib_async(void *____arg);
+static void pragma286_hclib_async(void *____arg);
+typedef struct _main_entrypoint_ctx {
+    float **BENCH;
+    int ii;
+    int jj;
+    int kk;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    float **BENCH; BENCH = ctx->BENCH;
+    int ii; ii = ctx->ii;
+    int jj; jj = ctx->jj;
+    int kk; kk = ctx->kk;
+{
+   bots_message("Computing SparseLU Factorization (%dx%d matrix with %dx%d blocks) ",
+           bots_arg_size,bots_arg_size,bots_arg_size_1,bots_arg_size_1);
+hclib_start_finish(); for (kk=0; kk<bots_arg_size; kk++) 
+   {
+      lu0(BENCH[kk*bots_arg_size+kk]);
+
+      for (jj=kk+1; jj<bots_arg_size; jj++)
+         if (BENCH[kk*bots_arg_size+jj] != NULL)
+         {
+ { 
+pragma267 *ctx = (pragma267 *)malloc(sizeof(pragma267));
+ctx->BENCH = BENCH;
+ctx->ii = ii;
+ctx->jj = jj;
+ctx->kk = kk;
+hclib_async(pragma267_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } 
+         }
+      for (ii=kk+1; ii<bots_arg_size; ii++) 
+         if (BENCH[ii*bots_arg_size+kk] != NULL)
+         {
+ { 
+pragma275 *ctx = (pragma275 *)malloc(sizeof(pragma275));
+ctx->BENCH = BENCH;
+ctx->ii = ii;
+ctx->jj = jj;
+ctx->kk = kk;
+hclib_async(pragma275_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } 
+         }
+
+      for (ii=kk+1; ii<bots_arg_size; ii++)
+         if (BENCH[ii*bots_arg_size+kk] != NULL)
+            for (jj=kk+1; jj<bots_arg_size; jj++)
+               if (BENCH[kk*bots_arg_size+jj] != NULL)
+               {
+ { 
+pragma286 *ctx = (pragma286 *)malloc(sizeof(pragma286));
+ctx->BENCH = BENCH;
+ctx->ii = ii;
+ctx->jj = jj;
+ctx->kk = kk;
+hclib_async(pragma286_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } 
+               }
+
+   } ; hclib_end_finish(); 
+   bots_message(" completed!\n");
+   } ; }
+
+void sparselu_par_call(float **BENCH)
+{
+   int ii, jj, kk;
+ 
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->BENCH = BENCH;
+ctx->ii = ii;
+ctx->jj = jj;
+ctx->kk = kk;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+
+}  static void pragma267_hclib_async(void *____arg) {
+    pragma267 *ctx = (pragma267 *)____arg;
+    float **BENCH; BENCH = ctx->BENCH;
+    int ii; ii = ctx->ii;
+    int jj; jj = ctx->jj;
+    int kk; kk = ctx->kk;
+    hclib_start_finish();
+{
+            fwd(BENCH[kk*bots_arg_size+kk], BENCH[kk*bots_arg_size+jj]);
+             } ;     ; hclib_end_finish();
+}
+
+static void pragma275_hclib_async(void *____arg) {
+    pragma275 *ctx = (pragma275 *)____arg;
+    float **BENCH; BENCH = ctx->BENCH;
+    int ii; ii = ctx->ii;
+    int jj; jj = ctx->jj;
+    int kk; kk = ctx->kk;
+    hclib_start_finish();
+{
+            bdiv (BENCH[kk*bots_arg_size+kk], BENCH[ii*bots_arg_size+kk]);
+             } ;     ; hclib_end_finish();
+}
+
+static void pragma286_hclib_async(void *____arg) {
+    pragma286 *ctx = (pragma286 *)____arg;
+    float **BENCH; BENCH = ctx->BENCH;
+    int ii; ii = ctx->ii;
+    int jj; jj = ctx->jj;
+    int kk; kk = ctx->kk;
+    hclib_start_finish();
+{
+                     if (BENCH[ii*bots_arg_size+jj]==NULL) BENCH[ii*bots_arg_size+jj] = allocate_clean_block();
+                     bmod(BENCH[ii*bots_arg_size+kk], BENCH[kk*bots_arg_size+jj], BENCH[ii*bots_arg_size+jj]);
+                   } ;     ; hclib_end_finish();
+}
+
+
 
 void sparselu_fini (float **BENCH, char *pass)
 {

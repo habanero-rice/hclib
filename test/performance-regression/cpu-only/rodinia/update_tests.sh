@@ -23,7 +23,10 @@ echo
 for DIR in $(ls $SCRIPT_DIR); do
     if [[ -d $SCRIPT_DIR/$DIR ]]; then
         NFOUND=$(find $OMP_TO_HCLIB_HOME/test -name "$DIR" | grep ref | wc -l)
-        if [[ $NFOUND -ne 1 ]]; then
+        if [[ $NFOUND -eq 0 ]]; then
+            echo "No test directories found for $DIR"
+            exit 1
+        elif [[ $NFOUND -ne 1 ]]; then
             echo "Found multiple test directories for $DIR ?"
             exit 1
         fi

@@ -18,39 +18,47 @@
 /*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
 /**********************************************************************************************/
 
-#include "omp-tasks-app.h"
-#include "fft.h"
+#ifndef _COMMON_H
+#define _COMMON_H
 
-#define BOTS_APP_NAME "FFT"
-#define BOTS_APP_PARAMETERS_DESC "Size=%d"
-#define BOTS_APP_PARAMETERS_LIST ,bots_arg_size
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define BOTS_APP_USES_ARG_SIZE
-#define BOTS_APP_DEF_ARG_SIZE 32*1024*1024
-#define BOTS_APP_DESC_ARG_SIZE "Matrix Size"
+#ifndef CC
+#define CC ""
+#endif
+#ifndef CFLAGS
+#define CFLAGS ""
+#endif
+#ifndef LD
+#define LD ""
+#endif
+#ifndef LDFLAGS
+#define LDFLAGS ""
+#endif
+#ifndef CDATE
+#define CDATE ""
+#endif
+#ifndef CMESSAGE
+#define CMESSAGE ""
+#endif
 
-#define BOTS_APP_INIT int i;\
-     COMPLEX *in, *out1=NULL, *out2=NULL;\
-     in = (COMPLEX *)malloc(bots_arg_size * sizeof(COMPLEX));\
+#define BOTS_ERROR                         0
+#define BOTS_ERROR_NOT_ENOUGH_MEMORY       1
+#define BOTS_ERROR_UNRECOGNIZED_PARAMETER  2
 
-#define KERNEL_INIT\
-     out1 = (COMPLEX *)malloc(bots_arg_size * sizeof(COMPLEX));\
-     for (i = 0; i < bots_arg_size; ++i) {\
-          c_re(in[i]) = 1.0;\
-          c_im(in[i]) = 1.0;\
-     }
-#define KERNEL_CALL fft(bots_arg_size, in, out1);
-#define KERNEL_FINI 
+#define BOTS_WARNING                       0
 
-#define KERNEL_SEQ_INIT\
-     out2 = (COMPLEX *)malloc(bots_arg_size * sizeof(COMPLEX));\
-     for (i = 0; i < bots_arg_size; ++i) {\
-          c_re(in[i]) = 1.0;\
-          c_im(in[i]) = 1.0;\
-     }
-#define KERNEL_SEQ_CALL fft_seq(bots_arg_size, in, out2);
-#define KERNEL_SEQ_FINI
+void bots_get_date(char *str);
+void bots_get_architecture(char *str);
+void bots_get_load_average(char *str);
+void bots_print_results(void);
 
-#define BOTS_APP_CHECK_USES_SEQ_RESULT
-#define KERNEL_CHECK test_correctness(bots_arg_size, out1, out2)
+#define BOTS_TMP_STR_SZ 256
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif

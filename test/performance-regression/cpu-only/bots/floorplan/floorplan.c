@@ -1,3 +1,6 @@
+#include "hclib.h"
+pthread_mutex_t critical_0_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t critical_1_lock = PTHREAD_MUTEX_INITIALIZER;
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -35,7 +38,7 @@
 int solution = -1;
 
 typedef int  coor[2];
-typedef char ibrd[ROWS][COLS];
+typedef char ibrd[ROWS * COLS];
 typedef char (*pibrd)[COLS];
 
 FILE * inputFile;
@@ -133,7 +136,7 @@ static int lay_down(int id, ibrd board, struct cell *cells) {
 
   for (i = top; i <= bot; i++) {
   for (j = lhs; j <= rhs; j++) {
-      if (board[i][j] == 0) board[i][j] = (char)id;
+      if (board[i * COLS + j] == 0) board[i * COLS + j] = (char)id;
       else                  return(0);
   } }
 
@@ -193,8 +196,8 @@ static void write_outputs() {
 
     for (i = 0; i < MIN_FOOTPRINT[0]; i++) {
       for (j = 0; j < MIN_FOOTPRINT[1]; j++) {
-          if (BEST_BOARD[i][j] == 0) {bots_message(" ");}
-          else                       bots_message("%c", 'A' + BEST_BOARD[i][j] - 1);
+          if (BEST_BOARD[i * COLS + j] == 0) {bots_message(" ");}
+          else                       bots_message("%c", 'A' + BEST_BOARD[i * COLS + j] - 1);
       } 
       bots_message("\n");
     }  
@@ -241,7 +244,7 @@ static int add_cell_ser (int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS)
 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
-#pragma omp critical
+hclib_pragma_marker("omp", "critical");
 			  if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
@@ -253,7 +256,7 @@ static int add_cell_ser (int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS)
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
-            #pragma omp atomic
+hclib_pragma_marker("omp", "atomic");
              nn2 += add_cell_ser(cells[id].next, footprint, board,cells);
 
 /* if area is greater than or equal to best area, prune search */
@@ -286,10 +289,7 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS,int l
       nnl += nn;
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
-#pragma omp task untied private(board, footprint,area) \
-firstprivate(NWS,i,j,id,nn,level) \
-shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) \
-if(level<bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied private(board, footprint,area) firstprivate(NWS,i,j,id,nn,level) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) if(level<bots_cutoff_value)");
 {
 	  struct cell cells[N+1];
 	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
@@ -317,7 +317,7 @@ if(level<bots_cutoff_value)
 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
-#pragma omp critical
+hclib_pragma_marker("omp", "critical");
 			  if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
@@ -329,7 +329,7 @@ if(level<bots_cutoff_value)
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- 	    #pragma omp atomic
+hclib_pragma_marker("omp", "atomic");
                 nnc += add_cell(cells[id].next, footprint, board,cells,level+1);
 /* if area is greater than or equal to best area, prune search */
           } else {
@@ -341,7 +341,7 @@ _end:;
 }
       }
 }
-#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
 return nnc+nnl;
 }
 
@@ -361,10 +361,7 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS,int l
       nnl += nn;
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
-#pragma omp task untied private(footprint,area) \
-firstprivate(NWS,i,j,id,nn,level,bots_cutoff_value) \
-shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) \
-final(level >= bots_cutoff_value) mergeable
+hclib_pragma_marker("omp", "task untied private(footprint,area) firstprivate(NWS,i,j,id,nn,level,bots_cutoff_value) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) final(level >= bots_cutoff_value) mergeable");
 {
           ibrd board;
           struct cell *cells;
@@ -372,7 +369,7 @@ final(level >= bots_cutoff_value) mergeable
           if ( omp_in_final() && level > bots_cutoff_value ) {
             cells = CELLS;
           } else {
-            cells = alloca(sizeof(struct cell)*(N+1));
+            cells = (struct cell *)alloca(sizeof(struct cell)*(N+1));
 	    memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
           }
 
@@ -400,7 +397,7 @@ final(level >= bots_cutoff_value) mergeable
 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
-#pragma omp critical
+hclib_pragma_marker("omp", "critical");
 			  if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
@@ -412,7 +409,7 @@ final(level >= bots_cutoff_value) mergeable
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- 	    #pragma omp atomic
+hclib_pragma_marker("omp", "atomic");
                 nnc += add_cell(cells[id].next, footprint, board,cells,level+1);
 /* if area is greater than or equal to best area, prune search */
           } else {
@@ -424,7 +421,7 @@ _end:;
 }
       }
 }
-#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
 return nnc+nnl;
 }
 
@@ -445,13 +442,11 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS,int l
       nnl += nn;
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
-#pragma omp task untied private(board, footprint,area) \
-firstprivate(NWS,i,j,id,nn,level,bots_cutoff_value) shared(nnc) \
-shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,bots_verbose_mode)
+hclib_pragma_marker("omp", "task untied private(board, footprint,area) firstprivate(NWS,i,j,id,nn,level,bots_cutoff_value) shared(nnc) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,bots_verbose_mode)");
 {
 	  struct cell *cells;
           
-          cells = alloca(sizeof(struct cell)*(N+1));
+          cells = (struct cell *)alloca(sizeof(struct cell)*(N+1));
 	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
 
 /* extent of shape */
@@ -478,7 +473,7 @@ shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,bots_verbose_mo
 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
-#pragma omp critical
+hclib_pragma_marker("omp", "critical");
 			  if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
@@ -491,10 +486,10 @@ shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,bots_verbose_mo
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
 	     if(level+1 < bots_cutoff_value ) {
- 	       #pragma omp atomic
+hclib_pragma_marker("omp", "atomic");
                 nnc += add_cell(cells[id].next, footprint, board,cells,level+1);
 	     } else {
- 	       #pragma omp atomic
+hclib_pragma_marker("omp", "atomic");
 		nnc += add_cell_ser(cells[id].next, footprint, board,cells);
 	     }
 /* if area is greater than or equal to best area, prune search */
@@ -505,14 +500,32 @@ _end:;
 }
       }
 }
-#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
   
 return nnc+nnl;
 }
 
 #else
 
-static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS) {
+typedef struct _pragma525 {
+    int id;
+    int *FOOTPRINT;
+    char *BOARD;
+    struct cell *CELLS;
+    int dummy_level;
+    int i;
+    int j;
+    int nn;
+    int area;
+    int nnc;
+    int nnl;
+    char board[4096];
+    int footprint[2];
+    int NWS[64][2];
+ } pragma525;
+
+static void pragma525_hclib_async(void *____arg);
+static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int dummy_level) {
   int  i, j, nn, area, nnc,nnl;
 
   ibrd board;
@@ -527,9 +540,45 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS) {
       nnl += nn;
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
-#pragma omp task untied private(board, footprint,area) \
-firstprivate(NWS,i,j,id,nn) \
-shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) 
+ { 
+pragma525 *ctx = (pragma525 *)malloc(sizeof(pragma525));
+ctx->id = id;
+ctx->FOOTPRINT = FOOTPRINT;
+ctx->BOARD = BOARD;
+ctx->CELLS = CELLS;
+ctx->dummy_level = dummy_level;
+ctx->i = i;
+ctx->j = j;
+ctx->nn = nn;
+ctx->area = area;
+ctx->nnc = nnc;
+ctx->nnl = nnl;
+memcpy(ctx->board, board, 4096 * (sizeof(char))); 
+memcpy(ctx->footprint, footprint, 2 * (sizeof(int))); 
+memcpy(ctx->NWS, NWS, 64 * (2 * (sizeof(int)))); 
+hclib_async(pragma525_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } 
+      }
+}
+ hclib_end_finish(); hclib_start_finish(); ;
+return nnc+nnl;
+} static void pragma525_hclib_async(void *____arg) {
+    pragma525 *ctx = (pragma525 *)____arg;
+    int id; id = ctx->id;
+    int *FOOTPRINT; FOOTPRINT = ctx->FOOTPRINT;
+    char *BOARD; BOARD = ctx->BOARD;
+    struct cell *CELLS; CELLS = ctx->CELLS;
+    int dummy_level; dummy_level = ctx->dummy_level;
+    int i; i = ctx->i;
+    int j; j = ctx->j;
+    int nn; nn = ctx->nn;
+    int area; area = ctx->area;
+    int nnc; nnc = ctx->nnc;
+    int nnl; nnl = ctx->nnl;
+    char board[4096]; memcpy(board, ctx->board, 4096 * (sizeof(char))); 
+    int footprint[2]; memcpy(footprint, ctx->footprint, 2 * (sizeof(int))); 
+    int NWS[64][2]; memcpy(NWS, ctx->NWS, 64 * (2 * (sizeof(int)))); 
+    hclib_start_finish();
 {
 	  struct cell cells[N+1];
 	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
@@ -557,20 +606,18 @@ shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbos
 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
-#pragma omp critical
-			  if (area < MIN_AREA) {
+ { const int ____lock_0_err = pthread_mutex_lock(&critical_0_lock); assert(____lock_0_err == 0); if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
 				  MIN_FOOTPRINT[1] = footprint[1];
 				  memcpy(BEST_BOARD, board, sizeof(ibrd));
 				  bots_debug("N  %d\n", MIN_AREA);
-			  }
+			  }; const int ____unlock_0_err = pthread_mutex_unlock(&critical_0_lock); assert(____unlock_0_err); } 
 		  }
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- 	    #pragma omp atomic
- 	      nnc += add_cell(cells[id].next, footprint, board,cells);
+ { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); nnc += add_cell(cells[id].next, footprint, board,cells, 0); const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err); } ;
 /* if area is greater than or equal to best area, prune search */
           } else {
 
@@ -578,12 +625,10 @@ shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbos
  
 	  }
 _end:;  
+} ;     ; hclib_end_finish();
 }
-      }
-}
-#pragma omp taskwait
-return nnc+nnl;
-}
+
+
 
 #endif
 
@@ -606,29 +651,32 @@ void floorplan_init (char *filename)
     
     /* initialize board is empty */
     for (i = 0; i < ROWS; i++)
-    for (j = 0; j < COLS; j++) board[i][j] = 0;
+    for (j = 0; j < COLS; j++) board[i * COLS + j] = 0;
     
 }
 
+typedef struct _main_entrypoint_ctx {
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+{
+        coor footprint;
+        /* footprint of initial board is zero */
+        footprint[0] = 0;
+        footprint[1] = 0;
+        bots_message("Computing floorplan ");
+hclib_start_finish(); bots_number_of_tasks = add_cell(1, footprint, board, gcells, 0) ; hclib_end_finish(); 
+        bots_message(" completed!\n");
+    } ; }
+
 void compute_floorplan (void)
 {
-    coor footprint;
-    /* footprint of initial board is zero */
-    footprint[0] = 0;
-    footprint[1] = 0;
-    bots_message("Computing floorplan ");
-#pragma omp parallel
-{
-#pragma omp single
-#if defined(MANUAL_CUTOFF) || defined(IF_CUTOFF) || defined(FINAL_CUTOFF)
-       bots_number_of_tasks = add_cell(1, footprint, board, gcells,0);
-#else
-       bots_number_of_tasks = add_cell(1, footprint, board, gcells);
-#endif
-}
-    bots_message(" completed!\n");
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
 
-}
+} 
 
 void floorplan_end (void)
 {

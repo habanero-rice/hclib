@@ -29,7 +29,7 @@ BASE_DIR = $(BOTS_ROOT)
 # Don't change below here 
 #
 
-include ../../Makefile.version
-include ../../Makefile.common
+include ../Makefile.version
+include ../Makefile.common
 
 

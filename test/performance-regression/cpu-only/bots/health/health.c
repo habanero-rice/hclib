@@ -1,3 +1,4 @@
+#include "hclib.h"
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -162,7 +163,8 @@ void allocate_village( struct Village **capital, struct Village *back,
       (*capital)->hosp.waiting = NULL;
       (*capital)->hosp.inside = NULL;
       (*capital)->hosp.realloc = NULL;
-      omp_init_lock(&(*capital)->hosp.realloc_lock);
+      const int err = pthread_mutex_init(&(*capital)->hosp.realloc_lock, NULL);
+      assert(err == 0);
       // Create Cities (lower level)
       inext = NULL;
       for (i = sim_cities; i>0; i--)
@@ -307,9 +309,11 @@ void check_patients_assess_par(struct Village *village)
             {
                village->hosp.free_personnel++;
                removeList(&(village->hosp.assess), p);
-               omp_set_lock(&(village->hosp.realloc_lock));
+               int err = pthread_mutex_lock(&(village->hosp.realloc_lock));
+               assert(err == 0);
                addList(&(village->back->hosp.realloc), p); 
-               omp_unset_lock(&(village->hosp.realloc_lock));
+               err = pthread_mutex_unlock(&(village->hosp.realloc_lock));
+               assert(err == 0);
             } 
          }
          else /* move to village */
@@ -415,7 +419,7 @@ void sim_village_par(struct Village *village)
    vlist = village->forward;
    while(vlist)
    {
-#pragma omp task untied if((sim_level - village->level) < bots_cutoff_value)
+hclib_pragma_marker("omp", "task untied if((sim_level - village->level) < bots_cutoff_value)");
       sim_village_par(vlist);
       vlist = vlist->next;
    }
@@ -429,7 +433,7 @@ void sim_village_par(struct Village *village)
    /* Uses lists v->hosp->waiting, and v->hosp->assess */
    check_patients_waiting(village);
 
-#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
 
    /* Uses lists v->hosp->realloc, v->hosp->asses and v->hosp->waiting */
    check_patients_realloc(village);
@@ -453,7 +457,7 @@ void sim_village_par(struct Village *village)
    {
       while(vlist)
       {
-#pragma omp task untied
+hclib_pragma_marker("omp", "task untied");
          sim_village_par(vlist);
          vlist = vlist->next;
       }
@@ -478,7 +482,7 @@ void sim_village_par(struct Village *village)
 
    if ((sim_level-village->level) < bots_cutoff_value)
    {
-#pragma omp taskwait
+hclib_pragma_marker("omp", "taskwait");
    }
 
    /* Uses lists v->hosp->realloc, v->hosp->asses and v->hosp->waiting */
@@ -488,6 +492,12 @@ void sim_village_par(struct Village *village)
    check_patients_population(village);
 }
 #else
+typedef struct _pragma508 {
+    struct Village *village;
+    struct Village *vlist;
+ } pragma508;
+
+static void pragma508_hclib_async(void *____arg);
 void sim_village_par(struct Village *village)
 {
    struct Village *vlist;
@@ -501,8 +511,12 @@ void sim_village_par(struct Village *village)
    vlist = village->forward;
    while(vlist)
    {
-#pragma omp task untied
-      sim_village_par(vlist);
+ { 
+pragma508 *ctx = (pragma508 *)malloc(sizeof(pragma508));
+ctx->village = village;
+ctx->vlist = vlist;
+hclib_async(pragma508_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } ;
       vlist = vlist->next;
    }
 
@@ -515,14 +529,22 @@ void sim_village_par(struct Village *village)
    /* Uses lists v->hosp->waiting, and v->hosp->assess */
    check_patients_waiting(village);
 
-#pragma omp taskwait
+ hclib_end_finish(); hclib_start_finish(); ;
 
    /* Uses lists v->hosp->realloc, v->hosp->asses and v->hosp->waiting */
    check_patients_realloc(village);
 
    /* Uses list v->population, v->hosp->asses and v->h->waiting */
    check_patients_population(village);
+} static void pragma508_hclib_async(void *____arg) {
+    pragma508 *ctx = (pragma508 *)____arg;
+    struct Village *village; village = ctx->village;
+    struct Village *vlist; vlist = ctx->vlist;
+    hclib_start_finish();
+sim_village_par(vlist) ;     ; hclib_end_finish();
 }
+
+
 #endif
 /**********************************************************************/
 void my_print(struct Village *village)
@@ -629,12 +651,50 @@ int check_village(struct Village *top)
    return answer;
 }
 /**********************************************************************/
+typedef struct _pragma645 {
+    struct Village *top;
+    long i;
+ } pragma645;
+
+static void pragma645_hclib_async(void *____arg);
+typedef struct _main_entrypoint_ctx {
+    struct Village *top;
+    long i;
+ } main_entrypoint_ctx;
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    struct Village *top; top = ctx->top;
+    long i; i = ctx->i;
+{
+hclib_start_finish(); {
+ { 
+pragma645 *ctx = (pragma645 *)malloc(sizeof(pragma645));
+ctx->top = top;
+ctx->i = i;
+hclib_async(pragma645_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+ } 
+            } ; hclib_end_finish(); 
+    } ; }
+
 void sim_village_main_par(struct Village *top)
 {
-   long i;
-#pragma omp parallel
-#pragma omp single
-#pragma omp task untied
-   for (i = 0; i < sim_time; i++) sim_village_par(top);   
+    long i;
+main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+ctx->top = top;
+ctx->i = i;
+hclib_launch(main_entrypoint, ctx);
+free(ctx);
+
+}  static void pragma645_hclib_async(void *____arg) {
+    pragma645 *ctx = (pragma645 *)____arg;
+    struct Village *top; top = ctx->top;
+    long i; i = ctx->i;
+    hclib_start_finish();
+{
+                    for (i = 0; i < sim_time; i++) sim_village_par(top);   
+                } ;     ; hclib_end_finish();
 }
+
+
 
