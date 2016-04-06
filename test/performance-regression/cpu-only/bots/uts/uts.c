@@ -171,28 +171,29 @@ int uts_numChildren(Node *parent)
  * Recursive depth-first implementation                    *
  ***********************************************************/
 
-typedef struct _pragma187 {
-    Node *root;
-    unsigned long long num_nodes;
- } pragma187;
+typedef struct _pragma188 {
+    unsigned long long (*num_nodes_ptr);
+    Node (*(*root_ptr));
+ } pragma188;
 
-static void pragma187_hclib_async(void *____arg);
+static void pragma188_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
-    Node *root;
     unsigned long long num_nodes;
+    Node (*root);
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    Node *root; root = ctx->root;
     unsigned long long num_nodes; num_nodes = ctx->num_nodes;
+    Node (*root); root = ctx->root;
 {
 hclib_start_finish(); {
  { 
-pragma187 *ctx = (pragma187 *)malloc(sizeof(pragma187));
-ctx->root = root;
-ctx->num_nodes = num_nodes;
-hclib_async(pragma187_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma188 *new_ctx = (pragma188 *)malloc(sizeof(pragma188));
+new_ctx->num_nodes_ptr = &(num_nodes);
+new_ctx->root_ptr = &(root);
+hclib_async(pragma188_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
            } ; hclib_end_finish(); 
    } ; }
@@ -204,39 +205,39 @@ unsigned long long parallel_uts ( Node *root )
 
    bots_message("Computing Unbalance Tree Search algorithm ");
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->root = root;
-ctx->num_nodes = num_nodes;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->num_nodes = num_nodes;
+new_ctx->root = root;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 
    bots_message(" completed!");
 
    return num_nodes;
-}  static void pragma187_hclib_async(void *____arg) {
-    pragma187 *ctx = (pragma187 *)____arg;
-    Node *root; root = ctx->root;
-    unsigned long long num_nodes; num_nodes = ctx->num_nodes;
+}  
+static void pragma188_hclib_async(void *____arg) {
+    pragma188 *ctx = (pragma188 *)____arg;
     hclib_start_finish();
-num_nodes = parTreeSearch( 0, root, root->numChildren ) ;     ; hclib_end_finish();
+(*(ctx->num_nodes_ptr)) = parTreeSearch( 0, (*(ctx->root_ptr)), (*(ctx->root_ptr))->numChildren ) ;     ; hclib_end_finish();
+
 }
 
 
 
-typedef struct _pragma219 {
-    int depth;
-    Node *parent;
-    int numChildren;
-    Node *n;
-    Node *nodePtr;
+typedef struct _pragma220 {
+    Node (*(*n_ptr));
+    Node (*nodePtr);
     int i;
-    int j;
-    unsigned long long subtreesize;
-    unsigned long long *partialCount;
- } pragma219;
+    int (*j_ptr);
+    unsigned long long (*subtreesize_ptr);
+    unsigned long long (*(*partialCount_ptr));
+    int (*depth_ptr);
+    Node (*(*parent_ptr));
+    int (*numChildren_ptr);
+ } pragma220;
 
-static void pragma219_hclib_async(void *____arg);
+static void pragma220_hclib_async(void *____arg);
 unsigned long long parTreeSearch(int depth, Node *parent, int numChildren) 
 {
   Node *n = (Node *)malloc(numChildren * sizeof(Node));
@@ -259,17 +260,17 @@ unsigned long long parTreeSearch(int depth, Node *parent, int numChildren)
      nodePtr->numChildren = uts_numChildren(nodePtr);
 
  { 
-pragma219 *ctx = (pragma219 *)malloc(sizeof(pragma219));
-ctx->depth = depth;
-ctx->parent = parent;
-ctx->numChildren = numChildren;
-ctx->n = n;
-ctx->nodePtr = nodePtr;
-ctx->i = i;
-ctx->j = j;
-ctx->subtreesize = subtreesize;
-ctx->partialCount = partialCount;
-hclib_async(pragma219_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma220 *new_ctx = (pragma220 *)malloc(sizeof(pragma220));
+new_ctx->n_ptr = &(n);
+new_ctx->nodePtr = nodePtr;
+new_ctx->i = i;
+new_ctx->j_ptr = &(j);
+new_ctx->subtreesize_ptr = &(subtreesize);
+new_ctx->partialCount_ptr = &(partialCount);
+new_ctx->depth_ptr = &(depth);
+new_ctx->parent_ptr = &(parent);
+new_ctx->numChildren_ptr = &(numChildren);
+hclib_async(pragma220_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
   }
 
@@ -282,19 +283,14 @@ hclib_async(pragma219_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
   free(partialCount);
   
   return subtreesize;
-} static void pragma219_hclib_async(void *____arg) {
-    pragma219 *ctx = (pragma219 *)____arg;
-    int depth; depth = ctx->depth;
-    Node *parent; parent = ctx->parent;
-    int numChildren; numChildren = ctx->numChildren;
-    Node *n; n = ctx->n;
-    Node *nodePtr; nodePtr = ctx->nodePtr;
+} 
+static void pragma220_hclib_async(void *____arg) {
+    pragma220 *ctx = (pragma220 *)____arg;
+    Node (*nodePtr); nodePtr = ctx->nodePtr;
     int i; i = ctx->i;
-    int j; j = ctx->j;
-    unsigned long long subtreesize; subtreesize = ctx->subtreesize;
-    unsigned long long *partialCount; partialCount = ctx->partialCount;
     hclib_start_finish();
-partialCount[i] = parTreeSearch(depth+1, nodePtr, nodePtr->numChildren) ;     ; hclib_end_finish();
+(*(ctx->partialCount_ptr))[i] = parTreeSearch((*(ctx->depth_ptr))+1, nodePtr, nodePtr->numChildren) ;     ; hclib_end_finish();
+
 }
 
 

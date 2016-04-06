@@ -32,36 +32,35 @@ void lud_diagonal_omp (float* a, int size, int offset)
 }
 
 // implements block LU factorization 
-typedef struct _pragma52 {
-    float *a;
-    int size;
-    int offset;
+typedef struct _pragma53 {
+    int (*offset_ptr);
     int chunk_idx;
-    int size_inter;
-    int chunks_in_inter_row;
-    int chunks_per_inter;
- } pragma52;
-
-typedef struct _pragma104 {
-    float *a;
+    int (*chunks_in_inter_row_ptr);
+    int (*chunks_per_inter_ptr);
+    float (*a);
     int size;
-    int offset;
-    int chunk_idx;
-    int size_inter;
-    int chunks_in_inter_row;
-    int chunks_per_inter;
- } pragma104;
+ } pragma53;
 
-static void pragma52_hclib_async(void *____arg, const int ___iter);
-static void pragma104_hclib_async(void *____arg, const int ___iter);
+typedef struct _pragma105 {
+    int (*offset_ptr);
+    int chunk_idx;
+    int (*chunks_in_inter_row_ptr);
+    int (*chunks_per_inter_ptr);
+    float (*a);
+    int size;
+ } pragma105;
+
+static void pragma53_hclib_async(void *____arg, const int ___iter0);
+static void pragma105_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
-    float *a;
+    float (*a);
     int size;
  } main_entrypoint_ctx;
 
+
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    float *a; a = ctx->a;
+    float (*a); a = ctx->a;
     int size; size = ctx->size;
 {
     int offset, chunk_idx, size_inter, chunks_in_inter_row, chunks_per_inter;
@@ -78,22 +77,21 @@ static void main_entrypoint(void *____arg) {
         // calculate perimeter block matrices
         // 
  { 
-pragma52 *ctx = (pragma52 *)malloc(sizeof(pragma52));
-ctx->a = a;
-ctx->size = size;
-ctx->offset = offset;
-ctx->chunk_idx = chunk_idx;
-ctx->size_inter = size_inter;
-ctx->chunks_in_inter_row = chunks_in_inter_row;
-ctx->chunks_per_inter = chunks_per_inter;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = chunks_in_inter_row;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma52_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma53 *new_ctx = (pragma53 *)malloc(sizeof(pragma53));
+new_ctx->offset_ptr = &(offset);
+new_ctx->chunk_idx = chunk_idx;
+new_ctx->chunks_in_inter_row_ptr = &(chunks_in_inter_row);
+new_ctx->chunks_per_inter_ptr = &(chunks_per_inter);
+new_ctx->a = a;
+new_ctx->size = size;
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = chunks_in_inter_row;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma53_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
         
         // update interior block matrices
@@ -101,22 +99,21 @@ free(ctx);
         chunks_per_inter = chunks_in_inter_row*chunks_in_inter_row;
 
  { 
-pragma104 *ctx = (pragma104 *)malloc(sizeof(pragma104));
-ctx->a = a;
-ctx->size = size;
-ctx->offset = offset;
-ctx->chunk_idx = chunk_idx;
-ctx->size_inter = size_inter;
-ctx->chunks_in_inter_row = chunks_in_inter_row;
-ctx->chunks_per_inter = chunks_per_inter;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = chunks_per_inter;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma104_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma105 *new_ctx = (pragma105 *)malloc(sizeof(pragma105));
+new_ctx->offset_ptr = &(offset);
+new_ctx->chunk_idx = chunk_idx;
+new_ctx->chunks_in_inter_row_ptr = &(chunks_in_inter_row);
+new_ctx->chunks_per_inter_ptr = &(chunks_per_inter);
+new_ctx->a = a;
+new_ctx->size = size;
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = chunks_per_inter;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma105_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
     }
 
@@ -125,24 +122,21 @@ free(ctx);
 
 void lud_omp(float *a, int size)
 {
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->a = a;
-ctx->size = size;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->a = a;
+new_ctx->size = size;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
-}  static void pragma52_hclib_async(void *____arg, const int ___iter) {
-    pragma52 *ctx = (pragma52 *)____arg;
-    float *a; a = ctx->a;
-    int size; size = ctx->size;
-    int offset; offset = ctx->offset;
+}  
+static void pragma53_hclib_async(void *____arg, const int ___iter0) {
+    pragma53 *ctx = (pragma53 *)____arg;
     int chunk_idx; chunk_idx = ctx->chunk_idx;
-    int size_inter; size_inter = ctx->size_inter;
-    int chunks_in_inter_row; chunks_in_inter_row = ctx->chunks_in_inter_row;
-    int chunks_per_inter; chunks_per_inter = ctx->chunks_per_inter;
+    float (*a); a = ctx->a;
+    int size; size = ctx->size;
     hclib_start_finish();
     do {
-    chunk_idx = ___iter;
+    chunk_idx = ___iter0;
 {
             int i, j, k, i_global, j_global, i_here, j_here;
             float sum;           
@@ -150,11 +144,11 @@ free(ctx);
 
             for (i = 0; i < BS; i++) {
 for (j =0; j < BS; j++){
-                    temp[i*BS + j] = a[size*(i + offset) + offset + j ];
+                    temp[i*BS + j] = a[size*(i + (*(ctx->offset_ptr))) + (*(ctx->offset_ptr)) + j ];
                 }
             }
-            i_global = offset;
-            j_global = offset;
+            i_global = (*(ctx->offset_ptr));
+            j_global = (*(ctx->offset_ptr));
             
             // processing top perimeter
             //
@@ -173,7 +167,7 @@ for (j =0; j < BS; j++){
 
             // processing left perimeter
             //
-            j_global = offset;
+            j_global = (*(ctx->offset_ptr));
             i_global += BS * (chunk_idx + 1);
             for (i = 0; i < BS; i++) {
                 for (j = 0; j < BS; j++) {
@@ -183,39 +177,37 @@ for (j =0; j < BS; j++){
                     }
                     i_here = i_global + i;
                     j_here = j_global + j;
-                    a[size*i_here + j_here] = ( a[size*i_here+j_here] - sum ) / a[size*(offset+j) + offset+j];
+                    a[size*i_here + j_here] = ( a[size*i_here+j_here] - sum ) / a[size*((*(ctx->offset_ptr))+j) + (*(ctx->offset_ptr))+j];
                 }
             }
 
         } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
-static void pragma104_hclib_async(void *____arg, const int ___iter) {
-    pragma104 *ctx = (pragma104 *)____arg;
-    float *a; a = ctx->a;
-    int size; size = ctx->size;
-    int offset; offset = ctx->offset;
+
+static void pragma105_hclib_async(void *____arg, const int ___iter0) {
+    pragma105 *ctx = (pragma105 *)____arg;
     int chunk_idx; chunk_idx = ctx->chunk_idx;
-    int size_inter; size_inter = ctx->size_inter;
-    int chunks_in_inter_row; chunks_in_inter_row = ctx->chunks_in_inter_row;
-    int chunks_per_inter; chunks_per_inter = ctx->chunks_per_inter;
+    float (*a); a = ctx->a;
+    int size; size = ctx->size;
     hclib_start_finish();
     do {
-    chunk_idx = ___iter;
+    chunk_idx = ___iter0;
 {
             int i, j, k, i_global, j_global;
             float temp_top[BS*BS] __attribute__ ((aligned (64)));
             float temp_left[BS*BS] __attribute__ ((aligned (64)));
             float sum[BS] __attribute__ ((aligned (64))) = {0.f};
             
-            i_global = offset + BS * (1 +  chunk_idx/chunks_in_inter_row);
-            j_global = offset + BS * (1 + chunk_idx%chunks_in_inter_row);
+            i_global = (*(ctx->offset_ptr)) + BS * (1 +  chunk_idx/(*(ctx->chunks_in_inter_row_ptr)));
+            j_global = (*(ctx->offset_ptr)) + BS * (1 + chunk_idx%(*(ctx->chunks_in_inter_row_ptr)));
 
             for (i = 0; i < BS; i++) {
 for (j =0; j < BS; j++){
-                    temp_top[i*BS + j]  = a[size*(i + offset) + j + j_global ];
-                    temp_left[i*BS + j] = a[size*(i + i_global) + offset + j];
+                    temp_top[i*BS + j]  = a[size*(i + (*(ctx->offset_ptr))) + j + j_global ];
+                    temp_left[i*BS + j] = a[size*(i + i_global) + (*(ctx->offset_ptr)) + j];
                 }
             }
 
@@ -233,6 +225,7 @@ for (j = 0; j < BS; j++) {
             }
         } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 

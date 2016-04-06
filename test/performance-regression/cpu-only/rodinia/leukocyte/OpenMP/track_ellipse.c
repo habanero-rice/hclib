@@ -2,33 +2,33 @@
 #include "track_ellipse.h"
 
 
-typedef struct _pragma84 {
-    avi_t *video;
-    double *xc0;
-    double *yc0;
-    int Nc;
-    int R;
-    int Np;
-    int Nf;
+typedef struct _pragma85 {
+    MAT (*(*I_ptr));
+    int (*Ih_ptr);
+    int (*Iw_ptr);
     int i;
     int j;
-    double *t;
-    double increment;
-    double **xc;
-    double **yc;
-    double ***r;
-    double ***x;
-    double ***y;
-    long long MGVF_time;
-    long long snake_time;
-    int frame_num;
+    double (*(*t_ptr));
+    double (*increment_ptr);
+    double (*(*(*xc_ptr)));
+    double (*(*(*yc_ptr)));
+    double (*(*(*(*r_ptr))));
+    double (*(*(*(*x_ptr))));
+    double (*(*(*(*y_ptr))));
+    long long (*MGVF_time_ptr);
+    long long (*snake_time_ptr);
+    int (*frame_num_ptr);
     int cell_num;
-    MAT *I;
-    int Ih;
-    int Iw;
- } pragma84;
+    avi_t (*(*video_ptr));
+    double (*(*xc0_ptr));
+    double (*(*yc0_ptr));
+    int (*Nc_ptr);
+    int (*R_ptr);
+    int (*Np_ptr);
+    int (*Nf_ptr);
+ } pragma85;
 
-static void pragma84_hclib_async(void *____arg, const int ___iter);
+static void pragma85_hclib_async(void *____arg, const int ___iter0);
 void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np, int Nf) {
 	/*
 	% ELLIPSETRACK tracks cells in the movie specified by 'video', at
@@ -109,38 +109,38 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
 		
 		// Split the work among multiple threads, if OPEN is defined
  { 
-pragma84 *ctx = (pragma84 *)malloc(sizeof(pragma84));
-ctx->video = video;
-ctx->xc0 = xc0;
-ctx->yc0 = yc0;
-ctx->Nc = Nc;
-ctx->R = R;
-ctx->Np = Np;
-ctx->Nf = Nf;
-ctx->i = i;
-ctx->j = j;
-ctx->t = t;
-ctx->increment = increment;
-ctx->xc = xc;
-ctx->yc = yc;
-ctx->r = r;
-ctx->x = x;
-ctx->y = y;
-ctx->MGVF_time = MGVF_time;
-ctx->snake_time = snake_time;
-ctx->frame_num = frame_num;
-ctx->cell_num = cell_num;
-ctx->I = I;
-ctx->Ih = Ih;
-ctx->Iw = Iw;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = Nc;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma84_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma85 *new_ctx = (pragma85 *)malloc(sizeof(pragma85));
+new_ctx->I_ptr = &(I);
+new_ctx->Ih_ptr = &(Ih);
+new_ctx->Iw_ptr = &(Iw);
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->t_ptr = &(t);
+new_ctx->increment_ptr = &(increment);
+new_ctx->xc_ptr = &(xc);
+new_ctx->yc_ptr = &(yc);
+new_ctx->r_ptr = &(r);
+new_ctx->x_ptr = &(x);
+new_ctx->y_ptr = &(y);
+new_ctx->MGVF_time_ptr = &(MGVF_time);
+new_ctx->snake_time_ptr = &(snake_time);
+new_ctx->frame_num_ptr = &(frame_num);
+new_ctx->cell_num = cell_num;
+new_ctx->video_ptr = &(video);
+new_ctx->xc0_ptr = &(xc0);
+new_ctx->yc0_ptr = &(yc0);
+new_ctx->Nc_ptr = &(Nc);
+new_ctx->R_ptr = &(R);
+new_ctx->Np_ptr = &(Np);
+new_ctx->Nf_ptr = &(Nf);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = Nc;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma85_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 
 #ifdef OUTPUT
@@ -176,64 +176,45 @@ free(ctx);
 	printf("------------------------------------\n");
 	printf("MGVF computation: %.5f seconds\n", ((float) (MGVF_time)) / (float) (1000*1000*Nf));
 	printf(" Snake evolution: %.5f seconds\n", ((float) (snake_time)) / (float) (1000*1000*Nf));
-} static void pragma84_hclib_async(void *____arg, const int ___iter) {
-    pragma84 *ctx = (pragma84 *)____arg;
-    avi_t *video; video = ctx->video;
-    double *xc0; xc0 = ctx->xc0;
-    double *yc0; yc0 = ctx->yc0;
-    int Nc; Nc = ctx->Nc;
-    int R; R = ctx->R;
-    int Np; Np = ctx->Np;
-    int Nf; Nf = ctx->Nf;
+} 
+static void pragma85_hclib_async(void *____arg, const int ___iter0) {
+    pragma85 *ctx = (pragma85 *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
-    double *t; t = ctx->t;
-    double increment; increment = ctx->increment;
-    double **xc; xc = ctx->xc;
-    double **yc; yc = ctx->yc;
-    double ***r; r = ctx->r;
-    double ***x; x = ctx->x;
-    double ***y; y = ctx->y;
-    long long MGVF_time; MGVF_time = ctx->MGVF_time;
-    long long snake_time; snake_time = ctx->snake_time;
-    int frame_num; frame_num = ctx->frame_num;
     int cell_num; cell_num = ctx->cell_num;
-    MAT *I; I = ctx->I;
-    int Ih; Ih = ctx->Ih;
-    int Iw; Iw = ctx->Iw;
     hclib_start_finish();
     do {
-    cell_num = ___iter;
+    cell_num = ___iter0;
 {
 			// Make copies of the current cell's location
-			double xci = xc[cell_num][frame_num];
-			double yci = yc[cell_num][frame_num];
-			double *ri = (double *) malloc(sizeof(double) * Np);
-			for (j = 0; j < Np; j++) {
-				ri[j] = r[cell_num][j][frame_num];
+			double xci = (*(ctx->xc_ptr))[cell_num][(*(ctx->frame_num_ptr))];
+			double yci = (*(ctx->yc_ptr))[cell_num][(*(ctx->frame_num_ptr))];
+			double *ri = (double *) malloc(sizeof(double) * (*(ctx->Np_ptr)));
+			for (j = 0; j < (*(ctx->Np_ptr)); j++) {
+				ri[j] = (*(ctx->r_ptr))[cell_num][j][(*(ctx->frame_num_ptr))];
 			}
 			
 			// Add up the last ten y-values for this cell
 			//  (or fewer if there are not yet ten previous frames)
 			double ycavg = 0.0;
-			for (i = (frame_num > 10 ? frame_num - 10 : 0); i < frame_num; i++) {
-				ycavg += yc[cell_num][i];
+			for (i = ((*(ctx->frame_num_ptr)) > 10 ? (*(ctx->frame_num_ptr)) - 10 : 0); i < (*(ctx->frame_num_ptr)); i++) {
+				ycavg += (*(ctx->yc_ptr))[cell_num][i];
 			}
 			// Compute the average of the last ten y-values
 			//  (this represents the expected y-location of the cell)
-			ycavg = ycavg / (double) (frame_num > 10 ? 10 : frame_num);
+			ycavg = ycavg / (double) ((*(ctx->frame_num_ptr)) > 10 ? 10 : (*(ctx->frame_num_ptr)));
 			
 			// Determine the range of the subimage surrounding the current position
-			int u1 = max(xci - 4.0 * R + 0.5, 0 );
-			int u2 = min(xci + 4.0 * R + 0.5, Iw - 1);
-			int v1 = max(yci - 2.0 * R + 1.5, 0 );    
-			int v2 = min(yci + 2.0 * R + 1.5, Ih - 1);
+			int u1 = max(xci - 4.0 * (*(ctx->R_ptr)) + 0.5, 0 );
+			int u2 = min(xci + 4.0 * (*(ctx->R_ptr)) + 0.5, (*(ctx->Iw_ptr)) - 1);
+			int v1 = max(yci - 2.0 * (*(ctx->R_ptr)) + 1.5, 0 );    
+			int v2 = min(yci + 2.0 * (*(ctx->R_ptr)) + 1.5, (*(ctx->Ih_ptr)) - 1);
 			
 			// Extract the subimage
 			MAT *Isub = m_get(v2 - v1 + 1, u2 - u1 + 1);
 			for (i = v1; i <= v2; i++) {
 				for (j = u1; j <= u2; j++) {
-					m_set_val(Isub, i - v1, j - u1, m_get_val(I, i, j));
+					m_set_val(Isub, i - v1, j - u1, m_get_val((*(ctx->I_ptr)), i, j));
 				}
 			}
 			
@@ -252,7 +233,7 @@ free(ctx);
 			// Compute the motion gradient vector flow (MGVF) edgemaps
 			long long MGVF_start_time = get_time();
 			MAT *IMGVF = MGVF(IE, 1, 1);
-			MGVF_time += get_time() - MGVF_start_time;
+			(*(ctx->MGVF_time_ptr)) += get_time() - MGVF_start_time;
 			
 			// Determine the position of the cell in the subimage			
 			xci = xci - (double) u1;
@@ -261,20 +242,20 @@ free(ctx);
 			
 			// Evolve the snake
 			long long snake_start_time = get_time();
-			ellipseevolve(IMGVF, &xci, &yci, ri, t, Np, (double) R, ycavg);
-			snake_time += get_time() - snake_start_time;
+			ellipseevolve(IMGVF, &xci, &yci, ri, (*(ctx->t_ptr)), (*(ctx->Np_ptr)), (double) (*(ctx->R_ptr)), ycavg);
+			(*(ctx->snake_time_ptr)) += get_time() - snake_start_time;
 			
 			// Compute the cell's new position in the full image
 			xci = xci + u1;
 			yci = yci + (v1 - 1);
 			
 			// Store the new location of the cell and the snake
-			xc[cell_num][frame_num] = xci;
-			yc[cell_num][frame_num] = yci;
-			for (j = 0; j < Np; j++) {
-				r[cell_num][j][frame_num] = ri[j];
-				x[cell_num][j][frame_num] = xc[cell_num][frame_num] + (ri[j] * cos(t[j]));
-				y[cell_num][j][frame_num] = yc[cell_num][frame_num] + (ri[j] * sin(t[j]));
+			(*(ctx->xc_ptr))[cell_num][(*(ctx->frame_num_ptr))] = xci;
+			(*(ctx->yc_ptr))[cell_num][(*(ctx->frame_num_ptr))] = yci;
+			for (j = 0; j < (*(ctx->Np_ptr)); j++) {
+				(*(ctx->r_ptr))[cell_num][j][(*(ctx->frame_num_ptr))] = ri[j];
+				(*(ctx->x_ptr))[cell_num][j][(*(ctx->frame_num_ptr))] = (*(ctx->xc_ptr))[cell_num][(*(ctx->frame_num_ptr))] + (ri[j] * cos((*(ctx->t_ptr))[j]));
+				(*(ctx->y_ptr))[cell_num][j][(*(ctx->frame_num_ptr))] = (*(ctx->yc_ptr))[cell_num][(*(ctx->frame_num_ptr))] + (ri[j] * sin((*(ctx->t_ptr))[j]));
 			}
 			
 			// Output the updated center of each cell
@@ -285,6 +266,7 @@ free(ctx);
 			free(ri);
 	    } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 

@@ -405,99 +405,12 @@ void put_in_hosp(struct Hosp *hosp, struct Patient *patient)
    }
 }
 /**********************************************************************/
-#if defined (IF_CUTOFF)
-void sim_village_par(struct Village *village)
-{
-   struct Village *vlist;
+typedef struct _pragma422 {
+    struct Village (*(*vlist_ptr));
+    struct Village (*(*village_ptr));
+ } pragma422;
 
-   // lowest level returns nothing
-   // only for sim_village first call with village = NULL
-   // recursive call cannot occurs
-   if (village == NULL) return;
-
-   /* Traverse village hierarchy (lower level first)*/
-   vlist = village->forward;
-   while(vlist)
-   {
-hclib_pragma_marker("omp", "task untied if((sim_level - village->level) < bots_cutoff_value)");
-      sim_village_par(vlist);
-      vlist = vlist->next;
-   }
-
-   /* Uses lists v->hosp->inside, and v->return */
-   check_patients_inside(village);
-
-   /* Uses lists v->hosp->assess, v->hosp->inside, v->population and (v->back->hosp->realloc) !!! */
-   check_patients_assess_par(village);
-
-   /* Uses lists v->hosp->waiting, and v->hosp->assess */
-   check_patients_waiting(village);
-
-hclib_pragma_marker("omp", "taskwait");
-
-   /* Uses lists v->hosp->realloc, v->hosp->asses and v->hosp->waiting */
-   check_patients_realloc(village);
-
-   /* Uses list v->population, v->hosp->asses and v->h->waiting */
-   check_patients_population(village);
-}
-#elif defined (MANUAL_CUTOFF)
-void sim_village_par(struct Village *village)
-{
-   struct Village *vlist;
-
-   // lowest level returns nothing
-   // only for sim_village first call with village = NULL
-   // recursive call cannot occurs
-   if (village == NULL) return;
-
-   /* Traverse village hierarchy (lower level first)*/
-   vlist = village->forward;
-   if ((sim_level-village->level) < bots_cutoff_value)
-   {
-      while(vlist)
-      {
-hclib_pragma_marker("omp", "task untied");
-         sim_village_par(vlist);
-         vlist = vlist->next;
-      }
-   }
-   else
-   {
-      while(vlist)
-      {
-         sim_village_par(vlist);
-         vlist = vlist->next;
-      }
-   }
-
-   /* Uses lists v->hosp->inside, and v->return */
-   check_patients_inside(village);
-
-   /* Uses lists v->hosp->assess, v->hosp->inside, v->population and (v->back->hosp->realloc) !!! */
-   check_patients_assess_par(village);
-
-   /* Uses lists v->hosp->waiting, and v->hosp->assess */
-   check_patients_waiting(village);
-
-   if ((sim_level-village->level) < bots_cutoff_value)
-   {
-hclib_pragma_marker("omp", "taskwait");
-   }
-
-   /* Uses lists v->hosp->realloc, v->hosp->asses and v->hosp->waiting */
-   check_patients_realloc(village);
-
-   /* Uses list v->population, v->hosp->asses and v->h->waiting */
-   check_patients_population(village);
-}
-#else
-typedef struct _pragma508 {
-    struct Village *village;
-    struct Village *vlist;
- } pragma508;
-
-static void pragma508_hclib_async(void *____arg);
+static void pragma422_hclib_async(void *____arg);
 void sim_village_par(struct Village *village)
 {
    struct Village *vlist;
@@ -512,10 +425,10 @@ void sim_village_par(struct Village *village)
    while(vlist)
    {
  { 
-pragma508 *ctx = (pragma508 *)malloc(sizeof(pragma508));
-ctx->village = village;
-ctx->vlist = vlist;
-hclib_async(pragma508_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma422 *new_ctx = (pragma422 *)malloc(sizeof(pragma422));
+new_ctx->vlist_ptr = &(vlist);
+new_ctx->village_ptr = &(village);
+hclib_async(pragma422_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
       vlist = vlist->next;
    }
@@ -536,16 +449,15 @@ hclib_async(pragma508_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
 
    /* Uses list v->population, v->hosp->asses and v->h->waiting */
    check_patients_population(village);
-} static void pragma508_hclib_async(void *____arg) {
-    pragma508 *ctx = (pragma508 *)____arg;
-    struct Village *village; village = ctx->village;
-    struct Village *vlist; vlist = ctx->vlist;
+} 
+static void pragma422_hclib_async(void *____arg) {
+    pragma422 *ctx = (pragma422 *)____arg;
     hclib_start_finish();
-sim_village_par(vlist) ;     ; hclib_end_finish();
+sim_village_par((*(ctx->vlist_ptr))) ;     ; hclib_end_finish();
+
 }
 
 
-#endif
 /**********************************************************************/
 void my_print(struct Village *village)
 {
@@ -651,28 +563,29 @@ int check_village(struct Village *top)
    return answer;
 }
 /**********************************************************************/
-typedef struct _pragma645 {
-    struct Village *top;
-    long i;
- } pragma645;
+typedef struct _pragma558 {
+    long (*i_ptr);
+    struct Village (*(*top_ptr));
+ } pragma558;
 
-static void pragma645_hclib_async(void *____arg);
+static void pragma558_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
-    struct Village *top;
     long i;
+    struct Village (*top);
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    struct Village *top; top = ctx->top;
     long i; i = ctx->i;
+    struct Village (*top); top = ctx->top;
 {
 hclib_start_finish(); {
  { 
-pragma645 *ctx = (pragma645 *)malloc(sizeof(pragma645));
-ctx->top = top;
-ctx->i = i;
-hclib_async(pragma645_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma558 *new_ctx = (pragma558 *)malloc(sizeof(pragma558));
+new_ctx->i_ptr = &(i);
+new_ctx->top_ptr = &(top);
+hclib_async(pragma558_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             } ; hclib_end_finish(); 
     } ; }
@@ -680,20 +593,20 @@ hclib_async(pragma645_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
 void sim_village_main_par(struct Village *top)
 {
     long i;
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->top = top;
-ctx->i = i;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->i = i;
+new_ctx->top = top;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
-}  static void pragma645_hclib_async(void *____arg) {
-    pragma645 *ctx = (pragma645 *)____arg;
-    struct Village *top; top = ctx->top;
-    long i; i = ctx->i;
+}  
+static void pragma558_hclib_async(void *____arg) {
+    pragma558 *ctx = (pragma558 *)____arg;
     hclib_start_finish();
 {
-                    for (i = 0; i < sim_time; i++) sim_village_par(top);   
+                    for ((*(ctx->i_ptr)) = 0; (*(ctx->i_ptr)) < sim_time; (*(ctx->i_ptr))++) sim_village_par((*(ctx->top_ptr)));   
                 } ;     ; hclib_end_finish();
+
 }
 
 

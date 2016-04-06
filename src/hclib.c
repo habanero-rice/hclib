@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdarg.h>
 
 #include "hclib.h"
 #include "hclib-rt.h"
@@ -444,14 +445,15 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
         forasync2D_t forasync = {{user_def}, loop_domain[0], loop_domain[1]};
         (fct_ptr[dim-1])((void *) &forasync);
     } else if (dim == 3) {
-        forasync3D_t forasync = {{user_def}, loop_domain[0], loop_domain[1], loop_domain[2]};
+        forasync3D_t forasync = {{user_def}, loop_domain[0], loop_domain[1],
+            loop_domain[2]};
         (fct_ptr[dim-1])((void *) &forasync);
     }
 }
 
 void hclib_forasync(void *forasync_fct, void *argv,
-                    hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
-                    forasync_mode_t mode) {
+                    hclib_future_t **future_list, int dim,
+                    hclib_loop_domain_t *domain, forasync_mode_t mode) {
     HASSERT(future_list == NULL &&
             "Limitation: forasync does not support futures yet");
 
@@ -459,7 +461,8 @@ void hclib_forasync(void *forasync_fct, void *argv,
 }
 
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-                                      hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
+                                      hclib_future_t **future_list, int dim,
+                                      hclib_loop_domain_t *domain,
                                       forasync_mode_t mode) {
 
     hclib_start_finish();
@@ -467,7 +470,96 @@ hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
     return hclib_end_finish_nonblocking();
 }
 
-void hclib_pragma_marker(const char *pragma_name, const char *pragma_arguments) {
+typedef struct _depends_info {
+    const void *addr;
+    size_t length;
+    hclib_future_t *future;
+} depends_info;
+
+pthread_mutex_t depends_lock = PTHREAD_MUTEX_INITIALIZER;
+static depends_info *depends = NULL;
+static int n_depends = 0;
+
+static depends_info *find_in_depends_list(const void *addr, size_t length) {
+    int i;
+    for (i = 0; i < n_depends; i++) {
+        if (depends[i].addr == addr) {
+            assert(depends[i].length == length);
+            return depends + i;
+        }
+    }
+    return NULL;
+}
+
+static void add_to_depends_list(const void *addr, size_t length,
+        hclib_future_t *fut) {
+    int i;
+    for (i = 0; i < n_depends; i++) {
+        if (depends[i].addr == addr) {
+            // Replace an existing element in the list
+            assert(depends[i].length == length);
+            depends[i].future = fut;
+            return;
+        }
+    }
+
+    // Add a new element to the list
+    depends = (depends_info *)realloc(depends, (n_depends + 1) * sizeof(depends_info));
+    HASSERT(depends);
+    depends[n_depends].addr = addr;
+    depends[n_depends].length = length;
+    depends[n_depends].future = fut;
+    n_depends++;
+}
+
+void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
+        hclib_locale_t *locale, int n_in, int n_out, ...) {
+    int i;
+    /*
+     * Each element of the variable argument list is a tuple of address and
+     * length.
+     */
+    va_list vl;
+    va_start(vl, n_out);
+
+    hclib_future_t **dependencies = (hclib_future_t **)malloc((n_in + 1) *
+            sizeof(hclib_future_t));
+    HASSERT(dependencies);
+    dependencies[n_in] = NULL;
+
+    const int lock_err = pthread_mutex_lock(&depends_lock);
+    HASSERT(lock_err == 0);
+
+    for (i = 0; i < n_in; i++) {
+        const void * const addr = va_arg(vl, void *);
+        const size_t length = va_arg(vl, size_t);
+
+        depends_info *found = find_in_depends_list(addr, length);
+        if (found == NULL) {
+            fprintf(stderr, "Failed finding existing future for addr=%p "
+                    "length=%lu\n", addr, length);
+            exit(1);
+        }
+
+        dependencies[i] = found->future;
+    }
+
+    hclib_future_t *fut = hclib_async_future(fct_ptr, arg, dependencies,
+            locale);
+
+    depends_info *infos = (depends_info *)malloc(n_out * sizeof(depends_info));
+    HASSERT(infos);
+    for (i = 0; i < n_out; i++) {
+        const void * const addr = va_arg(vl, void *);
+        const size_t length = va_arg(vl, size_t);
+
+        add_to_depends_list(addr, length, fut);
+    }
+
+    const int unlock_err = pthread_mutex_unlock(&depends_lock);
+    HASSERT(unlock_err == 0);
+
+    va_end(vl);
 }
 
 /*** END FORASYNC IMPLEMENTATION ***/

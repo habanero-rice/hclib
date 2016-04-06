@@ -431,7 +431,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pragma462 {
+typedef struct _pragma463 {
     int i;
     int n;
     int m;
@@ -439,30 +439,30 @@ typedef struct _pragma462 {
     int sj;
     int len1;
     int len2;
-    int maxres;
+    int (*maxres_ptr);
     double gg;
     double mm_score;
-    int *mat_xref;
-    int *matptr;
- } pragma462;
+    int (*(*mat_xref_ptr));
+    int (*(*matptr_ptr));
+ } pragma463;
 
-static void pragma462_hclib_async(void *____arg);
-typedef struct _pragma465 {
+static void pragma463_hclib_async(void *____arg);
+typedef struct _pragma466 {
     int i;
     int n;
     int m;
     int si;
     int sj;
     int len1;
-    int len2;
-    int maxres;
-    double gg;
-    double mm_score;
-    int *mat_xref;
-    int *matptr;
- } pragma465;
+    int (*len2_ptr);
+    int (*maxres_ptr);
+    double (*gg_ptr);
+    double (*mm_score_ptr);
+    int (*(*mat_xref_ptr));
+    int (*(*matptr_ptr));
+ } pragma466;
 
-static void pragma465_hclib_async(void *____arg, const int ___iter);
+static void pragma466_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     int i;
     int n;
@@ -474,9 +474,10 @@ typedef struct _main_entrypoint_ctx {
     int maxres;
     double gg;
     double mm_score;
-    int *mat_xref;
-    int *matptr;
+    int (*mat_xref);
+    int (*matptr);
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
@@ -490,32 +491,32 @@ static void main_entrypoint(void *____arg) {
     int maxres; maxres = ctx->maxres;
     double gg; gg = ctx->gg;
     double mm_score; mm_score = ctx->mm_score;
-    int *mat_xref; mat_xref = ctx->mat_xref;
-    int *matptr; matptr = ctx->matptr;
+    int (*mat_xref); mat_xref = ctx->mat_xref;
+    int (*matptr); matptr = ctx->matptr;
 {
 
  { 
-pragma465 *ctx = (pragma465 *)malloc(sizeof(pragma465));
-ctx->i = i;
-ctx->n = n;
-ctx->m = m;
-ctx->si = si;
-ctx->sj = sj;
-ctx->len1 = len1;
-ctx->len2 = len2;
-ctx->maxres = maxres;
-ctx->gg = gg;
-ctx->mm_score = mm_score;
-ctx->mat_xref = mat_xref;
-ctx->matptr = matptr;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = nseqs;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma465_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma466 *new_ctx = (pragma466 *)malloc(sizeof(pragma466));
+new_ctx->i = i;
+new_ctx->n = n;
+new_ctx->m = m;
+new_ctx->si = si;
+new_ctx->sj = sj;
+new_ctx->len1 = len1;
+new_ctx->len2_ptr = &(len2);
+new_ctx->maxres_ptr = &(maxres);
+new_ctx->gg_ptr = &(gg);
+new_ctx->mm_score_ptr = &(mm_score);
+new_ctx->mat_xref_ptr = &(mat_xref);
+new_ctx->matptr_ptr = &(matptr);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = nseqs;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma466_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  }  // end parallel for (i)
    } ; }
 
@@ -531,40 +532,35 @@ int pairalign()
    maxres = get_matrix(matptr, mat_xref, 10);
    if (maxres == 0) return(-1);
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->i = i;
-ctx->n = n;
-ctx->m = m;
-ctx->si = si;
-ctx->sj = sj;
-ctx->len1 = len1;
-ctx->len2 = len2;
-ctx->maxres = maxres;
-ctx->gg = gg;
-ctx->mm_score = mm_score;
-ctx->mat_xref = mat_xref;
-ctx->matptr = matptr;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->i = i;
+new_ctx->n = n;
+new_ctx->m = m;
+new_ctx->si = si;
+new_ctx->sj = sj;
+new_ctx->len1 = len1;
+new_ctx->len2 = len2;
+new_ctx->maxres = maxres;
+new_ctx->gg = gg;
+new_ctx->mm_score = mm_score;
+new_ctx->mat_xref = mat_xref;
+new_ctx->matptr = matptr;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
    return 0;
-}  static void pragma465_hclib_async(void *____arg, const int ___iter) {
-    pragma465 *ctx = (pragma465 *)____arg;
+}  
+static void pragma466_hclib_async(void *____arg, const int ___iter0) {
+    pragma466 *ctx = (pragma466 *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
     int si; si = ctx->si;
     int sj; sj = ctx->sj;
     int len1; len1 = ctx->len1;
-    int len2; len2 = ctx->len2;
-    int maxres; maxres = ctx->maxres;
-    double gg; gg = ctx->gg;
-    double mm_score; mm_score = ctx->mm_score;
-    int *mat_xref; mat_xref = ctx->mat_xref;
-    int *matptr; matptr = ctx->matptr;
     hclib_start_finish();
     do {
-    si = ___iter;
+    si = ___iter0;
 {
      n = seqlen_array[si+1];
      for (i = 1, len1 = 0; i <= n; i++) {
@@ -578,29 +574,31 @@ free(ctx);
            bench_output[si*nseqs+sj] = (int) 1.0;
         } else {
  { 
-pragma462 *ctx = (pragma462 *)malloc(sizeof(pragma462));
-ctx->i = i;
-ctx->n = n;
-ctx->m = m;
-ctx->si = si;
-ctx->sj = sj;
-ctx->len1 = len1;
-ctx->len2 = len2;
-ctx->maxres = maxres;
-ctx->gg = gg;
-ctx->mm_score = mm_score;
-ctx->mat_xref = mat_xref;
-ctx->matptr = matptr;
-hclib_async(pragma462_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma463 *new_ctx = (pragma463 *)malloc(sizeof(pragma463));
+new_ctx->i = i;
+new_ctx->n = n;
+new_ctx->m = m;
+new_ctx->si = si;
+new_ctx->sj = sj;
+new_ctx->len1 = len1;
+new_ctx->len2 = *(ctx->len2_ptr);
+new_ctx->maxres_ptr = ctx->maxres_ptr;
+new_ctx->gg = *(ctx->gg_ptr);
+new_ctx->mm_score = *(ctx->mm_score_ptr);
+new_ctx->mat_xref_ptr = ctx->mat_xref_ptr;
+new_ctx->matptr_ptr = ctx->matptr_ptr;
+hclib_async(pragma463_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  }  // end task
         } // end if (n == 0 || m == 0)
      } // for (j)
   } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
- static void pragma462_hclib_async(void *____arg) {
-    pragma462 *ctx = (pragma462 *)____arg;
+ 
+static void pragma463_hclib_async(void *____arg) {
+    pragma463 *ctx = (pragma463 *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
@@ -608,11 +606,8 @@ hclib_async(pragma462_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
     int sj; sj = ctx->sj;
     int len1; len1 = ctx->len1;
     int len2; len2 = ctx->len2;
-    int maxres; maxres = ctx->maxres;
     double gg; gg = ctx->gg;
     double mm_score; mm_score = ctx->mm_score;
-    int *mat_xref; mat_xref = ctx->mat_xref;
-    int *matptr; matptr = ctx->matptr;
     hclib_start_finish();
 {
               int se1, se2, sb1, sb2, maxscore, seq1, seq2, g, gh;
@@ -650,6 +645,7 @@ hclib_async(pragma462_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
 
               bench_output[si*nseqs+sj] = (int) mm_score;
            } ;     ; hclib_end_finish();
+
 }
 
 

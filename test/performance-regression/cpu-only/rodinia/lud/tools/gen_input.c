@@ -13,40 +13,27 @@ typedef float FP_NUMBER;
 #define GET_RAND_FP ((FP_NUMBER)rand()/((FP_NUMBER)(RAND_MAX)+(FP_NUMBER)(1)))
 char L_FNAME[32], U_FNAME[32], A_FNAME[32];
 
-typedef struct _pragma67 {
-    int argc;
-    char **argv;
+typedef struct _pragma68 {
+    int i;
+    int j;
+    int (*MatrixDim_ptr);
+    FP_NUMBER (*(*(*L_ptr)));
+    FP_NUMBER (*(*(*U_ptr)));
+ } pragma68;
+
+typedef struct _pragma84 {
     int i;
     int j;
     int k;
-    int MatrixDim;
+    int (*MatrixDim_ptr);
     FP_NUMBER sum;
-    FP_NUMBER **L;
-    FP_NUMBER **U;
-    FP_NUMBER **A;
-    FILE *fl;
-    FILE *fu;
-    FILE *fa;
- } pragma67;
+    FP_NUMBER (*(*(*L_ptr)));
+    FP_NUMBER (*(*(*U_ptr)));
+    FP_NUMBER (*(*(*A_ptr)));
+ } pragma84;
 
-typedef struct _pragma83 {
-    int argc;
-    char **argv;
-    int i;
-    int j;
-    int k;
-    int MatrixDim;
-    FP_NUMBER sum;
-    FP_NUMBER **L;
-    FP_NUMBER **U;
-    FP_NUMBER **A;
-    FILE *fl;
-    FILE *fu;
-    FILE *fa;
- } pragma83;
-
-static void pragma67_hclib_async(void *____arg, const int ___iter);
-static void pragma83_hclib_async(void *____arg, const int ___iter);
+static void pragma68_hclib_async(void *____arg, const int ___iter0);
+static void pragma84_hclib_async(void *____arg, const int ___iter0);
 int main (int argc, char **argv){
     int i,j,k,MatrixDim;
     FP_NUMBER sum, **L, **U, **A;
@@ -99,53 +86,40 @@ int main (int argc, char **argv){
         A[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
     }
  { 
-pragma67 *ctx = (pragma67 *)malloc(sizeof(pragma67));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->i = i;
-ctx->j = j;
-ctx->k = k;
-ctx->MatrixDim = MatrixDim;
-ctx->sum = sum;
-ctx->L = L;
-ctx->U = U;
-ctx->A = A;
-ctx->fl = fl;
-ctx->fu = fu;
-ctx->fa = fa;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = MatrixDim;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma67_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma68 *new_ctx = (pragma68 *)malloc(sizeof(pragma68));
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->MatrixDim_ptr = &(MatrixDim);
+new_ctx->L_ptr = &(L);
+new_ctx->U_ptr = &(U);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = MatrixDim;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma68_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 
  { 
-pragma83 *ctx = (pragma83 *)malloc(sizeof(pragma83));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->i = i;
-ctx->j = j;
-ctx->k = k;
-ctx->MatrixDim = MatrixDim;
-ctx->sum = sum;
-ctx->L = L;
-ctx->U = U;
-ctx->A = A;
-ctx->fl = fl;
-ctx->fu = fu;
-ctx->fa = fa;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = MatrixDim;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma83_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma84 *new_ctx = (pragma84 *)malloc(sizeof(pragma84));
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->k = k;
+new_ctx->MatrixDim_ptr = &(MatrixDim);
+new_ctx->sum = sum;
+new_ctx->L_ptr = &(L);
+new_ctx->U_ptr = &(U);
+new_ctx->A_ptr = &(A);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = MatrixDim;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma84_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 
     for (i=0; i < MatrixDim; i ++) {
@@ -180,68 +154,52 @@ free(ctx);
     free(A);
 
     return 0;
-} static void pragma67_hclib_async(void *____arg, const int ___iter) {
-    pragma67 *ctx = (pragma67 *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
+} 
+static void pragma68_hclib_async(void *____arg, const int ___iter0) {
+    pragma68 *ctx = (pragma68 *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
-    int k; k = ctx->k;
-    int MatrixDim; MatrixDim = ctx->MatrixDim;
-    FP_NUMBER sum; sum = ctx->sum;
-    FP_NUMBER **L; L = ctx->L;
-    FP_NUMBER **U; U = ctx->U;
-    FP_NUMBER **A; A = ctx->A;
-    FILE *fl; fl = ctx->fl;
-    FILE *fu; fu = ctx->fu;
-    FILE *fa; fa = ctx->fa;
     hclib_start_finish();
     do {
-    i = ___iter;
+    i = ___iter0;
 {
-        for (j=0; j < MatrixDim; j++){
+        for (j=0; j < (*(ctx->MatrixDim_ptr)); j++){
             if ( i == j) {
-                L[i][j] = 1.0;
-                U[i][j] = GET_RAND_FP;
+                (*(ctx->L_ptr))[i][j] = 1.0;
+                (*(ctx->U_ptr))[i][j] = GET_RAND_FP;
             } else if (i < j){
-                L[i][j] = 0;
-                U[i][j] = GET_RAND_FP;
+                (*(ctx->L_ptr))[i][j] = 0;
+                (*(ctx->U_ptr))[i][j] = GET_RAND_FP;
             } else { // i > j
-                L[i][j] = GET_RAND_FP;
-                U[i][j] = 0;
+                (*(ctx->L_ptr))[i][j] = GET_RAND_FP;
+                (*(ctx->U_ptr))[i][j] = 0;
             }
         }
     } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
-static void pragma83_hclib_async(void *____arg, const int ___iter) {
-    pragma83 *ctx = (pragma83 *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
+
+static void pragma84_hclib_async(void *____arg, const int ___iter0) {
+    pragma84 *ctx = (pragma84 *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int k; k = ctx->k;
-    int MatrixDim; MatrixDim = ctx->MatrixDim;
     FP_NUMBER sum; sum = ctx->sum;
-    FP_NUMBER **L; L = ctx->L;
-    FP_NUMBER **U; U = ctx->U;
-    FP_NUMBER **A; A = ctx->A;
-    FILE *fl; fl = ctx->fl;
-    FILE *fu; fu = ctx->fu;
-    FILE *fa; fa = ctx->fa;
     hclib_start_finish();
     do {
-    i = ___iter;
+    i = ___iter0;
 {
-        for (j=0; j < MatrixDim; j++){
+        for (j=0; j < (*(ctx->MatrixDim_ptr)); j++){
             sum = 0;
-            for(k=0; k < MatrixDim; k++)
-                sum += L[i][k]*U[k][j];
-            A[i][j] = sum;
+            for(k=0; k < (*(ctx->MatrixDim_ptr)); k++)
+                sum += (*(ctx->L_ptr))[i][k]*(*(ctx->U_ptr))[k][j];
+            (*(ctx->A_ptr))[i][j] = sum;
         }
     } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 

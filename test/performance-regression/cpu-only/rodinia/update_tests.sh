@@ -21,7 +21,7 @@ fi
 echo
 
 for DIR in $(ls $SCRIPT_DIR); do
-    if [[ -d $SCRIPT_DIR/$DIR ]]; then
+    if [[ -d $SCRIPT_DIR/$DIR && "$DIR" != "common" ]]; then
         NFOUND=$(find $OMP_TO_HCLIB_HOME/test -name "$DIR" | grep ref | wc -l)
         if [[ $NFOUND -eq 0 ]]; then
             echo "No test directories found for $DIR"

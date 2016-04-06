@@ -203,328 +203,24 @@ static void write_outputs() {
     }  
 }
 
-#ifdef MANUAL_CUTOFF
-static int add_cell_ser (int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS) {
-  int  i, j, nn, nn2, area;
-
-  ibrd board;
-  coor footprint, NWS[DMAX];
-
-  nn2 = 0;
-
-/* for each possible shape */
-  for (i = 0; i < CELLS[id].n; i++) {
-/* compute all possible locations for nw corner */
-      nn = starts(id, i, NWS, CELLS);
-      nn2 += nn;
-/* for all possible locations */
-      for (j = 0; j < nn; j++) {
-	  struct cell *cells = CELLS;
-/* extent of shape */
-          cells[id].top = NWS[j][0];
-          cells[id].bot = cells[id].top + cells[id].alt[i][0] - 1;
-          cells[id].lhs = NWS[j][1];
-          cells[id].rhs = cells[id].lhs + cells[id].alt[i][1] - 1;
-
-          memcpy(board, BOARD, sizeof(ibrd));
-
-/* if the cell cannot be layed down, prune search */
-          if (! lay_down(id, board, cells)) {
-             bots_debug("Chip %d, shape %d does not fit\n", id, i);
-             goto _end;
-          }
-
-/* calculate new footprint of board and area of footprint */
-          footprint[0] = max(FOOTPRINT[0], cells[id].bot+1);
-          footprint[1] = max(FOOTPRINT[1], cells[id].rhs+1);
-          area         = footprint[0] * footprint[1];
-
-/* if last cell */
-          if (cells[id].next == 0) {
-
-/* if area is minimum, update global values */
-		  if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "critical");
-			  if (area < MIN_AREA) {
-				  MIN_AREA         = area;
-				  MIN_FOOTPRINT[0] = footprint[0];
-				  MIN_FOOTPRINT[1] = footprint[1];
-				  memcpy(BEST_BOARD, board, sizeof(ibrd));
-				  bots_debug("N  %d\n", MIN_AREA);
-			  }
-		  }
-
-/* if area is less than best area */
-          } else if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "atomic");
-             nn2 += add_cell_ser(cells[id].next, footprint, board,cells);
-
-/* if area is greater than or equal to best area, prune search */
-          } else {
-
-             bots_debug("T  %d, %d\n", area, MIN_AREA);
- 
-	  }
-_end:;  
-}
-}
-  return nn2;
-  }
-#endif
-
-#if defined(IF_CUTOFF)
-
-static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS,int level) {
-  int  i, j, nn, area, nnc, nnl;
-
-  ibrd board;
-  coor footprint, NWS[DMAX];
- 
-  nnc = nnl = 0;
-
-/* for each possible shape */
-  for (i = 0; i < CELLS[id].n; i++) {
-/* compute all possible locations for nw corner */
-      nn = starts(id, i, NWS, CELLS);
-      nnl += nn;
-/* for all possible locations */
-      for (j = 0; j < nn; j++) {
-hclib_pragma_marker("omp", "task untied private(board, footprint,area) firstprivate(NWS,i,j,id,nn,level) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) if(level<bots_cutoff_value)");
-{
-	  struct cell cells[N+1];
-	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
-/* extent of shape */
-          cells[id].top = NWS[j][0];
-          cells[id].bot = cells[id].top + cells[id].alt[i][0] - 1;
-          cells[id].lhs = NWS[j][1];
-          cells[id].rhs = cells[id].lhs + cells[id].alt[i][1] - 1;
-
-          memcpy(board, BOARD, sizeof(ibrd));
-
-/* if the cell cannot be layed down, prune search */
-          if (! lay_down(id, board, cells)) {
-             bots_debug("Chip %d, shape %d does not fit\n", id, i);
-             goto _end;
-          }
-
-/* calculate new footprint of board and area of footprint */
-          footprint[0] = max(FOOTPRINT[0], cells[id].bot+1);
-          footprint[1] = max(FOOTPRINT[1], cells[id].rhs+1);
-          area         = footprint[0] * footprint[1];
-
-/* if last cell */
-          if (cells[id].next == 0) {
-
-/* if area is minimum, update global values */
-		  if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "critical");
-			  if (area < MIN_AREA) {
-				  MIN_AREA         = area;
-				  MIN_FOOTPRINT[0] = footprint[0];
-				  MIN_FOOTPRINT[1] = footprint[1];
-				  memcpy(BEST_BOARD, board, sizeof(ibrd));
-				  bots_debug("N  %d\n", MIN_AREA);
-			  }
-		  }
-
-/* if area is less than best area */
-          } else if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "atomic");
-                nnc += add_cell(cells[id].next, footprint, board,cells,level+1);
-/* if area is greater than or equal to best area, prune search */
-          } else {
-
-             bots_debug("T  %d, %d\n", area, MIN_AREA);
-
-	  }
-_end:;
-}
-      }
-}
-hclib_pragma_marker("omp", "taskwait");
-return nnc+nnl;
-}
-
-#elif defined(FINAL_CUTOFF)
-
-static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS,int level) {
-  int  i, j, nn, area, nnc, nnl;
-
-  coor footprint, NWS[DMAX];
-
-  nnc = nnl = 0;
-
-/* for each possible shape */
-  for (i = 0; i < CELLS[id].n; i++) {
-/* compute all possible locations for nw corner */
-      nn = starts(id, i, NWS, CELLS);
-      nnl += nn;
-/* for all possible locations */
-      for (j = 0; j < nn; j++) {
-hclib_pragma_marker("omp", "task untied private(footprint,area) firstprivate(NWS,i,j,id,nn,level,bots_cutoff_value) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) final(level >= bots_cutoff_value) mergeable");
-{
-          ibrd board;
-          struct cell *cells;
-       
-          if ( omp_in_final() && level > bots_cutoff_value ) {
-            cells = CELLS;
-          } else {
-            cells = (struct cell *)alloca(sizeof(struct cell)*(N+1));
-	    memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
-          }
-
-/* extent of shape */
-          cells[id].top = NWS[j][0];
-          cells[id].bot = cells[id].top + cells[id].alt[i][0] - 1;
-          cells[id].lhs = NWS[j][1];
-          cells[id].rhs = cells[id].lhs + cells[id].alt[i][1] - 1;
-
-          memcpy(board, BOARD, sizeof(ibrd));
-
-/* if the cell cannot be layed down, prune search */
-          if (! lay_down(id, board, cells)) {
-             bots_debug("Chip %d, shape %d does not fit\n", id, i);
-             goto _end;
-          }
-
-/* calculate new footprint of board and area of footprint */
-          footprint[0] = max(FOOTPRINT[0], cells[id].bot+1);
-          footprint[1] = max(FOOTPRINT[1], cells[id].rhs+1);
-          area         = footprint[0] * footprint[1];
-
-/* if last cell */
-          if (cells[id].next == 0) {
-
-/* if area is minimum, update global values */
-		  if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "critical");
-			  if (area < MIN_AREA) {
-				  MIN_AREA         = area;
-				  MIN_FOOTPRINT[0] = footprint[0];
-				  MIN_FOOTPRINT[1] = footprint[1];
-				  memcpy(BEST_BOARD, board, sizeof(ibrd));
-				  bots_debug("N  %d\n", MIN_AREA);
-			  }
-		  }
-
-/* if area is less than best area */
-          } else if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "atomic");
-                nnc += add_cell(cells[id].next, footprint, board,cells,level+1);
-/* if area is greater than or equal to best area, prune search */
-          } else {
-
-             bots_debug("T  %d, %d\n", area, MIN_AREA);
-
-	  }
-_end:;
-}
-      }
-}
-hclib_pragma_marker("omp", "taskwait");
-return nnc+nnl;
-}
-
-#elif defined(MANUAL_CUTOFF)
-
-static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS,int level) {
-  int  i, j, nn, area, nnc, nnl;
-
-  ibrd board;
-  coor footprint, NWS[DMAX];
-
-  nnc = nnl = 0;
-
-/* for each possible shape */
-  for (i = 0; i < CELLS[id].n; i++) {
-/* compute all possible locations for nw corner */
-      nn = starts(id, i, NWS, CELLS);
-      nnl += nn;
-/* for all possible locations */
-      for (j = 0; j < nn; j++) {
-hclib_pragma_marker("omp", "task untied private(board, footprint,area) firstprivate(NWS,i,j,id,nn,level,bots_cutoff_value) shared(nnc) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,bots_verbose_mode)");
-{
-	  struct cell *cells;
-          
-          cells = (struct cell *)alloca(sizeof(struct cell)*(N+1));
-	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
-
-/* extent of shape */
-          cells[id].top = NWS[j][0];
-          cells[id].bot = cells[id].top + cells[id].alt[i][0] - 1;
-          cells[id].lhs = NWS[j][1];
-          cells[id].rhs = cells[id].lhs + cells[id].alt[i][1] - 1;
-
-          memcpy(board, BOARD, sizeof(ibrd));
-
-/* if the cell cannot be layed down, prune search */
-          if (! lay_down(id, board, cells)) {
-             bots_debug("Chip %d, shape %d does not fit\n", id, i);
-             goto _end;
-          }
-
-/* calculate new footprint of board and area of footprint */
-          footprint[0] = max(FOOTPRINT[0], cells[id].bot+1);
-          footprint[1] = max(FOOTPRINT[1], cells[id].rhs+1);
-          area         = footprint[0] * footprint[1];
-
-/* if last cell */
-          if (cells[id].next == 0) {
-
-/* if area is minimum, update global values */
-		  if (area < MIN_AREA) {
-hclib_pragma_marker("omp", "critical");
-			  if (area < MIN_AREA) {
-				  MIN_AREA         = area;
-				  MIN_FOOTPRINT[0] = footprint[0];
-				  MIN_FOOTPRINT[1] = footprint[1];
-				  memcpy(BEST_BOARD, board, sizeof(ibrd));
-				  bots_debug("N  %d\n", MIN_AREA);
-			  }
-		  }
-
-/* if area is less than best area */
-          } else if (area < MIN_AREA) {
-	     if(level+1 < bots_cutoff_value ) {
-hclib_pragma_marker("omp", "atomic");
-                nnc += add_cell(cells[id].next, footprint, board,cells,level+1);
-	     } else {
-hclib_pragma_marker("omp", "atomic");
-		nnc += add_cell_ser(cells[id].next, footprint, board,cells);
-	     }
-/* if area is greater than or equal to best area, prune search */
-          } else {
-             bots_debug("T  %d, %d\n", area, MIN_AREA);
-	  }
-_end:;
-}
-      }
-}
-hclib_pragma_marker("omp", "taskwait");
-  
-return nnc+nnl;
-}
-
-#else
-
-typedef struct _pragma525 {
-    int id;
-    int *FOOTPRINT;
-    char *BOARD;
-    struct cell *CELLS;
-    int dummy_level;
+typedef struct _pragma222 {
     int i;
     int j;
     int nn;
     int area;
-    int nnc;
-    int nnl;
+    int (*nnc_ptr);
+    int (*nnl_ptr);
     char board[4096];
     int footprint[2];
     int NWS[64][2];
- } pragma525;
+    int id;
+    int (*(*FOOTPRINT_ptr));
+    char (*(*BOARD_ptr));
+    struct cell (*(*CELLS_ptr));
+    int (*dummy_level_ptr);
+ } pragma222;
 
-static void pragma525_hclib_async(void *____arg);
+static void pragma222_hclib_async(void *____arg);
 static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int dummy_level) {
   int  i, j, nn, area, nnc,nnl;
 
@@ -541,54 +237,49 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
  { 
-pragma525 *ctx = (pragma525 *)malloc(sizeof(pragma525));
-ctx->id = id;
-ctx->FOOTPRINT = FOOTPRINT;
-ctx->BOARD = BOARD;
-ctx->CELLS = CELLS;
-ctx->dummy_level = dummy_level;
-ctx->i = i;
-ctx->j = j;
-ctx->nn = nn;
-ctx->area = area;
-ctx->nnc = nnc;
-ctx->nnl = nnl;
-memcpy(ctx->board, board, 4096 * (sizeof(char))); 
-memcpy(ctx->footprint, footprint, 2 * (sizeof(int))); 
-memcpy(ctx->NWS, NWS, 64 * (2 * (sizeof(int)))); 
-hclib_async(pragma525_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma222 *new_ctx = (pragma222 *)malloc(sizeof(pragma222));
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->nn = nn;
+new_ctx->area = area;
+new_ctx->nnc_ptr = &(nnc);
+new_ctx->nnl_ptr = &(nnl);
+memcpy(new_ctx->board, board, 4096 * (sizeof(char))); 
+memcpy(new_ctx->footprint, footprint, 2 * (sizeof(int))); 
+memcpy(new_ctx->NWS, NWS, 64 * (2 * (sizeof(int)))); 
+new_ctx->id = id;
+new_ctx->FOOTPRINT_ptr = &(FOOTPRINT);
+new_ctx->BOARD_ptr = &(BOARD);
+new_ctx->CELLS_ptr = &(CELLS);
+new_ctx->dummy_level_ptr = &(dummy_level);
+hclib_async(pragma222_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
       }
 }
  hclib_end_finish(); hclib_start_finish(); ;
 return nnc+nnl;
-} static void pragma525_hclib_async(void *____arg) {
-    pragma525 *ctx = (pragma525 *)____arg;
-    int id; id = ctx->id;
-    int *FOOTPRINT; FOOTPRINT = ctx->FOOTPRINT;
-    char *BOARD; BOARD = ctx->BOARD;
-    struct cell *CELLS; CELLS = ctx->CELLS;
-    int dummy_level; dummy_level = ctx->dummy_level;
+} 
+static void pragma222_hclib_async(void *____arg) {
+    pragma222 *ctx = (pragma222 *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nn; nn = ctx->nn;
     int area; area = ctx->area;
-    int nnc; nnc = ctx->nnc;
-    int nnl; nnl = ctx->nnl;
     char board[4096]; memcpy(board, ctx->board, 4096 * (sizeof(char))); 
     int footprint[2]; memcpy(footprint, ctx->footprint, 2 * (sizeof(int))); 
     int NWS[64][2]; memcpy(NWS, ctx->NWS, 64 * (2 * (sizeof(int)))); 
+    int id; id = ctx->id;
     hclib_start_finish();
 {
 	  struct cell cells[N+1];
-	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
+	  memcpy(cells,(*(ctx->CELLS_ptr)),sizeof(struct cell)*(N+1));
 /* extent of shape */
           cells[id].top = NWS[j][0];
           cells[id].bot = cells[id].top + cells[id].alt[i][0] - 1;
           cells[id].lhs = NWS[j][1];
           cells[id].rhs = cells[id].lhs + cells[id].alt[i][1] - 1;
 
-          memcpy(board, BOARD, sizeof(ibrd));
+          memcpy(board, (*(ctx->BOARD_ptr)), sizeof(ibrd));
 
 /* if the cell cannot be layed down, prune search */
           if (! lay_down(id, board, cells)) {
@@ -597,8 +288,8 @@ return nnc+nnl;
           }
 
 /* calculate new footprint of board and area of footprint */
-          footprint[0] = max(FOOTPRINT[0], cells[id].bot+1);
-          footprint[1] = max(FOOTPRINT[1], cells[id].rhs+1);
+          footprint[0] = ((*(ctx->FOOTPRINT_ptr))[0] > cells[id].bot+1) ? (*(ctx->FOOTPRINT_ptr))[0] : cells[id].bot + 1;
+          footprint[1] = ((*(ctx->FOOTPRINT_ptr))[1] > cells[id].rhs+1) ? (*(ctx->FOOTPRINT_ptr))[1] : cells[id].rhs + 1;
           area         = footprint[0] * footprint[1];
 
 /* if last cell */
@@ -617,7 +308,7 @@ return nnc+nnl;
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); nnc += add_cell(cells[id].next, footprint, board,cells, 0); const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err); } ;
+ { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); (*(ctx->nnc_ptr)) += add_cell(cells[id].next, footprint, board,cells, 0); const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err); } ;
 /* if area is greater than or equal to best area, prune search */
           } else {
 
@@ -626,11 +317,10 @@ return nnc+nnl;
 	  }
 _end:;  
 } ;     ; hclib_end_finish();
+
 }
 
 
-
-#endif
 
 ibrd board;
 
@@ -658,6 +348,7 @@ void floorplan_init (char *filename)
 typedef struct _main_entrypoint_ctx {
  } main_entrypoint_ctx;
 
+
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
 {
@@ -672,9 +363,9 @@ hclib_start_finish(); bots_number_of_tasks = add_cell(1, footprint, board, gcell
 
 void compute_floorplan (void)
 {
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 } 
 

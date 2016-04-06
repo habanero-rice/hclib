@@ -132,34 +132,34 @@ float accuracy(float *arr1, float *arr2, int len)
 
 
 }
-typedef struct _pragma158 {
-    float *pIn;
-    float *tIn;
-    float *tOut;
-    int nx;
-    int ny;
-    int nz;
-    float Cap;
-    float Rx;
-    float Ry;
-    float Rz;
-    float dt;
-    int numiter;
-    float ce;
-    float cw;
-    float cn;
-    float cs;
-    float ct;
-    float cb;
-    float cc;
-    float stepDivCap;
-    int count;
-    float *tIn_t;
-    float *tOut_t;
+typedef struct _pragma159 {
     int z;
- } pragma158;
+    int (*count_ptr);
+    float (*(*tIn_t_ptr));
+    float (*(*tOut_t_ptr));
+    float (*ce_ptr);
+    float (*cw_ptr);
+    float (*cn_ptr);
+    float (*cs_ptr);
+    float (*ct_ptr);
+    float (*cb_ptr);
+    float (*cc_ptr);
+    float (*stepDivCap_ptr);
+    float (*(*pIn_ptr));
+    float (*(*tIn_ptr));
+    float (*(*tOut_ptr));
+    int (*nx_ptr);
+    int (*ny_ptr);
+    int (*nz_ptr);
+    float (*Cap_ptr);
+    float (*Rx_ptr);
+    float (*Ry_ptr);
+    float (*Rz_ptr);
+    float (*dt_ptr);
+    int (*numiter_ptr);
+ } pragma159;
 
-static void pragma158_hclib_async(void *____arg, const int ___iter);
+static void pragma159_hclib_async(void *____arg, const int ___iter0);
 void computeTempOMP(float *pIn, float* tIn, float *tOut, 
         int nx, int ny, int nz, float Cap, 
         float Rx, float Ry, float Rz, 
@@ -184,39 +184,39 @@ void computeTempOMP(float *pIn, float* tIn, float *tOut,
         do {
             int z; 
  { 
-pragma158 *ctx = (pragma158 *)malloc(sizeof(pragma158));
-ctx->pIn = pIn;
-ctx->tIn = tIn;
-ctx->tOut = tOut;
-ctx->nx = nx;
-ctx->ny = ny;
-ctx->nz = nz;
-ctx->Cap = Cap;
-ctx->Rx = Rx;
-ctx->Ry = Ry;
-ctx->Rz = Rz;
-ctx->dt = dt;
-ctx->numiter = numiter;
-ctx->ce = ce;
-ctx->cw = cw;
-ctx->cn = cn;
-ctx->cs = cs;
-ctx->ct = ct;
-ctx->cb = cb;
-ctx->cc = cc;
-ctx->stepDivCap = stepDivCap;
-ctx->count = count;
-ctx->tIn_t = tIn_t;
-ctx->tOut_t = tOut_t;
-ctx->z = z;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = nz;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma158_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma159 *new_ctx = (pragma159 *)malloc(sizeof(pragma159));
+new_ctx->z = z;
+new_ctx->count_ptr = &(count);
+new_ctx->tIn_t_ptr = &(tIn_t);
+new_ctx->tOut_t_ptr = &(tOut_t);
+new_ctx->ce_ptr = &(ce);
+new_ctx->cw_ptr = &(cw);
+new_ctx->cn_ptr = &(cn);
+new_ctx->cs_ptr = &(cs);
+new_ctx->ct_ptr = &(ct);
+new_ctx->cb_ptr = &(cb);
+new_ctx->cc_ptr = &(cc);
+new_ctx->stepDivCap_ptr = &(stepDivCap);
+new_ctx->pIn_ptr = &(pIn);
+new_ctx->tIn_ptr = &(tIn);
+new_ctx->tOut_ptr = &(tOut);
+new_ctx->nx_ptr = &(nx);
+new_ctx->ny_ptr = &(ny);
+new_ctx->nz_ptr = &(nz);
+new_ctx->Cap_ptr = &(Cap);
+new_ctx->Rx_ptr = &(Rx);
+new_ctx->Ry_ptr = &(Ry);
+new_ctx->Rz_ptr = &(Rz);
+new_ctx->dt_ptr = &(dt);
+new_ctx->numiter_ptr = &(numiter);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = nz;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma159_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
             float *t = tIn_t;
             tIn_t = tOut_t;
@@ -225,54 +225,33 @@ free(ctx);
         } while (count < numiter);
     } 
     return; 
-} static void pragma158_hclib_async(void *____arg, const int ___iter) {
-    pragma158 *ctx = (pragma158 *)____arg;
-    float *pIn; pIn = ctx->pIn;
-    float *tIn; tIn = ctx->tIn;
-    float *tOut; tOut = ctx->tOut;
-    int nx; nx = ctx->nx;
-    int ny; ny = ctx->ny;
-    int nz; nz = ctx->nz;
-    float Cap; Cap = ctx->Cap;
-    float Rx; Rx = ctx->Rx;
-    float Ry; Ry = ctx->Ry;
-    float Rz; Rz = ctx->Rz;
-    float dt; dt = ctx->dt;
-    int numiter; numiter = ctx->numiter;
-    float ce; ce = ctx->ce;
-    float cw; cw = ctx->cw;
-    float cn; cn = ctx->cn;
-    float cs; cs = ctx->cs;
-    float ct; ct = ctx->ct;
-    float cb; cb = ctx->cb;
-    float cc; cc = ctx->cc;
-    float stepDivCap; stepDivCap = ctx->stepDivCap;
-    int count; count = ctx->count;
-    float *tIn_t; tIn_t = ctx->tIn_t;
-    float *tOut_t; tOut_t = ctx->tOut_t;
+} 
+static void pragma159_hclib_async(void *____arg, const int ___iter0) {
+    pragma159 *ctx = (pragma159 *)____arg;
     int z; z = ctx->z;
     hclib_start_finish();
     do {
-    z = ___iter;
+    z = ___iter0;
 {
                 int y;
-                for (y = 0; y < ny; y++) {
+                for (y = 0; y < (*(ctx->ny_ptr)); y++) {
                     int x;
-                    for (x = 0; x < nx; x++) {
+                    for (x = 0; x < (*(ctx->nx_ptr)); x++) {
                         int c, w, e, n, s, b, t;
-                        c =  x + y * nx + z * nx * ny;
+                        c =  x + y * (*(ctx->nx_ptr)) + z * (*(ctx->nx_ptr)) * (*(ctx->ny_ptr));
                         w = (x == 0)    ? c : c - 1;
-                        e = (x == nx-1) ? c : c + 1;
-                        n = (y == 0)    ? c : c - nx;
-                        s = (y == ny-1) ? c : c + nx;
-                        b = (z == 0)    ? c : c - nx * ny;
-                        t = (z == nz-1) ? c : c + nx * ny;
-                        tOut_t[c] = cc * tIn_t[c] + cw * tIn_t[w] + ce * tIn_t[e]
-                            + cs * tIn_t[s] + cn * tIn_t[n] + cb * tIn_t[b] + ct * tIn_t[t]+(dt/Cap) * pIn[c] + ct*amb_temp;
+                        e = (x == (*(ctx->nx_ptr))-1) ? c : c + 1;
+                        n = (y == 0)    ? c : c - (*(ctx->nx_ptr));
+                        s = (y == (*(ctx->ny_ptr))-1) ? c : c + (*(ctx->nx_ptr));
+                        b = (z == 0)    ? c : c - (*(ctx->nx_ptr)) * (*(ctx->ny_ptr));
+                        t = (z == (*(ctx->nz_ptr))-1) ? c : c + (*(ctx->nx_ptr)) * (*(ctx->ny_ptr));
+                        (*(ctx->tOut_t_ptr))[c] = (*(ctx->cc_ptr)) * (*(ctx->tIn_t_ptr))[c] + (*(ctx->cw_ptr)) * (*(ctx->tIn_t_ptr))[w] + (*(ctx->ce_ptr)) * (*(ctx->tIn_t_ptr))[e]
+                            + (*(ctx->cs_ptr)) * (*(ctx->tIn_t_ptr))[s] + (*(ctx->cn_ptr)) * (*(ctx->tIn_t_ptr))[n] + (*(ctx->cb_ptr)) * (*(ctx->tIn_t_ptr))[b] + (*(ctx->ct_ptr)) * (*(ctx->tIn_t_ptr))[t]+((*(ctx->dt_ptr))/(*(ctx->Cap_ptr))) * (*(ctx->pIn_ptr))[c] + (*(ctx->ct_ptr))*amb_temp;
                     }
                 }
             } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
  
@@ -293,11 +272,9 @@ void usage(int argc, char **argv)
 
 
 typedef struct _main_entrypoint_ctx {
-    int argc;
-    char **argv;
-    char *pfile;
-    char *tfile;
-    char *ofile;
+    char (*pfile);
+    char (*tfile);
+    char (*ofile);
     int iterations;
     int numCols;
     int numRows;
@@ -311,21 +288,22 @@ typedef struct _main_entrypoint_ctx {
     float Rz;
     float max_slope;
     float dt;
-    float *powerIn;
-    float *tempOut;
-    float *tempIn;
-    float *tempCopy;
+    float (*powerIn);
+    float (*tempOut);
+    float (*tempIn);
+    float (*tempCopy);
     int size;
-    float *answer;
+    float (*answer);
+    int argc;
+    char (*(*argv));
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    char *pfile; pfile = ctx->pfile;
-    char *tfile; tfile = ctx->tfile;
-    char *ofile; ofile = ctx->ofile;
+    char (*pfile); pfile = ctx->pfile;
+    char (*tfile); tfile = ctx->tfile;
+    char (*ofile); ofile = ctx->ofile;
     int iterations; iterations = ctx->iterations;
     int numCols; numCols = ctx->numCols;
     int numRows; numRows = ctx->numRows;
@@ -339,12 +317,14 @@ static void main_entrypoint(void *____arg) {
     float Rz; Rz = ctx->Rz;
     float max_slope; max_slope = ctx->max_slope;
     float dt; dt = ctx->dt;
-    float *powerIn; powerIn = ctx->powerIn;
-    float *tempOut; tempOut = ctx->tempOut;
-    float *tempIn; tempIn = ctx->tempIn;
-    float *tempCopy; tempCopy = ctx->tempCopy;
+    float (*powerIn); powerIn = ctx->powerIn;
+    float (*tempOut); tempOut = ctx->tempOut;
+    float (*tempIn); tempIn = ctx->tempIn;
+    float (*tempCopy); tempCopy = ctx->tempCopy;
     int size; size = ctx->size;
-    float *answer; answer = ctx->answer;
+    float (*answer); answer = ctx->answer;
+    int argc; argc = ctx->argc;
+    char (*(*argv)); argv = ctx->argv;
 {
     struct timeval start, stop;
     float time;
@@ -410,33 +390,33 @@ int main(int argc, char** argv)
 
     memcpy(tempCopy,tempIn, size * sizeof(float));
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->pfile = pfile;
-ctx->tfile = tfile;
-ctx->ofile = ofile;
-ctx->iterations = iterations;
-ctx->numCols = numCols;
-ctx->numRows = numRows;
-ctx->layers = layers;
-ctx->dx = dx;
-ctx->dy = dy;
-ctx->dz = dz;
-ctx->Cap = Cap;
-ctx->Rx = Rx;
-ctx->Ry = Ry;
-ctx->Rz = Rz;
-ctx->max_slope = max_slope;
-ctx->dt = dt;
-ctx->powerIn = powerIn;
-ctx->tempOut = tempOut;
-ctx->tempIn = tempIn;
-ctx->tempCopy = tempCopy;
-ctx->size = size;
-ctx->answer = answer;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->pfile = pfile;
+new_ctx->tfile = tfile;
+new_ctx->ofile = ofile;
+new_ctx->iterations = iterations;
+new_ctx->numCols = numCols;
+new_ctx->numRows = numRows;
+new_ctx->layers = layers;
+new_ctx->dx = dx;
+new_ctx->dy = dy;
+new_ctx->dz = dz;
+new_ctx->Cap = Cap;
+new_ctx->Rx = Rx;
+new_ctx->Ry = Ry;
+new_ctx->Rz = Rz;
+new_ctx->max_slope = max_slope;
+new_ctx->dt = dt;
+new_ctx->powerIn = powerIn;
+new_ctx->tempOut = tempOut;
+new_ctx->tempIn = tempIn;
+new_ctx->tempCopy = tempCopy;
+new_ctx->size = size;
+new_ctx->answer = answer;
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
     writeoutput(tempOut,numRows, numCols, layers, ofile);
     free(tempIn);

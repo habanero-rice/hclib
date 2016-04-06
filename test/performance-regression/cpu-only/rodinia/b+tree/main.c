@@ -1,3 +1,4 @@
+#include "hclib.h"
 // # ifdef __cplusplus
 // extern "C" {
 // # endif
@@ -69,8 +70,6 @@
 
 #include "./common.h"								// (in directory provided here)
 
-#include "hclib.h"
-
 //======================================================================================================================================================150
 //	DEFINE
 //======================================================================================================================================================150
@@ -79,15 +78,15 @@
 //	UTILITIES
 //======================================================================================================================================================150
 
-#include "./util/timer/timer.h"						// (in directory provided here)
-#include "./util/num/num.h"							// (in directory provided here)
+#include "timer.h"						// (in directory provided here)
+#include "num.h"							// (in directory provided here)
 
 //======================================================================================================================================================150
 //	KERNEL HEADERS
 //======================================================================================================================================================150
 
-#include "./kernel/kernel_cpu.h"					// (in directory provided here)
-#include "./kernel/kernel_cpu_2.h"					// (in directory provided here)
+#include "kernel_cpu.h"					// (in directory provided here)
+#include "kernel_cpu_2.h"					// (in directory provided here)
 
 //======================================================================================================================================================150
 //	HEADER
@@ -1834,29 +1833,63 @@ destroy_tree(node* root)
 	return NULL;
 }
 
+//======================================================================================================================================================150
+//	END
+//======================================================================================================================================================150
+
+//========================================================================================================================================================================================================200
+//	MAIN FUNCTION
+//========================================================================================================================================================================================================200
+
 typedef struct _main_entrypoint_ctx {
-    char *commandPointer;
-    int input;
-    node *root;
-    long rootLoc;
-    long mem_used;
+    int cur_arg;
     int cores_arg;
-} main_entrypoint_ctx;
+    char (*input_file);
+    char (*command_file);
+    char (*output);
+    FILE (*pFile);
+    FILE (*commandFile);
+    long lSize;
+    char (*commandBuffer);
+    size_t result;
+    char (*sPointer);
+    FILE (*file_pointer);
+    node (*root);
+    record (*r);
+    int input;
+    char instruction;
+    long mem_used;
+    long rootLoc;
+    char (*commandPointer);
+    int argc;
+    char (*(*argv));
+ } main_entrypoint_ctx;
 
-static void main_entrypoint(void *arg) {
-	const char *output="output.txt";
-	FILE * pFile;
-	char instruction;
-    record *r;
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)arg;
-	char *commandPointer = ctx->commandPointer;
-    int input = ctx->input;
-    node *root = ctx->root;
-    long rootLoc = ctx->rootLoc;
-    long mem_used = ctx->mem_used;
-    int cores_arg = ctx->cores_arg;
 
-	while (sscanf(commandPointer, "%c", &instruction) != EOF) {
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int cur_arg; cur_arg = ctx->cur_arg;
+    int cores_arg; cores_arg = ctx->cores_arg;
+    char (*input_file); input_file = ctx->input_file;
+    char (*command_file); command_file = ctx->command_file;
+    char (*output); output = ctx->output;
+    FILE (*pFile); pFile = ctx->pFile;
+    FILE (*commandFile); commandFile = ctx->commandFile;
+    long lSize; lSize = ctx->lSize;
+    char (*commandBuffer); commandBuffer = ctx->commandBuffer;
+    size_t result; result = ctx->result;
+    char (*sPointer); sPointer = ctx->sPointer;
+    FILE (*file_pointer); file_pointer = ctx->file_pointer;
+    node (*root); root = ctx->root;
+    record (*r); r = ctx->r;
+    int input; input = ctx->input;
+    char instruction; instruction = ctx->instruction;
+    long mem_used; mem_used = ctx->mem_used;
+    long rootLoc; rootLoc = ctx->rootLoc;
+    char (*commandPointer); commandPointer = ctx->commandPointer;
+    int argc; argc = ctx->argc;
+    char (*(*argv)); argv = ctx->argv;
+while (sscanf(commandPointer, "%c", &instruction) != EOF) {
 	  commandPointer++;
 		switch (instruction) {
 			// ----------------------------------------40
@@ -1961,7 +1994,8 @@ static void main_entrypoint(void *arg) {
 			case 'q':
 			{
 				while (getchar() != (int)'\n');
-				return;
+                break;
+				// return EXIT_SUCCESS;
 			}
 
 			// ----------------------------------------40
@@ -2249,17 +2283,7 @@ static void main_entrypoint(void *arg) {
 		}
 		printf("> ");
 
-	}
-
-}
-
-//======================================================================================================================================================150
-//	END
-//======================================================================================================================================================150
-
-//========================================================================================================================================================================================================200
-//	MAIN FUNCTION
-//========================================================================================================================================================================================================200
+	} ; }
 
 int 
 main(	int argc, 
@@ -2378,6 +2402,7 @@ main(	int argc,
 	FILE *file_pointer;
 	node *root;
 	root = NULL;
+	record *r;
 	int input;
 	char instruction;
 	order = DEFAULT_ORDER;
@@ -2439,16 +2464,31 @@ main(	int argc,
 	printf("Waiting for command\n");
 	printf("> ");
 
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-    ctx->commandPointer = commandPointer;
-    ctx->input = input;
-    ctx->root = root;
-    ctx->rootLoc = rootLoc;
-    ctx->mem_used = mem_used;
-    ctx->cores_arg = cores_arg;
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->cur_arg = cur_arg;
+new_ctx->cores_arg = cores_arg;
+new_ctx->input_file = input_file;
+new_ctx->command_file = command_file;
+new_ctx->output = output;
+new_ctx->pFile = pFile;
+new_ctx->commandFile = commandFile;
+new_ctx->lSize = lSize;
+new_ctx->commandBuffer = commandBuffer;
+new_ctx->result = result;
+new_ctx->sPointer = sPointer;
+new_ctx->file_pointer = file_pointer;
+new_ctx->root = root;
+new_ctx->r = r;
+new_ctx->input = input;
+new_ctx->instruction = instruction;
+new_ctx->mem_used = mem_used;
+new_ctx->rootLoc = rootLoc;
+new_ctx->commandPointer = commandPointer;
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
-    hclib_launch(main_entrypoint, ctx);
-    free(ctx);
 	printf("\n");
 
 	// ------------------------------------------------------------60
@@ -2458,7 +2498,7 @@ main(	int argc,
 	free(mem);
 	return EXIT_SUCCESS;
 
-}
+} 
 
 //========================================================================================================================================================================================================200
 //	END

@@ -18,3 +18,4 @@ forasync2DRec
 forasync3DCh
 forasync3DRec
 memory/allocate
+emulate_omp

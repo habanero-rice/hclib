@@ -82,24 +82,24 @@ MAT * chop_flip_image(unsigned char *image, int height, int width, int top, int 
 
 // Given x- and y-gradients of a video frame, computes the GICOV
 //  score for each sample ellipse at every pixel in the frame
-typedef struct _pragma113 {
-    MAT *grad_x;
-    MAT *grad_y;
+typedef struct _pragma114 {
     int i;
-    int n;
-    int k;
-    double sin_angle[150];
-    double cos_angle[150];
-    double theta[150];
-    int tX[7][150];
-    int tY[7][150];
-    int MaxR;
-    int height;
-    int width;
-    MAT *gicov;
- } pragma113;
+    int (*n_ptr);
+    int (*k_ptr);
+    double (*sin_angle_ptr)[150];
+    double (*cos_angle_ptr)[150];
+    double (*theta_ptr)[150];
+    int (*tX_ptr)[7][150];
+    int (*tY_ptr)[7][150];
+    int (*MaxR_ptr);
+    int (*height_ptr);
+    int (*width_ptr);
+    MAT (*(*gicov_ptr));
+    MAT (*(*grad_x_ptr));
+    MAT (*(*grad_y_ptr));
+ } pragma114;
 
-static void pragma113_hclib_async(void *____arg, const int ___iter);
+static void pragma114_hclib_async(void *____arg, const int ___iter0);
 MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	int i, n, k;
 	// Compute the sine and cosine of the angle to each point in each sample circle
@@ -129,56 +129,44 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	
 	// Split the work among multiple threads, if OPEN is defined
  { 
-pragma113 *ctx = (pragma113 *)malloc(sizeof(pragma113));
-ctx->grad_x = grad_x;
-ctx->grad_y = grad_y;
-ctx->i = i;
-ctx->n = n;
-ctx->k = k;
-memcpy(ctx->sin_angle, sin_angle, 150 * (sizeof(double))); 
-memcpy(ctx->cos_angle, cos_angle, 150 * (sizeof(double))); 
-memcpy(ctx->theta, theta, 150 * (sizeof(double))); 
-memcpy(ctx->tX, tX, 7 * (150 * (sizeof(int)))); 
-memcpy(ctx->tY, tY, 7 * (150 * (sizeof(int)))); 
-ctx->MaxR = MaxR;
-ctx->height = height;
-ctx->width = width;
-ctx->gicov = gicov;
-hclib_loop_domain_t domain;
-domain.low = MaxR;
-domain.high = width - MaxR;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma113_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma114 *new_ctx = (pragma114 *)malloc(sizeof(pragma114));
+new_ctx->i = i;
+new_ctx->n_ptr = &(n);
+new_ctx->k_ptr = &(k);
+new_ctx->sin_angle_ptr = &(sin_angle);
+new_ctx->cos_angle_ptr = &(cos_angle);
+new_ctx->theta_ptr = &(theta);
+new_ctx->tX_ptr = &(tX);
+new_ctx->tY_ptr = &(tY);
+new_ctx->MaxR_ptr = &(MaxR);
+new_ctx->height_ptr = &(height);
+new_ctx->width_ptr = &(width);
+new_ctx->gicov_ptr = &(gicov);
+new_ctx->grad_x_ptr = &(grad_x);
+new_ctx->grad_y_ptr = &(grad_y);
+hclib_loop_domain_t domain[1];
+domain[0].low = MaxR;
+domain[0].high = width - MaxR;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma114_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 	
 	return gicov;
-} static void pragma113_hclib_async(void *____arg, const int ___iter) {
-    pragma113 *ctx = (pragma113 *)____arg;
-    MAT *grad_x; grad_x = ctx->grad_x;
-    MAT *grad_y; grad_y = ctx->grad_y;
+} 
+static void pragma114_hclib_async(void *____arg, const int ___iter0) {
+    pragma114 *ctx = (pragma114 *)____arg;
     int i; i = ctx->i;
-    int n; n = ctx->n;
-    int k; k = ctx->k;
-    double sin_angle[150]; memcpy(sin_angle, ctx->sin_angle, 150 * (sizeof(double))); 
-    double cos_angle[150]; memcpy(cos_angle, ctx->cos_angle, 150 * (sizeof(double))); 
-    double theta[150]; memcpy(theta, ctx->theta, 150 * (sizeof(double))); 
-    int tX[7][150]; memcpy(tX, ctx->tX, 7 * (150 * (sizeof(int)))); 
-    int tY[7][150]; memcpy(tY, ctx->tY, 7 * (150 * (sizeof(int)))); 
-    int MaxR; MaxR = ctx->MaxR;
-    int height; height = ctx->height;
-    int width; width = ctx->width;
-    MAT *gicov; gicov = ctx->gicov;
     hclib_start_finish();
     do {
-    i = ___iter;
+    i = ___iter0;
 {
 		double Grad[NPOINTS];
 		int j, k, n, x, y;
 		
-		for (j = MaxR; j < height - MaxR; j++) {
+		for (j = (*(ctx->MaxR_ptr)); j < (*(ctx->height_ptr)) - (*(ctx->MaxR_ptr)); j++) {
 			// Initialize the maximal GICOV score to 0
 			double max_GICOV = 0;	
 			
@@ -187,11 +175,11 @@ free(ctx);
 				// Iterate across each sample point in the current stencil
 				for (n = 0; n < NPOINTS; n++)	{
 					// Determine the x- and y-coordinates of the current sample point
-					y = j + tY[k][n];
-					x = i + tX[k][n];
+					y = j + (*(ctx->tY_ptr))[k][n];
+					x = i + (*(ctx->tX_ptr))[k][n];
 					
 					// Compute the combined gradient value at the current sample point
-					Grad[n] = m_get_val(grad_x, y, x) * cos_angle[n] + m_get_val(grad_y, y, x) * sin_angle[n];
+					Grad[n] = m_get_val((*(ctx->grad_x_ptr)), y, x) * (*(ctx->cos_angle_ptr))[n] + m_get_val((*(ctx->grad_y_ptr)), y, x) * (*(ctx->sin_angle_ptr))[n];
 				}
 				
 				// Compute the mean gradient value across all sample points
@@ -209,13 +197,14 @@ free(ctx);
 				
 				// Keep track of the maximal GICOV value seen so far
 				if (mean * mean / var > max_GICOV) {
-					m_set_val(gicov, j, i, mean / sqrt(var));
+					m_set_val((*(ctx->gicov_ptr)), j, i, mean / sqrt(var));
 					max_GICOV = mean * mean / var;
 				}
 			}
 		}
 	} ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 
@@ -241,16 +230,16 @@ MAT * structuring_element(int radius) {
 
 // Performs an image dilation on the specified matrix
 //  using the specified structuring element
-typedef struct _pragma188 {
-    MAT *img_in;
-    MAT *strel;
-    MAT *dilated;
-    int el_center_i;
-    int el_center_j;
+typedef struct _pragma189 {
+    MAT (*(*dilated_ptr));
+    int (*el_center_i_ptr);
+    int (*el_center_j_ptr);
     int i;
- } pragma188;
+    MAT (*(*img_in_ptr));
+    MAT (*(*strel_ptr));
+ } pragma189;
 
-static void pragma188_hclib_async(void *____arg, const int ___iter);
+static void pragma189_hclib_async(void *____arg, const int ___iter0);
 MAT * dilate_f(MAT * img_in, MAT * strel) {
 	MAT * dilated = m_get(img_in->m, img_in->n);
 	
@@ -259,57 +248,54 @@ MAT * dilate_f(MAT * img_in, MAT * strel) {
 	
 	// Split the work among multiple threads, if OPEN is defined
  { 
-pragma188 *ctx = (pragma188 *)malloc(sizeof(pragma188));
-ctx->img_in = img_in;
-ctx->strel = strel;
-ctx->dilated = dilated;
-ctx->el_center_i = el_center_i;
-ctx->el_center_j = el_center_j;
-ctx->i = i;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = img_in->m;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma188_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma189 *new_ctx = (pragma189 *)malloc(sizeof(pragma189));
+new_ctx->dilated_ptr = &(dilated);
+new_ctx->el_center_i_ptr = &(el_center_i);
+new_ctx->el_center_j_ptr = &(el_center_j);
+new_ctx->i = i;
+new_ctx->img_in_ptr = &(img_in);
+new_ctx->strel_ptr = &(strel);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = img_in->m;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma189_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 
 	return dilated;
-} static void pragma188_hclib_async(void *____arg, const int ___iter) {
-    pragma188 *ctx = (pragma188 *)____arg;
-    MAT *img_in; img_in = ctx->img_in;
-    MAT *strel; strel = ctx->strel;
-    MAT *dilated; dilated = ctx->dilated;
-    int el_center_i; el_center_i = ctx->el_center_i;
-    int el_center_j; el_center_j = ctx->el_center_j;
+} 
+static void pragma189_hclib_async(void *____arg, const int ___iter0) {
+    pragma189 *ctx = (pragma189 *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {
-    i = ___iter;
+    i = ___iter0;
 {
 		int j, el_i, el_j, x, y;
-		for (j = 0; j < img_in->n; j++) {
+		for (j = 0; j < (*(ctx->img_in_ptr))->n; j++) {
 			double max = 0.0, temp;
 			// Iterate across the structuring element
-			for (el_i = 0; el_i < strel->m; el_i++) {
-				for (el_j = 0; el_j < strel->n; el_j++) {
-					y = i - el_center_i + el_i;
-					x = j - el_center_j + el_j;
+			for (el_i = 0; el_i < (*(ctx->strel_ptr))->m; el_i++) {
+				for (el_j = 0; el_j < (*(ctx->strel_ptr))->n; el_j++) {
+					y = i - (*(ctx->el_center_i_ptr)) + el_i;
+					x = j - (*(ctx->el_center_j_ptr)) + el_j;
 					// Make sure we have not gone off the edge of the matrix
-					if (y >=0 && x >= 0 && y < img_in->m && x < img_in->n && m_get_val(strel, el_i, el_j) != 0) {
+					if (y >=0 && x >= 0 && y < (*(ctx->img_in_ptr))->m && x < (*(ctx->img_in_ptr))->n && m_get_val((*(ctx->strel_ptr)), el_i, el_j) != 0) {
 						// Determine if this is maximal value seen so far
-						temp = m_get_val(img_in, y, x);
+						temp = m_get_val((*(ctx->img_in_ptr)), y, x);
 						if (temp > max)	max = temp;
 					}
 				}
 			}
 			// Store the maximum value found
-			m_set_val(dilated, i, j, max);
+			m_set_val((*(ctx->dilated_ptr)), i, j, max);
 		}
 	} ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 

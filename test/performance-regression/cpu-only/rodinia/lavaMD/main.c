@@ -32,7 +32,7 @@
 //	MAIN FUNCTION HEADER
 //======================================================================================================================================================150
 
-#include "./main.h"						// (in the current directory)
+#include "main.h"						// (in the current directory)
 
 //======================================================================================================================================================150
 //	KERNEL
@@ -43,25 +43,6 @@
 //========================================================================================================================================================================================================200
 //	MAIN FUNCTION
 //========================================================================================================================================================================================================200
-
-typedef struct _main_ctx {
-    par_str par_cpu;
-    dim_str dim_cpu;
-    box_str *box_cpu;
-    FOUR_VECTOR *rv_cpu;
-    fp *qv_cpu;
-    FOUR_VECTOR *fv_cpu;
-} main_ctx;
-static void main_entrypoint(void *arg) {
-    main_ctx *ctx = (main_ctx *)arg;
-
-	kernel_cpu(	ctx->par_cpu,
-				ctx->dim_cpu,
-				ctx->box_cpu,
-				ctx->rv_cpu,
-				ctx->qv_cpu,
-				ctx->fv_cpu);
-}
 
 int 
 main(	int argc, 
@@ -305,14 +286,12 @@ main(	int argc,
 	//	CPU/MCPU
 	//====================================================================================================100
 
-    main_ctx *ctx = (main_ctx *)malloc(sizeof(main_ctx));
-    ctx->par_cpu = par_cpu;
-    ctx->dim_cpu = dim_cpu;
-    ctx->box_cpu = box_cpu;
-    ctx->rv_cpu = rv_cpu;
-    ctx->qv_cpu = qv_cpu;
-    ctx->fv_cpu = fv_cpu;
-    hclib_launch(main_entrypoint, ctx);
+	kernel_cpu(	par_cpu,
+				dim_cpu,
+				box_cpu,
+				rv_cpu,
+				qv_cpu,
+				fv_cpu);
 
 	time6 = get_time();
 

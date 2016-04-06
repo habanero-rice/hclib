@@ -31,107 +31,105 @@ void usage(int argc, char **argv)
 	exit(1);
 }
 
-typedef struct _pragma126 {
-    int argc;
-    char **argv;
-    int rows;
-    int cols;
-    int size_I;
-    int size_R;
-    int niter;
-    int iter;
+typedef struct _pragma127 {
+    int (*rows_ptr);
+    int (*cols_ptr);
+    int (*size_I_ptr);
+    int (*size_R_ptr);
+    int (*niter_ptr);
+    int (*iter_ptr);
     int k;
-    float *I;
-    float *J;
-    float q0sqr;
-    float sum;
-    float sum2;
-    float tmp;
-    float meanROI;
-    float varROI;
+    float (*(*I_ptr));
+    float (*(*J_ptr));
+    float (*q0sqr_ptr);
+    float (*sum_ptr);
+    float (*sum2_ptr);
+    float (*tmp_ptr);
+    float (*meanROI_ptr);
+    float (*varROI_ptr);
     float Jc;
     float G2;
     float L;
     float num;
     float den;
     float qsqr;
-    int *iN;
-    int *iS;
-    int *jE;
-    int *jW;
-    float *dN;
-    float *dS;
-    float *dW;
-    float *dE;
-    int r1;
-    int r2;
-    int c1;
-    int c2;
-    float cN;
-    float cS;
-    float cW;
-    float cE;
-    float *c;
-    float D;
-    float lambda;
+    int (*(*iN_ptr));
+    int (*(*iS_ptr));
+    int (*(*jE_ptr));
+    int (*(*jW_ptr));
+    float (*(*dN_ptr));
+    float (*(*dS_ptr));
+    float (*(*dW_ptr));
+    float (*(*dE_ptr));
+    int (*r1_ptr);
+    int (*r2_ptr);
+    int (*c1_ptr);
+    int (*c2_ptr);
+    float (*cN_ptr);
+    float (*cS_ptr);
+    float (*cW_ptr);
+    float (*cE_ptr);
+    float (*(*c_ptr));
+    float (*D_ptr);
+    float (*lambda_ptr);
     int i;
     int j;
-    int nthreads;
- } pragma126;
+    int (*nthreads_ptr);
+    int (*argc_ptr);
+    char (*(*(*argv_ptr)));
+ } pragma127;
 
-typedef struct _pragma159 {
-    int argc;
-    char **argv;
-    int rows;
-    int cols;
-    int size_I;
-    int size_R;
-    int niter;
-    int iter;
+typedef struct _pragma160 {
+    int (*rows_ptr);
+    int (*cols_ptr);
+    int (*size_I_ptr);
+    int (*size_R_ptr);
+    int (*niter_ptr);
+    int (*iter_ptr);
     int k;
-    float *I;
-    float *J;
-    float q0sqr;
-    float sum;
-    float sum2;
-    float tmp;
-    float meanROI;
-    float varROI;
-    float Jc;
-    float G2;
-    float L;
-    float num;
-    float den;
-    float qsqr;
-    int *iN;
-    int *iS;
-    int *jE;
-    int *jW;
-    float *dN;
-    float *dS;
-    float *dW;
-    float *dE;
-    int r1;
-    int r2;
-    int c1;
-    int c2;
+    float (*(*I_ptr));
+    float (*(*J_ptr));
+    float (*q0sqr_ptr);
+    float (*sum_ptr);
+    float (*sum2_ptr);
+    float (*tmp_ptr);
+    float (*meanROI_ptr);
+    float (*varROI_ptr);
+    float (*Jc_ptr);
+    float (*G2_ptr);
+    float (*L_ptr);
+    float (*num_ptr);
+    float (*den_ptr);
+    float (*qsqr_ptr);
+    int (*(*iN_ptr));
+    int (*(*iS_ptr));
+    int (*(*jE_ptr));
+    int (*(*jW_ptr));
+    float (*(*dN_ptr));
+    float (*(*dS_ptr));
+    float (*(*dW_ptr));
+    float (*(*dE_ptr));
+    int (*r1_ptr);
+    int (*r2_ptr);
+    int (*c1_ptr);
+    int (*c2_ptr);
     float cN;
     float cS;
     float cW;
     float cE;
-    float *c;
+    float (*(*c_ptr));
     float D;
-    float lambda;
+    float (*lambda_ptr);
     int i;
     int j;
-    int nthreads;
- } pragma159;
+    int (*nthreads_ptr);
+    int (*argc_ptr);
+    char (*(*(*argv_ptr)));
+ } pragma160;
 
-static void pragma126_hclib_async(void *____arg, const int ___iter);
-static void pragma159_hclib_async(void *____arg, const int ___iter);
+static void pragma127_hclib_async(void *____arg, const int ___iter0);
+static void pragma160_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
-    int argc;
-    char **argv;
     int rows;
     int cols;
     int size_I;
@@ -139,8 +137,8 @@ typedef struct _main_entrypoint_ctx {
     int niter;
     int iter;
     int k;
-    float *I;
-    float *J;
+    float (*I);
+    float (*J);
     float q0sqr;
     float sum;
     float sum2;
@@ -153,14 +151,14 @@ typedef struct _main_entrypoint_ctx {
     float num;
     float den;
     float qsqr;
-    int *iN;
-    int *iS;
-    int *jE;
-    int *jW;
-    float *dN;
-    float *dS;
-    float *dW;
-    float *dE;
+    int (*iN);
+    int (*iS);
+    int (*jE);
+    int (*jW);
+    float (*dN);
+    float (*dS);
+    float (*dW);
+    float (*dE);
     int r1;
     int r2;
     int c1;
@@ -169,18 +167,19 @@ typedef struct _main_entrypoint_ctx {
     float cS;
     float cW;
     float cE;
-    float *c;
+    float (*c);
     float D;
     float lambda;
     int i;
     int j;
     int nthreads;
+    int argc;
+    char (*(*argv));
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
     int rows; rows = ctx->rows;
     int cols; cols = ctx->cols;
     int size_I; size_I = ctx->size_I;
@@ -188,8 +187,8 @@ static void main_entrypoint(void *____arg) {
     int niter; niter = ctx->niter;
     int iter; iter = ctx->iter;
     int k; k = ctx->k;
-    float *I; I = ctx->I;
-    float *J; J = ctx->J;
+    float (*I); I = ctx->I;
+    float (*J); J = ctx->J;
     float q0sqr; q0sqr = ctx->q0sqr;
     float sum; sum = ctx->sum;
     float sum2; sum2 = ctx->sum2;
@@ -202,14 +201,14 @@ static void main_entrypoint(void *____arg) {
     float num; num = ctx->num;
     float den; den = ctx->den;
     float qsqr; qsqr = ctx->qsqr;
-    int *iN; iN = ctx->iN;
-    int *iS; iS = ctx->iS;
-    int *jE; jE = ctx->jE;
-    int *jW; jW = ctx->jW;
-    float *dN; dN = ctx->dN;
-    float *dS; dS = ctx->dS;
-    float *dW; dW = ctx->dW;
-    float *dE; dE = ctx->dE;
+    int (*iN); iN = ctx->iN;
+    int (*iS); iS = ctx->iS;
+    int (*jE); jE = ctx->jE;
+    int (*jW); jW = ctx->jW;
+    float (*dN); dN = ctx->dN;
+    float (*dS); dS = ctx->dS;
+    float (*dW); dW = ctx->dW;
+    float (*dE); dE = ctx->dE;
     int r1; r1 = ctx->r1;
     int r2; r2 = ctx->r2;
     int c1; c1 = ctx->c1;
@@ -218,12 +217,14 @@ static void main_entrypoint(void *____arg) {
     float cS; cS = ctx->cS;
     float cW; cW = ctx->cW;
     float cE; cE = ctx->cE;
-    float *c; c = ctx->c;
+    float (*c); c = ctx->c;
     float D; D = ctx->D;
     float lambda; lambda = ctx->lambda;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nthreads; nthreads = ctx->nthreads;
+    int argc; argc = ctx->argc;
+    char (*(*argv)); argv = ctx->argv;
 for (iter=0; iter< niter; iter++){
 		sum=0; sum2=0;     
 		for (i=r1; i<=r2; i++) {
@@ -239,116 +240,116 @@ for (iter=0; iter< niter; iter++){
 		
 
  { 
-pragma126 *ctx = (pragma126 *)malloc(sizeof(pragma126));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->rows = rows;
-ctx->cols = cols;
-ctx->size_I = size_I;
-ctx->size_R = size_R;
-ctx->niter = niter;
-ctx->iter = iter;
-ctx->k = k;
-ctx->I = I;
-ctx->J = J;
-ctx->q0sqr = q0sqr;
-ctx->sum = sum;
-ctx->sum2 = sum2;
-ctx->tmp = tmp;
-ctx->meanROI = meanROI;
-ctx->varROI = varROI;
-ctx->Jc = Jc;
-ctx->G2 = G2;
-ctx->L = L;
-ctx->num = num;
-ctx->den = den;
-ctx->qsqr = qsqr;
-ctx->iN = iN;
-ctx->iS = iS;
-ctx->jE = jE;
-ctx->jW = jW;
-ctx->dN = dN;
-ctx->dS = dS;
-ctx->dW = dW;
-ctx->dE = dE;
-ctx->r1 = r1;
-ctx->r2 = r2;
-ctx->c1 = c1;
-ctx->c2 = c2;
-ctx->cN = cN;
-ctx->cS = cS;
-ctx->cW = cW;
-ctx->cE = cE;
-ctx->c = c;
-ctx->D = D;
-ctx->lambda = lambda;
-ctx->i = i;
-ctx->j = j;
-ctx->nthreads = nthreads;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = rows;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma126_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma127 *new_ctx = (pragma127 *)malloc(sizeof(pragma127));
+new_ctx->rows_ptr = &(rows);
+new_ctx->cols_ptr = &(cols);
+new_ctx->size_I_ptr = &(size_I);
+new_ctx->size_R_ptr = &(size_R);
+new_ctx->niter_ptr = &(niter);
+new_ctx->iter_ptr = &(iter);
+new_ctx->k = k;
+new_ctx->I_ptr = &(I);
+new_ctx->J_ptr = &(J);
+new_ctx->q0sqr_ptr = &(q0sqr);
+new_ctx->sum_ptr = &(sum);
+new_ctx->sum2_ptr = &(sum2);
+new_ctx->tmp_ptr = &(tmp);
+new_ctx->meanROI_ptr = &(meanROI);
+new_ctx->varROI_ptr = &(varROI);
+new_ctx->Jc = Jc;
+new_ctx->G2 = G2;
+new_ctx->L = L;
+new_ctx->num = num;
+new_ctx->den = den;
+new_ctx->qsqr = qsqr;
+new_ctx->iN_ptr = &(iN);
+new_ctx->iS_ptr = &(iS);
+new_ctx->jE_ptr = &(jE);
+new_ctx->jW_ptr = &(jW);
+new_ctx->dN_ptr = &(dN);
+new_ctx->dS_ptr = &(dS);
+new_ctx->dW_ptr = &(dW);
+new_ctx->dE_ptr = &(dE);
+new_ctx->r1_ptr = &(r1);
+new_ctx->r2_ptr = &(r2);
+new_ctx->c1_ptr = &(c1);
+new_ctx->c2_ptr = &(c2);
+new_ctx->cN_ptr = &(cN);
+new_ctx->cS_ptr = &(cS);
+new_ctx->cW_ptr = &(cW);
+new_ctx->cE_ptr = &(cE);
+new_ctx->c_ptr = &(c);
+new_ctx->D_ptr = &(D);
+new_ctx->lambda_ptr = &(lambda);
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->nthreads_ptr = &(nthreads);
+new_ctx->argc_ptr = &(argc);
+new_ctx->argv_ptr = &(argv);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = rows;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma127_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
  { 
-pragma159 *ctx = (pragma159 *)malloc(sizeof(pragma159));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->rows = rows;
-ctx->cols = cols;
-ctx->size_I = size_I;
-ctx->size_R = size_R;
-ctx->niter = niter;
-ctx->iter = iter;
-ctx->k = k;
-ctx->I = I;
-ctx->J = J;
-ctx->q0sqr = q0sqr;
-ctx->sum = sum;
-ctx->sum2 = sum2;
-ctx->tmp = tmp;
-ctx->meanROI = meanROI;
-ctx->varROI = varROI;
-ctx->Jc = Jc;
-ctx->G2 = G2;
-ctx->L = L;
-ctx->num = num;
-ctx->den = den;
-ctx->qsqr = qsqr;
-ctx->iN = iN;
-ctx->iS = iS;
-ctx->jE = jE;
-ctx->jW = jW;
-ctx->dN = dN;
-ctx->dS = dS;
-ctx->dW = dW;
-ctx->dE = dE;
-ctx->r1 = r1;
-ctx->r2 = r2;
-ctx->c1 = c1;
-ctx->c2 = c2;
-ctx->cN = cN;
-ctx->cS = cS;
-ctx->cW = cW;
-ctx->cE = cE;
-ctx->c = c;
-ctx->D = D;
-ctx->lambda = lambda;
-ctx->i = i;
-ctx->j = j;
-ctx->nthreads = nthreads;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = rows;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma159_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma160 *new_ctx = (pragma160 *)malloc(sizeof(pragma160));
+new_ctx->rows_ptr = &(rows);
+new_ctx->cols_ptr = &(cols);
+new_ctx->size_I_ptr = &(size_I);
+new_ctx->size_R_ptr = &(size_R);
+new_ctx->niter_ptr = &(niter);
+new_ctx->iter_ptr = &(iter);
+new_ctx->k = k;
+new_ctx->I_ptr = &(I);
+new_ctx->J_ptr = &(J);
+new_ctx->q0sqr_ptr = &(q0sqr);
+new_ctx->sum_ptr = &(sum);
+new_ctx->sum2_ptr = &(sum2);
+new_ctx->tmp_ptr = &(tmp);
+new_ctx->meanROI_ptr = &(meanROI);
+new_ctx->varROI_ptr = &(varROI);
+new_ctx->Jc_ptr = &(Jc);
+new_ctx->G2_ptr = &(G2);
+new_ctx->L_ptr = &(L);
+new_ctx->num_ptr = &(num);
+new_ctx->den_ptr = &(den);
+new_ctx->qsqr_ptr = &(qsqr);
+new_ctx->iN_ptr = &(iN);
+new_ctx->iS_ptr = &(iS);
+new_ctx->jE_ptr = &(jE);
+new_ctx->jW_ptr = &(jW);
+new_ctx->dN_ptr = &(dN);
+new_ctx->dS_ptr = &(dS);
+new_ctx->dW_ptr = &(dW);
+new_ctx->dE_ptr = &(dE);
+new_ctx->r1_ptr = &(r1);
+new_ctx->r2_ptr = &(r2);
+new_ctx->c1_ptr = &(c1);
+new_ctx->c2_ptr = &(c2);
+new_ctx->cN = cN;
+new_ctx->cS = cS;
+new_ctx->cW = cW;
+new_ctx->cE = cE;
+new_ctx->c_ptr = &(c);
+new_ctx->D = D;
+new_ctx->lambda_ptr = &(lambda);
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->nthreads_ptr = &(nthreads);
+new_ctx->argc_ptr = &(argc);
+new_ctx->argv_ptr = &(argv);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = rows;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma160_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 
 	} ; }
@@ -430,54 +431,54 @@ int main(int argc, char* argv[])
    
 	printf("Start the SRAD main loop\n");
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->rows = rows;
-ctx->cols = cols;
-ctx->size_I = size_I;
-ctx->size_R = size_R;
-ctx->niter = niter;
-ctx->iter = iter;
-ctx->k = k;
-ctx->I = I;
-ctx->J = J;
-ctx->q0sqr = q0sqr;
-ctx->sum = sum;
-ctx->sum2 = sum2;
-ctx->tmp = tmp;
-ctx->meanROI = meanROI;
-ctx->varROI = varROI;
-ctx->Jc = Jc;
-ctx->G2 = G2;
-ctx->L = L;
-ctx->num = num;
-ctx->den = den;
-ctx->qsqr = qsqr;
-ctx->iN = iN;
-ctx->iS = iS;
-ctx->jE = jE;
-ctx->jW = jW;
-ctx->dN = dN;
-ctx->dS = dS;
-ctx->dW = dW;
-ctx->dE = dE;
-ctx->r1 = r1;
-ctx->r2 = r2;
-ctx->c1 = c1;
-ctx->c2 = c2;
-ctx->cN = cN;
-ctx->cS = cS;
-ctx->cW = cW;
-ctx->cE = cE;
-ctx->c = c;
-ctx->D = D;
-ctx->lambda = lambda;
-ctx->i = i;
-ctx->j = j;
-ctx->nthreads = nthreads;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->rows = rows;
+new_ctx->cols = cols;
+new_ctx->size_I = size_I;
+new_ctx->size_R = size_R;
+new_ctx->niter = niter;
+new_ctx->iter = iter;
+new_ctx->k = k;
+new_ctx->I = I;
+new_ctx->J = J;
+new_ctx->q0sqr = q0sqr;
+new_ctx->sum = sum;
+new_ctx->sum2 = sum2;
+new_ctx->tmp = tmp;
+new_ctx->meanROI = meanROI;
+new_ctx->varROI = varROI;
+new_ctx->Jc = Jc;
+new_ctx->G2 = G2;
+new_ctx->L = L;
+new_ctx->num = num;
+new_ctx->den = den;
+new_ctx->qsqr = qsqr;
+new_ctx->iN = iN;
+new_ctx->iS = iS;
+new_ctx->jE = jE;
+new_ctx->jW = jW;
+new_ctx->dN = dN;
+new_ctx->dS = dS;
+new_ctx->dW = dW;
+new_ctx->dE = dE;
+new_ctx->r1 = r1;
+new_ctx->r2 = r2;
+new_ctx->c1 = c1;
+new_ctx->c2 = c2;
+new_ctx->cN = cN;
+new_ctx->cS = cS;
+new_ctx->cW = cW;
+new_ctx->cE = cE;
+new_ctx->c = c;
+new_ctx->D = D;
+new_ctx->lambda = lambda;
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->nthreads = nthreads;
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 
 
@@ -501,158 +502,88 @@ free(ctx);
 
 	free(c);
 	return 0;
-}  static void pragma126_hclib_async(void *____arg, const int ___iter) {
-    pragma126 *ctx = (pragma126 *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    int rows; rows = ctx->rows;
-    int cols; cols = ctx->cols;
-    int size_I; size_I = ctx->size_I;
-    int size_R; size_R = ctx->size_R;
-    int niter; niter = ctx->niter;
-    int iter; iter = ctx->iter;
+}  
+static void pragma127_hclib_async(void *____arg, const int ___iter0) {
+    pragma127 *ctx = (pragma127 *)____arg;
     int k; k = ctx->k;
-    float *I; I = ctx->I;
-    float *J; J = ctx->J;
-    float q0sqr; q0sqr = ctx->q0sqr;
-    float sum; sum = ctx->sum;
-    float sum2; sum2 = ctx->sum2;
-    float tmp; tmp = ctx->tmp;
-    float meanROI; meanROI = ctx->meanROI;
-    float varROI; varROI = ctx->varROI;
     float Jc; Jc = ctx->Jc;
     float G2; G2 = ctx->G2;
     float L; L = ctx->L;
     float num; num = ctx->num;
     float den; den = ctx->den;
     float qsqr; qsqr = ctx->qsqr;
-    int *iN; iN = ctx->iN;
-    int *iS; iS = ctx->iS;
-    int *jE; jE = ctx->jE;
-    int *jW; jW = ctx->jW;
-    float *dN; dN = ctx->dN;
-    float *dS; dS = ctx->dS;
-    float *dW; dW = ctx->dW;
-    float *dE; dE = ctx->dE;
-    int r1; r1 = ctx->r1;
-    int r2; r2 = ctx->r2;
-    int c1; c1 = ctx->c1;
-    int c2; c2 = ctx->c2;
-    float cN; cN = ctx->cN;
-    float cS; cS = ctx->cS;
-    float cW; cW = ctx->cW;
-    float cE; cE = ctx->cE;
-    float *c; c = ctx->c;
-    float D; D = ctx->D;
-    float lambda; lambda = ctx->lambda;
     int i; i = ctx->i;
     int j; j = ctx->j;
-    int nthreads; nthreads = ctx->nthreads;
     hclib_start_finish();
     do {
-    int i;     i = ___iter;
+    int i;     i = ___iter0;
 {
-            for (int j = 0; j < cols; j++) { 
+            for (int j = 0; j < (*(ctx->cols_ptr)); j++) { 
 		
-				k = i * cols + j;
-				Jc = J[k];
+				k = i * (*(ctx->cols_ptr)) + j;
+				Jc = (*(ctx->J_ptr))[k];
  
 				// directional derivates
-                dN[k] = J[iN[i] * cols + j] - Jc;
-                dS[k] = J[iS[i] * cols + j] - Jc;
-                dW[k] = J[i * cols + jW[j]] - Jc;
-                dE[k] = J[i * cols + jE[j]] - Jc;
+                (*(ctx->dN_ptr))[k] = (*(ctx->J_ptr))[(*(ctx->iN_ptr))[i] * (*(ctx->cols_ptr)) + j] - Jc;
+                (*(ctx->dS_ptr))[k] = (*(ctx->J_ptr))[(*(ctx->iS_ptr))[i] * (*(ctx->cols_ptr)) + j] - Jc;
+                (*(ctx->dW_ptr))[k] = (*(ctx->J_ptr))[i * (*(ctx->cols_ptr)) + (*(ctx->jW_ptr))[j]] - Jc;
+                (*(ctx->dE_ptr))[k] = (*(ctx->J_ptr))[i * (*(ctx->cols_ptr)) + (*(ctx->jE_ptr))[j]] - Jc;
 			
-                G2 = (dN[k]*dN[k] + dS[k]*dS[k] 
-                    + dW[k]*dW[k] + dE[k]*dE[k]) / (Jc*Jc);
+                G2 = ((*(ctx->dN_ptr))[k]*(*(ctx->dN_ptr))[k] + (*(ctx->dS_ptr))[k]*(*(ctx->dS_ptr))[k] 
+                    + (*(ctx->dW_ptr))[k]*(*(ctx->dW_ptr))[k] + (*(ctx->dE_ptr))[k]*(*(ctx->dE_ptr))[k]) / (Jc*Jc);
 
-   		        L = (dN[k] + dS[k] + dW[k] + dE[k]) / Jc;
+   		        L = ((*(ctx->dN_ptr))[k] + (*(ctx->dS_ptr))[k] + (*(ctx->dW_ptr))[k] + (*(ctx->dE_ptr))[k]) / Jc;
 
 				num  = (0.5*G2) - ((1.0/16.0)*(L*L)) ;
                 den  = 1 + (.25*L);
                 qsqr = num/(den*den);
  
                 // diffusion coefficent (equ 33)
-                den = (qsqr-q0sqr) / (q0sqr * (1+q0sqr)) ;
-                c[k] = 1.0 / (1.0+den) ;
+                den = (qsqr-(*(ctx->q0sqr_ptr))) / ((*(ctx->q0sqr_ptr)) * (1+(*(ctx->q0sqr_ptr)))) ;
+                (*(ctx->c_ptr))[k] = 1.0 / (1.0+den) ;
                 
                 // saturate diffusion coefficent
-                if (c[k] < 0) {c[k] = 0;}
-                else if (c[k] > 1) {c[k] = 1;}
+                if ((*(ctx->c_ptr))[k] < 0) {(*(ctx->c_ptr))[k] = 0;}
+                else if ((*(ctx->c_ptr))[k] > 1) {(*(ctx->c_ptr))[k] = 1;}
    
 		}
   
     } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
-static void pragma159_hclib_async(void *____arg, const int ___iter) {
-    pragma159 *ctx = (pragma159 *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    int rows; rows = ctx->rows;
-    int cols; cols = ctx->cols;
-    int size_I; size_I = ctx->size_I;
-    int size_R; size_R = ctx->size_R;
-    int niter; niter = ctx->niter;
-    int iter; iter = ctx->iter;
+
+static void pragma160_hclib_async(void *____arg, const int ___iter0) {
+    pragma160 *ctx = (pragma160 *)____arg;
     int k; k = ctx->k;
-    float *I; I = ctx->I;
-    float *J; J = ctx->J;
-    float q0sqr; q0sqr = ctx->q0sqr;
-    float sum; sum = ctx->sum;
-    float sum2; sum2 = ctx->sum2;
-    float tmp; tmp = ctx->tmp;
-    float meanROI; meanROI = ctx->meanROI;
-    float varROI; varROI = ctx->varROI;
-    float Jc; Jc = ctx->Jc;
-    float G2; G2 = ctx->G2;
-    float L; L = ctx->L;
-    float num; num = ctx->num;
-    float den; den = ctx->den;
-    float qsqr; qsqr = ctx->qsqr;
-    int *iN; iN = ctx->iN;
-    int *iS; iS = ctx->iS;
-    int *jE; jE = ctx->jE;
-    int *jW; jW = ctx->jW;
-    float *dN; dN = ctx->dN;
-    float *dS; dS = ctx->dS;
-    float *dW; dW = ctx->dW;
-    float *dE; dE = ctx->dE;
-    int r1; r1 = ctx->r1;
-    int r2; r2 = ctx->r2;
-    int c1; c1 = ctx->c1;
-    int c2; c2 = ctx->c2;
     float cN; cN = ctx->cN;
     float cS; cS = ctx->cS;
     float cW; cW = ctx->cW;
     float cE; cE = ctx->cE;
-    float *c; c = ctx->c;
     float D; D = ctx->D;
-    float lambda; lambda = ctx->lambda;
     int i; i = ctx->i;
     int j; j = ctx->j;
-    int nthreads; nthreads = ctx->nthreads;
     hclib_start_finish();
     do {
-    int i;     i = ___iter;
+    int i;     i = ___iter0;
 {
-            for (int j = 0; j < cols; j++) {        
+            for (int j = 0; j < (*(ctx->cols_ptr)); j++) {        
 
                 // current index
-                k = i * cols + j;
+                k = i * (*(ctx->cols_ptr)) + j;
                 
                 // diffusion coefficent
-					cN = c[k];
-					cS = c[iS[i] * cols + j];
-					cW = c[k];
-					cE = c[i * cols + jE[j]];
+					cN = (*(ctx->c_ptr))[k];
+					cS = (*(ctx->c_ptr))[(*(ctx->iS_ptr))[i] * (*(ctx->cols_ptr)) + j];
+					cW = (*(ctx->c_ptr))[k];
+					cE = (*(ctx->c_ptr))[i * (*(ctx->cols_ptr)) + (*(ctx->jE_ptr))[j]];
 
                 // divergence (equ 58)
-                D = cN * dN[k] + cS * dS[k] + cW * dW[k] + cE * dE[k];
+                D = cN * (*(ctx->dN_ptr))[k] + cS * (*(ctx->dS_ptr))[k] + cW * (*(ctx->dW_ptr))[k] + cE * (*(ctx->dE_ptr))[k];
                 
                 // image update (equ 61)
-                J[k] = J[k] + 0.25*lambda*D;
+                (*(ctx->J_ptr))[k] = (*(ctx->J_ptr))[k] + 0.25*(*(ctx->lambda_ptr))*D;
                 #ifdef OUTPUT
                 //printf("%.5f ", J[k]); 
                 #endif //output
@@ -662,6 +593,7 @@ static void pragma159_hclib_async(void *____arg, const int ___iter) {
                 #endif //output
 	     } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 

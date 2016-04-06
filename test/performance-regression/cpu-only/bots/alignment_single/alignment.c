@@ -432,7 +432,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pragma464 {
+typedef struct _pragma465 {
     int i;
     int n;
     int m;
@@ -440,14 +440,14 @@ typedef struct _pragma464 {
     int sj;
     int len1;
     int len2;
-    int maxres;
+    int (*maxres_ptr);
     double gg;
     double mm_score;
-    int *mat_xref;
-    int *matptr;
- } pragma464;
+    int (*(*mat_xref_ptr));
+    int (*(*matptr_ptr));
+ } pragma465;
 
-static void pragma464_hclib_async(void *____arg);
+static void pragma465_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     int i;
     int n;
@@ -459,9 +459,10 @@ typedef struct _main_entrypoint_ctx {
     int maxres;
     double gg;
     double mm_score;
-    int *mat_xref;
-    int *matptr;
+    int (*mat_xref);
+    int (*matptr);
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
@@ -475,8 +476,8 @@ static void main_entrypoint(void *____arg) {
     int maxres; maxres = ctx->maxres;
     double gg; gg = ctx->gg;
     double mm_score; mm_score = ctx->mm_score;
-    int *mat_xref; mat_xref = ctx->mat_xref;
-    int *matptr; matptr = ctx->matptr;
+    int (*mat_xref); mat_xref = ctx->mat_xref;
+    int (*matptr); matptr = ctx->matptr;
 {
 hclib_start_finish(); for (si = 0; si < nseqs; si++) {
          n = seqlen_array[si+1];
@@ -491,20 +492,20 @@ hclib_start_finish(); for (si = 0; si < nseqs; si++) {
                bench_output[si*nseqs+sj] = (int) 1.0;
             } else {
  { 
-pragma464 *ctx = (pragma464 *)malloc(sizeof(pragma464));
-ctx->i = i;
-ctx->n = n;
-ctx->m = m;
-ctx->si = si;
-ctx->sj = sj;
-ctx->len1 = len1;
-ctx->len2 = len2;
-ctx->maxres = maxres;
-ctx->gg = gg;
-ctx->mm_score = mm_score;
-ctx->mat_xref = mat_xref;
-ctx->matptr = matptr;
-hclib_async(pragma464_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma465 *new_ctx = (pragma465 *)malloc(sizeof(pragma465));
+new_ctx->i = i;
+new_ctx->n = n;
+new_ctx->m = m;
+new_ctx->si = si;
+new_ctx->sj = sj;
+new_ctx->len1 = len1;
+new_ctx->len2 = len2;
+new_ctx->maxres_ptr = &(maxres);
+new_ctx->gg = gg;
+new_ctx->mm_score = mm_score;
+new_ctx->mat_xref_ptr = &(mat_xref);
+new_ctx->matptr_ptr = &(matptr);
+hclib_async(pragma465_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  }  // end task
             } // end if (n == 0 || m == 0)
          } // for (j)
@@ -523,26 +524,27 @@ int pairalign()
    maxres = get_matrix(matptr, mat_xref, 10);
    if (maxres == 0) return(-1);
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->i = i;
-ctx->n = n;
-ctx->m = m;
-ctx->si = si;
-ctx->sj = sj;
-ctx->len1 = len1;
-ctx->len2 = len2;
-ctx->maxres = maxres;
-ctx->gg = gg;
-ctx->mm_score = mm_score;
-ctx->mat_xref = mat_xref;
-ctx->matptr = matptr;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->i = i;
+new_ctx->n = n;
+new_ctx->m = m;
+new_ctx->si = si;
+new_ctx->sj = sj;
+new_ctx->len1 = len1;
+new_ctx->len2 = len2;
+new_ctx->maxres = maxres;
+new_ctx->gg = gg;
+new_ctx->mm_score = mm_score;
+new_ctx->mat_xref = mat_xref;
+new_ctx->matptr = matptr;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 
    return 0;
-}  static void pragma464_hclib_async(void *____arg) {
-    pragma464 *ctx = (pragma464 *)____arg;
+}  
+static void pragma465_hclib_async(void *____arg) {
+    pragma465 *ctx = (pragma465 *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
@@ -550,11 +552,8 @@ free(ctx);
     int sj; sj = ctx->sj;
     int len1; len1 = ctx->len1;
     int len2; len2 = ctx->len2;
-    int maxres; maxres = ctx->maxres;
     double gg; gg = ctx->gg;
     double mm_score; mm_score = ctx->mm_score;
-    int *mat_xref; mat_xref = ctx->mat_xref;
-    int *matptr; matptr = ctx->matptr;
     hclib_start_finish();
 {
                   int se1, se2, sb1, sb2, maxscore, seq1, seq2, g, gh;
@@ -591,6 +590,7 @@ free(ctx);
 
                   bench_output[si*nseqs+sj] = (int) mm_score;
                } ;     ; hclib_end_finish();
+
 }
 
 

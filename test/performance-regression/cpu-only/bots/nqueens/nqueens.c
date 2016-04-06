@@ -55,11 +55,6 @@ static int solutions[] = {
 };
 #define MAX_SOLUTIONS sizeof(solutions)/sizeof(int)
 
-#ifdef FORCE_TIED_TASKS
-int mycount=0;
-hclib_pragma_marker("omp", "threadprivate(mycount)");
-#endif
-
 int total_count;
 
 
@@ -84,30 +79,18 @@ int ok(int n, char *a)
      return 1;
 }
 
-#ifndef FORCE_TIED_TASKS
 void nqueens_ser (int n, int j, char *a, int *solutions)
-#else
-void nqueens_ser (int n, int j, char *a)
-#endif
 {
-#ifndef FORCE_TIED_TASKS
 	int res;
-#endif
 	int i;
 
 	if (n == j) {
 		/* good solution, count it */
-#ifndef FORCE_TIED_TASKS
 		*solutions = 1;
-#else
-		mycount++;
-#endif
 		return;
 	}
 
-#ifndef FORCE_TIED_TASKS
 	*solutions = 0;
-#endif
 
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
@@ -115,298 +98,80 @@ void nqueens_ser (int n, int j, char *a)
 	  		/* allocate a temporary array and copy <a> into it */
 	  		a[j] = (char) i;
 	  		if (ok(j + 1, a)) {
-#ifndef FORCE_TIED_TASKS
 	       			nqueens_ser(n, j + 1, a,&res);
 				*solutions += res;
-#else
-	       			nqueens_ser(n, j + 1, a);
-#endif
 			}
 		}
 	}
 }
 
-#if defined(IF_CUTOFF)
-
-#ifndef FORCE_TIED_TASKS
-void nqueens(int n, int j, char *a, int *solutions, int depth)
-#else
-void nqueens(int n, int j, char *a, int depth)
-#endif
-{
-#ifndef FORCE_TIED_TASKS
-	int *csols;
-#endif
-	int i;
-
-	if (n == j) {
-		/* good solution, count it */
-#ifndef FORCE_TIED_TASKS
-		*solutions = 1;
-#else
-		mycount++;
-#endif
-		return;
-	}
-
-
-#ifndef FORCE_TIED_TASKS
-	*solutions = 0;
-	csols = (int *)alloca(n*sizeof(int));
-	memset(csols,0,n*sizeof(int));
-#endif
-
-     	/* try each possible position for queen <j> */
-	for (i = 0; i < n; i++) {
-hclib_pragma_marker("omp", "task untied if(depth < bots_cutoff_value)");
-		{
-	  		/* allocate a temporary array and copy <a> into it */
-	  		char * b = (char *)alloca(n * sizeof(char));
-	  		memcpy(b, a, j * sizeof(char));
-	  		b[j] = (char) i;
-	  		if (ok(j + 1, b))
-#ifndef FORCE_TIED_TASKS
-	       			nqueens(n, j + 1, b,&csols[i],depth+1);
-#else
-	       			nqueens(n, j + 1, b,depth+1);
-#endif
-		}
-	}
-
-hclib_pragma_marker("omp", "taskwait");
-#ifndef FORCE_TIED_TASKS
-	for ( i = 0; i < n; i++) *solutions += csols[i];
-#endif
-}
-
-#elif defined(FINAL_CUTOFF)
-
-#ifndef FORCE_TIED_TASKS
-void nqueens(int n, int j, char *a, int *solutions, int depth)
-#else
-void nqueens(int n, int j, char *a, int depth)
-#endif
-{
-#ifndef FORCE_TIED_TASKS
-	int *csols;
-#endif
-	int i;
-
-
-	if (n == j) {
-		/* good solution, count it */
-#ifndef FORCE_TIED_TASKS
-		*solutions += 1;
-#else
-		mycount++;
-#endif
-		return;
-	}
-
-
-#ifndef FORCE_TIED_TASKS
-        char final = omp_in_final();
-        if ( !final ) {
-	  *solutions = 0;
-	  csols = (int *)alloca(n*sizeof(int));
-	  memset(csols,0,n*sizeof(int));
-        }
-#endif
-
-     	/* try each possible position for queen <j> */
-	for (i = 0; i < n; i++) {
-hclib_pragma_marker("omp", "task untied final(depth+1 >= bots_cutoff_value) mergeable");
-		{
-                        char *b;
-                        int *sol;
-			if ( omp_in_final() && depth+1 > bots_cutoff_value ) {
-		           b = a;
-#ifndef FORCE_TIED_TASKS
-                           sol = solutions;
-#endif
-                        } else {
-	  		/* allocate a temporary array and copy <a> into it */
-	  		   b = (char *)alloca(n * sizeof(char));
-	  		   memcpy(b, a, j * sizeof(char));
-#ifndef FORCE_TIED_TASKS
-                           sol = &csols[i];
-#endif
-                        } 
-	  		b[j] = i;
-	  		if (ok(j + 1, b))
-#ifndef FORCE_TIED_TASKS
-	       			nqueens(n, j + 1, b,sol,depth+1);
-#else
-	       			nqueens(n, j + 1, b,depth+1);
-#endif
-		}
-	}
-
-hclib_pragma_marker("omp", "taskwait");
-#ifndef FORCE_TIED_TASKS
-       if ( !final ) {
-	for ( i = 0; i < n; i++) *solutions += csols[i];
-       }
-#endif
-}
-
-#elif defined(MANUAL_CUTOFF)
-
-#ifndef FORCE_TIED_TASKS
-void nqueens(int n, int j, char *a, int *solutions, int depth)
-#else
-void nqueens(int n, int j, char *a, int depth)
-#endif
-{
-#ifndef FORCE_TIED_TASKS
-	int *csols;
-#endif
-	int i;
-
-
-	if (n == j) {
-		/* good solution, count it */
-#ifndef FORCE_TIED_TASKS
-		*solutions = 1;
-#else
-		mycount++;
-#endif
-		return;
-	}
-
-
-#ifndef FORCE_TIED_TASKS
-	*solutions = 0;
-	csols = (int *)alloca(n*sizeof(int));
-	memset(csols,0,n*sizeof(int));
-#endif
-
-     	/* try each possible position for queen <j> */
-	for (i = 0; i < n; i++) {
-		if ( depth < bots_cutoff_value ) {
-hclib_pragma_marker("omp", "task untied");
-			{
-	  			/* allocate a temporary array and copy <a> into it */
-	  			char * b = (char *)alloca(n * sizeof(char));
-	  			memcpy(b, a, j * sizeof(char));
-	  			b[j] = (char) i;
-	  			if (ok(j + 1, b))
-#ifndef FORCE_TIED_TASKS
-	       				nqueens(n, j + 1, b,&csols[i],depth+1);
-#else
-		       			nqueens(n, j + 1, b,depth+1);
-#endif
-			}
-		} else {
-  			a[j] = (char) i;
-  			if (ok(j + 1, a))
-#ifndef FORCE_TIED_TASKS
-       				nqueens_ser(n, j + 1, a,&csols[i]);
-#else
-	       			nqueens_ser(n, j + 1, a);
-#endif
-		}
-	}
-
-hclib_pragma_marker("omp", "taskwait");
-#ifndef FORCE_TIED_TASKS
-	for ( i = 0; i < n; i++) *solutions += csols[i];
-#endif
-}
-
-
-#else 
-
-#ifndef FORCE_TIED_TASKS
-typedef struct _pragma351 {
+typedef struct _pragma128 {
+    int (*(*csols_ptr));
+    int (*i_ptr);
     int n;
-    int j;
-    char *a;
-    int *solutions;
-    int depth;
-    int *csols;
-    int i;
- } pragma351;
+    int (*j_ptr);
+    char (*(*a_ptr));
+    int (*(*solutions_ptr));
+    int (*depth_ptr);
+ } pragma128;
 
-static void pragma351_hclib_async(void *____arg);
+static void pragma128_hclib_async(void *____arg);
 void nqueens(int n, int j, char *a, int *solutions, int depth)
-#else
-void nqueens(int n, int j, char *a, int depth)
-#endif
 {
-#ifndef FORCE_TIED_TASKS
 	int *csols;
-#endif
 	int i;
 
 
 	if (n == j) {
 		/* good solution, count it */
-#ifndef FORCE_TIED_TASKS
 		*solutions = 1;
-#else
-		mycount++;
-#endif
 		return;
 	}
 
 
-#ifndef FORCE_TIED_TASKS
 	*solutions = 0;
 	csols = (int *)alloca(n*sizeof(int));
 	memset(csols,0,n*sizeof(int));
-#endif
 
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
  { 
-pragma351 *ctx = (pragma351 *)malloc(sizeof(pragma351));
-ctx->n = n;
-ctx->j = j;
-ctx->a = a;
-ctx->solutions = solutions;
-ctx->depth = depth;
-ctx->csols = csols;
-ctx->i = i;
-hclib_async(pragma351_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma128 *new_ctx = (pragma128 *)malloc(sizeof(pragma128));
+new_ctx->csols_ptr = &(csols);
+new_ctx->i_ptr = &(i);
+new_ctx->n = n;
+new_ctx->j_ptr = &(j);
+new_ctx->a_ptr = &(a);
+new_ctx->solutions_ptr = &(solutions);
+new_ctx->depth_ptr = &(depth);
+hclib_async(pragma128_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
 	}
 
  hclib_end_finish(); hclib_start_finish(); ;
-#ifndef FORCE_TIED_TASKS
 	for ( i = 0; i < n; i++) *solutions += csols[i];
-#endif
-} static void pragma351_hclib_async(void *____arg) {
-    pragma351 *ctx = (pragma351 *)____arg;
+} 
+static void pragma128_hclib_async(void *____arg) {
+    pragma128 *ctx = (pragma128 *)____arg;
     int n; n = ctx->n;
-    int j; j = ctx->j;
-    char *a; a = ctx->a;
-    int *solutions; solutions = ctx->solutions;
-    int depth; depth = ctx->depth;
-    int *csols; csols = ctx->csols;
-    int i; i = ctx->i;
     hclib_start_finish();
 {
 	  		/* allocate a temporary array and copy <a> into it */
 	  		char * b = (char *)alloca(n * sizeof(char));
-	  		memcpy(b, a, j * sizeof(char));
-	  		b[j] = (char) i;
-	  		if (ok(j + 1, b))
-#ifndef FORCE_TIED_TASKS
-       				nqueens(n, j + 1, b,&csols[i],depth); //FIXME: depth or depth+1 ???
-#else
-	       			nqueens(n, j + 1, b,depth); //FIXME: see above
-#endif
+	  		memcpy(b, (*(ctx->a_ptr)), (*(ctx->j_ptr)) * sizeof(char));
+	  		b[(*(ctx->j_ptr))] = (char) (*(ctx->i_ptr));
+	  		if (ok((*(ctx->j_ptr)) + 1, b))
+       				nqueens(n, (*(ctx->j_ptr)) + 1, b,&(*(ctx->csols_ptr))[(*(ctx->i_ptr))],(*(ctx->depth_ptr))); //FIXME: depth or depth+1 ???
 		} ;     ; hclib_end_finish();
+
 }
 
 
 
-#endif
-
 typedef struct _main_entrypoint_ctx {
     int size;
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
@@ -419,21 +184,17 @@ hclib_start_finish(); {
 			char *a;
 
 			a = (char *)alloca(size * sizeof(char));
-#ifndef FORCE_TIED_TASKS
 			nqueens(size, 0, a, &total_count,0);
-#else
-			nqueens(size, 0, a, 0);
-#endif
 		} ; hclib_end_finish(); 
 	bots_message(" completed!\n");
     } ; }
 
 void find_queens (int size)
 {
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->size = size;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->size = size;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 } 
 

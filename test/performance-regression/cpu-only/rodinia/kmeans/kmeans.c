@@ -1,3 +1,4 @@
+#include "hclib.h"
 /*****************************************************************************/
 /*IMPORTANT:  READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.         */
 /*By downloading, copying, installing or using the software you agree        */
@@ -78,13 +79,11 @@
 #include <omp.h>
 #include "getopt.h"
 
-#include "hclib.h"
-
 #include "kmeans.h"
 
 extern double wtime(void);
 
-int num_omp_threads = 1;
+int num_omp_threads = 8;
 
 /*---< usage() >------------------------------------------------------------*/
 void usage(char *argv0) {
@@ -99,38 +98,64 @@ void usage(char *argv0) {
     exit(-1);
 }
 
-typedef struct _main_ctx {
-    int nloops;
-    int numObjects;
-    int numAttributes;
-    float **attributes;
+/*---< main() >-------------------------------------------------------------*/
+typedef struct _main_entrypoint_ctx {
+    int opt;
+    char (*optarg);
+    int optind;
     int nclusters;
-    float threshold;
-} main_ctx;
-
-void main_entrypoint(void *arg) {
-    main_ctx *ctx = (main_ctx *)arg;
-    float **cluster_centres=NULL;
-
-    num_omp_threads = hclib_num_workers();
-
+    char (*filename);
+    float (*buf);
+    float (*(*attributes));
+    float (*(*cluster_centres));
     int i;
-    for (i=0; i<ctx->nloops; i++) {
+    int j;
+    int numAttributes;
+    int numObjects;
+    char line[1024];
+    int isBinaryFile;
+    int nloops;
+    float threshold;
+    double timing;
+    int argc;
+    char (*(*argv));
+ } main_entrypoint_ctx;
+
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int opt; opt = ctx->opt;
+    char (*optarg); optarg = ctx->optarg;
+    int optind; optind = ctx->optind;
+    int nclusters; nclusters = ctx->nclusters;
+    char (*filename); filename = ctx->filename;
+    float (*buf); buf = ctx->buf;
+    float (*(*attributes)); attributes = ctx->attributes;
+    float (*(*cluster_centres)); cluster_centres = ctx->cluster_centres;
+    int i; i = ctx->i;
+    int j; j = ctx->j;
+    int numAttributes; numAttributes = ctx->numAttributes;
+    int numObjects; numObjects = ctx->numObjects;
+    char line[1024]; memcpy(line, ctx->line, 1024 * (sizeof(char))); 
+    int isBinaryFile; isBinaryFile = ctx->isBinaryFile;
+    int nloops; nloops = ctx->nloops;
+    float threshold; threshold = ctx->threshold;
+    double timing; timing = ctx->timing;
+    int argc; argc = ctx->argc;
+    char (*(*argv)); argv = ctx->argv;
+for (i=0; i<nloops; i++) {
         
         cluster_centres = NULL;
-        cluster(ctx->numObjects,
-                ctx->numAttributes,
-                ctx->attributes,           /* [numObjects][numAttributes] */                
-                ctx->nclusters,
-                ctx->threshold,
+        cluster(numObjects,
+                numAttributes,
+                attributes,           /* [numObjects][numAttributes] */                
+                nclusters,
+                threshold,
                 &cluster_centres   
                );
      
-    }
+    } ; }
 
-}
-
-/*---< main() >-------------------------------------------------------------*/
 int main(int argc, char **argv) {
            int     opt;
     extern char   *optarg;
@@ -160,8 +185,6 @@ int main(int argc, char **argv) {
                       break;
             case 'k': nclusters = atoi(optarg);
                       break;			
-			case 'n': num_omp_threads = atoi(optarg);
-					  break;
             case '?': usage(argv[0]);
                       break;
             default: usage(argv[0]);
@@ -237,17 +260,29 @@ int main(int argc, char **argv) {
 
 	memcpy(attributes[0], buf, numObjects*numAttributes*sizeof(float));
 
-	timing = omp_get_wtime();
-    main_ctx *ctx = (main_ctx *)malloc(sizeof(main_ctx));
-    ctx->nloops = nloops;
-    ctx->numObjects = numObjects;
-    ctx->numAttributes = numAttributes;
-    ctx->attributes = attributes;
-    ctx->nclusters = nclusters;
-    ctx->threshold = threshold;
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->opt = opt;
+new_ctx->optarg = optarg;
+new_ctx->optind = optind;
+new_ctx->nclusters = nclusters;
+new_ctx->filename = filename;
+new_ctx->buf = buf;
+new_ctx->attributes = attributes;
+new_ctx->cluster_centres = cluster_centres;
+new_ctx->i = i;
+new_ctx->j = j;
+new_ctx->numAttributes = numAttributes;
+new_ctx->numObjects = numObjects;
+memcpy(new_ctx->line, line, 1024 * (sizeof(char))); 
+new_ctx->isBinaryFile = isBinaryFile;
+new_ctx->nloops = nloops;
+new_ctx->threshold = threshold;
+new_ctx->timing = timing;
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
-    hclib_launch(main_entrypoint, ctx);
-    timing = omp_get_wtime() - timing;
 	
 
 	printf("number of Clusters %d\n",nclusters); 
@@ -263,12 +298,9 @@ int main(int argc, char **argv) {
         printf("\n\n");
     }
 */
-	printf("Time for process: %f\n", timing);
 
     free(attributes);
-    // free(cluster_centres[0]);
-    free(cluster_centres);
     free(buf);
     return(0);
-}
+} 
 

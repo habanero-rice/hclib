@@ -25,8 +25,13 @@ if [[ -z "$BOTS_ROOT" ]]; then
 fi
 
 NTRIALS=10
-if [[ $# -eq 1 ]]; then
+if [[ $# -ge 1 ]]; then
     NTRIALS=$1
+fi
+
+DRY_RUN=0
+if [[ $# -ge 2 ]]; then
+    DRY_RUN=$2
 fi
 
 RUNNING_UNDER_SLURM=1
@@ -43,9 +48,30 @@ make -j
 
 for FOLDER in $(ls rodinia/); do
     if [[ -d rodinia/$FOLDER ]]; then
+        echo Compiling rodinia/$FOLDER
         cd rodinia/$FOLDER && make clean && make && cd ../../
     fi
 done
+
+for FOLDER in $(ls bots/); do
+    if [[ -d bots/$FOLDER ]]; then
+        echo Compiling bots/$FOLDER
+        cd bots/$FOLDER && make clean && make && cd ../../
+    fi
+done
+
+for FOLDER in $(ls kastors-1.1/); do
+    if [[ -d kastors-1.1/$FOLDER && $FOLDER != common ]]; then
+        echo Compiling kastor-1.1/$FOLDER
+        cd kastors-1.1/$FOLDER && make clean && make && cd ../../
+    fi
+done
+
+echo Compilation completed!
+echo
+if [[ $DRY_RUN -eq 1 ]]; then
+    exit 0
+fi
 
 MEDIAN_PY=../../../tools/median.py
 MEAN_PY=../../../tools/mean.py
@@ -62,7 +88,7 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/heartwall/heartwall rodinia/heartwall/test.avi 20 4"
         "rodinia/hotspot/hotspot 1024 1024 2 4 rodinia/hotspot/temp_1024 rodinia/hotspot/power_1024 output.out"
         "rodinia/hotspot3D/3D 512 8 100 rodinia/hotspot3D/power_512x8 rodinia/hotspot3D/temp_512x8 output.out"
-        "rodinia/kmeans/kmeans -n 4 -i $RODINIA_DATA_DIR/kmeans/kdd_cup"
+        "rodinia/kmeans/kmeans -i $RODINIA_DATA_DIR/kmeans/kdd_cup"
         "rodinia/lavaMD/lavaMD -cores 4 -boxes1d 10"
         "rodinia/leukocyte/OpenMP/leukocyte 5 4 $RODINIA_DATA_DIR/leukocyte/testfile.avi"
         "rodinia/lud/omp/lud_omp -s 8000"
@@ -72,8 +98,8 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/pathfinder/pathfinder 100000 100"
         "rodinia/srad/srad 2048 2048 0 127 0 127 2 0.5 2"
         "rodinia/streamcluster/sc_omp 10 20 256 65536 65536 1000 none output.txt 4"
-        "bots/alignment/alignment_for/alignment.icc.for-omp-tasks -f $BOTS_ROOT/inputs/alignment/prot.100.aa"
-        "bots/alignment/alignment_single/alignment.icc.for-omp-tasks -f $BOTS_ROOT/inputs/alignment/prot.100.aa"
+        "bots/alignment_for/alignment.icc.for-omp-tasks -f $BOTS_ROOT/inputs/alignment/prot.100.aa"
+        "bots/alignment_single/alignment.icc.for-omp-tasks -f $BOTS_ROOT/inputs/alignment/prot.100.aa"
         "bots/fft/fft.icc.omp-tasks"
         "bots/fib/fib.icc.omp-tasks -n 30"
         "bots/floorplan/floorplan.icc.omp-tasks -f $BOTS_ROOT/inputs/floorplan/input.20"
@@ -83,7 +109,12 @@ BENCHMARKS=("cilksort 100000000"
         "bots/sparselu/sparselu_for/sparselu.icc.for-omp-tasks -n 50"
         "bots/sparselu/sparselu_single/sparselu.icc.single-omp-tasks -n 50"
         "bots/strassen/strassen.icc.omp-tasks -n 4096"
-        "bots/uts/uts.icc.omp-tasks -f $BOTS_ROOT/inputs/uts/small.input")
+        "bots/uts/uts.icc.omp-tasks -f $BOTS_ROOT/inputs/uts/small.input"
+        "kastors-1.1/jacobi/jacobi-task -c -i 100"
+        "kastors-1.1/jacobi/jacobi-block-task-dep -c -i 100"
+        "kastors-1.1/jacobi/jacobi-task-dep -c -i 100"
+        "kastors-1.1/jacobi/jacobi-block-task -c -i 100"
+        "kastors-1.1/jacobi/jacobi-block-for -c -i 100")
 
 TIMESTAMP=$(date +%s)
 set +e

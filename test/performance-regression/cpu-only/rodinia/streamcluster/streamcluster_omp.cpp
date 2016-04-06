@@ -302,60 +302,60 @@ float pspeedy(Points *points, float z, long *kcenter, int pid)
 /* z is the facility cost, x is the number of this point in the array 
    points */
 
-typedef struct _pragma390 {
-    long x;
-    Points *points;
-    double z;
-    long *numcenters;
-    int pid;
-    double t0;
-    long bsize;
-    long k1;
-    long k2;
+typedef struct _pragma391 {
+    double (*t0_ptr);
+    long (*bsize_ptr);
+    long (*k1_ptr);
+    long (*k2_ptr);
     int i;
-    int number_of_centers_to_close;
-    double *work_mem;
-    double gl_cost_of_opening_x;
-    int gl_number_of_centers_to_close;
-    int stride;
-    int cl;
-    int K;
+    int (*number_of_centers_to_close_ptr);
+    double (*(*work_mem_ptr));
+    double (*gl_cost_of_opening_x_ptr);
+    int (*gl_number_of_centers_to_close_ptr);
+    int (*stride_ptr);
+    int (*cl_ptr);
+    int (*K_ptr);
     double cost_of_opening_x;
-    int count;
-    double t1;
-    double *lower;
-    double *gl_lower;
+    int (*count_ptr);
+    double (*t1_ptr);
+    double (*(*lower_ptr));
+    double (*(*gl_lower_ptr));
+    long (*x_ptr);
+    Points (*(*points_ptr));
+    double (*z_ptr);
+    long (*(*numcenters_ptr));
+    int (*pid_ptr);
     pthread_mutex_t reduction_mutex;
- } pragma390;
+ } pragma391;
 
-typedef struct _pragma466 {
-    long x;
-    Points *points;
-    double z;
-    long *numcenters;
-    int pid;
-    double t0;
-    long bsize;
-    long k1;
-    long k2;
+typedef struct _pragma467 {
+    double (*t0_ptr);
+    long (*bsize_ptr);
+    long (*k1_ptr);
+    long (*k2_ptr);
     int i;
-    int number_of_centers_to_close;
-    double *work_mem;
-    double gl_cost_of_opening_x;
-    int gl_number_of_centers_to_close;
-    int stride;
-    int cl;
-    int K;
-    double cost_of_opening_x;
-    int count;
-    double t1;
-    double *lower;
-    double *gl_lower;
-    double t2;
- } pragma466;
+    int (*number_of_centers_to_close_ptr);
+    double (*(*work_mem_ptr));
+    double (*gl_cost_of_opening_x_ptr);
+    int (*gl_number_of_centers_to_close_ptr);
+    int (*stride_ptr);
+    int (*cl_ptr);
+    int (*K_ptr);
+    double (*cost_of_opening_x_ptr);
+    int (*count_ptr);
+    double (*t1_ptr);
+    double (*(*lower_ptr));
+    double (*(*gl_lower_ptr));
+    double (*t2_ptr);
+    long (*x_ptr);
+    Points (*(*points_ptr));
+    double (*z_ptr);
+    long (*(*numcenters_ptr));
+    int (*pid_ptr);
+ } pragma467;
 
-static void pragma390_hclib_async(void *____arg, const int ___iter);
-static void pragma466_hclib_async(void *____arg, const int ___iter);
+static void pragma391_hclib_async(void *____arg, const int ___iter0);
+static void pragma467_hclib_async(void *____arg, const int ___iter0);
 double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 {
   //  printf("pgain pthread %d begin\n",pid);
@@ -442,41 +442,41 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 	// OpenMP parallelization
 //	#pragma omp parallel for 
  { 
-pragma390 *ctx = (pragma390 *)malloc(sizeof(pragma390));
-ctx->x = x;
-ctx->points = points;
-ctx->z = z;
-ctx->numcenters = numcenters;
-ctx->pid = pid;
-ctx->t0 = t0;
-ctx->bsize = bsize;
-ctx->k1 = k1;
-ctx->k2 = k2;
-ctx->i = i;
-ctx->number_of_centers_to_close = number_of_centers_to_close;
-ctx->work_mem = work_mem;
-ctx->gl_cost_of_opening_x = gl_cost_of_opening_x;
-ctx->gl_number_of_centers_to_close = gl_number_of_centers_to_close;
-ctx->stride = stride;
-ctx->cl = cl;
-ctx->K = K;
-ctx->cost_of_opening_x = cost_of_opening_x;
-ctx->count = count;
-ctx->t1 = t1;
-ctx->lower = lower;
-ctx->gl_lower = gl_lower;
-ctx->cost_of_opening_x = 0;
-const int init_err = pthread_mutex_init(&ctx->reduction_mutex, NULL);
+pragma391 *new_ctx = (pragma391 *)malloc(sizeof(pragma391));
+new_ctx->t0_ptr = &(t0);
+new_ctx->bsize_ptr = &(bsize);
+new_ctx->k1_ptr = &(k1);
+new_ctx->k2_ptr = &(k2);
+new_ctx->i = i;
+new_ctx->number_of_centers_to_close_ptr = &(number_of_centers_to_close);
+new_ctx->work_mem_ptr = &(work_mem);
+new_ctx->gl_cost_of_opening_x_ptr = &(gl_cost_of_opening_x);
+new_ctx->gl_number_of_centers_to_close_ptr = &(gl_number_of_centers_to_close);
+new_ctx->stride_ptr = &(stride);
+new_ctx->cl_ptr = &(cl);
+new_ctx->K_ptr = &(K);
+new_ctx->cost_of_opening_x = cost_of_opening_x;
+new_ctx->count_ptr = &(count);
+new_ctx->t1_ptr = &(t1);
+new_ctx->lower_ptr = &(lower);
+new_ctx->gl_lower_ptr = &(gl_lower);
+new_ctx->x_ptr = &(x);
+new_ctx->points_ptr = &(points);
+new_ctx->z_ptr = &(z);
+new_ctx->numcenters_ptr = &(numcenters);
+new_ctx->pid_ptr = &(pid);
+new_ctx->cost_of_opening_x = 0;
+const int init_err = pthread_mutex_init(&new_ctx->reduction_mutex, NULL);
 assert(init_err == 0);
-hclib_loop_domain_t domain;
-domain.low = k1;
-domain.high = k2;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma390_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+hclib_loop_domain_t domain[1];
+domain[0].low = k1;
+domain[0].high = k2;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma391_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
-cost_of_opening_x = ctx->cost_of_opening_x;
+free(new_ctx);
+cost_of_opening_x = new_ctx->cost_of_opening_x;
  } 
 
 #ifdef PROFILE
@@ -529,38 +529,38 @@ cost_of_opening_x = ctx->cost_of_opening_x;
   if ( gl_cost_of_opening_x < 0 ) {
     //  we'd save money by opening x; we'll do it
  { 
-pragma466 *ctx = (pragma466 *)malloc(sizeof(pragma466));
-ctx->x = x;
-ctx->points = points;
-ctx->z = z;
-ctx->numcenters = numcenters;
-ctx->pid = pid;
-ctx->t0 = t0;
-ctx->bsize = bsize;
-ctx->k1 = k1;
-ctx->k2 = k2;
-ctx->i = i;
-ctx->number_of_centers_to_close = number_of_centers_to_close;
-ctx->work_mem = work_mem;
-ctx->gl_cost_of_opening_x = gl_cost_of_opening_x;
-ctx->gl_number_of_centers_to_close = gl_number_of_centers_to_close;
-ctx->stride = stride;
-ctx->cl = cl;
-ctx->K = K;
-ctx->cost_of_opening_x = cost_of_opening_x;
-ctx->count = count;
-ctx->t1 = t1;
-ctx->lower = lower;
-ctx->gl_lower = gl_lower;
-ctx->t2 = t2;
-hclib_loop_domain_t domain;
-domain.low = k1;
-domain.high = k2;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma466_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma467 *new_ctx = (pragma467 *)malloc(sizeof(pragma467));
+new_ctx->t0_ptr = &(t0);
+new_ctx->bsize_ptr = &(bsize);
+new_ctx->k1_ptr = &(k1);
+new_ctx->k2_ptr = &(k2);
+new_ctx->i = i;
+new_ctx->number_of_centers_to_close_ptr = &(number_of_centers_to_close);
+new_ctx->work_mem_ptr = &(work_mem);
+new_ctx->gl_cost_of_opening_x_ptr = &(gl_cost_of_opening_x);
+new_ctx->gl_number_of_centers_to_close_ptr = &(gl_number_of_centers_to_close);
+new_ctx->stride_ptr = &(stride);
+new_ctx->cl_ptr = &(cl);
+new_ctx->K_ptr = &(K);
+new_ctx->cost_of_opening_x_ptr = &(cost_of_opening_x);
+new_ctx->count_ptr = &(count);
+new_ctx->t1_ptr = &(t1);
+new_ctx->lower_ptr = &(lower);
+new_ctx->gl_lower_ptr = &(gl_lower);
+new_ctx->t2_ptr = &(t2);
+new_ctx->x_ptr = &(x);
+new_ctx->points_ptr = &(points);
+new_ctx->z_ptr = &(z);
+new_ctx->numcenters_ptr = &(numcenters);
+new_ctx->pid_ptr = &(pid);
+hclib_loop_domain_t domain[1];
+domain[0].low = k1;
+domain[0].high = k2;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma467_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
 		
     for( int i = k1; i < k2; i++ ) {
@@ -595,37 +595,18 @@ free(ctx);
 #endif
 	//printf("cost=%f\n", -gl_cost_of_opening_x);
   return -gl_cost_of_opening_x;
-} static void pragma390_hclib_async(void *____arg, const int ___iter) {
-    pragma390 *ctx = (pragma390 *)____arg;
-    long x; x = ctx->x;
-    Points *points; points = ctx->points;
-    double z; z = ctx->z;
-    long *numcenters; numcenters = ctx->numcenters;
-    int pid; pid = ctx->pid;
-    double t0; t0 = ctx->t0;
-    long bsize; bsize = ctx->bsize;
-    long k1; k1 = ctx->k1;
-    long k2; k2 = ctx->k2;
+} 
+static void pragma391_hclib_async(void *____arg, const int ___iter0) {
+    pragma391 *ctx = (pragma391 *)____arg;
     int i; i = ctx->i;
-    int number_of_centers_to_close; number_of_centers_to_close = ctx->number_of_centers_to_close;
-    double *work_mem; work_mem = ctx->work_mem;
-    double gl_cost_of_opening_x; gl_cost_of_opening_x = ctx->gl_cost_of_opening_x;
-    int gl_number_of_centers_to_close; gl_number_of_centers_to_close = ctx->gl_number_of_centers_to_close;
-    int stride; stride = ctx->stride;
-    int cl; cl = ctx->cl;
-    int K; K = ctx->K;
     double cost_of_opening_x; cost_of_opening_x = ctx->cost_of_opening_x;
-    int count; count = ctx->count;
-    double t1; t1 = ctx->t1;
-    double *lower; lower = ctx->lower;
-    double *gl_lower; gl_lower = ctx->gl_lower;
     hclib_start_finish();
     do {
-    i = ___iter;
+    i = ___iter0;
 {
-    float x_cost = dist(points->p[i], points->p[x], points->dim) 
-      * points->p[i].weight;
-    float current_cost = points->p[i].cost;
+    float x_cost = dist((*(ctx->points_ptr))->p[i], (*(ctx->points_ptr))->p[(*(ctx->x_ptr))], (*(ctx->points_ptr))->dim) 
+      * (*(ctx->points_ptr))->p[i].weight;
+    float current_cost = (*(ctx->points_ptr))->p[i].cost;
 		
     if ( x_cost < current_cost ) {
 
@@ -643,8 +624,8 @@ free(ctx);
       // note we've already accounted for the fact that the median
       // would save z by closing; now we have to subtract from the savings
       // the extra cost of reassigning that median and its members 
-      int assign = points->p[i].assign;
-      lower[center_table[assign]] += current_cost - x_cost;			
+      int assign = (*(ctx->points_ptr))->p[i].assign;
+      (*(ctx->lower_ptr))[center_table[assign]] += current_cost - x_cost;			
     }
   } ;     } while (0);
     const int lock_err = pthread_mutex_lock(&ctx->reduction_mutex);
@@ -653,47 +634,28 @@ free(ctx);
     const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
     assert(unlock_err == 0);
     ; hclib_end_finish();
+
 }
 
-static void pragma466_hclib_async(void *____arg, const int ___iter) {
-    pragma466 *ctx = (pragma466 *)____arg;
-    long x; x = ctx->x;
-    Points *points; points = ctx->points;
-    double z; z = ctx->z;
-    long *numcenters; numcenters = ctx->numcenters;
-    int pid; pid = ctx->pid;
-    double t0; t0 = ctx->t0;
-    long bsize; bsize = ctx->bsize;
-    long k1; k1 = ctx->k1;
-    long k2; k2 = ctx->k2;
+
+static void pragma467_hclib_async(void *____arg, const int ___iter0) {
+    pragma467 *ctx = (pragma467 *)____arg;
     int i; i = ctx->i;
-    int number_of_centers_to_close; number_of_centers_to_close = ctx->number_of_centers_to_close;
-    double *work_mem; work_mem = ctx->work_mem;
-    double gl_cost_of_opening_x; gl_cost_of_opening_x = ctx->gl_cost_of_opening_x;
-    int gl_number_of_centers_to_close; gl_number_of_centers_to_close = ctx->gl_number_of_centers_to_close;
-    int stride; stride = ctx->stride;
-    int cl; cl = ctx->cl;
-    int K; K = ctx->K;
-    double cost_of_opening_x; cost_of_opening_x = ctx->cost_of_opening_x;
-    int count; count = ctx->count;
-    double t1; t1 = ctx->t1;
-    double *lower; lower = ctx->lower;
-    double *gl_lower; gl_lower = ctx->gl_lower;
-    double t2; t2 = ctx->t2;
     hclib_start_finish();
     do {
-    int i;     i = ___iter;
+    int i;     i = ___iter0;
 {
-      bool close_center = gl_lower[center_table[points->p[i].assign]] > 0 ;
+      bool close_center = (*(ctx->gl_lower_ptr))[center_table[(*(ctx->points_ptr))->p[i].assign]] > 0 ;
       if ( switch_membership[i] || close_center ) {
 				// Either i's median (which may be i itself) is closing,
 				// or i is closer to x than to its current median
-				points->p[i].cost = points->p[i].weight *
-					dist(points->p[i], points->p[x], points->dim);
-				points->p[i].assign = x;
+				(*(ctx->points_ptr))->p[i].cost = (*(ctx->points_ptr))->p[i].weight *
+					dist((*(ctx->points_ptr))->p[i], (*(ctx->points_ptr))->p[(*(ctx->x_ptr))], (*(ctx->points_ptr))->dim);
+				(*(ctx->points_ptr))->p[i].assign = (*(ctx->x_ptr));
       }
     } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 
@@ -823,11 +785,6 @@ int selectfeasible_fast(Points *points, int **feasible, int kmin, int pid)
 
 /* compute approximate kmedian on the points */
 typedef struct _main_entrypoint_ctx {
-    Points *points;
-    long kmin;
-    long kmax;
-    long *kfinal;
-    int pid;
     int i;
     double cost;
     double lastcost;
@@ -835,24 +792,25 @@ typedef struct _main_entrypoint_ctx {
     double loz;
     double z;
     long k;
-    int *feasible;
+    int (*feasible);
     int numfeasible;
-    double *hizs;
+    double (*hizs);
     long numberOfPoints;
     long ptDimension;
     long bsize;
     long k1;
     long k2;
     double myhiz;
+    Points (*points);
+    long kmin;
+    long kmax;
+    long (*kfinal);
+    int pid;
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    Points *points; points = ctx->points;
-    long kmin; kmin = ctx->kmin;
-    long kmax; kmax = ctx->kmax;
-    long *kfinal; kfinal = ctx->kfinal;
-    int pid; pid = ctx->pid;
     int i; i = ctx->i;
     double cost; cost = ctx->cost;
     double lastcost; lastcost = ctx->lastcost;
@@ -860,15 +818,20 @@ static void main_entrypoint(void *____arg) {
     double loz; loz = ctx->loz;
     double z; z = ctx->z;
     long k; k = ctx->k;
-    int *feasible; feasible = ctx->feasible;
+    int (*feasible); feasible = ctx->feasible;
     int numfeasible; numfeasible = ctx->numfeasible;
-    double *hizs; hizs = ctx->hizs;
+    double (*hizs); hizs = ctx->hizs;
     long numberOfPoints; numberOfPoints = ctx->numberOfPoints;
     long ptDimension; ptDimension = ctx->ptDimension;
     long bsize; bsize = ctx->bsize;
     long k1; k1 = ctx->k1;
     long k2; k2 = ctx->k2;
     double myhiz; myhiz = ctx->myhiz;
+    Points (*points); points = ctx->points;
+    long kmin; kmin = ctx->kmin;
+    long kmax; kmax = ctx->kmax;
+    long (*kfinal); kfinal = ctx->kfinal;
+    int pid; pid = ctx->pid;
 while(1) {
 		d++;
 #ifdef PRINTINFO
@@ -1028,30 +991,30 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
     }
 
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->points = points;
-ctx->kmin = kmin;
-ctx->kmax = kmax;
-ctx->kfinal = kfinal;
-ctx->pid = pid;
-ctx->i = i;
-ctx->cost = cost;
-ctx->lastcost = lastcost;
-ctx->hiz = hiz;
-ctx->loz = loz;
-ctx->z = z;
-ctx->k = k;
-ctx->feasible = feasible;
-ctx->numfeasible = numfeasible;
-ctx->hizs = hizs;
-ctx->numberOfPoints = numberOfPoints;
-ctx->ptDimension = ptDimension;
-ctx->bsize = bsize;
-ctx->k1 = k1;
-ctx->k2 = k2;
-ctx->myhiz = myhiz;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->i = i;
+new_ctx->cost = cost;
+new_ctx->lastcost = lastcost;
+new_ctx->hiz = hiz;
+new_ctx->loz = loz;
+new_ctx->z = z;
+new_ctx->k = k;
+new_ctx->feasible = feasible;
+new_ctx->numfeasible = numfeasible;
+new_ctx->hizs = hizs;
+new_ctx->numberOfPoints = numberOfPoints;
+new_ctx->ptDimension = ptDimension;
+new_ctx->bsize = bsize;
+new_ctx->k1 = k1;
+new_ctx->k2 = k2;
+new_ctx->myhiz = myhiz;
+new_ctx->points = points;
+new_ctx->kmin = kmin;
+new_ctx->kmax = kmax;
+new_ctx->kfinal = kfinal;
+new_ctx->pid = pid;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 
   //clean up...

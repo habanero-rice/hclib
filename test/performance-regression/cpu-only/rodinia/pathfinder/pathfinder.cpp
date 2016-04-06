@@ -70,7 +70,8 @@ fatal(char *s)
 
 #define IN_RANGE(x, min, max)   ((x)>=(min) && (x)<=(max))
 #define CLAMP_RANGE(x, min, max) x = (x<(min)) ? min : ((x>(max)) ? max : x )
-#define MIN(a, b) ((a)<=(b) ? (a) : (b))
+
+inline int MIN(int a, int b) { return ((a)<=(b) ? (a) : (b)); }
 
 int main(int argc, char** argv)
 {
@@ -79,59 +80,60 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
-typedef struct _pragma101 {
-    int argc;
-    char **argv;
-    unsigned long long cycles;
-    int *src;
-    int *dst;
-    int *temp;
+typedef struct _pragma103 {
+    int (*t_ptr);
+    unsigned long long (*cycles_ptr);
+    int (*(*src_ptr));
+    int (*(*dst_ptr));
+    int (*(*temp_ptr));
     int min;
-    int t;
- } pragma101;
+    int (*argc_ptr);
+    char (*(*(*argv_ptr)));
+ } pragma103;
 
-static void pragma101_hclib_async(void *____arg, const int ___iter);
+static void pragma103_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
-    int argc;
-    char **argv;
     unsigned long long cycles;
-    int *src;
-    int *dst;
-    int *temp;
+    int (*src);
+    int (*dst);
+    int (*temp);
     int min;
+    int argc;
+    char (*(*argv));
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
     unsigned long long cycles; cycles = ctx->cycles;
-    int *src; src = ctx->src;
-    int *dst; dst = ctx->dst;
-    int *temp; temp = ctx->temp;
+    int (*src); src = ctx->src;
+    int (*dst); dst = ctx->dst;
+    int (*temp); temp = ctx->temp;
     int min; min = ctx->min;
+    int argc; argc = ctx->argc;
+    char (*(*argv)); argv = ctx->argv;
 for (int t = 0; t < rows-1; t++) {
         temp = src;
         src = dst;
         dst = temp;
  { 
-pragma101 *ctx = (pragma101 *)malloc(sizeof(pragma101));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->cycles = cycles;
-ctx->src = src;
-ctx->dst = dst;
-ctx->temp = temp;
-ctx->min = min;
-ctx->t = t;
-hclib_loop_domain_t domain;
-domain.low = 0;
-domain.high = cols;
-domain.stride = 1;
-domain.tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma101_hclib_async, ctx, NULL, 1, &domain, FORASYNC_MODE_RECURSIVE);
+pragma103 *new_ctx = (pragma103 *)malloc(sizeof(pragma103));
+new_ctx->t_ptr = &(t);
+new_ctx->cycles_ptr = &(cycles);
+new_ctx->src_ptr = &(src);
+new_ctx->dst_ptr = &(dst);
+new_ctx->temp_ptr = &(temp);
+new_ctx->min = min;
+new_ctx->argc_ptr = &(argc);
+new_ctx->argv_ptr = &(argv);
+hclib_loop_domain_t domain[1];
+domain[0].low = 0;
+domain[0].high = cols;
+domain[0].stride = 1;
+domain[0].tile = 1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma103_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } 
     } ; }
 
@@ -149,16 +151,16 @@ void run(int argc, char** argv)
 
     pin_stats_reset();
 
-main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->cycles = cycles;
-ctx->src = src;
-ctx->dst = dst;
-ctx->temp = temp;
-ctx->min = min;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->cycles = cycles;
+new_ctx->src = src;
+new_ctx->dst = dst;
+new_ctx->temp = temp;
+new_ctx->min = min;
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+free(new_ctx);
 
 
     pin_stats_pause(cycles);
@@ -177,28 +179,23 @@ free(ctx);
     delete [] wall;
     delete [] dst;
     delete [] src;
-}  static void pragma101_hclib_async(void *____arg, const int ___iter) {
-    pragma101 *ctx = (pragma101 *)____arg;
-    int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    unsigned long long cycles; cycles = ctx->cycles;
-    int *src; src = ctx->src;
-    int *dst; dst = ctx->dst;
-    int *temp; temp = ctx->temp;
+}  
+static void pragma103_hclib_async(void *____arg, const int ___iter0) {
+    pragma103 *ctx = (pragma103 *)____arg;
     int min; min = ctx->min;
-    int t; t = ctx->t;
     hclib_start_finish();
     do {
-    int n;     n = ___iter;
+    int n;     n = ___iter0;
 {
-          min = src[n];
+          min = (*(ctx->src_ptr))[n];
           if (n > 0)
-            min = MIN(min, src[n-1]);
+            min = MIN(min, (*(ctx->src_ptr))[n-1]);
           if (n < cols-1)
-            min = MIN(min, src[n+1]);
-          dst[n] = wall[t+1][n]+min;
+            min = MIN(min, (*(ctx->src_ptr))[n+1]);
+          (*(ctx->dst_ptr))[n] = wall[(*(ctx->t_ptr))+1][n]+min;
         } ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 
