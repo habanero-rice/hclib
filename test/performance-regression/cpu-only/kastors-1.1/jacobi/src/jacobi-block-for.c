@@ -6,36 +6,36 @@ typedef struct _pragma21 {
     int it;
     int block_x;
     int block_y;
-    int max_blocks_x;
-    int max_blocks_y;
-    int nx;
-    int ny;
-    double dx;
-    double dy;
-    double *f_;
-    int itold;
-    int itnew;
-    double *u_;
-    double *unew_;
-    int block_size;
+    int (*max_blocks_x_ptr);
+    int (*max_blocks_y_ptr);
+    int (*nx_ptr);
+    int (*ny_ptr);
+    double (*dx_ptr);
+    double (*dy_ptr);
+    double (*(*f__ptr));
+    int (*itold_ptr);
+    int (*itnew_ptr);
+    double (*(*u__ptr));
+    double (*(*unew__ptr));
+    int (*block_size_ptr);
  } pragma21;
 
 typedef struct _pragma26 {
     int it;
     int block_x;
     int block_y;
-    int max_blocks_x;
-    int max_blocks_y;
-    int nx;
-    int ny;
-    double dx;
-    double dy;
-    double *f_;
-    int itold;
-    int itnew;
-    double *u_;
-    double *unew_;
-    int block_size;
+    int (*max_blocks_x_ptr);
+    int (*max_blocks_y_ptr);
+    int (*nx_ptr);
+    int (*ny_ptr);
+    double (*dx_ptr);
+    double (*dy_ptr);
+    double (*(*f__ptr));
+    int (*itold_ptr);
+    int (*itnew_ptr);
+    double (*(*u__ptr));
+    double (*(*unew__ptr));
+    int (*block_size_ptr);
  } pragma26;
 
 static void pragma21_hclib_async(void *____arg, const int ___iter0, const int ___iter1);
@@ -56,22 +56,22 @@ void sweep (int nx, int ny, double dx, double dy, double *f_,
     {
         // Save the current estimate.
  { 
-pragma21 *ctx = (pragma21 *)malloc(sizeof(pragma21));
-ctx->it = it;
-ctx->block_x = block_x;
-ctx->block_y = block_y;
-ctx->max_blocks_x = max_blocks_x;
-ctx->max_blocks_y = max_blocks_y;
-ctx->nx = nx;
-ctx->ny = ny;
-ctx->dx = dx;
-ctx->dy = dy;
-ctx->f_ = f_;
-ctx->itold = itold;
-ctx->itnew = itnew;
-ctx->u_ = u_;
-ctx->unew_ = unew_;
-ctx->block_size = block_size;
+pragma21 *new_ctx = (pragma21 *)malloc(sizeof(pragma21));
+new_ctx->it = it;
+new_ctx->block_x = block_x;
+new_ctx->block_y = block_y;
+new_ctx->max_blocks_x_ptr = &(max_blocks_x);
+new_ctx->max_blocks_y_ptr = &(max_blocks_y);
+new_ctx->nx_ptr = &(nx);
+new_ctx->ny_ptr = &(ny);
+new_ctx->dx_ptr = &(dx);
+new_ctx->dy_ptr = &(dy);
+new_ctx->f__ptr = &(f_);
+new_ctx->itold_ptr = &(itold);
+new_ctx->itnew_ptr = &(itnew);
+new_ctx->u__ptr = &(u_);
+new_ctx->unew__ptr = &(unew_);
+new_ctx->block_size_ptr = &(block_size);
 hclib_loop_domain_t domain[2];
 domain[0].low = 0;
 domain[0].high = max_blocks_x;
@@ -81,28 +81,28 @@ domain[1].low = 0;
 domain[1].high = max_blocks_y;
 domain[1].stride = 1;
 domain[1].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma21_hclib_async, ctx, NULL, 2, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma21_hclib_async, new_ctx, NULL, 2, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } ;
 
  { 
-pragma26 *ctx = (pragma26 *)malloc(sizeof(pragma26));
-ctx->it = it;
-ctx->block_x = block_x;
-ctx->block_y = block_y;
-ctx->max_blocks_x = max_blocks_x;
-ctx->max_blocks_y = max_blocks_y;
-ctx->nx = nx;
-ctx->ny = ny;
-ctx->dx = dx;
-ctx->dy = dy;
-ctx->f_ = f_;
-ctx->itold = itold;
-ctx->itnew = itnew;
-ctx->u_ = u_;
-ctx->unew_ = unew_;
-ctx->block_size = block_size;
+pragma26 *new_ctx = (pragma26 *)malloc(sizeof(pragma26));
+new_ctx->it = it;
+new_ctx->block_x = block_x;
+new_ctx->block_y = block_y;
+new_ctx->max_blocks_x_ptr = &(max_blocks_x);
+new_ctx->max_blocks_y_ptr = &(max_blocks_y);
+new_ctx->nx_ptr = &(nx);
+new_ctx->ny_ptr = &(ny);
+new_ctx->dx_ptr = &(dx);
+new_ctx->dy_ptr = &(dy);
+new_ctx->f__ptr = &(f_);
+new_ctx->itold_ptr = &(itold);
+new_ctx->itnew_ptr = &(itnew);
+new_ctx->u__ptr = &(u_);
+new_ctx->unew__ptr = &(unew_);
+new_ctx->block_size_ptr = &(block_size);
 hclib_loop_domain_t domain[2];
 domain[0].low = 0;
 domain[0].high = max_blocks_x;
@@ -112,9 +112,9 @@ domain[1].low = 0;
 domain[1].high = max_blocks_y;
 domain[1].stride = 1;
 domain[1].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma26_hclib_async, ctx, NULL, 2, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma26_hclib_async, new_ctx, NULL, 2, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
-free(ctx);
+free(new_ctx);
  } ;
     }
 } 
@@ -123,24 +123,13 @@ static void pragma21_hclib_async(void *____arg, const int ___iter0, const int __
     int it; it = ctx->it;
     int block_x; block_x = ctx->block_x;
     int block_y; block_y = ctx->block_y;
-    int max_blocks_x; max_blocks_x = ctx->max_blocks_x;
-    int max_blocks_y; max_blocks_y = ctx->max_blocks_y;
-    int nx; nx = ctx->nx;
-    int ny; ny = ctx->ny;
-    double dx; dx = ctx->dx;
-    double dy; dy = ctx->dy;
-    double *f_; f_ = ctx->f_;
-    int itold; itold = ctx->itold;
-    int itnew; itnew = ctx->itnew;
-    double *u_; u_ = ctx->u_;
-    double *unew_; unew_ = ctx->unew_;
-    int block_size; block_size = ctx->block_size;
     hclib_start_finish();
     do {
     block_x = ___iter0;
     block_y = ___iter1;
-copy_block(nx, ny, block_x, block_y, u_, unew_, block_size) ;     } while (0);
+copy_block((*(ctx->nx_ptr)), (*(ctx->ny_ptr)), block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->block_size_ptr))) ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 
@@ -149,25 +138,14 @@ static void pragma26_hclib_async(void *____arg, const int ___iter0, const int __
     int it; it = ctx->it;
     int block_x; block_x = ctx->block_x;
     int block_y; block_y = ctx->block_y;
-    int max_blocks_x; max_blocks_x = ctx->max_blocks_x;
-    int max_blocks_y; max_blocks_y = ctx->max_blocks_y;
-    int nx; nx = ctx->nx;
-    int ny; ny = ctx->ny;
-    double dx; dx = ctx->dx;
-    double dy; dy = ctx->dy;
-    double *f_; f_ = ctx->f_;
-    int itold; itold = ctx->itold;
-    int itnew; itnew = ctx->itnew;
-    double *u_; u_ = ctx->u_;
-    double *unew_; unew_ = ctx->unew_;
-    int block_size; block_size = ctx->block_size;
     hclib_start_finish();
     do {
     block_x = ___iter0;
     block_y = ___iter1;
-compute_estimate(block_x, block_y, u_, unew_, f_, dx, dy,
-                                 nx, ny, block_size) ;     } while (0);
+compute_estimate(block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->f__ptr)), (*(ctx->dx_ptr)), (*(ctx->dy_ptr)),
+                                 (*(ctx->nx_ptr)), (*(ctx->ny_ptr)), (*(ctx->block_size_ptr))) ;     } while (0);
     ; hclib_end_finish();
+
 }
 
 

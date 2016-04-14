@@ -403,6 +403,7 @@ static void pragma350_hclib_async(void *____arg) {
     hclib_start_finish();
 cilkmerge_par((*(ctx->low1_ptr)), (*(ctx->split1_ptr)) - 1, (*(ctx->low2_ptr)), (*(ctx->split2_ptr)), (*(ctx->lowdest_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -412,6 +413,7 @@ static void pragma352_hclib_async(void *____arg) {
 cilkmerge_par((*(ctx->split1_ptr)) + 1, (*(ctx->high1_ptr)), (*(ctx->split2_ptr)) + 1, (*(ctx->high2_ptr)),
 		     (*(ctx->lowdest_ptr)) + (*(ctx->lowsize_ptr)) + 2) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -645,6 +647,7 @@ static void pragma386_hclib_async(void *____arg) {
     hclib_start_finish();
 cilksort_par((*(ctx->A_ptr)), (*(ctx->tmpA_ptr)), (*(ctx->quarter_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -653,6 +656,7 @@ static void pragma388_hclib_async(void *____arg) {
     hclib_start_finish();
 cilksort_par((*(ctx->B_ptr)), (*(ctx->tmpB_ptr)), (*(ctx->quarter_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -661,6 +665,7 @@ static void pragma390_hclib_async(void *____arg) {
     hclib_start_finish();
 cilksort_par((*(ctx->C_ptr)), (*(ctx->tmpC_ptr)), (*(ctx->quarter_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -669,6 +674,7 @@ static void pragma392_hclib_async(void *____arg) {
     hclib_start_finish();
 cilksort_par((*(ctx->D_ptr)), (*(ctx->tmpD_ptr)), (*(ctx->size_ptr)) - 3 * (*(ctx->quarter_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -677,6 +683,7 @@ static void pragma396_hclib_async(void *____arg) {
     hclib_start_finish();
 cilkmerge_par((*(ctx->A_ptr)), (*(ctx->A_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(ctx->B_ptr)), (*(ctx->B_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(ctx->tmpA_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -685,6 +692,7 @@ static void pragma398_hclib_async(void *____arg) {
     hclib_start_finish();
 cilkmerge_par((*(ctx->C_ptr)), (*(ctx->C_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(ctx->D_ptr)), (*(ctx->low_ptr)) + (*(ctx->size_ptr)) - 1, (*(ctx->tmpC_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -770,14 +778,14 @@ pragma478 *new_ctx = (pragma478 *)malloc(sizeof(pragma478));
 hclib_async(pragma478_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             } ; hclib_end_finish(); 
-    } ; }
+    } ;     free(____arg);
+}
 
 void sort_par ( void )
 {
 	bots_message("Computing multisort algorithm (n=%d) ", bots_arg_size);
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 	bots_message(" completed!\n");
 }  
@@ -788,6 +796,7 @@ static void pragma478_hclib_async(void *____arg) {
                     cilksort_par(array, tmp, bots_arg_size);
                 } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 

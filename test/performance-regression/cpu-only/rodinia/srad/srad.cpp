@@ -352,7 +352,8 @@ hclib_future_wait(fut);
 free(new_ctx);
  } 
 
-	} ; }
+	} ;     free(____arg);
+}
 
 int main(int argc, char* argv[])
 {   
@@ -478,7 +479,6 @@ new_ctx->nthreads = nthreads;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 
 

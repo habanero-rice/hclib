@@ -350,7 +350,8 @@ static void main_entrypoint(void *____arg) {
     long long start_time; start_time = ctx->start_time;
     int argc; argc = ctx->argc;
     char (*(*argv)); argv = ctx->argv;
-compute_tran_temp(result,sim_time, temp, power, grid_rows, grid_cols) ; }
+compute_tran_temp(result,sim_time, temp, power, grid_rows, grid_cols) ;     free(____arg);
+}
 
 int main(int argc, char **argv)
 {
@@ -402,7 +403,6 @@ new_ctx->start_time = start_time;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 ;
 
     long long end_time = get_time();

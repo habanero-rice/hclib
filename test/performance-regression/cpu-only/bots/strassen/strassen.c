@@ -1385,6 +1385,7 @@ static void pragma679_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->M2_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1393,6 +1394,7 @@ static void pragma683_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->M5_ptr)), (*(ctx->S1_ptr)), (*(ctx->S5_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1401,6 +1403,7 @@ static void pragma687_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->T1sMULT_ptr)), (*(ctx->S2_ptr)), (*(ctx->S6_ptr)),  (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1409,6 +1412,7 @@ static void pragma691_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C22_ptr)), (*(ctx->S3_ptr)), (*(ctx->S7_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)) /*FIXME*/, (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1417,6 +1421,7 @@ static void pragma695_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A12_ptr)), (*(ctx->B21_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1425,6 +1430,7 @@ static void pragma699_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C12_ptr)), (*(ctx->S4_ptr)), (*(ctx->B22_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1433,6 +1439,7 @@ static void pragma703_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C21_ptr)), (*(ctx->A22_ptr)), (*(ctx->S8_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1517,7 +1524,8 @@ hclib_async(pragma824_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
             } ; hclib_end_finish(); 
 	bots_message(" completed!\n");
-    } ; }
+    } ;     free(____arg);
+}
 
 void strassen_main_par(REAL *A, REAL *B, REAL *C, int n)
 {
@@ -1528,7 +1536,6 @@ new_ctx->B = B;
 new_ctx->C = C;
 new_ctx->n = n;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 }  
 static void pragma824_hclib_async(void *____arg) {
@@ -1536,6 +1543,7 @@ static void pragma824_hclib_async(void *____arg) {
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), 1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 

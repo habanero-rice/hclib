@@ -1516,7 +1516,8 @@ static void main_entrypoint(void *____arg) {
     long long endVideoSequence; endVideoSequence = ctx->endVideoSequence;
     int argc; argc = ctx->argc;
     char (*(*argv)); argv = ctx->argv;
-particleFilter(I, IszX, IszY, Nfr, seed, Nparticles) ; }
+particleFilter(I, IszX, IszY, Nfr, seed, Nparticles) ;     free(____arg);
+}
 
 int main(int argc, char * argv[]){
 	
@@ -1605,7 +1606,6 @@ new_ctx->endVideoSequence = endVideoSequence;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 ;
 
 	long long endParticleFilter = get_time();

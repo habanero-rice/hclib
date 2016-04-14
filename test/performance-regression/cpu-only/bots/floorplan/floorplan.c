@@ -1,6 +1,6 @@
 #include "hclib.h"
-pthread_mutex_t critical_0_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t critical_1_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t critical_0_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -303,12 +303,13 @@ static void pragma222_hclib_async(void *____arg) {
 				  MIN_FOOTPRINT[1] = footprint[1];
 				  memcpy(BEST_BOARD, board, sizeof(ibrd));
 				  bots_debug("N  %d\n", MIN_AREA);
-			  }; const int ____unlock_0_err = pthread_mutex_unlock(&critical_0_lock); assert(____unlock_0_err); } 
+			  }; const int ____unlock_0_err = pthread_mutex_unlock(&critical_0_lock); assert(____unlock_0_err == 0); } 
 		  }
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); (*(ctx->nnc_ptr)) += add_cell(cells[id].next, footprint, board,cells, 0); const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err); } ;
+const int ____critical_section_tmp_1 = add_cell(cells[id].next, footprint, board,cells, 0);
+ { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); (*(ctx->nnc_ptr)) += ____critical_section_tmp_1 ; const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err == 0); } ;
 /* if area is greater than or equal to best area, prune search */
           } else {
 
@@ -318,6 +319,7 @@ static void pragma222_hclib_async(void *____arg) {
 _end:;  
 } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -359,13 +361,13 @@ static void main_entrypoint(void *____arg) {
         bots_message("Computing floorplan ");
 hclib_start_finish(); bots_number_of_tasks = add_cell(1, footprint, board, gcells, 0) ; hclib_end_finish(); 
         bots_message(" completed!\n");
-    } ; }
+    } ;     free(____arg);
+}
 
 void compute_floorplan (void)
 {
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 } 
 
@@ -373,6 +375,7 @@ void floorplan_end (void)
 {
     /* write results */
     write_outputs();
+    exit(0);
 }
 
 int floorplan_verify (void)

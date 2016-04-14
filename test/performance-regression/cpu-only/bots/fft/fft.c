@@ -116,6 +116,7 @@ static void pragma60_hclib_async(void *____arg) {
     hclib_start_finish();
 compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -124,6 +125,7 @@ static void pragma62_hclib_async(void *____arg) {
     hclib_start_finish();
 compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->ab_ptr)) + 1, (*(ctx->b_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -269,6 +271,7 @@ static void pragma137_hclib_async(void *____arg) {
     hclib_start_finish();
 unshuffle((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -277,6 +280,7 @@ static void pragma139_hclib_async(void *____arg) {
     hclib_start_finish();
 unshuffle((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -436,6 +440,7 @@ static void pragma207_hclib_async(void *____arg) {
 fft_twiddle_gen1((*(ctx->in_ptr)) + (*(ctx->i_ptr)), (*(ctx->out_ptr)) + (*(ctx->i_ptr)), (*(ctx->W_ptr)),
 				 (*(ctx->r_ptr)), (*(ctx->m_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->i_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -445,6 +450,7 @@ static void pragma212_hclib_async(void *____arg) {
 fft_twiddle_gen((*(ctx->i_ptr)), (*(ctx->i2_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)),
 				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -454,6 +460,7 @@ static void pragma215_hclib_async(void *____arg) {
 fft_twiddle_gen((*(ctx->i2_ptr)), (*(ctx->i1_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)),
 				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -605,6 +612,7 @@ static void pragma277_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -613,6 +621,7 @@ static void pragma279_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -723,6 +732,7 @@ static void pragma331_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -731,6 +741,7 @@ static void pragma333_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -946,6 +957,7 @@ static void pragma458_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -954,6 +966,7 @@ static void pragma460_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1102,6 +1115,7 @@ static void pragma550_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1110,6 +1124,7 @@ static void pragma552_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1484,6 +1499,7 @@ static void pragma836_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1492,6 +1508,7 @@ static void pragma838_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1732,6 +1749,7 @@ static void pragma1020_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -1740,6 +1758,7 @@ static void pragma1022_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -2490,6 +2509,7 @@ static void pragma1682_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -2498,6 +2518,7 @@ static void pragma1684_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -2954,6 +2975,7 @@ static void pragma2082_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -2962,6 +2984,7 @@ static void pragma2084_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -4592,6 +4615,7 @@ static void pragma3624_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -4600,6 +4624,7 @@ static void pragma3626_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -5552,6 +5577,7 @@ static void pragma4520_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -5560,6 +5586,7 @@ static void pragma4522_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -5722,7 +5749,7 @@ typedef struct _pragma4674 {
 typedef struct _pragma4682 {
     int (*r_ptr);
     int (*m_ptr);
-    int (*k_ptr);
+    int k;
     int (*n_ptr);
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
@@ -5933,7 +5960,7 @@ hclib_async(pragma4674_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 pragma4682 *new_ctx = (pragma4682 *)malloc(sizeof(pragma4682));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
-new_ctx->k_ptr = &(k);
+new_ctx->k = k;
 new_ctx->n_ptr = &(n);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
@@ -6044,6 +6071,7 @@ static void pragma4662_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6052,6 +6080,7 @@ static void pragma4665_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6060,6 +6089,7 @@ static void pragma4668_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6068,6 +6098,7 @@ static void pragma4671_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6076,14 +6107,17 @@ static void pragma4674_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_unshuffle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
 static void pragma4682_hclib_async(void *____arg) {
     pragma4682 *ctx = (pragma4682 *)____arg;
+    int k; k = ctx->k;
     hclib_start_finish();
-fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + (*(ctx->k_ptr)), (*(ctx->in_ptr)) + (*(ctx->k_ptr)), (*(ctx->factors_ptr)) + 1, (*(ctx->W_ptr)), (*(ctx->nW_ptr))) ;     ; hclib_end_finish();
+fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + k, (*(ctx->in_ptr)) + k, (*(ctx->factors_ptr)) + 1, (*(ctx->W_ptr)), (*(ctx->nW_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6092,6 +6126,7 @@ static void pragma4692_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6100,6 +6135,7 @@ static void pragma4695_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6108,6 +6144,7 @@ static void pragma4698_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6116,6 +6153,7 @@ static void pragma4701_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6124,6 +6162,7 @@ static void pragma4704_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6132,6 +6171,7 @@ static void pragma4707_hclib_async(void *____arg) {
     hclib_start_finish();
 fft_twiddle_gen(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6292,7 +6332,8 @@ hclib_async(pragma4822_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
          } ; hclib_end_finish(); 
 
      free(W);
-     } ; }
+     } ;     free(____arg);
+}
 
 void fft(int n, COMPLEX * in, COMPLEX * out)
 {
@@ -6315,7 +6356,6 @@ new_ctx->n = n;
 new_ctx->in = in;
 new_ctx->out = out;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
      bots_message(" completed!\n");
 
@@ -6328,6 +6368,7 @@ static void pragma4799_hclib_async(void *____arg) {
                  compute_w_coefficients((*(ctx->n_ptr)), 0, (*(ctx->n_ptr)) / 2, (*(ctx->W_ptr)));
              } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -6338,6 +6379,7 @@ static void pragma4822_hclib_async(void *____arg) {
                  fft_aux((*(ctx->n_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->factors_ptr)), (*(ctx->W_ptr)), (*(ctx->n_ptr)));
              } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 

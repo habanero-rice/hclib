@@ -616,7 +616,8 @@ static void main_entrypoint(void *____arg) {
 	dealloc<double>(old_variables);
 	dealloc<double>(fluxes);
 	dealloc<double>(step_factors);
-    } ; }
+    } ;     free(____arg);
+}
 
 int main(int argc, char** argv)
 {
@@ -632,7 +633,6 @@ new_ctx->data_file_name = data_file_name;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 
 	std::cout << "Done..." << std::endl;

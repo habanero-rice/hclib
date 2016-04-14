@@ -135,7 +135,8 @@ hclib_future_t *fut = hclib_forasync_future((void *)pragma103_hclib_async, new_c
 hclib_future_wait(fut);
 free(new_ctx);
  } 
-    } ; }
+    } ;     free(____arg);
+}
 
 void run(int argc, char** argv)
 {
@@ -160,7 +161,6 @@ new_ctx->min = min;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 
     pin_stats_pause(cycles);

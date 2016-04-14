@@ -271,7 +271,8 @@ hclib_async(pragma253_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
 
            } ; hclib_end_finish(); 
-   } ; }
+   } ;     free(____arg);
+}
 
 void sparselu_par_call(float **BENCH)
 {
@@ -285,7 +286,6 @@ new_ctx->jj = jj;
 new_ctx->kk = kk;
 new_ctx->BENCH = BENCH;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
    bots_message(" completed!\n");
 }  
@@ -340,6 +340,7 @@ hclib_async(pragma257_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  hclib_end_finish(); hclib_start_finish(); ;
                } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
  
@@ -352,6 +353,7 @@ static void pragma236_hclib_async(void *____arg) {
                            fwd((*(ctx->BENCH_ptr))[kk*bots_arg_size+kk], (*(ctx->BENCH_ptr))[kk*bots_arg_size+jj]);
                            } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -364,6 +366,7 @@ static void pragma244_hclib_async(void *____arg) {
                            bdiv ((*(ctx->BENCH_ptr))[kk*bots_arg_size+kk], (*(ctx->BENCH_ptr))[ii*bots_arg_size+kk]);
                            } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -378,6 +381,7 @@ static void pragma257_hclib_async(void *____arg) {
                                    bmod((*(ctx->BENCH_ptr))[ii*bots_arg_size+kk], (*(ctx->BENCH_ptr))[kk*bots_arg_size+jj], (*(ctx->BENCH_ptr))[ii*bots_arg_size+jj]);
                                    } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 

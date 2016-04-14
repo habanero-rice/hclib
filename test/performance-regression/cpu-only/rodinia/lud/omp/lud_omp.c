@@ -118,7 +118,8 @@ free(new_ctx);
     }
 
     lud_diagonal_omp(a, size, offset);
-    } ; }
+    } ;     free(____arg);
+}
 
 void lud_omp(float *a, int size)
 {
@@ -126,7 +127,6 @@ main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypo
 new_ctx->a = a;
 new_ctx->size = size;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 }  
 static void pragma53_hclib_async(void *____arg, const int ___iter0) {

@@ -154,7 +154,8 @@ for (i=0; i<nloops; i++) {
                 &cluster_centres   
                );
      
-    } ; }
+    } ;     free(____arg);
+}
 
 int main(int argc, char **argv) {
            int     opt;
@@ -281,7 +282,6 @@ new_ctx->timing = timing;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 	
 

@@ -132,19 +132,21 @@ int comp (const void * elem1, const void * elem2)
     return 0;
 }
 
-int main(int argc, char* argv[])
-{
-    int num_threads = 1;
+typedef struct _main_entrypoint_ctx {
+    int num_threads;
     struct user_parameters params;
-    memset(&params, 0, sizeof(params));
+    int argc;
+    char (*(*argv));
+ } main_entrypoint_ctx;
 
-    /* default value */
-    params.niter = 1;
 
-    parse(argc, argv, &params);
-
-// get Number of thread if OpenMP is activated
-
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    int num_threads; num_threads = ctx->num_threads;
+    struct user_parameters params; params = ctx->params;
+    int argc; argc = ctx->argc;
+    char (*(*argv)); argv = ctx->argv;
+{
     // warmup
     run(&params);
 
@@ -210,6 +212,29 @@ int main(int argc, char* argv[])
     if (params.string2display !=0)
       printf("%s", params.string2display);
     printf("\n");
+    } ;     free(____arg);
+}
+
+int main(int argc, char* argv[])
+{
+    int num_threads = 1;
+    struct user_parameters params;
+    memset(&params, 0, sizeof(params));
+
+    /* default value */
+    params.niter = 1;
+
+    parse(argc, argv, &params);
+
+// get Number of thread if OpenMP is activated
+
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->num_threads = num_threads;
+new_ctx->params = params;
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+
 
     return 0;
-}
+} 

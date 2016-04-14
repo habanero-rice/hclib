@@ -80,6 +80,7 @@ static void pragma46_hclib_async(void *____arg) {
     hclib_start_finish();
 (*(ctx->x_ptr)) = fib(n - 1) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -89,6 +90,7 @@ static void pragma48_hclib_async(void *____arg) {
     hclib_start_finish();
 (*(ctx->y_ptr)) = fib(n - 2) ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 
@@ -108,14 +110,14 @@ static void main_entrypoint(void *____arg) {
 hclib_start_finish(); {
                 par_res = fib(n);
             } ; hclib_end_finish(); 
-    } ; }
+    } ;     free(____arg);
+}
 
 void fib0 (int n)
 {
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->n = n;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
     bots_message("Fibonacci result for %d is %lld\n",n,par_res);
 } 

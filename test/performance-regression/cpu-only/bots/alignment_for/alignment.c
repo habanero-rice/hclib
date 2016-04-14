@@ -518,7 +518,8 @@ hclib_future_t *fut = hclib_forasync_future((void *)pragma466_hclib_async, new_c
 hclib_future_wait(fut);
 free(new_ctx);
  }  // end parallel for (i)
-   } ; }
+   } ;     free(____arg);
+}
 
 int pairalign()
 {
@@ -546,7 +547,6 @@ new_ctx->mm_score = mm_score;
 new_ctx->mat_xref = mat_xref;
 new_ctx->matptr = matptr;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
    return 0;
 }  
@@ -646,6 +646,7 @@ static void pragma463_hclib_async(void *____arg) {
               bench_output[si*nseqs+sj] = (int) mm_score;
            } ;     ; hclib_end_finish();
 
+    free(____arg);
 }
 
 

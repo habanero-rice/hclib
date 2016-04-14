@@ -41,9 +41,12 @@ for DIR in $(ls $SCRIPT_DIR); do
                 exit 1
             fi
             ACTUAL=$(find $DIR -name "$FILENAME")
-            echo Updating $ACTUAL from $C_FILE
-            if [[ $DRY_RUN -eq 0 ]]; then
-                cp $C_FILE $ACTUAL
+            ANY_DELTA=$(diff $ACTUAL $C_FILE | wc -l)
+            if [[ $ANY_DELTA -ne 0 ]]; then
+                echo Updating $ACTUAL from $C_FILE
+                if [[ $DRY_RUN -eq 0 ]]; then
+                    cp $C_FILE $ACTUAL
+                fi
             fi
         done
         for CPP_FILE in $(find $GENERATED_CODE_DIR -name "*.cpp"); do
@@ -55,9 +58,12 @@ for DIR in $(ls $SCRIPT_DIR); do
                 exit 1
             fi
             ACTUAL=$(find $DIR -name "$FILENAME")
-            echo Updating $ACTUAL from $CPP_FILE
-            if [[ $DRY_RUN -eq 0 ]]; then
-                cp $CPP_FILE $ACTUAL
+            ANY_DELTA=$(diff $ACTUAL $CPP_FILE | wc -l)
+            if [[ $ANY_DELTA -ne 0 ]]; then
+                echo Updating $ACTUAL from $CPP_FILE
+                if [[ $DRY_RUN -eq 0 ]]; then
+                    cp $CPP_FILE $ACTUAL
+                fi
             fi
         done
     fi

@@ -2283,7 +2283,8 @@ while (sscanf(commandPointer, "%c", &instruction) != EOF) {
 		}
 		printf("> ");
 
-	} ; }
+	} ;     free(____arg);
+}
 
 int 
 main(	int argc, 
@@ -2487,7 +2488,6 @@ new_ctx->commandPointer = commandPointer;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 	printf("\n");
 

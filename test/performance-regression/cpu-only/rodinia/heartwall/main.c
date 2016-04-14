@@ -184,7 +184,8 @@ free(new_ctx);
 		printf("%d ", public.frame_no);
 		fflush(NULL);
 
-	} ; }
+	} ;     free(____arg);
+}
 
 int main(int argc, char *argv []){
 
@@ -629,7 +630,6 @@ new_ctx->omp_num_threads = omp_num_threads;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 
 	//======================================================================================================================================================

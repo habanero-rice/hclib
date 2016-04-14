@@ -476,7 +476,8 @@ static void main_entrypoint(void *____arg) {
       net->hidden_weights, net->hidden_prev_weights);
   bpnn_adjust_weights(net->hidden_delta, hid, net->input_units, in,
       net->input_weights, net->input_prev_weights);
-    } ; }
+    } ;     free(____arg);
+}
 
 void bpnn_train(net, eo, eh)
 BPNN *net;
@@ -487,7 +488,6 @@ new_ctx->net = net;
 new_ctx->eo = eo;
 new_ctx->eh = eh;
 hclib_launch(main_entrypoint, new_ctx);
-free(new_ctx);
 
 
 } 

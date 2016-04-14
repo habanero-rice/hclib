@@ -63,22 +63,22 @@ John Burkardt
 /******************************************************************************/
 
 typedef struct _pragma121 {
-    int matrix_size;
-    int block_size;
-    int niter;
-    double dx;
-    double dy;
-    double error;
+    int (*matrix_size_ptr);
+    int (*block_size_ptr);
+    int (*niter_ptr);
+    double (*dx_ptr);
+    double (*dy_ptr);
+    double (*error_ptr);
     int ii;
     int i;
     int jj;
     int j;
-    int nx;
-    int ny;
-    double *f;
-    double *u;
-    double *unew;
-    struct user_parameters *params;
+    int (*nx_ptr);
+    int (*ny_ptr);
+    double (*(*f_ptr));
+    double (*(*u_ptr));
+    double (*(*unew_ptr));
+    struct user_parameters (*(*params_ptr));
  } pragma121;
 
 static void pragma121_hclib_async(void *____arg);
@@ -134,24 +134,24 @@ double run(struct user_parameters* params)
 hclib_start_finish(); for (j = 0; j < ny; j+= block_size) {
             for (i = 0; i < nx; i+= block_size) {
  { 
-pragma121 *ctx = (pragma121 *)malloc(sizeof(pragma121));
-ctx->matrix_size = matrix_size;
-ctx->block_size = block_size;
-ctx->niter = niter;
-ctx->dx = dx;
-ctx->dy = dy;
-ctx->error = error;
-ctx->ii = ii;
-ctx->i = i;
-ctx->jj = jj;
-ctx->j = j;
-ctx->nx = nx;
-ctx->ny = ny;
-ctx->f = f;
-ctx->u = u;
-ctx->unew = unew;
-ctx->params = params;
-hclib_async(pragma121_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma121 *new_ctx = (pragma121 *)malloc(sizeof(pragma121));
+new_ctx->matrix_size_ptr = &(matrix_size);
+new_ctx->block_size_ptr = &(block_size);
+new_ctx->niter_ptr = &(niter);
+new_ctx->dx_ptr = &(dx);
+new_ctx->dy_ptr = &(dy);
+new_ctx->error_ptr = &(error);
+new_ctx->ii = ii;
+new_ctx->i = i;
+new_ctx->jj = jj;
+new_ctx->j = j;
+new_ctx->nx_ptr = &(nx);
+new_ctx->ny_ptr = &(ny);
+new_ctx->f_ptr = &(f);
+new_ctx->u_ptr = &(u);
+new_ctx->unew_ptr = &(unew);
+new_ctx->params_ptr = &(params);
+hclib_async(pragma121_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             }
         } ; hclib_end_finish(); 
@@ -215,33 +215,23 @@ hclib_async(pragma121_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
 } 
 static void pragma121_hclib_async(void *____arg) {
     pragma121 *ctx = (pragma121 *)____arg;
-    int matrix_size; matrix_size = ctx->matrix_size;
-    int block_size; block_size = ctx->block_size;
-    int niter; niter = ctx->niter;
-    double dx; dx = ctx->dx;
-    double dy; dy = ctx->dy;
-    double error; error = ctx->error;
     int ii; ii = ctx->ii;
     int i; i = ctx->i;
     int jj; jj = ctx->jj;
     int j; j = ctx->j;
-    int nx; nx = ctx->nx;
-    int ny; ny = ctx->ny;
-    double *f; f = ctx->f;
-    double *u; u = ctx->u;
-    double *unew; unew = ctx->unew;
-    struct user_parameters *params; params = ctx->params;
     hclib_start_finish();
-for (jj=j; jj<j+block_size; ++jj) {
-                    for (ii=i; ii<i+block_size; ++ii)
+for (jj=j; jj<j+(*(ctx->block_size_ptr)); ++jj) {
+                    for (ii=i; ii<i+(*(ctx->block_size_ptr)); ++ii)
                     {
-                        if (ii == 0 || ii == nx - 1 || jj == 0 || jj == ny - 1) {
-                            (unew)[ii * ny + jj] = (f)[ii * ny + jj];
+                        if (ii == 0 || ii == (*(ctx->nx_ptr)) - 1 || jj == 0 || jj == (*(ctx->ny_ptr)) - 1) {
+                            ((*(ctx->unew_ptr)))[ii * (*(ctx->ny_ptr)) + jj] = ((*(ctx->f_ptr)))[ii * (*(ctx->ny_ptr)) + jj];
                         } else {
-                            (unew)[ii * ny + jj] = 0.0;
+                            ((*(ctx->unew_ptr)))[ii * (*(ctx->ny_ptr)) + jj] = 0.0;
                         }
                     }
                 } ;     ; hclib_end_finish();
+
+    free(____arg);
 }
 
 
@@ -275,7 +265,7 @@ typedef struct _pragma230 {
     double y;
     int nx;
     int ny;
-    double *f;
+    double (*(*f_ptr));
     int block_size;
  } pragma230;
 
@@ -293,18 +283,18 @@ void rhs(int nx, int ny, double *f, int block_size)
 hclib_start_finish(); for (j = 0; j < ny; j+=block_size) {
         for (i = 0; i < nx; i+=block_size) {
  { 
-pragma230 *ctx = (pragma230 *)malloc(sizeof(pragma230));
-ctx->i = i;
-ctx->ii = ii;
-ctx->j = j;
-ctx->jj = jj;
-ctx->x = x;
-ctx->y = y;
-ctx->nx = nx;
-ctx->ny = ny;
-ctx->f = f;
-ctx->block_size = block_size;
-hclib_async(pragma230_hclib_async, ctx, NO_FUTURE, ANY_PLACE);
+pragma230 *new_ctx = (pragma230 *)malloc(sizeof(pragma230));
+new_ctx->i = i;
+new_ctx->ii = ii;
+new_ctx->j = j;
+new_ctx->jj = jj;
+new_ctx->x = x;
+new_ctx->y = y;
+new_ctx->nx = nx;
+new_ctx->ny = ny;
+new_ctx->f_ptr = &(f);
+new_ctx->block_size = block_size;
+hclib_async(pragma230_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
         }
     } ; hclib_end_finish(); 
@@ -319,7 +309,6 @@ static void pragma230_hclib_async(void *____arg) {
     double y; y = ctx->y;
     int nx; nx = ctx->nx;
     int ny; ny = ctx->ny;
-    double *f; f = ctx->f;
     int block_size; block_size = ctx->block_size;
     hclib_start_finish();
 for (jj=j; jj<j+block_size; ++jj)
@@ -329,11 +318,13 @@ for (jj=j; jj<j+block_size; ++jj)
                 {
                     x = (double) (ii) / (double) (nx - 1);
                     if (ii == 0 || ii == nx - 1 || jj == 0 || jj == ny - 1)
-                        (f)[ii * ny + jj] = u_exact(x, y);
+                        ((*(ctx->f_ptr)))[ii * ny + jj] = u_exact(x, y);
                     else
-                        (f)[ii * ny + jj] = - uxxyy_exact(x, y);
+                        ((*(ctx->f_ptr)))[ii * ny + jj] = - uxxyy_exact(x, y);
                 }
             } ;     ; hclib_end_finish();
+
+    free(____arg);
 }
 
 
