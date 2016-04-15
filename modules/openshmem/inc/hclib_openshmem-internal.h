@@ -18,6 +18,9 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize);
 
 locale_t *shmem_my_pe();
 int shmem_n_pes();
+void *shmem_malloc(size_t size);
+void shmem_barrier_all();
+
 locale_t *shmem_remote_pe(int pe);
 int pe_for_locale(locale_t *locale);
 

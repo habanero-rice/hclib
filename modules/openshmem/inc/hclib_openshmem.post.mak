@@ -8,7 +8,7 @@ PROJECT_LDLIBS += $(call GET_LINK_FLAG,--whole-archive) \
 				  $(call GET_LINK_FLAG,--no-whole-archive) \
 				  $(call GET_LINK_FLAG,-lopenshmem) \
 				  $(call GET_LINK_FLAG,-lrt) \
-				  $(call GET_LINK_FLAG,-lelf) \
 				  $(call GET_LINK_FLAG,-lmpi) \
+				  $(call GET_LINK_FLAG,-lelf) \
 				  $(call GET_LINK_FLAG,/scratch/jmg3/gasnet-install/lib/libgasnet-mpi-par.a) \
 				  $(call GET_LINK_FLAG,/scratch/jmg3/gasnet-install/lib/libammpi.a)

@@ -60,6 +60,28 @@ int hclib::shmem_n_pes() {
     return ::shmem_n_pes();
 }
 
+void *hclib::shmem_malloc(size_t size) {
+    hclib::promise_t *promise = new hclib::promise_t();
+    hclib::async_at(nic, [size, promise] {
+        void *alloc = ::shmem_malloc(size);
+        promise->put(alloc);
+    });
+
+    promise->get_future()->wait();
+    void *allocated = promise->get_future()->get();
+    delete promise;
+
+    return allocated;
+}
+
+void hclib::shmem_barrier_all() {
+    hclib::finish([] {
+        hclib::async_at(nic, [] {
+            ::shmem_barrier_all();
+        });
+    });
+}
+
 hclib::locale_t *hclib::shmem_remote_pe(int pe) {
     return get_locale_for_pe(pe);
 }
