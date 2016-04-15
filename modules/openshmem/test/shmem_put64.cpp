@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
         int target = hclib::pe_for_locale(pe) - 1;
         if (target == -1) target = hclib::shmem_n_pes() - 1;
 
-        shmem_put64(shared, &source, 1, target);
+        hclib::shmem_put64(shared, &source, 1, target);
 
         hclib::shmem_barrier_all();
 

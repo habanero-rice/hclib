@@ -82,6 +82,24 @@ void hclib::shmem_barrier_all() {
     });
 }
 
+void hclib::shmem_put64(void *dest, const void *source, size_t nelems, int pe) {
+    hclib::finish([dest, source, nelems, pe] {
+        hclib::async_at(nic, [dest, source, nelems, pe] {
+            ::shmem_put64(dest, source, nelems, pe);
+        });
+    });
+}
+
+void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
+        int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync) {
+    hclib::finish([dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
+        hclib::async_at(nic, [dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
+            ::shmem_broadcast64(dest, source, nelems, PE_root, PE_start,
+                logPE_stride, PE_size, pSync);
+        });
+    });
+}
+
 hclib::locale_t *hclib::shmem_remote_pe(int pe) {
     return get_locale_for_pe(pe);
 }
