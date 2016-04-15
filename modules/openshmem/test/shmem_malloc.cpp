@@ -10,11 +10,15 @@ int main(int argc, char **argv) {
         std::cout << "Hello world from rank " << hclib::pe_for_locale(pe) << std::endl;
 
         int *allocated = (int *)hclib::shmem_malloc(10 * sizeof(int));
+        assert(allocated);
+
         std::cout << "Rank " << hclib::pe_for_locale(pe) << " allocated " << allocated << std::endl;
 
         for (int i = 0; i < 10; i++) {
             allocated[i] = i;
         }
+
+        hclib::shmem_free(allocated);
     });
     return 0;
 }

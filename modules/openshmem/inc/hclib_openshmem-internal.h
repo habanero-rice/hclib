@@ -19,6 +19,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize);
 locale_t *shmem_my_pe();
 int shmem_n_pes();
 void *shmem_malloc(size_t size);
+void shmem_free(void *ptr);
 void shmem_barrier_all();
 void shmem_put64(void *dest, const void *source, size_t nelems, int pe);
 void shmem_broadcast64(void *dest, const void *source, size_t nelems,

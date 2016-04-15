@@ -74,6 +74,14 @@ void *hclib::shmem_malloc(size_t size) {
     return allocated;
 }
 
+void hclib::shmem_free(void *ptr) {
+    hclib::finish([ptr] {
+        hclib::async_at(nic, [ptr] {
+            ::shmem_free(ptr);
+        });
+    });
+}
+
 void hclib::shmem_barrier_all() {
     hclib::finish([] {
         hclib::async_at(nic, [] {
