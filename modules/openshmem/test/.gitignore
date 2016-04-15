@@ -2,3 +2,4 @@ init
 samplesort_omp
 shmem_malloc
 shmem_barrier_all
+shmem_put64
