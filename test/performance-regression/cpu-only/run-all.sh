@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=48000m
-#SBATCH --time=00:45:00
+#SBATCH --time=02:00:00
 #SBATCH --mail-user=jmg3@rice.edu
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -104,7 +104,7 @@ BENCHMARKS=("cilksort 100000000"
         "bots/fib/fib.icc.omp-tasks -n 30"
         "bots/floorplan/floorplan.icc.omp-tasks -f $BOTS_ROOT/inputs/floorplan/input.20"
         "bots/health/health.icc.omp-tasks -f $BOTS_ROOT/inputs/health/large.input"
-        "bots/nqueens/nqueens.icc.omp-tasks -n 13"
+        "bots/nqueens/nqueens.icc.omp-tasks -n 1000"
         "bots/sort/sort.icc.omp-tasks -n 100000000"
         "bots/sparselu_for/sparselu.icc.for-omp-tasks -n 50"
         "bots/sparselu_single/sparselu.icc.single-omp-tasks -n 50"

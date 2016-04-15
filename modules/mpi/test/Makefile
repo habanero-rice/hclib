@@ -9,7 +9,7 @@ TARGETS=init send_recv isend_irecv
 all: $(TARGETS)
 
 %: %.cpp
-	g++ -std=c++11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS) -lmpi_cxx
+	g++ -std=c++11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS) -lmpicxx
 
 clean:
 	rm -f $(TARGETS)
