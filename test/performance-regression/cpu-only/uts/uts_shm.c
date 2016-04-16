@@ -81,7 +81,7 @@ omp_lock_t * omp_global_lock_alloc() {
 
 /**** Shmem Definitions ****/
 #elif defined(_SHMEM)
-#include <mpp/shmem.h>
+#include <shmem.h>
 #define PARALLEL         1
 #define COMPILER_TYPE    3
 #define SHARED           
@@ -98,12 +98,12 @@ omp_lock_t * omp_global_lock_alloc() {
 #define SMEMCPY          shmem_getmem
   // Shmem's get has different semantics from memcpy():
   //   void shmem_getmem(void *target, const void *source, size_t len, int pe)
-#define ALLOC            shmalloc
+#define ALLOC            shmem_malloc
 #define BARRIER          shmem_barrier_all();
 
 // Shmem helper function to match UPC lock allocation semantics
 LOCK_T * shmem_global_lock_alloc() {    
-    LOCK_T *lock = (LOCK_T *) shmalloc(sizeof(LOCK_T));
+    LOCK_T *lock = (LOCK_T *) shmem_malloc(sizeof(LOCK_T));
     *lock = 0;
     return lock;
 }
@@ -1494,7 +1494,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef _SHMEM 
-  start_pes(0);
+  shmem_init();
 #endif
 
   /* determine benchmark parameters (all PEs) */
