@@ -11,6 +11,41 @@
  *  Maryland, the University of North Carolina at Chapel Hill, and the Ohio
  *  State University.  See AUTHORS file for more information.
  *
+ *  One each node, a set of MAX_NUM_THREADS steal stacks is allocated in the
+ *  symmetric heap. The shmem_my_pe()-th member of this set is the stack
+ *  associated with this PE, which is primarily a set of node slots (Node) that
+ *  is the backing data of the stack with length MAXSTACKDEPTH and a top pointer
+ *  that is the index of the lowest empty slot in the stack. The stack
+ *  for PE 0 is initialized with a single Node before execution really starts.
+ *
+ *  Each stack for each PE is separated in to three sections: the local section,
+ *  the non-local and non-stolen section, and the non-local and stolen section.
+ *  The non-local and stolen section is at the base, from index 0 to
+ *  ss.sharedStart. This region represents the locally created nodes that have
+ *  been stolen from the current PE by another PE. The non-local and non-stolen
+ *  section goes from ss.sharedStart to ss.local. This section contains nodes
+ *  that were locally created and are eligible for stealing, but have not been
+ *  stolen yet. These nodes may also be reclaimed in to the local section by
+ *  this PE if it needs more work. The local section is above that, from
+ *  ss.local to ss.top and contains locally created work that only this PE has
+ *  access to. If work-stealing is enabled and the size of the local section is
+ *  too big (as defined by chunkSize), then the local region is reduced by
+ *  incrementing ss.local to allow other PEs to steal work from this PE.
+ *
+ *  During the parallel tree search, we loop until there are no more local nodes
+ *  left. Every time we visit a node we generate a certain number of children
+ *  for that node and push each of them on to the stack. Once we run out of
+ *  local work, we try to acquire locally-created work from the non-local region
+ *  by decrementing local (ss_acquire). If that fails, we then must try to find
+ *  a remote PE to steal from and grab a chunk of nodes from it using OpenSHMEM
+ *  copies (ss_steal) and placing them on the local stack of our PE. If this
+ *  succeeds, we loop back around to processing these nodes.
+ *
+ *  If we are unable to find work locally or remotely, we enter a cancellable
+ *  barrier that waits for all PEs to enter it. This barrier is cancelled if any
+ *  PEs release nodes for stealing. If the barrier completes successfully with
+ *  all nodes having entered it, the search exits.
+ *
  */
 
 #include <stdlib.h>
@@ -1197,8 +1232,8 @@ void parTreeSearch(StealStack *ss) {
       /* examine node at stack top */
       parent = ss_top(ss);
       if (parent->numChildren < 0){
-	// first time visited, construct children and place on stack
-	genChildren(parent,&child,ss);
+          // first time visited, construct children and place on stack
+          genChildren(parent,&child,ss);
 
       }
       else {
