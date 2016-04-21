@@ -10,6 +10,7 @@ COMMON_SRCS = uts.c
 DM_SRCS     = uts_dm.c stats.c
 QUEUE_SRCS  = dequeue.c dlist.c
 SHM_SRCS    = uts_shm.c
+SHM_OMP_SRCS = uts_shm_omp.c
 
 TARGETS     = uts-seq uts-dfs uts-stat          \
               uts-omp uts-pthread               \
@@ -129,6 +130,9 @@ uts-mta:  uts_dfs.c $(RNG_SRC) $(COMMON_SRCS)
 	$(CC) $(CC_OPTS) $(RNG_DEF) -D__MTA__ -o $@ $+ $(LD_OPTS)
 
 uts-shmem: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
+	$(SHMCC) $(SHMCC_OPTS) $(SHMLD_OPTS) $(RNG_DEF) $(FLAGS) -D_SHMEM -o $@ $+
+
+uts-shmem-omp: $(SHM_OMP_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(SHMCC) $(SHMCC_OPTS) $(SHMLD_OPTS) $(RNG_DEF) $(FLAGS) -D_SHMEM -o $@ $+
 
 uts-gpshmem: uts_gpshmem.c $(RNG_SRC) $(COMMON_SRCS)
