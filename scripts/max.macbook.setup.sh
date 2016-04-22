@@ -34,6 +34,7 @@ export BASE=${HOME}/pgas/habanero-upc
 export CXX=g++
 export CXX_LINKER=g++
 export CC=gcc
+export CPP=cpp
 
 export HCLIB_ROOT=${HCLIB_BASE}/hclib-install
 export HABANERO_UPC_ROOT=${BASE}/habanero-upc-install

@@ -59,7 +59,6 @@
  *                                                         *
  *  Compiler Type (these flags are set by at compile time) *
  *     (default) ANSI C compiler - sequential execution    *
- *     (_OPENMP) OpenMP enabled C compiler                 *
  *     (__UPC__) UPC compiler                              *
  *     (_SHMEM)  Cray Shmem                                *
  *     (__PTHREADS__) Pthreads multithreaded execution     *
@@ -67,34 +66,8 @@
  ***********************************************************/
 
 /**** OpenMP Definitions ****/
-#ifdef _OPENMP
-#include <omp.h>
-#define PARALLEL         1
-#define COMPILER_TYPE    1
-#define SHARED 
-#define SHARED_INDEF
-#define VOLATILE         volatile
-#define MAX_THREADS       32
-#define LOCK_T           omp_lock_t
-#define GET_NUM_THREADS  omp_get_num_threads()
-#define GET_THREAD_NUM   omp_get_thread_num()
-#define SET_LOCK(zlk)    omp_set_lock(zlk)
-#define UNSET_LOCK(zlk)  omp_unset_lock(zlk)
-#define INIT_LOCK(zlk)   zlk=omp_global_lock_alloc()
-#define INIT_SINGLE_LOCK(zlk) zlk=omp_global_lock_alloc()
-#define SMEMCPY          memcpy
-#define ALLOC            malloc
-#define BARRIER          
-// OpenMP helper function to match UPC lock allocation semantics
-omp_lock_t * omp_global_lock_alloc() {
-  omp_lock_t *lock = (omp_lock_t *) malloc(sizeof(omp_lock_t) + 128);
-  omp_init_lock(lock);
-  return lock;
-}
-
-
 /**** UPC Definitions ****/
-#elif defined(__UPC__)
+#if defined(__UPC__)
 #include <upc.h>
 #define PARALLEL         1
 #define COMPILER_TYPE    2
@@ -116,7 +89,7 @@ omp_lock_t * omp_global_lock_alloc() {
 
 /**** Shmem Definitions ****/
 #elif defined(_SHMEM)
-#include <shmem.h>
+#include <mpp/shmem.h>
 #define PARALLEL         1
 #define COMPILER_TYPE    3
 #define SHARED           
@@ -133,12 +106,12 @@ omp_lock_t * omp_global_lock_alloc() {
 #define SMEMCPY          shmem_getmem
   // Shmem's get has different semantics from memcpy():
   //   void shmem_getmem(void *target, const void *source, size_t len, int pe)
-#define ALLOC            shmem_malloc
+#define ALLOC            shmalloc
 #define BARRIER          shmem_barrier_all();
 
 // Shmem helper function to match UPC lock allocation semantics
 LOCK_T * shmem_global_lock_alloc() {    
-    LOCK_T *lock = (LOCK_T *) shmem_malloc(sizeof(LOCK_T));
+    LOCK_T *lock = (LOCK_T *) shmalloc(sizeof(LOCK_T));
     *lock = 0;
     return lock;
 }
@@ -452,8 +425,6 @@ void impl_helpMessage() {
 void impl_abort(int err) {
 #if defined(__UPC__)
   upc_global_exit(err);
-#elif defined(_OPENMP)
-  exit(err);
 #elif defined(_SHMEM)
   exit(err);
 #else
@@ -1529,7 +1500,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef _SHMEM 
-  shmem_init();
+  start_pes(0);
 #endif
 
   /* determine benchmark parameters (all PEs) */
@@ -1544,7 +1515,6 @@ int main(int argc, char *argv[]) {
   cb_init();
 
 /********** SPMD Parallel Region **********/
-#pragma omp parallel
   {
     double t1, t2, et;
     StealStack * ss;    
@@ -1592,7 +1562,6 @@ int main(int argc, char *argv[]) {
     }
 
     // line up for the start
-#pragma omp barrier    
     BARRIER
     
     /* time parallel search */
@@ -1607,7 +1576,6 @@ int main(int argc, char *argv[]) {
     ss->md->sessionRecords[SS_IDLE][ss->entries[SS_IDLE] - 1].endTime = t2;
 #endif
 
-#pragma omp barrier
     BARRIER
 
     /* display results */
