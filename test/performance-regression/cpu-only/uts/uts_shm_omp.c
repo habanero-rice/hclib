@@ -89,7 +89,7 @@
 
 /**** Shmem Definitions ****/
 #elif defined(_SHMEM)
-#include <mpp/shmem.h>
+#include <shmem.h>
 #define PARALLEL         1
 #define COMPILER_TYPE    3
 #define SHARED           
@@ -106,13 +106,14 @@
 #define SMEMCPY          shmem_getmem
   // Shmem's get has different semantics from memcpy():
   //   void shmem_getmem(void *target, const void *source, size_t len, int pe)
-#define ALLOC            shmalloc
+#define ALLOC            shmem_malloc
 #define BARRIER          shmem_barrier_all();
 
 // Shmem helper function to match UPC lock allocation semantics
 LOCK_T * shmem_global_lock_alloc() {    
-    LOCK_T *lock = (LOCK_T *) shmalloc(sizeof(LOCK_T));
+    LOCK_T *lock = (LOCK_T *) shmem_malloc(sizeof(LOCK_T));
     *lock = 0;
+    shmem_barrier_all();
     return lock;
 }
 
@@ -521,6 +522,8 @@ void ss_init(StealStack *s, int nelts) {
   s->falseWakeups = 0;
   s->nNodes_last = 0;
   ss_mkEmpty(s);
+  if (debug & 1)
+    printf("Thread %d finished with stackLock %p\n", GET_THREAD_NUM, (void *) s->stackLock);
 }
 
 
@@ -1075,6 +1078,8 @@ void cb_init(){
   cb_count = 0;
   cb_cancel = 0;
   cb_done = 0;
+  if (debug & 4)
+    printf("Thread %d, cb unlock at %p\n", GET_THREAD_NUM, (void *) cb_lock);
   UNSET_LOCK(cb_lock);
 }
 
@@ -1500,7 +1505,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef _SHMEM 
-  start_pes(0);
+  shmem_init();
 #endif
 
   /* determine benchmark parameters (all PEs) */

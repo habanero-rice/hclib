@@ -38,7 +38,7 @@ OMPLD_OPTS = -lm
 # SHMEM Compiler 
 # -------------------------------------
 SHMCC = oshcc
-SHMCC_OPTS = 
+SHMCC_OPTS = -O3
 SHMLD_OPTS = 
 
 # -------------------------------------

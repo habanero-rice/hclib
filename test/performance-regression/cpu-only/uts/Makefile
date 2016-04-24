@@ -20,7 +20,7 @@ TARGETS     = uts-seq uts-dfs uts-stat          \
               uts-mpi-wm uts-mpi-wm-nb          \
 	      uts-mpi-ws uts-mpi-hws            \
               uts-mta uts-gtc time_rng time_poll\
-              uts-dot
+              uts-dot uts-shmem-omp
 
 # ------------------------------------- #
 # Set Random Number Generator sources:
