@@ -2,3 +2,4 @@ uts-shmem-omp
 uts-mpi-ws
 uts-omp-task
 uts-omp
+uts-omp-task-shmem

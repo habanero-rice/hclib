@@ -20,7 +20,7 @@ TARGETS     = uts-seq uts-dfs uts-stat          \
               uts-mpi-wm uts-mpi-wm-nb          \
 	      uts-mpi-ws uts-mpi-hws            \
               uts-mta uts-gtc time_rng time_poll\
-              uts-dot uts-shmem-omp uts-omp-task
+              uts-dot uts-shmem-omp uts-omp-task uts-omp-task-shmem
 
 # ------------------------------------- #
 # Set Random Number Generator sources:
@@ -122,6 +122,9 @@ uts-omp: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 
 uts-omp-task: uts_omp_task.c $(RNG_SRC) $(COMMON_SRCS)
 	$(OMPCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS)
+
+uts-omp-task-shmem: uts_omp_task_shmem.c $(RNG_SRC) $(COMMON_SRCS)
+	$(SHMCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) $(SHMCC_OPTS) $(SHMLD_OPTS) -DTHREAD_METADATA
 
 uts-upc: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(UPCC) $(UPCC_OPTS) $(UPCLD_OPTS) $(RNG_DEF) $(FLAGS) -o $@ $+

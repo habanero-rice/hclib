@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <assert.h>
 
 #include "uts.h"
 
@@ -39,7 +40,8 @@
 #define SHARED 
 #define SHARED_INDEF
 #define VOLATILE         volatile
-#define MAX_THREADS       32
+#define MAX_OMP_THREADS       32
+#define MAX_SHMEM_THREADS     64
 #define LOCK_T           omp_lock_t
 #define GET_NUM_THREADS  omp_get_num_threads()
 #define GET_THREAD_NUM   omp_get_thread_num()
@@ -79,8 +81,60 @@ size_t n_leaves = 0;
 typedef struct _thread_metadata {
     size_t ntasks;
 } thread_metadata;
-thread_metadata t_metadata[MAX_THREADS];
+thread_metadata t_metadata[MAX_OMP_THREADS];
 #endif
+
+#define N_BUFFERED_STEALS 16
+Node steal_buffer[N_BUFFERED_STEALS];
+int n_buffered_steals = 0;
+long steal_buffer_locks[MAX_SHMEM_THREADS];
+
+int complete_pes = 0;
+
+static int pe, npes;
+
+static int steal_from(int target_pe, Node *stolen_out) {
+    int remote_buffered_steals;
+
+    shmem_set_lock(&steal_buffer_locks[target_pe]);
+    shmem_int_get(&remote_buffered_steals, &n_buffered_steals, 1, target_pe);
+
+    if (remote_buffered_steals > 0) {
+        remote_buffered_steals--;
+        shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
+                sizeof(Node), target_pe);
+        shmem_int_put(&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
+    }
+
+    shmem_clear_lock(&steal_buffer_locks[target_pe]);
+    return remote_buffered_steals;
+}
+
+static int remote_steal(Node *stolen_out) {
+    int pe_above = (pe + 1) % npes;
+    int pe_below = pe - 1;
+    if (pe_below < 0) pe_below = npes - 1;
+
+    shmem_int_add(&complete_pes, 1, 0);
+
+    int ndone = shmem_int_fadd(&complete_pes, 0, 0);
+    while (ndone != npes) {
+        // Try to remote steal
+
+        if (steal_from(pe_above, stolen_out) || steal_from(pe_below, stolen_out)) {
+            shmem_int_add(&complete_pes, -1, 0);
+            return 1;
+        }
+
+        pe_above = (pe_above + 1) % npes;
+        pe_below = pe_below - 1;
+        if (pe_below < 0) pe_below = npes - 1;
+        ndone = shmem_int_fadd(&complete_pes, 0, 0);
+    }
+
+    assert(ndone == npes);
+    return 0;
+}
 
 #ifdef __BERKELEY_UPC__
 /* BUPC nonblocking I/O Handles */
@@ -190,9 +244,16 @@ char * impl_getName() {
 
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
+    int n_omp_threads;
+#pragma omp parallel
+#pragma omp single
+    n_omp_threads = omp_get_num_threads();
+
   ind += sprintf(strBuf+ind, "Execution strategy:  ");
   if (PARALLEL) {
-    ind += sprintf(strBuf+ind, "Parallel search using %d threads\n", GET_NUM_THREADS);
+    ind += sprintf(strBuf+ind, "Parallel search using %d threads total (%d "
+            "SHMEM PEs, %d OMP threads per PE)\n", npes * n_omp_threads,
+            npes, n_omp_threads);
     if (doSteal) {
       ind += sprintf(strBuf+ind, "   Load balance by work stealing, chunk size = %d nodes\n",chunkSize);
       ind += sprintf(strBuf+ind, "  CBarrier Interval: %d\n", cbint);
@@ -225,15 +286,6 @@ int impl_parseParam(char *param, char *value) {
 #ifdef __BERKELEY_UPC__
     case 'I':
       pollint = atoi(value); break;
-#endif
-#ifdef __PTHREADS__
-    case 'T':
-      pthread_num_threads = atoi(value);
-      if (pthread_num_threads > MAX_THREADS) {
-        printf("Warning: Requested threads > MAX_THREADS.  Truncated to %d threads\n", MAX_THREADS);
-        pthread_num_threads = MAX_THREADS;
-      }
-      break;
 #endif
 #else /* !PARALLEL */
 #ifdef UTS_STAT
@@ -603,13 +655,17 @@ void genChildren(Node * parent, Node * child) {
 
       Node parent = *child;
 
+      if (omp_get_thread_num() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
+          steal_buffer[n_buffered_steals++] = parent;
+      } else {
 #pragma omp task untied firstprivate(parent)
-      {
-          Node child;
-          initNode(&child);
+          {
+              Node child;
+              initNode(&child);
 
-          if (parent.numChildren < 0) {
-              genChildren(&parent, &child);
+              if (parent.numChildren < 0) {
+                  genChildren(&parent, &child);
+              }
           }
       }
     }
@@ -618,32 +674,6 @@ void genChildren(Node * parent, Node * child) {
       n_leaves += 1;
   }
 }
-
-
-    
-/*
- *  Parallel tree traversal
- *
- */
-
-// cancellable barrier
-
-// initialize lock:  single thread under omp, all threads under upc
-void cb_init(){
-  INIT_SINGLE_LOCK(cb_lock);
-  if (debug & 4)
-    printf("Thread %d, cb lock at %p\n", GET_THREAD_NUM, (void *) cb_lock);
-
-  // fixme: no need for all upc threads to repeat this
-  SET_LOCK(cb_lock);
-  cb_count = 0;
-  cb_cancel = 0;
-  cb_done = 0;
-  UNSET_LOCK(cb_lock);
-}
-
-//  delay this thread until all threads arrive at barrier
-//     or until barrier is cancelled
 
 // causes one or more threads waiting at barrier, if any,
 //  to be released
@@ -793,26 +823,35 @@ int main(int argc, char *argv[]) {
   Node root;
 
 #ifdef THREAD_METADATA
-  memset(t_metadata, 0x00, MAX_THREADS * sizeof(thread_metadata));
+  memset(t_metadata, 0x00, MAX_OMP_THREADS * sizeof(thread_metadata));
 #endif
+  memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
+
+  shmem_init();
+
+  pe = shmem_my_pe();
+  npes = shmem_n_pes();
 
   /* determine benchmark parameters (all PEs) */
   uts_parseParams(argc, argv);
 
 #ifdef UTS_STAT
-  if (stats)
+  if (stats) {
     initHist();
+  }
 #endif  
-
-  /* cancellable barrier initialization (single threaded under OMP) */
-  cb_init();
 
   double t1, t2, et;
 
   /* show parameter settings */
-  uts_printParams();
+  if (pe == 0) {
+      uts_printParams();
+  }
 
   initRootNode(&root, type);
+
+  shmem_barrier_all();
+
   /* time parallel search */
   t1 = uts_wctime();
 
@@ -823,25 +862,71 @@ int main(int argc, char *argv[]) {
   {
 #pragma omp single
       {
+          int first = 1;
           n_omp_threads = omp_get_num_threads();
+          assert(n_omp_threads <= MAX_OMP_THREADS);
 
           Node child;
+retry:
           initNode(&child);
-          genChildren(&root, &child);
+
+          if (first) {
+              if (pe == 0) {
+                  genChildren(&root, &child);
+              }
+          } else {
+              genChildren(&root, &child);
+          }
+          first = 0;
+
+#pragma omp taskwait
+
+          if (n_buffered_steals > 0) {
+              shmem_set_lock(&steal_buffer_locks[pe]);
+              if (n_buffered_steals > 0) {
+                  n_buffered_steals--;
+                  memcpy(&root, &steal_buffer[n_buffered_steals], sizeof(root));
+                  shmem_clear_lock(&steal_buffer_locks[pe]);
+                  goto retry;
+              } else {
+                  shmem_clear_lock(&steal_buffer_locks[pe]);
+              }
+          }
+
+          const int got_more_work = remote_steal(&root);
+          if (got_more_work) {
+              goto retry;
+          }
       }
   }
 
+  if (pe != 0) {
+      shmem_int_add(&n_nodes, n_nodes, 0);
+      shmem_int_add(&n_leaves, n_leaves, 0);
+  }
+
+  shmem_barrier_all();
+
   t2 = uts_wctime();
   et = t2 - t1;
-  showStats(et);
+  if (pe == 0) {
+      showStats(et);
+  }
 /********** End Parallel Region **********/
 #ifdef THREAD_METADATA
-  printf("\n");
-  int i;
-  for (i = 0; i < n_omp_threads; i++) {
-      printf("Thread %d: %lu tasks\n", i, t_metadata[i].ntasks);
+  int p;
+  for (p = 0; p < npes; p++) {
+      if (p == pe) {
+          printf("\n");
+          int i;
+          for (i = 0; i < n_omp_threads; i++) {
+              printf("PE %d, thread %d: %lu tasks\n", p, i, t_metadata[i].ntasks);
+          }
+      }
+      shmem_barrier_all();
   }
 #endif
 
+  shmem_finalize();
   return 0;
 }

@@ -60,6 +60,15 @@ typedef void *(*future_fct_t)(void *arg);
 
 void hclib_launch(async_fct_t fct_ptr, void * arg);
 
+
+/**
+ * Register a function to be called when a thread in the hclib runtime is idle,
+ * i.e. is unable to find work through the hclib deques via either popping or
+ * stealing. This method can be used by the user to create more work for the
+ * runtime to do.
+ */
+void hclib_set_idle_callback(void (*set_idle_callback)(int, int));
+
 /*
  * Async definition and API
  */

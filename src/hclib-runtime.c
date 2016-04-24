@@ -78,6 +78,8 @@ hclib_context *hc_context = NULL;
 static char *hclib_stats = NULL;
 static int profile_launch_body = 0;
 
+static void (*idle_callback)(unsigned, unsigned) = NULL;
+
 void hclib_start_finish();
 
 void log_(const char *file, int line, hclib_worker_state *ws,
@@ -150,7 +152,16 @@ static void set_current_worker(int wid) {
 #endif
 }
 
+void hclib_set_idle_callback(void (*set_idle_callback)(int, int)) {
+    HASSERT(idle_callback == NULL);
+    idle_callback = set_idle_callback;
+}
+
 int hclib_get_current_worker() {
+    return ((hclib_worker_state *)pthread_getspecific(ws_key))->id;
+}
+
+unsigned hclib_get_current_worker_pending_work() {
     return ((hclib_worker_state *)pthread_getspecific(ws_key))->id;
 }
 
@@ -741,12 +752,14 @@ void *communication_worker_routine(void *finish_ptr) {
 void find_and_run_task(hclib_worker_state *ws) {
     hclib_task_t *task = locale_pop_task(ws);
     if (!task) {
+        unsigned failed_steals = 1;
         while (hc_context->done_flags[ws->id].flag) {
             // try to steal
             task = locale_steal_task(ws);
             if (task) {
                 break;
             }
+            idle_callback(ws->id, failed_steals++);
         }
     }
 
