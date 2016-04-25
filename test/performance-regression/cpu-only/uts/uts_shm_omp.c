@@ -1586,5 +1586,9 @@ int main(int argc, char *argv[]) {
   }
 /********** End Parallel Region **********/
 
+#ifdef _SHMEM 
+  shmem_finalize();
+#endif
+
   return 0;
 }
