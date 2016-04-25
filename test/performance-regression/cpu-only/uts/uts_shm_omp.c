@@ -522,8 +522,6 @@ void ss_init(StealStack *s, int nelts) {
   s->falseWakeups = 0;
   s->nNodes_last = 0;
   ss_mkEmpty(s);
-  if (debug & 1)
-    printf("Thread %d finished with stackLock %p\n", GET_THREAD_NUM, (void *) s->stackLock);
 }
 
 
@@ -1078,8 +1076,6 @@ void cb_init(){
   cb_count = 0;
   cb_cancel = 0;
   cb_done = 0;
-  if (debug & 4)
-    printf("Thread %d, cb unlock at %p\n", GET_THREAD_NUM, (void *) cb_lock);
   UNSET_LOCK(cb_lock);
 }
 
@@ -1559,7 +1555,7 @@ int main(int argc, char *argv[]) {
     ss = (StealStack *) stealStack[GET_THREAD_NUM];	
     ss_init(ss, MAXSTACKDEPTH);
 #endif /* _SHMEM */
-    
+
     /* initialize root node and push on thread 0 stack */
     if (GET_THREAD_NUM == 0) {
       initRootNode(&root, type);

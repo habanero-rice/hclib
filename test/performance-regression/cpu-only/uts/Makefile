@@ -124,7 +124,7 @@ uts-omp-task: uts_omp_task.c $(RNG_SRC) $(COMMON_SRCS)
 	$(OMPCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS)
 
 uts-omp-task-shmem: uts_omp_task_shmem.c $(RNG_SRC) $(COMMON_SRCS)
-	$(SHMCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) $(SHMCC_OPTS) $(SHMLD_OPTS) -DTHREAD_METADATA
+	$(SHMCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) $(SHMCC_OPTS) $(SHMLD_OPTS)
 
 uts-upc: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(UPCC) $(UPCC_OPTS) $(UPCLD_OPTS) $(RNG_DEF) $(FLAGS) -o $@ $+

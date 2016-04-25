@@ -74,8 +74,8 @@ int chunkSize = 20;       // number of nodes to move to/from shared area
 int cbint     = 1;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
 
-size_t n_nodes = 0;
-size_t n_leaves = 0;
+int n_nodes = 0;
+int n_leaves = 0;
 
 #ifdef THREAD_METADATA
 typedef struct _thread_metadata {
@@ -86,7 +86,7 @@ thread_metadata t_metadata[MAX_OMP_THREADS];
 
 #define N_BUFFERED_STEALS 16
 Node steal_buffer[N_BUFFERED_STEALS];
-int n_buffered_steals = 0;
+volatile int n_buffered_steals = 0;
 long steal_buffer_locks[MAX_SHMEM_THREADS];
 
 int complete_pes = 0;
@@ -99,15 +99,17 @@ static int steal_from(int target_pe, Node *stolen_out) {
     shmem_set_lock(&steal_buffer_locks[target_pe]);
     shmem_int_get(&remote_buffered_steals, &n_buffered_steals, 1, target_pe);
 
+    int stole_something = 0;
     if (remote_buffered_steals > 0) {
         remote_buffered_steals--;
         shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
                 sizeof(Node), target_pe);
         shmem_int_put(&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
+        stole_something = 1;
     }
 
     shmem_clear_lock(&steal_buffer_locks[target_pe]);
-    return remote_buffered_steals;
+    return stole_something;
 }
 
 static int remote_steal(Node *stolen_out) {
@@ -129,6 +131,7 @@ static int remote_steal(Node *stolen_out) {
         pe_above = (pe_above + 1) % npes;
         pe_below = pe_below - 1;
         if (pe_below < 0) pe_below = npes - 1;
+
         ndone = shmem_int_fadd(&complete_pes, 0, 0);
     }
 
@@ -626,8 +629,6 @@ void genChildren(Node * parent, Node * child) {
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
 
-  // fprintf(stderr, "numChildren = %d\n", numChildren);
-
   // record number of children in parent
   parent->numChildren = numChildren;
   
@@ -655,10 +656,17 @@ void genChildren(Node * parent, Node * child) {
 
       Node parent = *child;
 
+      int made_available_for_stealing = 0;
       if (omp_get_thread_num() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
-          steal_buffer[n_buffered_steals++] = parent;
-      } else {
-#pragma omp task untied firstprivate(parent)
+          shmem_set_lock(&steal_buffer_locks[pe]);
+          if (n_buffered_steals < N_BUFFERED_STEALS) {
+              steal_buffer[n_buffered_steals++] = parent;
+              made_available_for_stealing = 1;
+          }
+          shmem_clear_lock(&steal_buffer_locks[pe]);
+      }
+      if (!made_available_for_stealing) {
+#pragma omp task untied firstprivate(parent) if(parent.height < 9)
           {
               Node child;
               initNode(&child);
@@ -860,7 +868,7 @@ int main(int argc, char *argv[]) {
 /********** SPMD Parallel Region **********/
 #pragma omp parallel
   {
-#pragma omp single
+#pragma omp master
       {
           int first = 1;
           n_omp_threads = omp_get_num_threads();
@@ -894,7 +902,7 @@ retry:
           }
 
           const int got_more_work = remote_steal(&root);
-          if (got_more_work) {
+          if (got_more_work == 1) {
               goto retry;
           }
       }

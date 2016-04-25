@@ -1584,7 +1584,7 @@ int main(int argc, char *argv[]) {
     ss = (StealStack *) stealStack[GET_THREAD_NUM];	
     ss_init(ss, MAXSTACKDEPTH);
 #endif /* _SHMEM */
-    
+
     /* initialize root node and push on thread 0 stack */
     if (GET_THREAD_NUM == 0) {
       initRootNode(&root, type);
