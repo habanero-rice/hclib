@@ -23,7 +23,7 @@ rm -f samplesort_omp
 
 for FILE in $(ls); do
     if [[ -x $FILE && $FILE != "test-all.sh" ]]; then
-        echo Running $FILE
-        srun -N 4 -n 4 -p commons -t 00:02:00 ./$FILE
+        echo "======= Running $FILE ======="
+        srun --exclusive --tasks-per-node=1 --mem=MaxMemPerNode -N 4 -p commons -t 00:02:00 ./$FILE
     fi
 done

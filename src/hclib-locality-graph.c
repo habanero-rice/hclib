@@ -811,6 +811,13 @@ hclib_locale_t *hclib_get_closest_locale() {
 }
 
 /*
+ * Fetch the locale closest to the master worker thread.
+ */
+hclib_locale_t *hclib_get_master_place() {
+    return hc_context->workers[0]->paths->pop_path->locales[0];
+}
+
+/*
  * Return a list of all the locales in the current runtime. The length of this
  * list can be determined by hclib_get_num_locales.
  */

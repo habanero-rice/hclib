@@ -1,5 +1,11 @@
 ###  UTS - Unbalanced Tree Search  ###
 
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
+
 # CONFFILE should be a symlink to your configuration
 CONFFILE    = config.in
 -include      $(CONFFILE)
@@ -20,7 +26,7 @@ TARGETS     = uts-seq uts-dfs uts-stat          \
               uts-mpi-wm uts-mpi-wm-nb          \
 	      uts-mpi-ws uts-mpi-hws            \
               uts-mta uts-gtc time_rng time_poll\
-              uts-dot uts-shmem-omp uts-omp-task uts-omp-task-shmem
+              uts-dot uts-shmem-omp uts-omp-task uts-omp-task-shmem uts-hclib
 
 # ------------------------------------- #
 # Set Random Number Generator sources:
@@ -110,6 +116,9 @@ uts-mpi-hws: $(RNG_SRC) uts_hws.c
 
 uts-upc-dcq: $(DM_SRCS) $(RNG_SRC) $(COMMON_SRCS) $(QUEUE_SRCS) upc_worksharing.c shared_dequeue.c shared_dlist.c
 	$(UPCC) $(UPCC_OPTS) $(UPCLD_OPTS) $(RNG_DEF) $(FLAGS) -o $@ $+
+
+uts-hclib: uts_hclib.cpp $(RNG_SRC) $(COMMON_SRCS)
+	g++ -std=c++11 $(RNG_DEF) $(FLAGS) $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $+ $(PROJECT_LDLIBS) $(CC_OPTS) $(LD_OPTS)
 
 
 ########## Shared Memory Model Implementations ##########

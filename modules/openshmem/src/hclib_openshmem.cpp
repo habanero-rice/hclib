@@ -116,4 +116,70 @@ int hclib::pe_for_locale(hclib::locale_t *locale) {
     return locale_id_to_pe(locale->id);
 }
 
+void hclib::shmem_set_lock(long *lock) {
+    hclib::finish([lock] {
+        hclib::async_at(nic, [lock] {
+            ::shmem_set_lock(lock);
+        });
+    });
+}
+
+void hclib::shmem_clear_lock(long *lock) {
+    hclib::finish([lock] {
+        hclib::async_at(nic, [lock] {
+            ::shmem_clear_lock(lock);
+        });
+    });
+}
+
+void hclib::shmem_int_get(int *dest, const int *source, size_t nelems, int pe) {
+    hclib::finish([dest, source, nelems, pe] {
+        hclib::async_at(nic, [dest, source, nelems, pe] {
+            ::shmem_int_get(dest, source, nelems, pe);
+        });
+    });
+}
+
+void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) {
+    hclib::finish([dest, source, nelems, pe] {
+        hclib::async_at(nic, [dest, source, nelems, pe] {
+            ::shmem_getmem(dest, source, nelems, pe);
+        });
+    });
+}
+
+void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
+    hclib::finish([dest, source, nelems, pe] {
+        hclib::async_at(nic, [dest, source, nelems, pe] {
+            ::shmem_int_put(dest, source, nelems, pe);
+        });
+    });
+}
+
+void hclib::shmem_int_add(int *dest, int value, int pe) {
+    hclib::finish([dest, value, pe] {
+        hclib::async_at(nic, [dest, value, pe] {
+            ::shmem_int_add(dest, value, pe);
+        });
+    });
+}
+
+int hclib::shmem_int_fadd(int *dest, int value, int pe) {
+    hclib::promise_t *promise = new hclib::promise_t();
+    hclib::async_at(nic, [dest, value, pe, promise] {
+        const int fetched = shmem_int_fadd(dest, value, pe);
+        int *heap_fetched = (int *)malloc(sizeof(int));
+        *heap_fetched = fetched;
+        promise->put((void *)heap_fetched);
+    });
+
+    promise->get_future()->wait();
+    int *heap_fetched = (int *)promise->get_future()->get();
+    const int fetched = *heap_fetched;
+    delete promise;
+    free(heap_fetched);
+
+    return fetched;
+}
+
 HCLIB_REGISTER_MODULE("openshmem", openshmem_pre_initialize, openshmem_post_initialize, openshmem_finalize)

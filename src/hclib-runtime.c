@@ -759,7 +759,9 @@ void find_and_run_task(hclib_worker_state *ws) {
             if (task) {
                 break;
             }
-            idle_callback(ws->id, failed_steals++);
+            if (idle_callback) {
+                idle_callback(ws->id, failed_steals++);
+            }
         }
     }
 
