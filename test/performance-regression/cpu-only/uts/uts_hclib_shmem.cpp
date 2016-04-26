@@ -4,8 +4,6 @@
 #include "hclib_system.h"
 #include "hclib_openshmem.h"
 #endif
-pthread_mutex_t critical_0_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 /*
  *         ---- The Unbalanced Tree Search (UTS) Benchmark ----
  *  
@@ -212,6 +210,7 @@ char debug_str[1000];
 char * impl_getName() {
     return "HCLIB";
 }
+
 
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
@@ -543,8 +542,7 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-const int ____critical_section_tmp_0 = 1;
- { const int ____lock_0_err = pthread_mutex_lock(&critical_0_lock); assert(____lock_0_err == 0); n_nodes += ____critical_section_tmp_0 ; const int ____unlock_0_err = pthread_mutex_unlock(&critical_0_lock); assert(____unlock_0_err == 0); } ;
+__sync_fetch_and_add(&(n_nodes), 1); ;
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
@@ -607,14 +605,13 @@ hclib_async(pragma576_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
       }
     }
   } else {
-const int ____critical_section_tmp_1 = 1;
- { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); n_leaves += ____critical_section_tmp_1 ; const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err == 0); } ;
+__sync_fetch_and_add(&(n_leaves), 1); ;
   }
 } 
 static void pragma576_omp_task_hclib_async(void *____arg) {
     pragma576_omp_task *ctx = (pragma576_omp_task *)____arg;
     Node parent; parent = ctx->parent;
-    hclib_start_finish();
+    // hclib_start_finish();
 {
               Node child;
               initNode(&child);
@@ -622,7 +619,7 @@ static void pragma576_omp_task_hclib_async(void *____arg) {
               if (parent.numChildren < 0) {
                   genChildren(&parent, &child);
               }
-          } ;     ; hclib_end_finish();
+          } ;     ; // hclib_end_finish();
 
     free(____arg);
 }
@@ -746,16 +743,16 @@ void showStats(double elapsedSecs) {
  *     - UPC is SPMD starting with main, OpenMP goes SPMD after
  *       parsing parameters
  */
-typedef struct _pragma794_omp_master {
+typedef struct _pragma790_omp_master {
     double (*t1_ptr);
     double (*t2_ptr);
     double (*et_ptr);
     Node (*root_ptr);
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma794_omp_master;
+ } pragma790_omp_master;
 
-static void *pragma794_omp_master_hclib_async(void *____arg);
+static void *pragma790_omp_master_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     Node root;
     int argc;
@@ -800,14 +797,14 @@ static void main_entrypoint(void *____arg) {
 
 /********** SPMD Parallel Region **********/
  { 
-pragma794_omp_master *new_ctx = (pragma794_omp_master *)malloc(sizeof(pragma794_omp_master));
+pragma790_omp_master *new_ctx = (pragma790_omp_master *)malloc(sizeof(pragma790_omp_master));
 new_ctx->t1_ptr = &(t1);
 new_ctx->t2_ptr = &(t2);
 new_ctx->et_ptr = &(et);
 new_ctx->root_ptr = &(root);
 new_ctx->argc_ptr = &(argc);
 new_ctx->argv_ptr = &(argv);
-hclib_future_t *fut = hclib_async_future(pragma794_omp_master_hclib_async, new_ctx, NO_FUTURE, hclib_get_master_place());
+hclib_future_t *fut = hclib_async_future(pragma790_omp_master_hclib_async, new_ctx, NO_FUTURE, hclib_get_master_place());
 hclib_future_wait(fut);
  } 
 
@@ -858,8 +855,8 @@ hclib_launch(main_entrypoint, new_ctx);
   ;
   return 0;
 }  
-static void *pragma794_omp_master_hclib_async(void *____arg) {
-    pragma794_omp_master *ctx = (pragma794_omp_master *)____arg;
+static void *pragma790_omp_master_hclib_async(void *____arg) {
+    pragma790_omp_master *ctx = (pragma790_omp_master *)____arg;
     hclib_start_finish();
 {
           int first = 1;

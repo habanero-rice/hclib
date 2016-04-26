@@ -2,9 +2,8 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+// #include "hclib_openshmem.h"
 #endif
-pthread_mutex_t critical_0_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 /*
  *         ---- The Unbalanced Tree Search (UTS) Benchmark ----
  *  
@@ -496,8 +495,7 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-const size_t ____critical_section_tmp_0 = 1;
- { const int ____lock_0_err = pthread_mutex_lock(&critical_0_lock); assert(____lock_0_err == 0); n_nodes += ____critical_section_tmp_0 ; const int ____unlock_0_err = pthread_mutex_unlock(&critical_0_lock); assert(____unlock_0_err == 0); } ;
+__sync_fetch_and_add(&(n_nodes), 1); ;
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
@@ -550,14 +548,13 @@ hclib_async(pragma521_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
     }
   } else {
-const size_t ____critical_section_tmp_1 = 1;
- { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); n_leaves += ____critical_section_tmp_1 ; const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err == 0); } ;
+__sync_fetch_and_add(&(n_leaves), 1); ;
   }
 } 
 static void pragma521_omp_task_hclib_async(void *____arg) {
     pragma521_omp_task *ctx = (pragma521_omp_task *)____arg;
     Node parent; parent = ctx->parent;
-    hclib_start_finish();
+    // hclib_start_finish();
 {
           Node child;
           initNode(&child);
@@ -565,7 +562,7 @@ static void pragma521_omp_task_hclib_async(void *____arg) {
           if (parent.numChildren < 0) {
               genChildren(&parent, &child);
           }
-      } ;     ; hclib_end_finish();
+      } ;     ; // hclib_end_finish();
 
     free(____arg);
 }

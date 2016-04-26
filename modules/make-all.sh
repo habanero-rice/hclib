@@ -5,9 +5,9 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 for DIR in $(ls $SCRIPT_DIR); do
-    PATH=$SCRIPT_DIR/$DIR
-    if [[ -d $PATH ]]; then
-        cd $PATH
+    P=$SCRIPT_DIR/$DIR
+    if [[ -d $P ]]; then
+        cd $P
         make clean
         make
         cd ..
