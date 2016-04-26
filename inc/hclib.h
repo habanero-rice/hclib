@@ -67,7 +67,9 @@ void hclib_launch(async_fct_t fct_ptr, void * arg);
  * stealing. This method can be used by the user to create more work for the
  * runtime to do.
  */
-void hclib_set_idle_callback(void (*set_idle_callback)(int, int));
+void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned));
+
+void hclib_run_on_main_ctx(void (*fp)(void *), void *data);
 
 /*
  * Async definition and API

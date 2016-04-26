@@ -4,3 +4,4 @@ shmem_malloc
 shmem_barrier_all
 shmem_put64
 shmem_broadcast64
+shmem_lock_stress

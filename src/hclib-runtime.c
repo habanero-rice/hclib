@@ -152,7 +152,7 @@ static void set_current_worker(int wid) {
 #endif
 }
 
-void hclib_set_idle_callback(void (*set_idle_callback)(int, int)) {
+void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned)) {
     HASSERT(idle_callback == NULL);
     idle_callback = set_idle_callback;
 }
@@ -1062,11 +1062,38 @@ static void hclib_init() {
 }
 
 
+static void (* volatile save_fp)(void *) = NULL;
+static void * volatile save_data = NULL;
+static void * volatile save_context = NULL;
+void hclib_run_on_main_ctx(void (*fp)(void *), void *data) {
+    HASSERT(hclib_get_current_worker() == 0);
+    /*
+     * May trigger these is an operation on the main context calls another
+     * operation on the main context.
+     */
+    HASSERT(save_fp == NULL); HASSERT(fp != NULL);
+
+    save_fp = fp;
+    save_data = data;
+    save_context = get_curr_lite_ctx();
+
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    ctx_swap(save_context, ws->root_ctx, __func__);
+
+    save_fp = NULL;
+    save_data = NULL;
+    save_context = NULL;
+}
+
 static void hclib_finalize() {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
     ctx_swap(finalize_ctx, finish_ctx, __func__);
+    while (save_fp) {
+        save_fp(save_data);
+        ctx_swap(finalize_ctx, save_context, __func__);
+    }
     // free resources
     LiteCtx_destroy(finalize_ctx->prev);
     LiteCtx_proxy_destroy(finalize_ctx);

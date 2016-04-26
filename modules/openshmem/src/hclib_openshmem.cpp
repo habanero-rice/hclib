@@ -2,10 +2,18 @@
 
 #include "hclib-locality-graph.h"
 
+#include <map>
 #include <iostream>
+
+typedef struct _lock_context_t {
+    hclib_future_t *last_lock;
+    hclib_promise_t * volatile live;
+} lock_context_t;
 
 static int nic_locale_id;
 static hclib::locale_t *nic = NULL;
+static std::map<long *, lock_context_t *> lock_info;
+static pthread_mutex_t lock_info_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int pe_to_locale_id(int pe) {
     HASSERT(pe >= 0);
@@ -116,20 +124,70 @@ int hclib::pe_for_locale(hclib::locale_t *locale) {
     return locale_id_to_pe(locale->id);
 }
 
+static void *shmem_set_lock_impl(void *arg) {
+    ::shmem_set_lock((long *)arg);
+    return NULL;
+}
+
+static void *shmem_clear_lock_impl(void *arg) {
+    ::shmem_clear_lock((long *)arg);
+    return NULL;
+}
+
 void hclib::shmem_set_lock(long *lock) {
-    hclib::finish([lock] {
-        hclib::async_at(nic, [lock] {
-            ::shmem_set_lock(lock);
-        });
-    });
+    int err = pthread_mutex_lock(&lock_info_mutex);
+    HASSERT(err == 0);
+
+    hclib_future_t *await = NULL;
+    lock_context_t *ctx = NULL;
+
+    hclib_promise_t *promise = hclib_promise_create();
+
+    std::map<long *, lock_context_t *>::iterator found = lock_info.find(lock);
+    if (found != lock_info.end()) {
+        hclib_future_t **future_list = (hclib_future_t **)malloc(2 * sizeof(hclib_future_t *));
+        future_list[0] = found->second->last_lock;
+        future_list[1] = NULL;
+
+        ctx = found->second;
+        await = hclib_async_future(shmem_set_lock_impl, lock, future_list, nic);
+        ctx->last_lock = hclib_get_future_for_promise(promise);
+    } else {
+        HASSERT(*lock == 0L);
+        ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
+        memset(ctx, 0x00, sizeof(lock_context_t));
+
+        lock_info.insert(std::pair<long *, lock_context_t *>(lock, ctx));
+        await = hclib_async_future(shmem_set_lock_impl, lock, NULL, nic);
+        ctx->last_lock = hclib_get_future_for_promise(promise);
+    }
+
+    err = pthread_mutex_unlock(&lock_info_mutex);
+    HASSERT(err == 0);
+
+    hclib_future_wait(await);
+    HASSERT(ctx->live == NULL);
+    ctx->live = promise;
 }
 
 void hclib::shmem_clear_lock(long *lock) {
-    hclib::finish([lock] {
-        hclib::async_at(nic, [lock] {
-            ::shmem_clear_lock(lock);
-        });
-    });
+    int err = pthread_mutex_lock(&lock_info_mutex);
+    HASSERT(err == 0);
+
+    std::map<long *, lock_context_t *>::iterator found = lock_info.find(lock);
+    HASSERT(found != lock_info.end()) // Doesn't make much sense to clear a lock that hasn't been set
+
+    hclib_future_t *await = hclib_async_future(shmem_clear_lock_impl, lock, NULL, nic);
+
+    err = pthread_mutex_unlock(&lock_info_mutex);
+    HASSERT(err == 0);
+
+    hclib_future_wait(await);
+
+    HASSERT(found->second->live);
+    hclib_promise_t *live = found->second->live;
+    found->second->live = NULL;
+    hclib_promise_put(live, NULL);
 }
 
 void hclib::shmem_int_get(int *dest, const int *source, size_t nelems, int pe) {

@@ -75,7 +75,9 @@ static int pe, npes;
 static int steal_from(int target_pe, Node *stolen_out) {
     int remote_buffered_steals;
 
+    fprintf(stderr, "A> %d locking %d\n", pe, target_pe);
     hclib::shmem_set_lock(&steal_buffer_locks[target_pe]);
+    fprintf(stderr, "A> %d done locking %d\n", pe, target_pe);
     shmem_int_get(&remote_buffered_steals, &n_buffered_steals, 1, target_pe);
 
     int stole_something = 0;
@@ -87,7 +89,9 @@ static int steal_from(int target_pe, Node *stolen_out) {
         stole_something = 1;
     }
 
+    fprintf(stderr, "B> %d unlocking %d\n", pe, target_pe);
     hclib::shmem_clear_lock(&steal_buffer_locks[target_pe]);
+    fprintf(stderr, "B> %d done unlocking %d\n", pe, target_pe);
     return stole_something;
 }
 
@@ -212,7 +216,6 @@ char debug_str[1000];
 char * impl_getName() {
     return "HCLIB";
 }
-
 
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
@@ -580,12 +583,16 @@ const int ____critical_section_tmp_0 = 1;
       int made_available_for_stealing = 0;
       // if (omp_get_thread_num() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
       if (hclib_get_current_worker() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
+          fprintf(stderr, "C> %d locking %d\n", pe, pe);
           hclib::shmem_set_lock(&steal_buffer_locks[pe]);
+          fprintf(stderr, "C> %d done locking %d\n", pe, pe);
           if (n_buffered_steals < N_BUFFERED_STEALS) {
               steal_buffer[n_buffered_steals++] = parent;
               made_available_for_stealing = 1;
           }
+          fprintf(stderr, "D> %d unlocking %d\n", pe, pe);
           hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+          fprintf(stderr, "D> %d done unlocking %d\n", pe, pe);
       }
       if (!made_available_for_stealing) {
  { 
@@ -865,6 +872,7 @@ static void *pragma794_omp_master_hclib_async(void *____arg) {
     hclib_start_finish();
 {
           int first = 1;
+          fprintf(stderr, "PE %d top level\n", pe);
 
           Node child;
 retry:
@@ -882,11 +890,15 @@ retry:
  hclib_end_finish(); hclib_start_finish(); ;
 
           if (n_buffered_steals > 0) {
+              fprintf(stderr, "E> %d locking %d\n", pe, pe);
               hclib::shmem_set_lock(&steal_buffer_locks[pe]);
+              fprintf(stderr, "E> %d done locking %d\n", pe, pe);
               if (n_buffered_steals > 0) {
                   n_buffered_steals--;
                   memcpy(&(*(ctx->root_ptr)), &steal_buffer[n_buffered_steals], sizeof((*(ctx->root_ptr))));
+                  fprintf(stderr, "F> %d unlocking %d\n", pe, pe);
                   hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+                  fprintf(stderr, "F> %d done unlocking %d\n", pe, pe);
                   goto retry;
               } else {
                   hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
