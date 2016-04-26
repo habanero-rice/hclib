@@ -12,10 +12,10 @@ lib/libhclib_openshmem.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 
 lib/libhclib_openshmem.so: $(OBJS)
-	g++ -shared $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) -o $@ $(OBJS)
+	g++ -shared $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS) -o $@ $(OBJS)
 
 obj/hclib_openshmem.o: src/hclib_openshmem.cpp
-	g++ -std=c++11 -Iinc $^ -o $@ $(PROJECT_CFLAGS) --compile -fPIC $(DEFINES)
+	g++ -std=c++11 -Iinc $^ -o $@ $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) --compile -fPIC $(DEFINES)
 
 clean:
 	rm -f obj/*.o lib/*

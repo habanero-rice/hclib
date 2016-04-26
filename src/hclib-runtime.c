@@ -60,6 +60,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mach/mach.h>
 #endif
 
+#define HCLIB_STATS
+
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
@@ -75,8 +77,13 @@ pending_cuda_op *pending_cuda_ops_tail = NULL;
 
 hclib_context *hc_context = NULL;
 
-static char *hclib_stats = NULL;
 static int profile_launch_body = 0;
+#ifdef HCLIB_STATS
+typedef struct _per_worker_stats {
+    size_t count_tasks;
+} per_worker_stats;
+static per_worker_stats *worker_stats = NULL;
+#endif
 
 static void (*idle_callback)(unsigned, unsigned) = NULL;
 
@@ -248,19 +255,7 @@ void hclib_global_init() {
     }
 }
 
-void hclib_display_runtime() {
-    printf("---------HCLIB_RUNTIME_INFO-----------\n");
-    printf(">>> HCLIB_WORKERS\t= %s\n", getenv("HCLIB_WORKERS"));
-    printf(">>> HCLIB_HPT_FILE\t= %s\n", getenv("HCLIB_HPT_FILE"));
-    printf(">>> HCLIB_STATS\t\t= %s\n", hclib_stats);
-    printf("----------------------------------------\n");
-}
-
-void hclib_entrypoint() {
-    if (hclib_stats) {
-        hclib_display_runtime();
-    }
-
+static void hclib_entrypoint() {
     hclib_call_module_pre_init_functions();
 
     srand(0);
@@ -288,12 +283,14 @@ void hclib_entrypoint() {
      * them on. */
     pthread_setconcurrency(hc_context->nworkers);
 
-    // Launch the worker threads
-    if (hclib_stats) {
-        printf("Using %d worker threads (including main thread)\n",
-               hc_context->nworkers);
-    }
+#ifdef HCLIB_STATS
+    worker_stats = (per_worker_stats *)malloc(hc_context->nworkers *
+            sizeof(per_worker_stats));
+    HASSERT(worker_stats);
+    memset(worker_stats, 0x00, hc_context->nworkers * sizeof(per_worker_stats));
+#endif
 
+    // Launch the worker threads
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) != 0) {
         fprintf(stderr, "Error in pthread_attr_init\n");
@@ -369,11 +366,16 @@ static inline void execute_task(hclib_task_t *task) {
      * executing task are registered on the same finish.
      */
     CURRENT_WS_INTERNAL->current_finish = current_finish;
-
-    // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
 #ifdef VERBOSE
+    fprintf(stderr, "execute_task: setting current finish of %p to %p for task %p\n", CURRENT_WS_INTERNAL, current_finish, task);
     fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
 #endif
+
+#ifdef HCLIB_STATS
+    worker_stats[CURRENT_WS_INTERNAL->id].count_tasks++;
+#endif
+
+    // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
     (task->_fp)(task->args);
     check_out_finish(current_finish);
     HC_FREE(task);
@@ -471,7 +473,7 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     }
 
 #ifdef VERBOSE
-    fprintf(stderr, "spawn_handler: task=%p\n", task);
+    fprintf(stderr, "spawn_handler: task=%p escaping=%d\n", task, escaping);
 #endif
 
     try_schedule_async(task, ws);
@@ -864,7 +866,10 @@ static void _finish_ctx_resume(void *arg) {
 
 void crt_work_loop(LiteCtx *ctx);
 
-// Based on _help_finish_ctx
+/*
+ * Based on _help_finish_ctx, _help_wait is called to swap out the current
+ * context when a thread waits on a future.
+ */
 void _help_wait(LiteCtx *ctx) {
     hclib_future_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
@@ -886,6 +891,8 @@ void *hclib_future_wait(hclib_future_t *future) {
     if (future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
         return (void *)future->owner->datum;
     }
+    finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+
     hclib_future_t *continuation_deps[] = { future, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
@@ -894,10 +901,18 @@ void *hclib_future_wait(hclib_future_t *future) {
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
+    // Restore the finish state from before the wait
+    CURRENT_WS_INTERNAL->current_finish = current_finish;
+
     HASSERT(future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR);
     return (void *)future->owner->datum;
 }
 
+/*
+ * _help_finish_ctx is the function we switch to on a new context when
+ * encountering an end finish to allow the current hardware thread to make
+ * useful progress.
+ */
 static void _help_finish_ctx(LiteCtx *ctx) {
     /*
      * Set up previous context to be stolen when the finish completes (note that
@@ -991,17 +1006,32 @@ void hclib_start_finish() {
     finish->parent = ws->current_finish;
     check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
+
+#ifdef VERBOSE
+    fprintf(stderr, "hclib_start_finish: entering finish for %p and setting its current finish "
+            "from %p to %p\n", ws, finish->parent, ws->current_finish);
+#endif
 }
 
 void hclib_end_finish() {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+#ifdef VERBOSE
+    fprintf(stderr, "hclib_end_finish: ending finish %p on worker %p\n",
+            current_finish, CURRENT_WS_INTERNAL);
+#endif
 
+    HASSERT(current_finish);
     HASSERT(current_finish->counter > 0);
     help_finish(current_finish);
     HASSERT(current_finish->counter == 0);
 
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
 
+#ifdef VERBOSE
+    fprintf(stderr, "hclib_end_finish: out of finish, setting current finish "
+            "of %p to %p from %p\n", CURRENT_WS_INTERNAL,
+            current_finish->parent, current_finish);
+#endif
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
     HC_FREE(current_finish);
 }
@@ -1025,6 +1055,11 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     // Check out the current finish from its parent
     check_out_finish(current_finish->parent);
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
+#ifdef VERBOSE
+    fprintf(stderr, "hclib_end_finish_nonblocking_helper: out of finish, "
+            "setting current finish of %p to %p from %p\n", CURRENT_WS_INTERNAL,
+            current_finish->parent, current_finish);
+#endif
 }
 
 hclib_future_t *hclib_end_finish_nonblocking() {
@@ -1052,8 +1087,6 @@ void hclib_user_harness_timer(double dur) {
  * the user program before any HC actions are performed.
  */
 static void hclib_init() {
-    HASSERT(hclib_stats == NULL);
-    hclib_stats = getenv("HCLIB_STATS");
     if (getenv("HCLIB_PROFILE_LAUNCH_BODY")) {
         profile_launch_body = 1;
     }
@@ -1099,6 +1132,16 @@ static void hclib_finalize() {
     LiteCtx_proxy_destroy(finalize_ctx);
 
     hclib_join(hc_context->nworkers);
+
+#ifdef HCLIB_STATS
+    int i;
+    printf("===== HClib statistics: =====\n");
+    for (i = 0; i < hc_context->nworkers; i++) {
+        printf("  Worker %d: %lu tasks\n", i, worker_stats[i].count_tasks);
+    }
+    free(worker_stats);
+#endif
+
     hclib_cleanup();
 }
 

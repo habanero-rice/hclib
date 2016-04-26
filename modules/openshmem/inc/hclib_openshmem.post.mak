@@ -1,9 +1,9 @@
 # Post Makefile includes are the main part of a module's build system, allowing
 # it to add flags to the overall project compile and link flags.
-PROJECT_CFLAGS+=-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(OPENSHMEM_INSTALL)/include
-PROJECT_CXXFLAGS+=-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(OPENSHMEM_INSTALL)/include
-PROJECT_LDFLAGS+=-L$(HCLIB_ROOT)/../modules/openshmem/lib -L$(OPENSHMEM_INSTALL)/lib
-PROJECT_LDLIBS += $(call GET_LINK_FLAG,--whole-archive) \
+HCLIB_OSHMEM_CFLAGS+=-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(OPENSHMEM_INSTALL)/include
+HCLIB_OSHMEM_CXXFLAGS+=-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(OPENSHMEM_INSTALL)/include
+HCLIB_OSHMEM_LDFLAGS+=-L$(HCLIB_ROOT)/../modules/openshmem/lib -L$(OPENSHMEM_INSTALL)/lib
+HCLIB_OSHMEM_LDLIBS += $(call GET_LINK_FLAG,--whole-archive) \
 				  $(call GET_LINK_FLAG,-lhclib_openshmem) \
 				  $(call GET_LINK_FLAG,--no-whole-archive) \
 				  $(call GET_LINK_FLAG,-lopenshmem) \

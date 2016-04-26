@@ -9,10 +9,10 @@ TARGETS=init shmem_malloc samplesort_omp shmem_barrier_all shmem_put64 shmem_bro
 all: $(TARGETS)
 
 %: %.cpp
-	g++ -std=c++11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	g++ -std=c++11 $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
 
 %: %.c
-	gcc $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	gcc $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
 
 
 clean:

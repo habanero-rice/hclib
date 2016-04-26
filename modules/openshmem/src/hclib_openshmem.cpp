@@ -225,7 +225,7 @@ void hclib::shmem_int_add(int *dest, int value, int pe) {
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     hclib::promise_t *promise = new hclib::promise_t();
     hclib::async_at(nic, [dest, value, pe, promise] {
-        const int fetched = shmem_int_fadd(dest, value, pe);
+        const int fetched = ::shmem_int_fadd(dest, value, pe);
         int *heap_fetched = (int *)malloc(sizeof(int));
         *heap_fetched = fetched;
         promise->put((void *)heap_fetched);

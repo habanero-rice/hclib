@@ -2,6 +2,7 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#include "hclib_openshmem.h"
 #endif
 pthread_mutex_t critical_0_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
@@ -24,6 +25,8 @@ pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <assert.h>
+#include <shmem.h>
 
 #include "uts.h"
 
@@ -37,29 +40,88 @@ pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
  *     (__PTHREADS__) Pthreads multithreaded execution     *
  *                                                         *
  ***********************************************************/
-#define GET_NUM_THREADS  hclib_num_workers()
+
+#include <omp.h>
+#define MAX_OMP_THREADS       32
+#define MAX_SHMEM_THREADS     64
+// OpenMP helper function to match UPC lock allocation semantics
 
 /***********************************************************
  *  Parallel execution parameters                          *
  ***********************************************************/
 
-int chunkSize = 20;       // number of nodes to move to/from shared area
 int cbint     = 1;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
 
-size_t n_nodes = 0;
-size_t n_leaves = 0;
+int n_nodes = 0;
+int n_leaves = 0;
 
 #ifdef THREAD_METADATA
 typedef struct _thread_metadata {
     size_t ntasks;
 } thread_metadata;
-thread_metadata t_metadata[MAX_THREADS];
+thread_metadata t_metadata[MAX_OMP_THREADS];
 #endif
+
+#define N_BUFFERED_STEALS 16
+Node steal_buffer[N_BUFFERED_STEALS];
+int n_buffered_steals = 0;
+long steal_buffer_locks[MAX_SHMEM_THREADS];
+
+int complete_pes = 0;
+
+static int pe, npes;
+
+static int steal_from(int target_pe, Node *stolen_out) {
+    int remote_buffered_steals;
+
+    hclib::shmem_set_lock(&steal_buffer_locks[target_pe]);
+    shmem_int_get(&remote_buffered_steals, &n_buffered_steals, 1, target_pe);
+
+    int stole_something = 0;
+    if (remote_buffered_steals > 0) {
+        remote_buffered_steals--;
+        hclib::shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
+                sizeof(Node), target_pe);
+        shmem_int_put(&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
+        stole_something = 1;
+    }
+
+    hclib::shmem_clear_lock(&steal_buffer_locks[target_pe]);
+    return stole_something;
+}
+
+static int remote_steal(Node *stolen_out) {
+    int pe_above = (pe + 1) % npes;
+    int pe_below = pe - 1;
+    if (pe_below < 0) pe_below = npes - 1;
+
+    hclib::shmem_int_add(&complete_pes, 1, 0);
+
+    int ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
+    while (ndone != npes) {
+        // Try to remote steal
+
+        if (steal_from(pe_above, stolen_out) || steal_from(pe_below, stolen_out)) {
+            hclib::shmem_int_add(&complete_pes, -1, 0);
+            return 1;
+        }
+
+        pe_above = (pe_above + 1) % npes;
+        pe_below = pe_below - 1;
+        if (pe_below < 0) pe_below = npes - 1;
+
+        ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
+    }
+
+    assert(ndone == npes);
+    return 0;
+}
 
 #ifdef __BERKELEY_UPC__
 /* BUPC nonblocking I/O Handles */
 bupc_handle_t cb_handle       = BUPC_COMPLETE_HANDLE;
+const int     local_cb_cancel = 1;
 #endif
 
 
@@ -72,9 +134,6 @@ bupc_handle_t cb_handle       = BUPC_COMPLETE_HANDLE;
 
 /* Check that we are not being asked to compile parallel with stats.
  * Parallel stats collection is presently not supported.  */
-#if PARALLEL
-#error "ERROR: Parallel stats collection is not supported!"
-#endif
 
 #define MAXHISTSIZE      2000  // max tree depth in histogram
 int    stats     = 1;
@@ -145,8 +204,6 @@ char debug_str[1000];
  *  Global shared state                                    *
  ***********************************************************/
 
-// termination detection 
-
 /***********************************************************
  *  UTS Implementation Hooks                               *
  ***********************************************************/
@@ -156,9 +213,17 @@ char * impl_getName() {
     return "HCLIB";
 }
 
-
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
+//     int n_omp_threads;
+// #pragma omp parallel
+//     {
+// #pragma omp single
+//         {
+//     n_omp_threads = omp_get_num_threads();
+//         }
+//     }
+
   ind += sprintf(strBuf+ind, "Execution strategy:  ");
       
   return ind;
@@ -169,19 +234,8 @@ int impl_parseParam(char *param, char *value) {
   int err = 0;  // Return 0 on a match, nonzero on an error
 
   switch (param[1]) {
-#ifdef UTS_STAT
-    case 'u':
-      unbType = atoi(value); 
-      if (unbType > 2) {
-        err = 1;
-        break;
-      }
-      if (unbType < 0)
-        stats = 0;
-      else
-        stats = 1;
-      break;
-#endif
+    case 'i':
+      cbint = atoi(value); break;
     default:
       err = 1;
       break;
@@ -194,15 +248,7 @@ void impl_helpMessage() {
 }
 
 void impl_abort(int err) {
-#if defined(__UPC__)
-  upc_global_exit(err);
-#elif defined(_OPENMP)
   exit(err);
-#elif defined(_SHMEM)
-  exit(err);
-#else
-  exit(err);
-#endif
 }
 
 
@@ -475,8 +521,9 @@ void initRootNode(Node * root, int type)
  * details depend on tree type, node type and shape function
  *
  */
-typedef struct _pragma521_omp_task {
+typedef struct _pragma576_omp_task {
     Node parent;
+    int (*made_available_for_stealing_ptr);
     int (*i_ptr);
     int (*j_ptr);
     unsigned char (*(*parent_state_ptr));
@@ -485,9 +532,9 @@ typedef struct _pragma521_omp_task {
     int (*numChildren_ptr);
     int (*childType_ptr);
     Node (*(*child_ptr));
- } pragma521_omp_task;
+ } pragma576_omp_task;
 
-static void pragma521_omp_task_hclib_async(void *____arg);
+static void pragma576_omp_task_hclib_async(void *____arg);
 void genChildren(Node * parent, Node * child) {
   int parentHeight = parent->height;
   int numChildren, childType;
@@ -496,13 +543,11 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-const size_t ____critical_section_tmp_0 = 1;
+const int ____critical_section_tmp_0 = 1;
  { const int ____lock_0_err = pthread_mutex_lock(&critical_0_lock); assert(____lock_0_err == 0); n_nodes += ____critical_section_tmp_0 ; const int ____unlock_0_err = pthread_mutex_unlock(&critical_0_lock); assert(____unlock_0_err == 0); } ;
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
-
-  // fprintf(stderr, "numChildren = %d\n", numChildren);
 
   // record number of children in parent
   parent->numChildren = numChildren;
@@ -531,9 +576,20 @@ const size_t ____critical_section_tmp_0 = 1;
 
       Node parent = *child;
 
+      int made_available_for_stealing = 0;
+      if (hclib_get_current_worker() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
+          hclib::shmem_set_lock(&steal_buffer_locks[pe]);
+          if (n_buffered_steals < N_BUFFERED_STEALS) {
+              steal_buffer[n_buffered_steals++] = parent;
+              made_available_for_stealing = 1;
+          }
+          hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+      }
+      if (!made_available_for_stealing) {
  { 
-pragma521_omp_task *new_ctx = (pragma521_omp_task *)malloc(sizeof(pragma521_omp_task));
+pragma576_omp_task *new_ctx = (pragma576_omp_task *)malloc(sizeof(pragma576_omp_task));
 new_ctx->parent = parent;
+new_ctx->made_available_for_stealing_ptr = &(made_available_for_stealing);
 new_ctx->i_ptr = &(i);
 new_ctx->j_ptr = &(j);
 new_ctx->parent_state_ptr = &(parent_state);
@@ -543,75 +599,35 @@ new_ctx->numChildren_ptr = &(numChildren);
 new_ctx->childType_ptr = &(childType);
 new_ctx->child_ptr = &(child);
 if (!(parent.height < 9)) {
-    pragma521_omp_task_hclib_async(new_ctx);
+    pragma576_omp_task_hclib_async(new_ctx);
 } else {
-hclib_async(pragma521_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma576_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 }
  } 
+      }
     }
   } else {
-const size_t ____critical_section_tmp_1 = 1;
+const int ____critical_section_tmp_1 = 1;
  { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); n_leaves += ____critical_section_tmp_1 ; const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err == 0); } ;
   }
 } 
-static void pragma521_omp_task_hclib_async(void *____arg) {
-    pragma521_omp_task *ctx = (pragma521_omp_task *)____arg;
+static void pragma576_omp_task_hclib_async(void *____arg) {
+    pragma576_omp_task *ctx = (pragma576_omp_task *)____arg;
     Node parent; parent = ctx->parent;
     hclib_start_finish();
 {
-          Node child;
-          initNode(&child);
+              Node child;
+              initNode(&child);
 
-          if (parent.numChildren < 0) {
-              genChildren(&parent, &child);
-          }
-      } ;     ; hclib_end_finish();
+              if (parent.numChildren < 0) {
+                  genChildren(&parent, &child);
+              }
+          } ;     ; hclib_end_finish();
 
     free(____arg);
 }
 
 
-
-
-    
-/*
- *  Parallel tree traversal
- *
- */
-
-// cancellable barrier
-
-// initialize lock:  single thread under omp, all threads under upc
-
-//  delay this thread until all threads arrive at barrier
-//     or until barrier is cancelled
-
-// causes one or more threads waiting at barrier, if any,
-//  to be released
-#ifdef TRACE
-// print session records for each thread (used when trace is enabled)
-void printSessionRecords()
-{
-  int i, j, k;
-  double offset;
-
-  for (i = 0; i < GET_NUM_THREADS; i++) {
-    offset = startTime[i] - startTime[0];
-
-    for (j = 0; j < SS_NSTATES; j++)
-       for (k = 0; k < stealStack[i]->entries[j]; k++) {
-          printf ("%d %d %f %f", i, j,
-            stealStack[i]->md->sessionRecords[j][k].startTime - offset,
-            stealStack[i]->md->sessionRecords[j][k].endTime - offset);
-          if (j == SS_WORK)
-            printf (" %d %ld",
-              stealStack[i]->md->stealRecords[k].victimThread,
-              stealStack[i]->md->stealRecords[k].nodeCount);
-            printf ("\n");
-     }
-  }
-}
-#endif
 
 // display search statistics
 void showStats(double elapsedSecs) {
@@ -640,7 +656,7 @@ void showStats(double elapsedSecs) {
 //     printf("*** error! total released != total acquired + total stolen\n");
 //   }
 //     
-  uts_showStats(GET_NUM_THREADS, chunkSize, elapsedSecs, n_nodes, n_leaves, mheight);
+  uts_showStats(hclib_num_workers(), 0, elapsedSecs, n_nodes, n_leaves, mheight);
 // 
 //   if (verbose > 1) {
 //     if (doSteal) {
@@ -730,6 +746,16 @@ void showStats(double elapsedSecs) {
  *     - UPC is SPMD starting with main, OpenMP goes SPMD after
  *       parsing parameters
  */
+typedef struct _pragma794_omp_master {
+    double (*t1_ptr);
+    double (*t2_ptr);
+    double (*et_ptr);
+    Node (*root_ptr);
+    int (*argc_ptr);
+    char (*(*(*argv_ptr)));
+ } pragma794_omp_master;
+
+static void *pragma794_omp_master_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     Node root;
     int argc;
@@ -743,27 +769,74 @@ static void main_entrypoint(void *____arg) {
     int argc; argc = ctx->argc;
     char (*(*argv)); argv = ctx->argv;
 {
-  /* cancellable barrier initialization (single threaded under OMP) */
+
+  ;
+
+  pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+  npes = hclib::shmem_n_pes();
+
+  /* determine benchmark parameters (all PEs) */
+  uts_parseParams(argc, argv);
+
+#ifdef UTS_STAT
+  if (stats) {
+    initHist();
+  }
+#endif  
 
   double t1, t2, et;
 
   /* show parameter settings */
-  uts_printParams();
+  if (pe == 0) {
+      uts_printParams();
+  }
 
   initRootNode(&root, type);
+
+  hclib::shmem_barrier_all();
+
   /* time parallel search */
   t1 = uts_wctime();
 
 /********** SPMD Parallel Region **********/
-hclib_start_finish(); {
-          Node child;
-          initNode(&child);
-          genChildren(&root, &child);
-      } ; hclib_end_finish(); 
+ { 
+pragma794_omp_master *new_ctx = (pragma794_omp_master *)malloc(sizeof(pragma794_omp_master));
+new_ctx->t1_ptr = &(t1);
+new_ctx->t2_ptr = &(t2);
+new_ctx->et_ptr = &(et);
+new_ctx->root_ptr = &(root);
+new_ctx->argc_ptr = &(argc);
+new_ctx->argv_ptr = &(argv);
+hclib_future_t *fut = hclib_async_future(pragma794_omp_master_hclib_async, new_ctx, NO_FUTURE, hclib_get_master_place());
+hclib_future_wait(fut);
+ } 
+
+  if (pe != 0) {
+      hclib::shmem_int_add(&n_nodes, n_nodes, 0);
+      hclib::shmem_int_add(&n_leaves, n_leaves, 0);
+  }
+
+  hclib::shmem_barrier_all();
 
   t2 = uts_wctime();
   et = t2 - t1;
-  showStats(et);
+  if (pe == 0) {
+      showStats(et);
+  }
+/********** End Parallel Region **********/
+#ifdef THREAD_METADATA
+  int p;
+  for (p = 0; p < npes; p++) {
+      if (p == pe) {
+          printf("\n");
+          int i;
+          for (i = 0; i < n_omp_threads; i++) {
+              printf("PE %d, thread %d: %lu tasks\n", p, i, t_metadata[i].ntasks);
+          }
+      }
+      shmem_barrier_all();
+  }
+#endif
   } ;     free(____arg);
 }
 
@@ -771,16 +844,9 @@ int main(int argc, char *argv[]) {
   Node root;
 
 #ifdef THREAD_METADATA
-  memset(t_metadata, 0x00, MAX_THREADS * sizeof(thread_metadata));
+  memset(t_metadata, 0x00, MAX_OMP_THREADS * sizeof(thread_metadata));
 #endif
-
-  /* determine benchmark parameters (all PEs) */
-  uts_parseParams(argc, argv);
-
-#ifdef UTS_STAT
-  if (stats)
-    initHist();
-#endif  
+  memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
 
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->root = root;
@@ -788,7 +854,51 @@ new_ctx->argc = argc;
 new_ctx->argv = argv;
 hclib_launch(main_entrypoint, new_ctx);
 
-/********** End Parallel Region **********/
 
+  ;
   return 0;
-} 
+}  
+static void *pragma794_omp_master_hclib_async(void *____arg) {
+    pragma794_omp_master *ctx = (pragma794_omp_master *)____arg;
+    hclib_start_finish();
+{
+          int first = 1;
+
+          Node child;
+retry:
+          initNode(&child);
+
+          if (first) {
+              if (pe == 0) {
+                  genChildren(&(*(ctx->root_ptr)), &child);
+              }
+          } else {
+              genChildren(&(*(ctx->root_ptr)), &child);
+          }
+          first = 0;
+
+ hclib_end_finish(); hclib_start_finish(); ;
+
+          if (n_buffered_steals > 0) {
+              hclib::shmem_set_lock(&steal_buffer_locks[pe]);
+              if (n_buffered_steals > 0) {
+                  n_buffered_steals--;
+                  memcpy(&(*(ctx->root_ptr)), &steal_buffer[n_buffered_steals], sizeof((*(ctx->root_ptr))));
+                  hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+                  goto retry;
+              } else {
+                  hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+              }
+          }
+
+          const int got_more_work = remote_steal(&(*(ctx->root_ptr)));
+          if (got_more_work == 1) {
+              goto retry;
+          }
+      } ;     ; hclib_end_finish();
+
+    free(____arg);
+    return NULL;
+}
+
+

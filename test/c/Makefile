@@ -12,7 +12,7 @@ FLAGS=-g
 all: $(TARGETS)
 
 %: %.c
-	g++ ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	g++ ${FLAGS} $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS)
 
 clean:
 	rm -f $(TARGETS)
