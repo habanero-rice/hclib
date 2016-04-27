@@ -30,7 +30,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
-    shmem_init();
+    ::shmem_init();
 
     int n_nics;
     hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
@@ -42,7 +42,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize) {
-    shmem_finalize();
+    ::shmem_finalize();
 }
 
 static hclib::locale_t *get_locale_for_pe(int pe) {
@@ -222,6 +222,25 @@ void hclib::shmem_int_add(int *dest, int value, int pe) {
     });
 }
 
+long long hclib::shmem_longlong_fadd(long long *target, long long value,
+        int pe) {
+    long long *val_ptr = (long long *)malloc(sizeof(long long));
+    hclib::promise_t *promise = new hclib::promise_t();
+
+    hclib::async_at(nic, [target, value, pe, promise, val_ptr] {
+        const long long val = ::shmem_longlong_fadd(target, value, pe);
+        *val_ptr = val;
+        promise->put(NULL);
+    });
+
+    promise->get_future()->wait();
+    const long long result = *val_ptr;
+
+    delete promise;
+    free(val_ptr);
+    return result;
+}
+
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     hclib::promise_t *promise = new hclib::promise_t();
     hclib::async_at(nic, [dest, value, pe, promise] {
@@ -238,6 +257,50 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     free(heap_fetched);
 
     return fetched;
+}
+
+void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,
+                          int PE_start, int logPE_stride,
+                          int PE_size, int *pWrk, long *pSync) {
+    hclib::finish([target, source, nreduce, PE_start, logPE_stride, PE_size,
+            pWrk, pSync] {
+        hclib::async_at(nic, [target, source, nreduce, PE_start, logPE_stride,
+            PE_size, pWrk, pSync] {
+            ::shmem_int_sum_to_all(target, source, nreduce, PE_start,
+                logPE_stride, PE_size, pWrk, pSync);
+        });
+    });
+}
+
+void hclib::shmem_longlong_sum_to_all(long long *target, long long *source,
+                               int nreduce, int PE_start,
+                               int logPE_stride, int PE_size,
+                               long long *pWrk, long *pSync) {
+    hclib::finish([target, source, nreduce, PE_start, logPE_stride, PE_size,
+            pWrk, pSync] {
+        hclib::async_at(nic, [target, source, nreduce, PE_start, logPE_stride,
+            PE_size, pWrk, pSync] {
+            ::shmem_longlong_sum_to_all(target, source, nreduce, PE_start,
+                logPE_stride, PE_size, pWrk, pSync);
+        });
+    });
+}
+
+void hclib::shmem_longlong_p(long long *addr, long long value, int pe) {
+    hclib::finish([addr, value, pe] {
+        hclib::async_at(nic, [addr, value, pe] {
+            ::shmem_longlong_p(addr, value, pe);
+        });
+    });
+}
+
+void hclib::shmem_longlong_put(long long *dest, const long long *src,
+                        size_t nelems, int pe) {
+    hclib::finish([dest, src, nelems, pe] {
+        hclib::async_at(nic, [dest, src, nelems, pe] {
+            ::shmem_longlong_put(dest, src, nelems, pe);
+        });
+    });
 }
 
 HCLIB_REGISTER_MODULE("openshmem", openshmem_pre_initialize, openshmem_post_initialize, openshmem_finalize)

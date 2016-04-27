@@ -1,0 +1,28 @@
+# Makefile for Red Storm (compile on reddish)
+
+SHELL = /bin/sh
+
+# System-specific settings
+
+CC =		CC
+CCFLAGS =	-fastsse -DMPICH_IGNORE_CXX_SEEK -DLONG64
+#CCFLAGS =	-fastsse -DMPICH_IGNORE_CXX_SEEK -DLONG64 -DCHECK
+LINK =		CC
+LINKFLAGS =	-O
+LIB =
+
+# Link target
+
+gups_vanilla:	gups_vanilla.o
+	$(LINK) $(LINKFLAGS) gups_vanilla.o $(LIB) -o gups_vanilla
+
+gups_nonpow2:	gups_nonpow2.o
+	$(LINK) $(LINKFLAGS) gups_nonpow2.o $(LIB) -o gups_nonpow2
+
+gups_opt:	gups_opt.o
+	$(LINK) $(LINKFLAGS) gups_opt.o $(LIB) -o gups_opt
+
+# Compilation rules
+
+%.o:%.c
+	$(CC) $(CCFLAGS) -c $<

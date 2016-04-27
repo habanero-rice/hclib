@@ -1,4 +1,10 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#include "hclib_openshmem.h"
+#endif
+#include "shmem.h"
 
 /*********************************************************************
 
@@ -69,23 +75,9 @@
 #define SHMEM_BCAST_SYNC_SIZE           (128L / SHMEM_INTERNAL_F2C_SCALE)
 #define _SHMEM_BCAST_SYNC_SIZE          SHMEM_BCAST_SYNC_SIZE
 
-extern void shmem_barrier_all (void);
-extern void shmem_init (void);
-extern int shmem_my_pe (void);
-extern int shmem_n_pes (void);
-extern void shmem_finalize (void);
-extern void *shmem_malloc (size_t size);
-extern void shmem_free (void *ptr);
-extern void shmem_barrier_all (void);
-extern void shmem_put64 (void *dest, const void *src, size_t nelems,
-        int pe);
-extern void shmem_put64 (void *dest, const void *src, size_t nelems,
-        int pe);
-
 #define SIZE 100000
 #define TYPE uint64_t
 long pSync[_SHMEM_BCAST_SYNC_SIZE];
-#define RESET_BCAST_PSYNC       { int _i; for(_i=0; _i<_SHMEM_BCAST_SYNC_SIZE; _i++) { pSync[_i] = _SHMEM_SYNC_VALUE; } shmem_barrier_all(); }
 #define ASYNC_SHMEM
 #define VERIFY
 #define HC_GRANULARITY  0
@@ -99,7 +91,6 @@ static int compare(const void *i, const void *j)
   return (0);
 }
 
-#ifdef ASYNC_SHMEM
 int partition(TYPE* data, int left, int right) {
   int i = left;
   int j = right;
@@ -125,27 +116,29 @@ typedef struct sort_data_t {
   int right;
 } sort_data_t;
 
-typedef struct _par_sort145 {
-    void *arg;
-    sort_data_t *in;
-    uint64_t *data;
-    int left;
-    int right;
-    int index;
-    sort_data_t *buf;
- } par_sort145;
+typedef struct _pragma137_omp_task {
+    sort_data_t (*(*buf_ptr));
+    int (*index_ptr);
+    sort_data_t (*(*in_ptr));
+    uint64_t (*(*data_ptr));
+    int (*left_ptr);
+    int (*right_ptr);
+    void (*(*arg_ptr));
+ } pragma137_omp_task;
 
-typedef struct _par_sort155 {
-    void *arg;
-    sort_data_t *in;
-    uint64_t *data;
-    int left;
-    int right;
-    int index;
-    sort_data_t *buf;
- } par_sort155;
+typedef struct _pragma147_omp_task {
+    sort_data_t (*(*buf_ptr));
+    int (*index_ptr);
+    sort_data_t (*(*in_ptr));
+    uint64_t (*(*data_ptr));
+    int (*left_ptr);
+    int (*right_ptr);
+    void (*(*arg_ptr));
+ } pragma147_omp_task;
 
-static void par_sort145_hclib_async(void *____arg);static void par_sort155_hclib_async(void *____arg);void par_sort(void* arg) {
+static void pragma137_omp_task_hclib_async(void *____arg);
+static void pragma147_omp_task_hclib_async(void *____arg);
+void par_sort(void* arg) {
   sort_data_t *in = (sort_data_t*) arg;
   TYPE* data = in->buffer;
   int left = in->left; 
@@ -153,23 +146,22 @@ static void par_sort145_hclib_async(void *____arg);static void par_sort155_hclib
 
   if (right - left + 1 > HC_GRANULARITY) {
     int index = partition(data, left, right);
-    {
-        hclib_start_finish(); {
+hclib_start_finish(); {
         if (left < index - 1) {
           sort_data_t* buf = (sort_data_t*) malloc(sizeof(sort_data_t)); 
           buf->buffer = data;
           buf->left = left;
           buf->right = index - 1; 
-           { 
-par_sort145 *ctx = (par_sort145 *)malloc(sizeof(par_sort145));
-ctx->arg = arg;
-ctx->in = in;
-ctx->data = data;
-ctx->left = left;
-ctx->right = right;
-ctx->index = index;
-ctx->buf = buf;
-hclib_async(par_sort145_hclib_async, ctx, NO_FUTURE, NO_PHASER, ANY_PLACE);
+ { 
+pragma137_omp_task *new_ctx = (pragma137_omp_task *)malloc(sizeof(pragma137_omp_task));
+new_ctx->buf_ptr = &(buf);
+new_ctx->index_ptr = &(index);
+new_ctx->in_ptr = &(in);
+new_ctx->data_ptr = &(data);
+new_ctx->left_ptr = &(left);
+new_ctx->right_ptr = &(right);
+new_ctx->arg_ptr = &(arg);
+hclib_async(pragma137_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
         }
         if (index < right) {
@@ -177,54 +169,45 @@ hclib_async(par_sort145_hclib_async, ctx, NO_FUTURE, NO_PHASER, ANY_PLACE);
           buf->buffer = data;
           buf->left = index;
           buf->right = right; 
-           { 
-par_sort155 *ctx = (par_sort155 *)malloc(sizeof(par_sort155));
-ctx->arg = arg;
-ctx->in = in;
-ctx->data = data;
-ctx->left = left;
-ctx->right = right;
-ctx->index = index;
-ctx->buf = buf;
-hclib_async(par_sort155_hclib_async, ctx, NO_FUTURE, NO_PHASER, ANY_PLACE);
+ { 
+pragma147_omp_task *new_ctx = (pragma147_omp_task *)malloc(sizeof(pragma147_omp_task));
+new_ctx->buf_ptr = &(buf);
+new_ctx->index_ptr = &(index);
+new_ctx->in_ptr = &(in);
+new_ctx->data_ptr = &(data);
+new_ctx->left_ptr = &(left);
+new_ctx->right_ptr = &(right);
+new_ctx->arg_ptr = &(arg);
+hclib_async(pragma147_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
         }
-        } hclib_end_finish(); 
-    }
+        } ; hclib_end_finish(); 
   }
   else {
     //  quicksort in C library
     qsort(data+left, right - left + 1, sizeof(TYPE), compare);
   }
   free(arg);
-} static void par_sort145_hclib_async(void *____arg) {
-    par_sort145 *ctx = (par_sort145 *)____arg;
-    void *arg; arg = ctx->arg;
-    sort_data_t *in; in = ctx->in;
-    uint64_t *data; data = ctx->data;
-    int left; left = ctx->left;
-    int right; right = ctx->right;
-    int index; index = ctx->index;
-    sort_data_t *buf; buf = ctx->buf;
+} 
+static void pragma137_omp_task_hclib_async(void *____arg) {
+    pragma137_omp_task *ctx = (pragma137_omp_task *)____arg;
     hclib_start_finish();
 {
-              par_sort(buf);
-          }    ; hclib_end_finish();
+              par_sort((*(ctx->buf_ptr)));
+          } ;     ; hclib_end_finish();
+
+    free(____arg);
 }
 
-static void par_sort155_hclib_async(void *____arg) {
-    par_sort155 *ctx = (par_sort155 *)____arg;
-    void *arg; arg = ctx->arg;
-    sort_data_t *in; in = ctx->in;
-    uint64_t *data; data = ctx->data;
-    int left; left = ctx->left;
-    int right; right = ctx->right;
-    int index; index = ctx->index;
-    sort_data_t *buf; buf = ctx->buf;
+
+static void pragma147_omp_task_hclib_async(void *____arg) {
+    pragma147_omp_task *ctx = (pragma147_omp_task *)____arg;
     hclib_start_finish();
 {
-              par_sort(buf);
-          }    ; hclib_end_finish();
+              par_sort((*(ctx->buf_ptr)));
+          } ;     ; hclib_end_finish();
+
+    free(____arg);
 }
 
 
@@ -236,66 +219,19 @@ void sorting(TYPE* buffer, int size) {
   buf->right = size - 1; 
   par_sort(buf);
 }
-#else
-void sorting(TYPE* buffer, int size) {
-  qsort(buffer, size, sizeof(TYPE), compare);
-}
-#endif
 
 typedef struct _main_entrypoint_ctx {
     int argc;
-    char **argv;
-    int Numprocs;
-    int MyRank;
-    int Root;
-    int i;
-    int j;
-    int k;
-    int NoofElements;
-    int NoofElements_Bloc;
-    int NoElementsToSort;
-    int count;
-    int temp;
-    uint64_t *Input;
-    uint64_t *InputData;
-    uint64_t *Splitter;
-    uint64_t *AllSplitter;
-    uint64_t *Buckets;
-    uint64_t *BucketBuffer;
-    uint64_t *LocalBucket;
-    uint64_t *OutputBuffer;
-    uint64_t *Output;
+    char (*(*argv));
  } main_entrypoint_ctx;
+
 
 static void main_entrypoint(void *____arg) {
     main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
     int argc; argc = ctx->argc;
-    char **argv; argv = ctx->argv;
-    int Numprocs; Numprocs = ctx->Numprocs;
-    int MyRank; MyRank = ctx->MyRank;
-    int Root; Root = ctx->Root;
-    int i; i = ctx->i;
-    int j; j = ctx->j;
-    int k; k = ctx->k;
-    int NoofElements; NoofElements = ctx->NoofElements;
-    int NoofElements_Bloc; NoofElements_Bloc = ctx->NoofElements_Bloc;
-    int NoElementsToSort; NoElementsToSort = ctx->NoElementsToSort;
-    int count; count = ctx->count;
-    int temp; temp = ctx->temp;
-    uint64_t *Input; Input = ctx->Input;
-    uint64_t *InputData; InputData = ctx->InputData;
-    uint64_t *Splitter; Splitter = ctx->Splitter;
-    uint64_t *AllSplitter; AllSplitter = ctx->AllSplitter;
-    uint64_t *Buckets; Buckets = ctx->Buckets;
-    uint64_t *BucketBuffer; BucketBuffer = ctx->BucketBuffer;
-    uint64_t *LocalBucket; LocalBucket = ctx->LocalBucket;
-    uint64_t *OutputBuffer; OutputBuffer = ctx->OutputBuffer;
-    uint64_t *Output; Output = ctx->Output;
-sorting(InputData, NoofElements_Bloc); }
-
-int main (int argc, char *argv[]) {
-  /**** Initialising ****/
-  shmem_init (); 
+    char (*(*argv)); argv = ctx->argv;
+{
+  ; 
   /* Variable Declarations */
 
   int 	     Numprocs,MyRank, Root = 0;
@@ -307,19 +243,19 @@ int main (int argc, char *argv[]) {
   TYPE 	     *Buckets, *BucketBuffer, *LocalBucket;
   TYPE 	     *OutputBuffer, *Output;
   
-  MyRank = shmem_my_pe ();
-  Numprocs = shmem_n_pes ();
+  MyRank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  Numprocs = hclib::shmem_n_pes ();
   NoofElements = SIZE;
 
   if(( NoofElements % Numprocs) != 0){
     if(MyRank == Root)
       printf("Number of Elements are not divisible by Numprocs \n");
-    shmem_finalize ();
+    ;
     exit(0);
   }
   /**** Reading Input ****/
   
-  Input = (TYPE *) shmem_malloc (NoofElements*sizeof(*Input));
+  Input = (TYPE *) hclib::shmem_malloc (NoofElements*sizeof(*Input));
   if(Input == NULL) {
     printf("Error : Can not allocate memory \n");
   }
@@ -336,54 +272,27 @@ int main (int argc, char *argv[]) {
   /**** Sending Data ****/
 
   NoofElements_Bloc = NoofElements / Numprocs;
-  InputData = (TYPE *) shmem_malloc (NoofElements_Bloc * sizeof (*InputData));
+  InputData = (TYPE *) hclib::shmem_malloc (NoofElements_Bloc * sizeof (*InputData));
   if(InputData == NULL) {
     printf("Error : Can not allocate memory \n");
   }
   //MPI_Scatter(Input, NoofElements_Bloc, TYPE_MPI, InputData, 
   //				  NoofElements_Bloc, TYPE_MPI, Root, MPI_COMM_WORLD);
 
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
   if(MyRank == Root) {
     for(i=0; i<Numprocs; i++) {
       TYPE* start = &Input[i * NoofElements_Bloc];
-      shmem_put64(InputData, start, NoofElements_Bloc, i);
+      hclib::shmem_put64(InputData, start, NoofElements_Bloc, i);
     }
   }
-  shmem_barrier_all();
-
+  hclib::shmem_barrier_all();
 
   /**** Sorting Locally ****/
-  main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-ctx->argc = argc;
-ctx->argv = argv;
-ctx->Numprocs = Numprocs;
-ctx->MyRank = MyRank;
-ctx->Root = Root;
-ctx->i = i;
-ctx->j = j;
-ctx->k = k;
-ctx->NoofElements = NoofElements;
-ctx->NoofElements_Bloc = NoofElements_Bloc;
-ctx->NoElementsToSort = NoElementsToSort;
-ctx->count = count;
-ctx->temp = temp;
-ctx->Input = Input;
-ctx->InputData = InputData;
-ctx->Splitter = Splitter;
-ctx->AllSplitter = AllSplitter;
-ctx->Buckets = Buckets;
-ctx->BucketBuffer = BucketBuffer;
-ctx->LocalBucket = LocalBucket;
-ctx->OutputBuffer = OutputBuffer;
-ctx->Output = Output;
-hclib_launch(main_entrypoint, ctx);
-free(ctx);
-;
-
+  sorting(InputData, NoofElements_Bloc);
 
   /**** Choosing Local Splitters ****/
-  Splitter = (TYPE *) shmem_malloc (sizeof (TYPE) * (Numprocs-1));
+  Splitter = (TYPE *) hclib::shmem_malloc (sizeof (TYPE) * (Numprocs-1));
   if(Splitter == NULL) {
     printf("Error : Can not allocate memory \n");
   }
@@ -392,16 +301,16 @@ free(ctx);
   } 
 
   /**** Gathering Local Splitters at Root ****/
-  AllSplitter = (TYPE *) shmem_malloc (sizeof (TYPE) * Numprocs * (Numprocs-1));
+  AllSplitter = (TYPE *) hclib::shmem_malloc (sizeof (TYPE) * Numprocs * (Numprocs-1));
   if(AllSplitter == NULL) {
     printf("Error : Can not allocate memory \n");
   }
   //MPI_Gather (Splitter, Numprocs-1, TYPE_MPI, AllSplitter, Numprocs-1, 
   //				  TYPE_MPI, Root, MPI_COMM_WORLD);
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
   TYPE* target_index = &AllSplitter[MyRank * (Numprocs-1)];
-  shmem_put64(target_index, Splitter, Numprocs-1, Root);
-  shmem_barrier_all();
+  hclib::shmem_put64(target_index, Splitter, Numprocs-1, Root);
+  hclib::shmem_barrier_all();
 
   /**** Choosing Global Splitters ****/
   if (MyRank == Root){
@@ -413,12 +322,12 @@ free(ctx);
   
   /**** Broadcasting Global Splitters ****/
   //MPI_Bcast (Splitter, Numprocs-1, TYPE_MPI, 0, MPI_COMM_WORLD);
-  RESET_BCAST_PSYNC;
-  shmem_broadcast64(Splitter, Splitter, Numprocs-1, 0, 0, 0, Numprocs, pSync);
-  shmem_barrier_all();
+  { int _i; for(_i=0; _i<_SHMEM_BCAST_SYNC_SIZE; _i++) { pSync[_i] = _SHMEM_SYNC_VALUE; } hclib::shmem_barrier_all(); }
+  hclib::shmem_broadcast64(Splitter, Splitter, Numprocs-1, 0, 0, 0, Numprocs, pSync);
+  hclib::shmem_barrier_all();
 
   /**** Creating Numprocs Buckets locally ****/
-  Buckets = (TYPE *) shmem_malloc (sizeof (TYPE) * (NoofElements + Numprocs));  
+  Buckets = (TYPE *) hclib::shmem_malloc (sizeof (TYPE) * (NoofElements + Numprocs));  
   if(Buckets == NULL) {
     printf("Error : Can not allocate memory \n");
   }
@@ -441,26 +350,26 @@ free(ctx);
        Buckets[((NoofElements_Bloc + 1) * j) + k++] = InputData[i];
   }
   Buckets[(NoofElements_Bloc + 1) * j] = k - 1;
-  shmem_free(Splitter);
-  shmem_free(AllSplitter);
+  hclib::shmem_free(Splitter);
+  hclib::shmem_free(AllSplitter);
       
   /**** Sending buckets to respective processors ****/
 
-  BucketBuffer = (TYPE *) shmem_malloc (sizeof (TYPE) * (NoofElements + Numprocs));
+  BucketBuffer = (TYPE *) hclib::shmem_malloc (sizeof (TYPE) * (NoofElements + Numprocs));
   if(BucketBuffer == NULL) {
     printf("Error : Can not allocate memory \n");
   }
 
   //MPI_Alltoall (Buckets, NoofElements_Bloc + 1, TYPE_MPI, BucketBuffer, 
   //					 NoofElements_Bloc + 1, TYPE_MPI, MPI_COMM_WORLD);
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
   for(i=0; i<Numprocs; i++) {
-    shmem_put64(&BucketBuffer[MyRank*(NoofElements_Bloc + 1)], &Buckets[i*(NoofElements_Bloc + 1)],  NoofElements_Bloc + 1, i);   
+    hclib::shmem_put64(&BucketBuffer[MyRank*(NoofElements_Bloc + 1)], &Buckets[i*(NoofElements_Bloc + 1)],  NoofElements_Bloc + 1, i);   
   }
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
 
   /**** Rearranging BucketBuffer ****/
-  LocalBucket = (TYPE *) shmem_malloc (sizeof (TYPE) * 2 * NoofElements / Numprocs);
+  LocalBucket = (TYPE *) hclib::shmem_malloc (sizeof (TYPE) * 2 * NoofElements / Numprocs);
   if(LocalBucket == NULL) {
     printf("Error : Can not allocate memory \n");
   }
@@ -481,17 +390,17 @@ free(ctx);
   sorting (&LocalBucket[1], NoElementsToSort); 
 
   /**** Gathering sorted sub blocks at root ****/
-  OutputBuffer = (TYPE *) shmem_malloc (sizeof(TYPE) * 2 * NoofElements);
+  OutputBuffer = (TYPE *) hclib::shmem_malloc (sizeof(TYPE) * 2 * NoofElements);
   if(OutputBuffer == NULL) {
     printf("Error : Can not allocate memory \n");
   }
 
   //MPI_Gather (LocalBucket, 2*NoofElements_Bloc, TYPE_MPI, OutputBuffer, 
   //				  2*NoofElements_Bloc, TYPE_MPI, Root, MPI_COMM_WORLD);
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
   target_index = &OutputBuffer[MyRank * (2*NoofElements_Bloc)];
-  shmem_put64(target_index, LocalBucket, 2*NoofElements_Bloc, Root);
-  shmem_barrier_all();
+  hclib::shmem_put64(target_index, LocalBucket, 2*NoofElements_Bloc, Root);
+  hclib::shmem_barrier_all();
 
   /**** Rearranging output buffer ****/
   if (MyRank == Root){
@@ -514,14 +423,24 @@ free(ctx);
   	free(Output);
   }/* MyRank==0*/
 
-  shmem_free(Input);
-  shmem_free(OutputBuffer);
-  shmem_free(InputData);
-  shmem_free(Buckets);
-  shmem_free(BucketBuffer);
-  shmem_free(LocalBucket);
+  hclib::shmem_free(Input);
+  hclib::shmem_free(OutputBuffer);
+  hclib::shmem_free(InputData);
+  hclib::shmem_free(Buckets);
+  hclib::shmem_free(BucketBuffer);
+  hclib::shmem_free(LocalBucket);
 
    /**** Finalize ****/
-  shmem_finalize();
+  ;
+  } ;     free(____arg);
 }
+
+int main (int argc, char *argv[]) {
+  /**** Initialising ****/
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->argc = argc;
+new_ctx->argv = argv;
+hclib_launch(main_entrypoint, new_ctx);
+
+} 
 
