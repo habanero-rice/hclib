@@ -84,3 +84,28 @@ void hclib::gather_comm_worker_stats(int *push_outd, int *push_ind,
 }
 #endif
 
+#ifdef HCSHMEM
+
+int hclib::total_pending_local_asyncs() {
+    return totalPendingLocalAsyncs();
+}
+
+volatile int *hclib::start_finish_special() {
+    return hclib_start_finish_special();
+}
+
+void hclib::end_finish() {
+    hclib_end_finish();
+}
+
+void hclib::display_runtime() {
+    hclib_display_runtime();
+}
+
+void hclib::gather_comm_worker_stats(int *push_outd, int *push_ind,
+                                     int *steal_ind) {
+    hclib_gather_comm_worker_stats(push_outd, push_ind, steal_ind);
+}
+
+#endif
+

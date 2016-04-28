@@ -96,6 +96,11 @@ void gather_comm_worker_stats(int* push_outd, int* push_ind,
         int* steal_ind);
 #endif
 
+#ifdef HCSHMEM
+int total_pending_local_asyncs();
+volatile int *start_finish_special();
+#endif
+
 }
 
 #endif

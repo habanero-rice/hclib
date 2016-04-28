@@ -61,7 +61,7 @@ mkdir -p ${COMPTREE}
 
 cd ${COMPTREE}
 
-../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCLIB_FLAGS} ${HC_CUDA_FLAGS} --enable-hcshmem $*
+../configure ${INSTALL_ROOT} ${HCUPC_FLAGS} ${HCLIB_FLAGS} ${HC_CUDA_FLAGS} $*
 check_error "$?" "Configure failed";
 
 #
