@@ -13,9 +13,9 @@ LD_OPTS = -lm
 # -------------------------------------
 # MPI Compiler 
 # -------------------------------------
-MPICC = mpicc
-MPICC_OPTS = -O3
-MPILD_OPTS = -lm
+MPICC = icc
+MPICC_OPTS = -O3 -I/opt/cray/mpt/7.3.1/gni/mpich-intel/14.0/include
+MPILD_OPTS = -lm -lmpich -L/opt/cray/mpt/7.3.1/gni/mpich-intel/14.0/lib
 
 
 # -------------------------------------

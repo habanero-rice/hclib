@@ -5,3 +5,4 @@ uts-omp
 uts-omp-task-shmem
 uts-hclib
 uts-hclib-shmem
+config.in
