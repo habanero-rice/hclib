@@ -218,8 +218,9 @@ Power2NodesRandomAccessUpdate(u64Int logTableSize,
   logTableLocal = logTableSize - logNumProcs;
   nlocalm1 = LocalTableSize - 1;
 
-  for (j = 0; j < MAXTHREADS; j++)
+  for (j = 0; j < MAXTHREADS; j++) {
     updates[j] = 0;
+  }
 
   for (iterate = 0; iterate < niterate; iterate++) {
       count = 0;

@@ -51,6 +51,7 @@ void shmem_longlong_sum_to_all(long long *target, long long *source,
 
 locale_t *shmem_remote_pe(int pe);
 int pe_for_locale(locale_t *locale);
+std::string shmem_name();
 
 }
 

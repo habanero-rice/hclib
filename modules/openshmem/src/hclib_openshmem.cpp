@@ -303,4 +303,11 @@ void hclib::shmem_longlong_put(long long *dest, const long long *src,
     });
 }
 
+std::string hclib::shmem_name() {
+    std::stringstream ss;
+    ss << SHMEM_VENDOR_STRING << " v" << SHMEM_MAJOR_VERSION << "." <<
+        SHMEM_MINOR_VERSION << std::endl;
+    return ss.str();
+}
+
 HCLIB_REGISTER_MODULE("openshmem", openshmem_pre_initialize, openshmem_post_initialize, openshmem_finalize)

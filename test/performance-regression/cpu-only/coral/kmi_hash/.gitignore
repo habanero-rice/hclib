@@ -1,0 +1,3 @@
+*.o
+tests/BENCH_QUERY
+src/libkmi.a

@@ -1,0 +1,35 @@
+To build on BG/Q
+----------------
+1: src/
+make
+2: tests/
+make
+
+
+To run:
+--------
+
+example script:
+qsub -n 1024 --mode c64  -t 60 ./BENCH_QUERY -n 500000 -m 4000000
+
+# The input dataset is: 500000 * 64 * 1024 * 100 = 3276800000000 
+n - string per rank
+m - # of queries per rank
+
+One can change the number of nodes to scales this as needed
+
+NOTE: Requires a minimum of two MPI ranks to run
+
+N = Total number of strings
+M = Total number of queries 
+To run a single node case where N = 80,000,000 M= 8,000,000, with two MPI ranks
+n = 40,000,000
+m = 4,000,000
+
+Output:
+
+Hit count: 506452
+Adding time cost (s): 47.413141
+Commit time cost (s): 9.287265
+Query time cost (s): 350.271104
+Query throughput (global #quries/s): 23387598.6

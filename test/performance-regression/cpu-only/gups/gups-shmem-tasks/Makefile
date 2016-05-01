@@ -61,7 +61,7 @@ CPPFLAGS       = -I./include $(SHMEM_INC_PATH) $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CF
 LDFLAGS        = $(CFLAGS) $(SHMEM_LDFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS)
 LIBS           = $(SHMEM_LIBS) -lm $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
 
-TARGET         = gups
+TARGET         = gups-shmem-hclib
 
 SOURCES        = RandomAccess.cpp SHMEMRandomAccess.cpp verification.cpp
 OBJECTS        = $(SOURCES:.cpp=.o) 

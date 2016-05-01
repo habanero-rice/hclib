@@ -10,7 +10,7 @@ HCLIB_OSHMEM_LDLIBS += $(call GET_LINK_FLAG,--whole-archive) \
 				  $(call GET_LINK_FLAG,-lrt) \
 				  $(call GET_LINK_FLAG,-lmpi) \
 				  $(call GET_LINK_FLAG,-lelf) \
-				  $(call GET_LINK_FLAG,/scratch/jmg3/gasnet-ibv-install/lib/libgasnet-ibv-par.a) \
-				  $(call GET_LINK_FLAG,/scratch/jmg3/gasnet-ibv-install/lib/libammpi.a) \
+				  $(call GET_LINK_FLAG,GASNET_LIB_PATTERN) \
+				  $(call GET_LINK_FLAG,GASNET_ROOT_PATTERN/lib/libammpi.a) \
 				  $(call GET_LINK_FLAG,/usr/lib64/libibverbs.so) \
 				  $(call GET_LINK_FLAG,/usr/lib64/libpmi2.so)

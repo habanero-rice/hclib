@@ -1500,6 +1500,10 @@ int main(int argc, char *argv[]) {
   return pthread_main(argc, argv);
 #endif
 
+  fprintf(stderr, "SHMEM version starting up, using OSHMEM offered by %s "
+          "v%d.%d\n", SHMEM_VENDOR_STRING, SHMEM_MAJOR_VERSION,
+          SHMEM_MINOR_VERSION);
+
 #ifdef _SHMEM 
   shmem_init();
 #endif

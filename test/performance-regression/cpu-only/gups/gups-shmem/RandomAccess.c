@@ -236,6 +236,7 @@ HPCC_SHMEMRandomAccess(HPCC_Params *params) {
        TotalMem *= 0.5, logTableSize++, TableSize <<= 1)
     ; /* EMPTY */
 
+  logTableSize = 31; // MAX
 
   /* determine whether the number of processors is a power of 2 */
   if ( (NumProcs & (NumProcs -1)) == 0) {
@@ -277,6 +278,8 @@ HPCC_SHMEMRandomAccess(HPCC_Params *params) {
   NumUpdates_Default = 4 * TableSize;
   ProcNumUpdates = 4*LocalTableSize;
   NumUpdates = NumUpdates_Default;
+
+  ProcNumUpdates = 10000; // MAX
 
   if (MyProc == 0) {
     fprintf( outFile, "Running on %d processors%s\n", NumProcs, PowerofTwo ? " (PowerofTwo)" : "");

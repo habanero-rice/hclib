@@ -4,6 +4,7 @@
 #include "hclib_system.h"
 #include "hclib_openshmem.h"
 #endif
+#include <iostream>
 /*
  *         ---- The Unbalanced Tree Search (UTS) Benchmark ----
  *  
@@ -844,6 +845,8 @@ int main(int argc, char *argv[]) {
   memset(t_metadata, 0x00, MAX_OMP_THREADS * sizeof(thread_metadata));
 #endif
   memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
+
+  std::cerr << "Using OSHMEM " << hclib::shmem_name() << std::endl;
 
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->root = root;
