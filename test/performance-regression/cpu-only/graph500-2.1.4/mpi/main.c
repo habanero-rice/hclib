@@ -320,6 +320,7 @@ int main(int argc, char** argv) {
 
     double validate_start = MPI_Wtime();
     int64_t edge_visit_count;
+    // MAX: commenting out validation for now because it takes several orders of magnitude longer than the actual run
     // int validation_passed_one = validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);
     int validation_passed_one = 1;
     double validate_stop = MPI_Wtime();

@@ -19,4 +19,4 @@
 set -e
 
 cd /home/jmg3/degas/hcpp/test/performance-regression/cpu-only/graph500-2.1.4
-LD_LIBRARY_PATH=/opt/apps/software/Compiler/intel/2015.2.164/impi/5.0.3.048/lib64:$LD_LIBRARY_PATH srun ./mpi/EXE_NAME 16 16
+LD_LIBRARY_PATH=/opt/apps/software/Compiler/intel/2015.2.164/impi/5.0.3.048/lib64:$LD_LIBRARY_PATH srun ./mpi/EXE_NAME 26 16
