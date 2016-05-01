@@ -68,9 +68,9 @@ for NODE in $NODES; do
             sed -i -e "s|STDOUT_FILE|slurm\/output\/$RUN_LBL.stdout|g" $SBATCH_FILE
             sed -i -e "s|STDERR_FILE|slurm\/output\/$RUN_LBL.stderr|g" $SBATCH_FILE
             sed -i -e "s|CPUS_PER_PROC|$PER_PROC|g" $SBATCH_FILE
-            sed -i -e "s|BENCHMARK_DIR|$SCRIPT_DIR|g" $SBATCH_FILE
-            sed -i -e "s|BENCHMARK_EXE|$EXE|g" $SBATCH_FILE
-            sed -i -e "s|BENCHMARK_ARGS|$EXE_ARGS|g" $SBATCH_FILE
+            sed -i -e "s|START_DIR|$SCRIPT_DIR|g" $SBATCH_FILE
+            sed -i -e "s|EXE|$EXE|g" $SBATCH_FILE
+            sed -i -e "s|ARGS|$EXE_ARGS|g" $SBATCH_FILE
             sbatch $SBATCH_FILE
         done
     done

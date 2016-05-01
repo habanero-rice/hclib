@@ -1,16 +1,8 @@
 # Post Makefile includes are the main part of a module's build system, allowing
 # it to add flags to the overall project compile and link flags.
+include $(GASNET_INSTALL)/include/CONDUIT_NAME-conduit/CONDUIT_NAME-CONDUIT_TYPE.mak
+
 HCLIB_OSHMEM_CFLAGS+=-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(OPENSHMEM_INSTALL)/include
 HCLIB_OSHMEM_CXXFLAGS+=-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(OPENSHMEM_INSTALL)/include
 HCLIB_OSHMEM_LDFLAGS+=-L$(HCLIB_ROOT)/../modules/openshmem/lib -L$(OPENSHMEM_INSTALL)/lib
-HCLIB_OSHMEM_LDLIBS += $(call GET_LINK_FLAG,--whole-archive) \
-				  $(call GET_LINK_FLAG,-lhclib_openshmem) \
-				  $(call GET_LINK_FLAG,--no-whole-archive) \
-				  $(call GET_LINK_FLAG,-lopenshmem) \
-				  $(call GET_LINK_FLAG,-lrt) \
-				  $(call GET_LINK_FLAG,-lmpi) \
-				  $(call GET_LINK_FLAG,-lelf) \
-				  $(call GET_LINK_FLAG,GASNET_LIB_PATTERN) \
-				  $(call GET_LINK_FLAG,GASNET_ROOT_PATTERN/lib/libammpi.a) \
-				  $(call GET_LINK_FLAG,/usr/lib64/libibverbs.so) \
-				  $(call GET_LINK_FLAG,/usr/lib64/libpmi2.so)
+HCLIB_OSHMEM_LDLIBS+=-lrt -lhclib_system -lhclib_openshmem -lopenshmem $(GASNET_LIBS) -lelf -lmpi

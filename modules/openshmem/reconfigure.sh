@@ -34,8 +34,8 @@ fi
 CONDUIT_NAME=$(echo $(basename $GASNET_LIB) | cut -d '-' -f2)
 CONDUIT_TYPE=$(echo $(basename $GASNET_LIB) | cut -d '-' -f3 | cut -d '.' -f1)
 
-sed -e "s|GASNET_ROOT_PATTERN|$GASNET_INSTALL|g" \
+sed -e "s|CONDUIT_NAME|$CONDUIT_NAME|g" \
         inc/hclib_openshmem.post.mak.template > inc/hclib_openshmem.post.mak
-sed -i -e "s|GASNET_LIB_PATTERN|$GASNET_LIB|g" inc/hclib_openshmem.post.mak
+sed -i -e "s|CONDUIT_TYPE|$CONDUIT_TYPE|g" inc/hclib_openshmem.post.mak
 make clean
 make
