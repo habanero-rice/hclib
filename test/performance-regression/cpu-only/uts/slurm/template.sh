@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=UTS-N_NODESnodes-PROC_PER_NODEpernode-SET_OMPthreads
-#SBATCH --partition=commons
+#SBATCH --partition=SLURM_QUEUE
 #SBATCH --time=TIME_LIMIT
 #SBATCH --nodes=N_NODES
 #SBATCH --exclusive

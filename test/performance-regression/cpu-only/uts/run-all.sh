@@ -35,6 +35,14 @@ if [[ "$SCRIPT_DIR" != "$(pwd)" ]]; then
     exit 1
 fi
 
+if [[ ! -f $SCRIPT_DIR/slurm/slurm.conf ]]; then
+    echo You must create a file at $SCRIPT_DIR/slurm/slurm.conf.
+    echo See $SCRIPT_DIR/slurm/slurm.conf.example for an example
+    exit 1
+fi
+
+source $SCRIPT_DIR/slurm/slurm.conf
+
 rm -f $SCRIPT_DIR/$EXE
 make $EXE
 echo
@@ -66,6 +74,7 @@ for DATASET in T1L; do
                 sed -i -e "s|PROC_PER_NODE|$PER_NODE|g" $SBATCH_FILE
                 sed -i -e "s|CPUS_PER_PROC|$PER_PROC|g" $SBATCH_FILE
                 sed -i -e "s|TIME_LIMIT|$TIME_LIMIT|g" $SBATCH_FILE
+                sed -i -e "s|SLURM_QUEUE|$SLURM_QUEUE|g" $SBATCH_FILE
                 sbatch $SBATCH_FILE
             done
         done
