@@ -4,8 +4,7 @@
 # export HCLIB_FLAGS="--enable-production"
 export LIBXML2_INCLUDE=/usr/include/libxml2
 export LIBXML2_LIBS=/usr/lib64
-export BASE=/ccs/home/jmg3/hcpp
-export HC_CUDA_FLAGS=--enable-cuda
+export BASE=$PROJ_DIR/hclib
 
 ################################################
 #
