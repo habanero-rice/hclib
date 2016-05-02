@@ -49,7 +49,8 @@ echo
 
 source sample_trees.sh
 
-for DATASET in T1L; do
+# for DATASET in T1L; do
+for DATASET in T1XL; do
     for NODE in $NODES; do
         for PER_NODE in $PROCS_PER_NODE; do
 

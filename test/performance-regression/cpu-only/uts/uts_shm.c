@@ -140,6 +140,7 @@ omp_lock_t * omp_global_lock_alloc() {
 LOCK_T * shmem_global_lock_alloc() {    
     LOCK_T *lock = (LOCK_T *) shmem_malloc(sizeof(LOCK_T));
     *lock = 0;
+    shmem_barrier_all();
     return lock;
 }
 
@@ -1616,6 +1617,10 @@ int main(int argc, char *argv[]) {
     } 
   }
 /********** End Parallel Region **********/
+
+#ifdef _SHMEM 
+  shmem_finalize();
+#endif
 
   return 0;
 }

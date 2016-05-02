@@ -100,7 +100,7 @@ uts-mpi-wm-nb: $(DM_SRCS) $(QUEUE_SRCS) mpi_worksharing.c $(RNG_SRC) $(COMMON_SR
 	$(MPICC) $(MPICC_OPTS) $(MPILD_OPTS) $(RNG_DEF) $(FLAGS) -DNONBLOCK -D__MPI__ -o $@ $+
 
 uts-mpi-ws: $(DM_SRCS) $(QUEUE_SRCS) mpi_workstealing.c $(RNG_SRC) $(COMMON_SRCS)
-	$(MPICC) $(MPICC_OPTS) $(MPILD_OPTS) $(RNG_DEF) $(FLAGS) -D__MPI__ -o $@ $+ 
+	$(MPICC) $(MPICC_OPTS) $(RNG_DEF) $(FLAGS) -D__MPI__ -o $@ $+  $(MPILD_OPTS)
 
 time_poll:  time_poll.c $(RNG_SRC) $(COMMON_SRCS) stats.c mpi_workstealing.c $(QUEUE_SRCS)
 	$(MPICC) $(MPICC_OPTS) $(RNG_DEF) -o $@ $+ $(MPILD_OPTS)
@@ -147,9 +147,6 @@ uts-mta:  uts_dfs.c $(RNG_SRC) $(COMMON_SRCS)
 	$(CC) $(CC_OPTS) $(RNG_DEF) -D__MTA__ -o $@ $+ $(LD_OPTS)
 
 uts-shmem: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
-	$(SHMCC) $(SHMCC_OPTS) $(SHMLD_OPTS) $(RNG_DEF) $(FLAGS) -D_SHMEM -o $@ $+
-
-uts-shmem-omp: $(SHM_OMP_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(SHMCC) $(SHMCC_OPTS) $(SHMLD_OPTS) $(RNG_DEF) $(FLAGS) -D_SHMEM -o $@ $+
 
 uts-gpshmem: uts_gpshmem.c $(RNG_SRC) $(COMMON_SRCS)

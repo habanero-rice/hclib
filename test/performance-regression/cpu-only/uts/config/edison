@@ -37,9 +37,9 @@ OMPLD_OPTS = -lm
 # -------------------------------------
 # SHMEM Compiler 
 # -------------------------------------
-SHMCC = oshcc
-SHMCC_OPTS = -O3
-SHMLD_OPTS = 
+SHMCC = icc
+SHMCC_OPTS = -O3 -I$(OPENSHMEM_INSTALL)/include
+SHMLD_OPTS =  -L$(OPENSHMEM_INSTALL)/lib64 -lsma
 
 # -------------------------------------
 # GPSHMEM Compiler 
