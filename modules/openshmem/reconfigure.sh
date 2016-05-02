@@ -4,6 +4,7 @@ set -e
 
 # On DAVINCI, reconfigure.sh
 # On Edison, reconfigure.sh -lxpmem -lugni
+# On Titan, reconfigure.sh -lxpmem -lugni
 EXTRA_LIBS=$*
 
 INDEX=1
