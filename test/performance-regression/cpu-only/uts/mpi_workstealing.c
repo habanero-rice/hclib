@@ -390,8 +390,6 @@ int ensureLocalWork(StealStack *s)
 				return -1;
 			}
 		}
-		
-	
 	}
 
 	return 0;  // Local work exists

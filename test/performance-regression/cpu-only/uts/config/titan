@@ -14,8 +14,8 @@ LD_OPTS = -lm
 # MPI Compiler 
 # -------------------------------------
 MPICC = icc
-MPICC_OPTS = -O3 -I/opt/cray/mpt/7.3.1/gni/mpich-intel/14.0/include
-MPILD_OPTS = -lm -lmpich -L/opt/cray/mpt/7.3.1/gni/mpich-intel/14.0/lib
+MPICC_OPTS = -O3 -I/opt/cray/mpt/7.2.5/gni/mpich2-gnu/49/include
+MPILD_OPTS = -lm -lmpich -L/opt/cray/mpt/7.2.5/gni/mpich2-gnu/49/lib
 
 
 # -------------------------------------
@@ -38,8 +38,8 @@ OMPLD_OPTS = -lm
 # SHMEM Compiler 
 # -------------------------------------
 SHMCC = icc
-SHMCC_OPTS = -O3 -I$(OPENSHMEM_INSTALL)/include
-SHMLD_OPTS =  -L$(OPENSHMEM_INSTALL)/lib64 -lsma
+SHMCC_OPTS = -O3
+SHMLD_OPTS =
 
 # -------------------------------------
 # GPSHMEM Compiler 
