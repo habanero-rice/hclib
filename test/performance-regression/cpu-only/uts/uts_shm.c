@@ -1531,6 +1531,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef _SHMEM 
   shmem_init();
+  // start_pes(0);
 #endif
 
   /* determine benchmark parameters (all PEs) */

@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -A csc205
+#PBS -N max
+#PBS -j oe
+#PBS -q debug
+#PBS -l walltime=00:10:00,nodes=32
+#PBS -V
+
+export GASNET_MAX_SEGSIZE='512MB'
+cd $PBS_O_WORKDIR
+source sample_trees.sh
+
+# -n is # of nodes
+# -N is # of PEs
+# -S is # of PEs per socket
+# -d is # cores per PE
+# aprun --pes-per-node 4 --pes 128 -d 4 ./uts-mpi-ws $T1L
+
+# OpenSHMEM Ref
+source ~/.bash_profile
+aprun --pes-per-node 1 --pes 32 -d 16 ./uts-shmem $T1L
+
+# Cray SHMEM
+# module load cray-shmem
+# XT_SYMMETRIC_HEAP_SIZE=1G aprun --pes-per-node 2 --pes 64 -d 8 ./uts-shmem $T1L
