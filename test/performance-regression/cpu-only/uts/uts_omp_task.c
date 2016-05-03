@@ -603,7 +603,11 @@ void genChildren(Node * parent, Node * child) {
 
       Node parent = *child;
 
+#ifdef OMP_CUTOFF
 #pragma omp task untied firstprivate(parent) if(parent.height < 9)
+#else
+#pragma omp task untied firstprivate(parent)
+#endif
       {
           Node child;
           initNode(&child);
