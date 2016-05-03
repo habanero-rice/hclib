@@ -2,7 +2,7 @@
 
 set -e
 
-# On DAVINCI, reconfigure.sh
+# On DAVINCI, reconfigure.sh -lmpi
 # On Edison, reconfigure.sh -lxpmem -lugni
 # On Titan, reconfigure.sh -lxpmem -lugni
 EXTRA_LIBS=$*
