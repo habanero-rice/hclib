@@ -136,6 +136,7 @@ main(int argc, char *argv[]) {
   fprintf( outputFile, "End of SingleRandomAccess_LCG section.\n" );
   END_IO( myRank, outputFile );
 
+#if 0
   /* -------------------------------------------------- */
   /*                       PTRANS                       */
   /* -------------------------------------------------- */
@@ -313,6 +314,7 @@ main(int argc, char *argv[]) {
   fprintf( outputFile,"Current time (%ld) is %s\n",(long)currentTime,ctime(&currentTime));
   fprintf( outputFile, "End of HPL section.\n" );
   END_IO( myRank, outputFile );
+#endif
 
   hpcc_end:
 
