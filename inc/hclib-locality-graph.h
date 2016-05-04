@@ -90,6 +90,7 @@ extern void print_locality_graph(hclib_locality_graph *graph);
 extern void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers);
 extern int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
         void *ele);
+extern size_t workers_backlog(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);
 

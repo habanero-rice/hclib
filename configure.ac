@@ -49,6 +49,20 @@ AS_IF([test "x$with_verbose" != xno],
 AM_CONDITIONAL(HC_VERBOSE, test "x$with_verbose" != xno)
 ### End verbose
 
+### Turn on runtime statistics
+AC_ARG_ENABLE(stats,
+    AS_HELP_STRING([--enable-stats],
+    [turn on HC runtime stats (Default is false)]),
+    [with_stats=$enableval],
+    [with_stats=no;])
+
+AS_IF([test "x$with_stats" != xno],
+      [ AC_MSG_NOTICE([Enabled HC runtime statistics]) ],
+      [ AC_MSG_NOTICE([Disabled HC runtime statistics]) ])
+
+AM_CONDITIONAL(HC_STATS, test "x$with_stats" != xno)
+### End verbose
+
 ### ENABLE PRODUCTION SETTINGS
 AC_ARG_ENABLE(production,
     AS_HELP_STRING([--enable-production],

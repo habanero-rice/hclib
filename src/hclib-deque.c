@@ -51,8 +51,6 @@ int deque_push(deque_t *deq, void *entry) {
     int size = deq->tail - deq->head;
     if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
         /* may not grow the deque if some interleaving steal occur */
-        // std::cout<<getenv("PMI_RANK") <<": Deque full for worker-"<<current_ws()->id << std::endl;
-        // HASSERT("DEQUE full, increase deque's size " && 0);
         return 0;
     }
     int n = (deq->tail) % INIT_DEQUE_CAPACITY;

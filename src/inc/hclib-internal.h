@@ -78,7 +78,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct {
     volatile uint64_t flag;
-    void * pad[CACHE_LINE_L1-1];
+    void * pad[CACHE_LINE_L1 - 1];
 } worker_done_t;
 
 /*

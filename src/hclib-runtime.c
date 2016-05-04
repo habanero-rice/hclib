@@ -79,6 +79,7 @@ static int profile_launch_body = 0;
 #ifdef HCLIB_STATS
 typedef struct _per_worker_stats {
     size_t count_tasks;
+    size_t count_steals;
 } per_worker_stats;
 static per_worker_stats *worker_stats = NULL;
 #endif
@@ -731,9 +732,6 @@ void *communication_worker_routine(void *finish_ptr) {
         hclib_task_t *task = semi_conc_deque_non_locked_pop(deque);
         // Comm worker cannot steal
         if (task) {
-#ifdef HC_COMM_WORKER_STATS
-            increment_async_comm_counter();
-#endif
 #ifdef VERBOSE
             fprintf(stderr, "communication worker popped task %p\n", task);
 #endif
@@ -757,6 +755,9 @@ void find_and_run_task(hclib_worker_state *ws) {
             // try to steal
             task = locale_steal_task(ws);
             if (task) {
+#ifdef HCLIB_STATS
+                worker_stats[CURRENT_WS_INTERNAL->id].count_steals++;
+#endif
                 break;
             }
             if (idle_callback) {
@@ -1116,6 +1117,16 @@ void hclib_run_on_main_ctx(void (*fp)(void *), void *data) {
     save_context = NULL;
 }
 
+/*
+ * Get information on the number of pending tasks along this worker's pop path,
+ * as an estimate of how much this worker should create new work or how much it
+ * might want to save on overhead and continue executing sequentially.
+ */
+size_t hclib_current_worker_backlog() {
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    return workers_backlog(ws);
+}
+
 static void hclib_finalize() {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
@@ -1135,7 +1146,8 @@ static void hclib_finalize() {
     int i;
     printf("===== HClib statistics: =====\n");
     for (i = 0; i < hc_context->nworkers; i++) {
-        printf("  Worker %d: %lu tasks\n", i, worker_stats[i].count_tasks);
+        printf("  Worker %d: %lu tasks, %lu steals\n", i,
+                worker_stats[i].count_tasks, worker_stats[i].count_steals);
     }
     free(worker_stats);
 #endif

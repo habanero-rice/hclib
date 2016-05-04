@@ -121,7 +121,7 @@ uts-hclib-shmem: uts_hclib_shmem.cpp $(RNG_SRC) $(COMMON_SRCS)
 	g++ -std=c++11 $(RNG_DEF) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) -o $@ $+ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS) $(CC_OPTS) $(LD_OPTS)
 
 uts-hclib: uts_hclib.cpp $(RNG_SRC) $(COMMON_SRCS)
-	g++ -std=c++11 $(RNG_DEF) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $+ $(HCLIB_LDLIBS) $(CC_OPTS) $(LD_OPTS)
+	g++ -std=c++11 $(RNG_DEF) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $+ $(HCLIB_LDLIBS) $(CC_OPTS) $(LD_OPTS) -g
 
 ########## Shared Memory Model Implementations ##########
 

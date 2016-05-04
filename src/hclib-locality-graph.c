@@ -712,6 +712,24 @@ int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
     return deque_push(&deq->deque, ele);
 }
 
+size_t workers_backlog(hclib_worker_state *ws) {
+    int i;
+    const int wid = ws->id;
+    hclib_worker_paths *paths = ws->paths;
+    hclib_locality_path *pop = paths->pop_path;
+
+    size_t sum_work = 0;
+    for (i = 0; i < pop->path_length; i++) {
+        hclib_locale_t *locale = pop->locales[i];
+        deque_t *deq = &(locale->deques[wid].deque);
+        const int tail = deq->tail;
+        const int head = deq->head;
+        sum_work += (tail - head);
+    }
+
+    return sum_work;
+}
+
 /*
  * Try to find a new task that was originally created by this worker by
  * traversing its pop path and only looking at deques owned by this worker.

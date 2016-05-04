@@ -476,93 +476,95 @@ void initRootNode(Node * root, int type)
  */
 typedef struct _pragma521_omp_task {
     Node parent;
-    int (*i_ptr);
-    int (*j_ptr);
-    unsigned char (*(*parent_state_ptr));
-    unsigned char (*(*child_state_ptr));
-    int (*parentHeight_ptr);
-    int (*numChildren_ptr);
-    int (*childType_ptr);
-    Node (*(*child_ptr));
+    // int (*i_ptr);
+    // int (*j_ptr);
+    // unsigned char (*(*parent_state_ptr));
+    // unsigned char (*(*child_state_ptr));
+    // int (*parentHeight_ptr);
+    // int (*numChildren_ptr);
+    // int (*childType_ptr);
+    // Node (*(*child_ptr));
  } pragma521_omp_task;
 
 static void pragma521_omp_task_hclib_async(void *____arg);
 void genChildren(Node * parent, Node * child) {
-  int parentHeight = parent->height;
-  int numChildren, childType;
+    int parentHeight = parent->height;
+    int numChildren, childType;
 
 #ifdef THREAD_METADATA
-  t_metadata[omp_get_thread_num()].ntasks += 1;
+    t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-__sync_fetch_and_add(&(n_nodes), 1); ;
+    __sync_fetch_and_add(&(n_nodes), 1); ;
 
-  numChildren = uts_numChildren(parent);
-  childType   = uts_childType(parent);
+    numChildren = uts_numChildren(parent);
+    childType   = uts_childType(parent);
 
-  // fprintf(stderr, "numChildren = %d\n", numChildren);
+    // fprintf(stderr, "numChildren = %d\n", numChildren);
 
-  // record number of children in parent
-  parent->numChildren = numChildren;
-  
-  // construct children and push onto stack
-  if (numChildren > 0) {
-    int i, j;
-    child->type = childType;
-    child->height = parentHeight + 1;
+    // record number of children in parent
+    parent->numChildren = numChildren;
+
+    // construct children and push onto stack
+    if (numChildren > 0) {
+        int i, j;
+        child->type = childType;
+        child->height = parentHeight + 1;
 
 #ifdef UTS_STAT
-    if (stats) {
-      child->pp = parent;  // pointer to parent
-    }
+        if (stats) {
+            child->pp = parent;  // pointer to parent
+        }
 #endif
 
-    unsigned char * parent_state = parent->state.state;
-    unsigned char * child_state = child->state.state;
+        unsigned char * parent_state = parent->state.state;
+        unsigned char * child_state = child->state.state;
 
-    for (i = 0; i < numChildren; i++) {
-      for (j = 0; j < computeGranularity; j++) {
-        // TBD:  add parent height to spawn
-        // computeGranularity controls number of rng_spawn calls per node
-          rng_spawn(parent_state, child_state, i);
-      }
+        for (i = 0; i < numChildren; i++) {
+            for (j = 0; j < computeGranularity; j++) {
+                // TBD:  add parent height to spawn
+                // computeGranularity controls number of rng_spawn calls per node
+                rng_spawn(parent_state, child_state, i);
+            }
 
-      Node parent = *child;
+            Node parent = *child;
 
- { 
-pragma521_omp_task *new_ctx = (pragma521_omp_task *)malloc(sizeof(pragma521_omp_task));
-new_ctx->parent = parent;
-new_ctx->i_ptr = &(i);
-new_ctx->j_ptr = &(j);
-new_ctx->parent_state_ptr = &(parent_state);
-new_ctx->child_state_ptr = &(child_state);
-new_ctx->parentHeight_ptr = &(parentHeight);
-new_ctx->numChildren_ptr = &(numChildren);
-new_ctx->childType_ptr = &(childType);
-new_ctx->child_ptr = &(child);
-if (!(parent.height < 9)) {
-    pragma521_omp_task_hclib_async(new_ctx);
-} else {
-hclib_async(pragma521_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
-}
- } 
+            { 
+                pragma521_omp_task *new_ctx = (pragma521_omp_task *)malloc(sizeof(pragma521_omp_task));
+                new_ctx->parent = parent;
+                // new_ctx->i_ptr = &(i);
+                // new_ctx->j_ptr = &(j);
+                // new_ctx->parent_state_ptr = &(parent_state);
+                // new_ctx->child_state_ptr = &(child_state);
+                // new_ctx->parentHeight_ptr = &(parentHeight);
+                // new_ctx->numChildren_ptr = &(numChildren);
+                // new_ctx->childType_ptr = &(childType);
+                // new_ctx->child_ptr = &(child);
+                if (!(parent.height < 9)) {
+                    pragma521_omp_task_hclib_async(new_ctx);
+                } else {
+                    // const size_t backlog = hclib_current_worker_backlog();
+                    hclib_async(pragma521_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+                }
+            } 
+        }
+    } else {
+        __sync_fetch_and_add(&(n_leaves), 1); ;
     }
-  } else {
-__sync_fetch_and_add(&(n_leaves), 1); ;
-  }
-} 
-static void pragma521_omp_task_hclib_async(void *____arg) {
+}
+
+static inline void pragma521_omp_task_hclib_async(void *____arg) {
     pragma521_omp_task *ctx = (pragma521_omp_task *)____arg;
     Node parent; parent = ctx->parent;
     // hclib_start_finish();
-{
-          Node child;
-          initNode(&child);
+    {
+        Node child;
+        initNode(&child);
 
-          if (parent.numChildren < 0) {
-              genChildren(&parent, &child);
-          }
-      } ;     ; // hclib_end_finish();
+        if (parent.numChildren < 0) {
+            genChildren(&parent, &child);
+        }
+    } ;     ; // hclib_end_finish();
 
     free(____arg);
 }

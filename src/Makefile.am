@@ -9,6 +9,12 @@ CXXFLAGS = -Wall -g -O3 -std=c++11
 
 LDFLAGS = -lpthread
 
+if HC_STATS
+HC_FLAGS_STATS = -DHCLIB_STATS
+else
+HC_FLAGS_STATS =
+endif
+
 if HC_VERBOSE
 HC_FLAGS_VERBOSE = -DVERBOSE
 else
@@ -18,7 +24,7 @@ endif
 if PRODUCTION_SETTINGS
 PRODUCTION_SETTINGS_FLAGS =
 else
-PRODUCTION_SETTINGS_FLAGS = -DHC_ASSERTION_CHECK -DHC_COMM_WORKER_STATS
+PRODUCTION_SETTINGS_FLAGS = -DHC_ASSERTION_CHECK
 endif
 
 # build the hclib library
@@ -28,7 +34,7 @@ lib_LTLIBRARIES = libhclib.la
 noinst_LTLIBRARIES =
 libhclib_la_LIBADD =
 
-AM_CXXFLAGS = $(HC_FLAGS_VERBOSE) $(PRODUCTION_SETTINGS_FLAGS) \
+AM_CXXFLAGS = $(HC_FLAGS_VERBOSE) $(HC_FLAGS_STATS) $(PRODUCTION_SETTINGS_FLAGS) \
 			  -I$(LIBXML2_INCLUDE)
 libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-promise.c \
 					  hclib-timer.c hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c \
