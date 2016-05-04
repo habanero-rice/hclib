@@ -9,7 +9,7 @@ NCORES=$(cat /proc/cpuinfo | grep processor | wc -l)
 NODES="1 2 4 8"
 N_OMP_CORES=$NCORES
 PROCS_PER_NODE=1
-TIME_LIMIT="00:05:00"
+TIME_LIMIT="00:02:00"
 
 if [[ $# -lt 1 ]]; then
     echo 'usage: run-all.sh exe [nodes] [omp-cores] [procs-per-node] [time-limit]'

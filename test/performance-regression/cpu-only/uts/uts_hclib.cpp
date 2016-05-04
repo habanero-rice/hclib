@@ -1,6 +1,7 @@
 #include "hclib.h"
 #ifdef __cplusplus
 #include "hclib_cpp.h"
+#include "hclib_atomic.h"
 #include "hclib_system.h"
 // #include "hclib_openshmem.h"
 #endif
@@ -45,9 +46,6 @@
 int chunkSize = 20;       // number of nodes to move to/from shared area
 int cbint     = 1;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
-
-size_t n_nodes = 0;
-size_t n_leaves = 0;
 
 #ifdef THREAD_METADATA
 typedef struct _thread_metadata {
@@ -135,6 +133,8 @@ typedef struct metaData_t MetaData;
 /* holds text string for debugging info */
 char debug_str[1000];
 
+hclib_atomic_t<size_t> *count_leaves = NULL;
+hclib_atomic_t<size_t> *count_nodes = NULL;
 
 /***********************************************************
  * StealStack types                                        *
@@ -155,14 +155,12 @@ char * impl_getName() {
     return "HCLIB";
 }
 
-
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
   ind += sprintf(strBuf+ind, "Execution strategy:  ");
       
   return ind;
 }
-
 
 int impl_parseParam(char *param, char *value) {
   int err = 0;  // Return 0 on a match, nonzero on an error
@@ -495,7 +493,7 @@ void genChildren(Node * parent, Node * child) {
     t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-    __sync_fetch_and_add(&(n_nodes), 1); ;
+    count_nodes->update([](size_t curr_val) { return curr_val + 1; });
 
     numChildren = uts_numChildren(parent);
     childType   = uts_childType(parent);
@@ -549,7 +547,7 @@ void genChildren(Node * parent, Node * child) {
             } 
         }
     } else {
-        __sync_fetch_and_add(&(n_leaves), 1); ;
+        count_leaves->update([](size_t curr_val) { return curr_val + 1; });
     }
 }
 
@@ -569,10 +567,6 @@ static inline void pragma521_omp_task_hclib_async(void *____arg) {
     free(____arg);
 }
 
-
-
-
-    
 /*
  *  Parallel tree traversal
  *
@@ -639,7 +633,9 @@ void showStats(double elapsedSecs) {
 //     printf("*** error! total released != total acquired + total stolen\n");
 //   }
 //     
-  uts_showStats(GET_NUM_THREADS, chunkSize, elapsedSecs, n_nodes, n_leaves, mheight);
+  uts_showStats(GET_NUM_THREADS, chunkSize, elapsedSecs,
+          count_nodes->gather([] (size_t a, size_t b) { return a + b; }),
+          count_leaves->gather([] (size_t a, size_t b) { return a + b; }), mheight);
 // 
 //   if (verbose > 1) {
 //     if (doSteal) {
@@ -753,12 +749,15 @@ static void main_entrypoint(void *____arg) {
   /* time parallel search */
   t1 = uts_wctime();
 
+  count_leaves = new hclib_atomic_t<size_t>(0);
+  count_nodes = new hclib_atomic_t<size_t>(0);
+
 /********** SPMD Parallel Region **********/
-hclib_start_finish(); {
-          Node child;
-          initNode(&child);
-          genChildren(&root, &child);
-      } ; hclib_end_finish(); 
+  hclib_start_finish(); {
+      Node child;
+      initNode(&child);
+      genChildren(&root, &child);
+  } ; hclib_end_finish(); 
 
   t2 = uts_wctime();
   et = t2 - t1;
