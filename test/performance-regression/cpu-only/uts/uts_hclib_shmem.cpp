@@ -1,6 +1,7 @@
 #include "hclib.h"
 #ifdef __cplusplus
 #include "hclib_cpp.h"
+#include "hclib_atomic.h"
 #include "hclib_system.h"
 #include "hclib_openshmem.h"
 #endif
@@ -52,8 +53,10 @@
 int cbint     = 1;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
 
-int n_nodes = 0;
 int n_leaves = 0;
+int n_nodes = 0;
+hclib_atomic_t<size_t> *count_leaves = NULL;
+hclib_atomic_t<size_t> *count_nodes = NULL;
 
 #ifdef THREAD_METADATA
 typedef struct _thread_metadata {
@@ -543,7 +546,7 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-__sync_fetch_and_add(&(n_nodes), 1); ;
+  count_nodes->update([](size_t curr_val) { return curr_val + 1; });
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
@@ -606,7 +609,7 @@ hclib_async(pragma576_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
       }
     }
   } else {
-__sync_fetch_and_add(&(n_leaves), 1); ;
+    count_leaves->update([](size_t curr_val) { return curr_val + 1; });
   }
 } 
 static void pragma576_omp_task_hclib_async(void *____arg) {
@@ -654,7 +657,9 @@ void showStats(double elapsedSecs) {
 //     printf("*** error! total released != total acquired + total stolen\n");
 //   }
 //     
-  uts_showStats(hclib_num_workers(), 0, elapsedSecs, n_nodes, n_leaves, mheight);
+  uts_showStats(hclib_num_workers(), 0, elapsedSecs,
+          count_nodes->gather([] (size_t a, size_t b) { return a + b; }),
+          count_leaves->gather([] (size_t a, size_t b) { return a + b; }), mheight);
 // 
 //   if (verbose > 1) {
 //     if (doSteal) {
@@ -791,6 +796,9 @@ static void main_entrypoint(void *____arg) {
 
   initRootNode(&root, type);
 
+  count_leaves = new hclib_atomic_t<size_t>(0);
+  count_nodes = new hclib_atomic_t<size_t>(0);
+
   hclib::shmem_barrier_all();
 
   /* time parallel search */
@@ -809,10 +817,11 @@ hclib_future_t *fut = hclib_async_future(pragma790_omp_master_hclib_async, new_c
 hclib_future_wait(fut);
  } 
 
-  if (pe != 0) {
-      hclib::shmem_int_add(&n_nodes, n_nodes, 0);
-      hclib::shmem_int_add(&n_leaves, n_leaves, 0);
-  }
+ const size_t tmp_n_nodes = count_nodes->gather([] (size_t a, size_t b) { return a + b; });
+ const size_t tmp_n_leaves = count_leaves->gather([] (size_t a, size_t b) { return a + b; });
+
+  hclib::shmem_int_add(&n_nodes, tmp_n_nodes, 0);
+  hclib::shmem_int_add(&n_leaves, tmp_n_leaves, 0);
 
   hclib::shmem_barrier_all();
 

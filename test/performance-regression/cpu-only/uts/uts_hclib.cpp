@@ -746,11 +746,12 @@ static void main_entrypoint(void *____arg) {
   uts_printParams();
 
   initRootNode(&root, type);
-  /* time parallel search */
-  t1 = uts_wctime();
 
   count_leaves = new hclib_atomic_t<size_t>(0);
   count_nodes = new hclib_atomic_t<size_t>(0);
+
+  /* time parallel search */
+  t1 = uts_wctime();
 
 /********** SPMD Parallel Region **********/
   hclib_start_finish(); {
