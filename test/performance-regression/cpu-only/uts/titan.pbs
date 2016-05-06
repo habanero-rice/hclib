@@ -3,22 +3,71 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:10:00,nodes=32
+#PBS -l walltime=00:03:00
+#PBS -l nodes=32
+#PBS -l gres=atlas1%atlas2
 #PBS -V
 
-export GASNET_MAX_SEGSIZE='512MB'
+# export GASNET_MAX_SEGSIZE='512MB'
 cd $PBS_O_WORKDIR
 source sample_trees.sh
 
-# -n is # of nodes
-# -N is # of PEs
-# -S is # of PEs per socket
-# -d is # cores per PE
-# aprun --pes-per-node 4 --pes 128 -d 4 ./uts-mpi-ws $T1L
+# EVENTS="-e WALLCLOCK@5000"
+# EVENTS="$EVENTS -e PAPI_L1_DCM"
+# EVENTS="$EVENTS -e PAPI_L1_DCH"
+# EVENTS="$EVENTS -e PAPI_L2_DCM"
+# EVENTS="$EVENTS -e PAPI_L2_DCH"
+# EVENTS="$EVENTS -e PAPI_L3_DCM"
+# EVENTS="$EVENTS -e PAPI_L3_DCH"
+# EVENTS="$EVENTS -e PAPI_TOT_IIS"
+
+# EVENTS="-e perf::L1-DCACHE-LOAD-MISSES"
+# # EVENTS="$EVENTS -e perf::L1-DCACHE-STORE-MISSES"
+# # EVENTS="$EVENTS -e perf::LLC-LOAD-MISSES"
+# # EVENTS="$EVENTS -e perf::LLC-STORE-MISSES"
+# # EVENTS="$EVENTS -e perf::DTLB-LOAD-MISSES"
+# # EVENTS="$EVENTS -e perf::DTLB-STORE-MISSES"
+# # EVENTS="$EVENTS -e perf::BRANCH-LOAD-MISSES"
+# # EVENTS="$EVENTS -e L3_EVICTIONS"
+# 
+# aprun -cc none -n 1 -d 16 -m 32G hpcrun -t $EVENTS -o $MEMBERWORK/csc205/uts-hclib-measurements ./uts-hclib $T1L
+# aprun -cc none -n 1 -d 16 -m 32G hpcrun -t $EVENTS -o $MEMBERWORK/csc205/uts-omp-measurements ./uts-omp $T1L
+
+# OpenMP SPMD
+# source ~/.bash_profile
+# for THREADS in 2 4 8 12 16; do
+# for THREADS in 16; do
+#     export OMP_NUM_THREADS=$THREADS
+#     aprun -cc none -n 1 -d 16 -m 32G ./uts-omp $T1L
+# done
+
+# # OpenMP tasks w/o cutoff
+# # source ~/.bash_profile
+# for THREADS in 2 4 8 12 16; do
+#     export OMP_NUM_THREADS=$THREADS
+#     aprun -cc none -n 1 -d 16 -m 32G ./uts-omp-task $T1L
+# done
+# 
+# # OpenMP tasks w/ cutoff
+# # source ~/.bash_profile
+# for THREADS in 2 4 8 12 16; do
+#     export OMP_NUM_THREADS=$THREADS
+#     aprun -cc none -n 1 -d 16 -m 32G ./uts-omp-task-cutoff $T1L
+# done
+
+# # HClib
+# # source ~/.bash_profile
+# for THREADS in 2 4 8 12 16; do
+#     export HCLIB_WORKERS=$THREADS
+#     LD_PRELOAD=libtbbmalloc_proxy.so.2 aprun -cc none -n 1 -d 16 -m 32G numactl --interleave 0,1 --cpunodebind=0,1 ./uts-hclib $T1L
+# done
+
+# MPI-WS
+aprun -cc none --pes-per-node 1 --pes 32 -d 16 -m 32G ./uts-mpi-ws $T1L
 
 # OpenSHMEM Ref
-source ~/.bash_profile
-aprun --pes-per-node 1 --pes 32 -d 16 ./uts-shmem $T1L
+# source ~/.bash_profile
+# aprun --pes-per-node 1 --pes 32 -d 16 ./uts-shmem $T1L
 
 # Cray SHMEM
 # module load cray-shmem

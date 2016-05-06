@@ -31,7 +31,7 @@ UPCLD_OPTS = -lm
 # -------------------------------------
 OMPCC = icc
 OMPCC_OPTS = -openmp
-OMPLD_OPTS = -lm
+OMPLD_OPTS = -openmp
 
 
 # -------------------------------------

@@ -1,0 +1,13 @@
+
+# Configure a single node run with aprun using 16 cores, asking hpcrun to sample
+# the stack every 5 ms. Results must be written somewhere under
+# $MEMBERWORK/project-id from the compute nodes.
+aprun -cc none -n 1 -d 16 -m 32G hpcrun -t -e WALLCLOCK@5000 -o $MEMBERWORK/csc205/uts-hclib-measurements ./uts-hclib $T1L
+
+# Once the run is complete, transfer the output from $MEMBERWORK in to your current directory
+
+# Recover the structure of the original program using hpcstruct
+hpcstruct uts-hclib
+
+# Analyze the results using hpcprof
+hpcprof -S uts-hclib.hpcstruct uts-hclib-measurements -o uts-hclib-database

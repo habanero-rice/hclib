@@ -149,8 +149,8 @@ static void set_current_worker(int wid) {
         CPU_SET(wid, &cpu_set);
     }
 
-    if (err = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set),
-                &cpu_set) != 0) {
+    if ((err = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set),
+                &cpu_set)) != 0) {
         fprintf(stderr, "WARNING: Failed setting pthread affinity of worker "
                 "thread %d, ncores=%d: %s\n", wid, hc_context->ncores,
                 strerror(err));

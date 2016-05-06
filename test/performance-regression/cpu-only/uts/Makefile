@@ -129,7 +129,7 @@ uts-pthread: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(CC) $(CC_OPTS) $(LD_OPTS) $(RNG_DEF) $(FLAGS) -D__PTHREADS__ -lpthread -o $@ $+
 
 uts-omp: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
-	$(OMPCC) $(OMPCC_OPTS) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPLD_OPTS)
+	$(OMPCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS)
 
 uts-omp-task: uts_omp_task.c $(RNG_SRC) $(COMMON_SRCS)
 	$(OMPCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS)
