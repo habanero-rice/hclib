@@ -39,7 +39,7 @@ OMPLD_OPTS = -lm
 # -------------------------------------
 SHMCC = oshcc
 SHMCC_OPTS = -O3
-SHMLD_OPTS = 
+SHMLD_OPTS = -O3
 
 # -------------------------------------
 # GPSHMEM Compiler 
