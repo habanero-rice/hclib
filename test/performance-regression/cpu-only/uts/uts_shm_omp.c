@@ -163,6 +163,13 @@ struct stealStack_t
   int nNodes, maxTreeDepth;               /* tree stats  */
   int nLeaves;
   int nAcquire, nRelease, nSteal, nFail;  /* steal stats */
+  int nSuccessfulRemoteAcquire;
+  int nFailedRemoteAcquire;
+  int nSuccessfulRemoteSteal;
+  int nFailedRemoteSteal;
+  double timeInWait;
+  int nWaits;
+
   int wakeups, falseWakeups, nNodes_last;
   double time[SS_NSTATES], timeLast;         /* perf measurements */
   int entries[SS_NSTATES], curState; 
@@ -303,6 +310,12 @@ void ss_init(StealStack *s, int nelts) {
   s->maxTreeDepth = 0;
   s->nLeaves = 0;
   s->nAcquire = 0;
+  s->nSuccessfulRemoteAcquire = 0;
+  s->nFailedRemoteAcquire = 0;
+  s->nSuccessfulRemoteSteal = 0;
+  s->nFailedRemoteSteal = 0;
+  s->timeInWait = 0.0;
+  s->nWaits = 0;
   s->nRelease = 0;
   s->nSteal = 0;
   s->nFail = 0;
@@ -416,18 +429,25 @@ int ss_acquire(StealStack *s, int k) {
 int ss_remote_acquire(StealStack *remote_ss, StealStack *local_ss, int k) {
     int success = 0;
     assert(omp_get_thread_num() == 0);
+    if (remote_ss->workAvail < k) {
+        return 0;
+    }
+
     shmem_set_lock(remote_ss->remote_stackLock);
     omp_set_lock(local_ss->local_stackLock);
 
     if (remote_ss->workAvail >= k) {
         memcpy(local_ss->stack + local_ss->top,
                 remote_ss->stack_g + remote_ss->sharedStart, k * sizeof(Node));
+        local_ss->nSuccessfulRemoteAcquire++;
         local_ss->nSteal++;
         local_ss->top += k;
 
         remote_ss->sharedStart += k;
         remote_ss->workAvail -= k;
         success = 1;
+    } else {
+        local_ss->nFailedRemoteAcquire++;
     }
 
     omp_unset_lock(local_ss->local_stackLock);
@@ -528,6 +548,15 @@ static int ss_steal(StealStack *this_ss, StealStack *victim_ss, int victim, int 
   else {
     this_ss->nFail++;
   }
+
+  if (!is_local) {
+      if (ok) {
+          this_ss->nSuccessfulRemoteSteal++;
+      } else {
+          this_ss->nFailedRemoteSteal++;
+      }
+  }
+
   return (ok);
 }
 
@@ -884,13 +913,15 @@ void cb_init(){
 
 //  delay this thread until all threads arrive at barrier
 //     or until barrier is cancelled
-int cbarrier_wait() {
+int cbarrier_wait(StealStack *local_ss) {
     // fprintf(stderr, "Thread %d on PE %d waiting\n", omp_get_thread_num(), shmem_my_pe());
   int local_l_count, local_l_done, local_l_cancel;
   int shared_l_count, shared_l_done, shared_l_cancel;
 
   const int thread = omp_get_thread_num();
   const int pe = shmem_my_pe();
+
+  const double startTime = uts_wctime();
 
   omp_set_lock(local_cb_lock);
   local_cb_count++;
@@ -973,15 +1004,22 @@ int cbarrier_wait() {
       omp_unset_lock(local_cb_lock);
   }
 
+  const double endTime = uts_wctime();
+  local_ss->timeInWait += endTime - startTime;
+  local_ss->nWaits++;
+
   return local_cb_done;
 }
 
 // causes one or more threads waiting at barrier, if any,
 //  to be released
 void remote_cbarrier_cancel() {
-    local_cb_cancel = 1;
     shared_cb_cancel = 1;
     PUT_ALL(shared_cb_cancel, shared_cb_cancel);
+}
+
+void local_cbarrier_cancel() {
+    local_cb_cancel = 1;
 }
 
 void releaseNodes(StealStack *local_ss, StealStack *remote_ss) {
@@ -994,14 +1032,18 @@ void releaseNodes(StealStack *local_ss, StealStack *remote_ss) {
     if (omp_get_thread_num() == 0 && local_ss->workAvail > 2 * chunkSize) {
         // Release remotely
         ss_release_remote(local_ss, remote_ss, chunkSize);
+        // This has significant overhead on clusters!
+        if (local_ss->nNodes % cbint == 0) {
+          ss_setState(local_ss, SS_CBOVH);
+          remote_cbarrier_cancel();
+        }
     } else {
         // Release locally
         ss_release_local(local_ss, chunkSize);
-    }
-    // This has significant overhead on clusters!
-    if (local_ss->nNodes % cbint == 0) {
-      ss_setState(local_ss, SS_CBOVH);
-      remote_cbarrier_cancel();
+        if (local_ss->nNodes % cbint == 0) {
+          ss_setState(local_ss, SS_CBOVH);
+          local_cbarrier_cancel();
+        }
     }
 
     ss_setState(local_ss, SS_WORK);
@@ -1101,7 +1143,7 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      * (done == 0).
      */
     ss_setState(local_ss, SS_IDLE);
-    done = cbarrier_wait();
+    done = cbarrier_wait(local_ss);
   }
   
   /* tree search complete ! */
@@ -1264,7 +1306,7 @@ int main(int argc, char *argv[]) {
   ss_setup->local_stackLock = NULL;
   ss_init(ss_setup, MAXSTACKDEPTH);
 
-  int i;
+  int i, j;
   for (i = 1; i < shmem_n_pes(); i++) {
       remote_stealStack[i] = (StealStack *)shmem_malloc(sizeof(StealStack));
       ss_setup = (StealStack *)remote_stealStack[i];
@@ -1323,24 +1365,47 @@ int main(int argc, char *argv[]) {
   remote_stealStack[shmem_my_pe()]->time[SS_CBOVH] = 0;
   remote_stealStack[shmem_my_pe()]->maxStackDepth = 0;
   remote_stealStack[shmem_my_pe()]->maxTreeDepth = 0;
-  for (i = 0; i < num_omp_threads; i++) {
-      remote_stealStack[shmem_my_pe()]->nNodes += local_stealStack[i]->nNodes;
-      remote_stealStack[shmem_my_pe()]->nLeaves += local_stealStack[i]->nLeaves;
-      remote_stealStack[shmem_my_pe()]->nRelease += local_stealStack[i]->nRelease;
-      remote_stealStack[shmem_my_pe()]->nAcquire += local_stealStack[i]->nAcquire;
-      remote_stealStack[shmem_my_pe()]->nSteal += local_stealStack[i]->nSteal;
-      remote_stealStack[shmem_my_pe()]->nFail += local_stealStack[i]->nFail;
-      remote_stealStack[shmem_my_pe()]->time[SS_WORK] += local_stealStack[i]->time[SS_WORK];
-      remote_stealStack[shmem_my_pe()]->time[SS_SEARCH] += local_stealStack[i]->time[SS_SEARCH];
-      remote_stealStack[shmem_my_pe()]->time[SS_IDLE] += local_stealStack[i]->time[SS_IDLE];
-      remote_stealStack[shmem_my_pe()]->time[SS_OVH] += local_stealStack[i]->time[SS_OVH];
-      remote_stealStack[shmem_my_pe()]->time[SS_CBOVH] += local_stealStack[i]->time[SS_CBOVH];
-      remote_stealStack[shmem_my_pe()]->maxStackDepth = max(
-              local_stealStack[i]->maxStackDepth,
-              remote_stealStack[shmem_my_pe()]->maxStackDepth);
-      remote_stealStack[shmem_my_pe()]->maxTreeDepth = max(
-              local_stealStack[i]->maxTreeDepth,
-              remote_stealStack[shmem_my_pe()]->maxTreeDepth);
+  for (j = 0; j < shmem_n_pes(); j++) {
+      if (j == shmem_my_pe()) {
+          for (i = 0; i < num_omp_threads; i++) {
+              if (i == 0) {
+                  fprintf(stderr, "PE %d thread %d nNodes=%d, # successful "
+                          "remote acquire=%d, # failed remote acquire=%d, # "
+                          "successful remote steals=%d, # failed remote "
+                          "steals=%d, time waiting=%f s, # waits=%d\n", shmem_my_pe(), i,
+                          local_stealStack[i]->nNodes,
+                          local_stealStack[i]->nSuccessfulRemoteAcquire,
+                          local_stealStack[i]->nFailedRemoteAcquire,
+                          remote_stealStack[j]->nSuccessfulRemoteSteal,
+                          remote_stealStack[j]->nFailedRemoteSteal,
+                          local_stealStack[i]->timeInWait,
+                          local_stealStack[i]->nWaits);
+              } else {
+                  fprintf(stderr, "PE %d thread %d nNodes=%d, time waiting=%f "
+                          "s, # waits=%d\n", shmem_my_pe(), i, local_stealStack[i]->nNodes,
+                          local_stealStack[i]->timeInWait,
+                          local_stealStack[i]->nWaits);
+              }
+              remote_stealStack[shmem_my_pe()]->nNodes += local_stealStack[i]->nNodes;
+              remote_stealStack[shmem_my_pe()]->nLeaves += local_stealStack[i]->nLeaves;
+              remote_stealStack[shmem_my_pe()]->nRelease += local_stealStack[i]->nRelease;
+              remote_stealStack[shmem_my_pe()]->nAcquire += local_stealStack[i]->nAcquire;
+              remote_stealStack[shmem_my_pe()]->nSteal += local_stealStack[i]->nSteal;
+              remote_stealStack[shmem_my_pe()]->nFail += local_stealStack[i]->nFail;
+              remote_stealStack[shmem_my_pe()]->time[SS_WORK] += local_stealStack[i]->time[SS_WORK];
+              remote_stealStack[shmem_my_pe()]->time[SS_SEARCH] += local_stealStack[i]->time[SS_SEARCH];
+              remote_stealStack[shmem_my_pe()]->time[SS_IDLE] += local_stealStack[i]->time[SS_IDLE];
+              remote_stealStack[shmem_my_pe()]->time[SS_OVH] += local_stealStack[i]->time[SS_OVH];
+              remote_stealStack[shmem_my_pe()]->time[SS_CBOVH] += local_stealStack[i]->time[SS_CBOVH];
+              remote_stealStack[shmem_my_pe()]->maxStackDepth = max(
+                      local_stealStack[i]->maxStackDepth,
+                      remote_stealStack[shmem_my_pe()]->maxStackDepth);
+              remote_stealStack[shmem_my_pe()]->maxTreeDepth = max(
+                      local_stealStack[i]->maxTreeDepth,
+                      remote_stealStack[shmem_my_pe()]->maxTreeDepth);
+          }
+          shmem_barrier_all();
+      }
   }
   shmem_barrier_all();
 
