@@ -3,14 +3,17 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:03:00
-#PBS -l nodes=32
+#PBS -l walltime=00:01:00
+#PBS -l nodes=1
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
 # export GASNET_MAX_SEGSIZE='512MB'
 cd $PBS_O_WORKDIR
 source sample_trees.sh
+
+export OMP_NUM_THREADS=2
+GASNET_BACKTRACE=1 aprun -cc none -n 1 -d 16 -m 32G ./uts-shmem-omp $T1L
 
 # EVENTS="-e WALLCLOCK@5000"
 # EVENTS="$EVENTS -e PAPI_L1_DCM"
@@ -63,7 +66,7 @@ source sample_trees.sh
 # done
 
 # MPI-WS
-aprun -cc none --pes-per-node 1 --pes 32 -d 16 -m 32G ./uts-mpi-ws $T1L
+# aprun -cc none --pes-per-node 1 --pes 32 -d 16 -m 32G ./uts-mpi-ws $T1L
 
 # OpenSHMEM Ref
 # source ~/.bash_profile

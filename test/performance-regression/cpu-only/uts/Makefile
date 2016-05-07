@@ -16,7 +16,6 @@ COMMON_SRCS = uts.c
 DM_SRCS     = uts_dm.c stats.c
 QUEUE_SRCS  = dequeue.c dlist.c
 SHM_SRCS    = uts_shm.c
-SHM_OMP_SRCS = uts_shm_omp.c
 
 TARGETS     = uts-seq uts-dfs uts-stat          \
               uts-omp uts-pthread               \
@@ -151,6 +150,9 @@ uts-mta:  uts_dfs.c $(RNG_SRC) $(COMMON_SRCS)
 
 uts-shmem: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(SHMCC) $(SHMCC_OPTS) $(SHMLD_OPTS) $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(RNG_DEF) $(FLAGS) -D_SHMEM -o $@ $+ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
+
+uts-shmem-omp: uts_shm_omp.c $(RNG_SRC) $(COMMON_SRCS)
+	$(SHMCC) -openmp $(SHMCC_OPTS) $(SHMLD_OPTS) $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(RNG_DEF) $(FLAGS) -o $@ $+ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
 
 uts-gpshmem: uts_gpshmem.c $(RNG_SRC) $(COMMON_SRCS)
 	$(GPSHMCC) $(GPSHMCC_OPTS) $(GPSHMLD_OPTS) $(RNG_DEF) -D_GPSHMEM -o $@ $+
