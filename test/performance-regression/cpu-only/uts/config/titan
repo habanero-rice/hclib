@@ -30,8 +30,8 @@ UPCLD_OPTS = -lm
 # OPENMP Compiler 
 # -------------------------------------
 OMPCC = icc
-OMPCC_OPTS = -openmp
-OMPLD_OPTS = -openmp
+OMPCC_OPTS = -openmp -O3
+OMPLD_OPTS = -openmp -O3
 
 
 # -------------------------------------
@@ -39,7 +39,7 @@ OMPLD_OPTS = -openmp
 # -------------------------------------
 SHMCC = icc
 SHMCC_OPTS = -O3
-SHMLD_OPTS =
+SHMLD_OPTS = -O3
 
 # -------------------------------------
 # GPSHMEM Compiler 

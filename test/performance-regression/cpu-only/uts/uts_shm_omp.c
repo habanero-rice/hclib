@@ -384,13 +384,12 @@ void ss_release_remote(StealStack *local_ss, StealStack *remote_ss, int k) {
                 local_ss->stack_g + local_ss->sharedStart, k * sizeof(Node));
         remote_ss->nSteal++;
         remote_ss->top += k;
-
-        local_ss->sharedStart += k;
-        local_ss->workAvail -= k;
-
         remote_ss->local += k;
         remote_ss->workAvail += k;
         remote_ss->nRelease++;
+
+        local_ss->sharedStart += k;
+        local_ss->workAvail -= k;
     // fprintf(stderr, "%d %d releasing %d remote, remote_ss->top=%d remote_ss->local=%d remote_ss->sharedStart=%d remote_ss->workAvail=%d\n", shmem_my_pe(), omp_get_thread_num(), k, remote_ss->top, remote_ss->local, remote_ss->sharedStart, remote_ss->workAvail);
     }
 
@@ -1140,6 +1139,7 @@ void showStats(double elapsedSecs) {
   }
   if (trel != tacq + tsteal) {
     printf("*** error! total released != total acquired + total stolen\n");
+    printf("total released = %d, acquired = %d, stolen = %d\n", trel, tacq, tsteal);
   }
     
   uts_showStats(shmem_n_pes() * omp_get_num_threads(), chunkSize, elapsedSecs,
@@ -1342,6 +1342,7 @@ int main(int argc, char *argv[]) {
               local_stealStack[i]->maxTreeDepth,
               remote_stealStack[shmem_my_pe()]->maxTreeDepth);
   }
+  shmem_barrier_all();
 
   /* display results */
   if (shmem_my_pe() == 0) {
