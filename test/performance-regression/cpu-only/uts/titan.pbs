@@ -3,8 +3,8 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:03:00
-#PBS -l nodes=16
+#PBS -l walltime=00:02:00
+#PBS -l nodes=32
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -15,7 +15,7 @@ source sample_trees.sh
 export OMP_NUM_THREADS=1
 
 # for NODES in 1 2 4 8 16 32; do
-for NODES in 16; do
+for NODES in 32; do
     aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-shmem-omp $T1L
 done
 

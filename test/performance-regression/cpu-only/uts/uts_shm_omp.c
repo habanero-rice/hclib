@@ -169,6 +169,8 @@ struct stealStack_t
   int nFailedRemoteSteal;
   double timeInWait;
   int nWaits;
+  double timeInSharedSpin;
+  int nSharedSpins;
 
   int wakeups, falseWakeups, nNodes_last;
   double time[SS_NSTATES], timeLast;         /* perf measurements */
@@ -316,6 +318,8 @@ void ss_init(StealStack *s, int nelts) {
   s->nFailedRemoteSteal = 0;
   s->timeInWait = 0.0;
   s->nWaits = 0;
+  s->timeInSharedSpin = 0;
+  s->nSharedSpins = 0;
   s->nRelease = 0;
   s->nSteal = 0;
   s->nFail = 0;
@@ -927,7 +931,6 @@ int cbarrier_wait(StealStack *local_ss) {
   local_cb_count++;
   local_l_count = local_cb_count;
   local_l_done = local_cb_done;
-  // fprintf(stderr, "%d %d: local_cb_count=%d\n", shmem_my_pe(), omp_get_thread_num(), local_cb_count);
   omp_unset_lock(local_cb_lock);
 
   if (omp_get_thread_num() == 0) {
@@ -950,6 +953,7 @@ int cbarrier_wait(StealStack *local_ss) {
           // fprintf(stderr, "%d %d: shared_l_done=%d shared_cb_count=%d\n", shmem_my_pe(), omp_get_thread_num(), shared_l_done, shared_cb_count);
           shmem_clear_lock(shared_cb_lock);
 
+          const double startSharedSpin = uts_wctime();
           do {
               shared_l_count = shared_cb_count;
               shared_l_cancel = shared_cb_cancel;
@@ -957,6 +961,9 @@ int cbarrier_wait(StealStack *local_ss) {
               // fprintf(stderr, "  %d %d: shared_l_cancel = %d shared_l_done = %d\n", shmem_my_pe(), omp_get_thread_num(), shared_l_cancel, shared_l_done);
           }
           while (!shared_l_cancel && !shared_l_done);
+          const double endSharedSpin = uts_wctime();
+          local_ss->timeInSharedSpin += (endSharedSpin - startSharedSpin);
+          local_ss->nSharedSpins++;
 
           shmem_set_lock(shared_cb_lock);
           shared_cb_count--;
@@ -986,7 +993,7 @@ int cbarrier_wait(StealStack *local_ss) {
       omp_unset_lock(local_cb_lock);
 
   } else {
-      // spin
+      // spin locally if we are not the master thread
       do {
           local_l_count = local_cb_count;
           local_l_cancel = local_cb_cancel;
@@ -1005,7 +1012,7 @@ int cbarrier_wait(StealStack *local_ss) {
   }
 
   const double endTime = uts_wctime();
-  local_ss->timeInWait += endTime - startTime;
+  local_ss->timeInWait += (endTime - startTime);
   local_ss->nWaits++;
 
   return local_cb_done;
@@ -1372,14 +1379,18 @@ int main(int argc, char *argv[]) {
                   fprintf(stderr, "PE %d thread %d nNodes=%d, # successful "
                           "remote acquire=%d, # failed remote acquire=%d, # "
                           "successful remote steals=%d, # failed remote "
-                          "steals=%d, time waiting=%f s, # waits=%d\n", shmem_my_pe(), i,
+                          "steals=%d, time waiting=%f s, # waits=%d, time "
+                          "shared spinning=%f s, # shared spins=%d\n",
+                          shmem_my_pe(), i,
                           local_stealStack[i]->nNodes,
                           local_stealStack[i]->nSuccessfulRemoteAcquire,
                           local_stealStack[i]->nFailedRemoteAcquire,
                           remote_stealStack[j]->nSuccessfulRemoteSteal,
                           remote_stealStack[j]->nFailedRemoteSteal,
                           local_stealStack[i]->timeInWait,
-                          local_stealStack[i]->nWaits);
+                          local_stealStack[i]->nWaits,
+                          local_stealStack[i]->timeInSharedSpin,
+                          local_stealStack[i]->nSharedSpins);
               } else {
                   fprintf(stderr, "PE %d thread %d nNodes=%d, time waiting=%f "
                           "s, # waits=%d\n", shmem_my_pe(), i, local_stealStack[i]->nNodes,
