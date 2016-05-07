@@ -98,7 +98,7 @@ long * smem_global_lock_alloc() {
  *  Parallel execution parameters                          *
  ***********************************************************/
 
-int chunkSize = 30;       // number of nodes to move to/from shared area
+int chunkSize = 15;       // number of nodes to move to/from shared area
 int cbint     = 1;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
 
