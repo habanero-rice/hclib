@@ -845,6 +845,42 @@ static void crt_work_loop(LiteCtx *ctx) {
     HASSERT(0); // Should never return here
 }
 
+pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
+volatile static int _master_not_ready = 1;
+
+void wake_up_helpers() {
+    const int wid = (CURRENT_WS_INTERNAL)->id;
+    assert(wid == 0);
+    if(pthread_mutex_lock(&_waiting_for_master_singal) < 0) {
+      fprintf(stderr,"%d: Error in pthread_mutex_lock\n",wid);
+    }
+    _master_not_ready = 0;
+    if(pthread_cond_broadcast(&_cond_waiting_for_master_singal) < 0) {
+      fprintf(stderr,"%d: Error in pthread_cond_wait\n",wid);
+    }
+    if(pthread_mutex_unlock(&_waiting_for_master_singal) < 0) {
+      fprintf(stderr,"%d: Error in pthread_mutex_unlock\n",wid);
+    }
+}
+
+void wait_for_master_signal() {
+    const int wid = (CURRENT_WS_INTERNAL)->id;
+    assert(wid > 0);
+    if(pthread_mutex_lock(&_waiting_for_master_singal) < 0) {
+      fprintf(stderr,"%d: Error in pthread_mutex_lock\n",wid);
+    }
+    if(_master_not_ready) {
+      if(pthread_cond_wait(&_cond_waiting_for_master_singal, &_waiting_for_master_singal) < 0) {
+        fprintf(stderr,"%d: Error in pthread_cond_wait\n",wid);
+      }
+    }
+    if(pthread_mutex_unlock(&_waiting_for_master_singal) < 0) {
+      fprintf(stderr,"%d: Error in pthread_mutex_unlock\n",wid);
+    }
+    printf("%d: awake\n",wid);
+}
+
 /*
  * With the addition of lightweight context switching, worker creation becomes a
  * bit more complicated because we need all task creation and finish scopes to
@@ -859,6 +895,7 @@ static void *worker_routine(void *args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    wait_for_master_signal();
 
 #ifdef HC_COMM_WORKER
     if (wid == COMMUNICATION_WORKER_ID) {

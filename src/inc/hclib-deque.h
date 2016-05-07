@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* DEQUE API                                        */
 /****************************************************/
 
-#define INIT_DEQUE_CAPACITY 8096
+#define INIT_DEQUE_CAPACITY 8192
 
 typedef struct deque_t {
     volatile int head;
