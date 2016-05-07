@@ -941,43 +941,46 @@ int cbarrier_wait(StealStack *local_ss) {
       } while (!local_l_cancel && local_l_count < omp_get_num_threads());
 
       if (!local_l_cancel) {
-          shmem_set_lock(shared_cb_lock);
-          shared_cb_count++;
-          PUT_ALL(shared_cb_count, shared_cb_count);
-          if (shared_cb_count == shmem_n_pes()) {
-              shared_cb_done = 1;
-              PUT_ALL(shared_cb_done, shared_cb_done);
-          }
-          shared_l_count = shared_cb_count;
-          shared_l_done = shared_cb_done;
-          // fprintf(stderr, "%d %d: shared_l_done=%d shared_cb_count=%d\n", shmem_my_pe(), omp_get_thread_num(), shared_l_done, shared_cb_count);
-          shmem_clear_lock(shared_cb_lock);
-
-          const double startSharedSpin = uts_wctime();
-          do {
-              shared_l_count = shared_cb_count;
-              shared_l_cancel = shared_cb_cancel;
-              shared_l_done = shared_cb_done;
-              // fprintf(stderr, "  %d %d: shared_l_cancel = %d shared_l_done = %d\n", shmem_my_pe(), omp_get_thread_num(), shared_l_cancel, shared_l_done);
-          }
-          while (!shared_l_cancel && !shared_l_done);
-          const double endSharedSpin = uts_wctime();
-          local_ss->timeInSharedSpin += (endSharedSpin - startSharedSpin);
-          local_ss->nSharedSpins++;
-
-          shmem_set_lock(shared_cb_lock);
-          shared_cb_count--;
-          shared_l_count = shared_cb_count;
-          PUT_ALL(shared_cb_count, shared_cb_count);
-          shared_cb_cancel = 0;
-          shared_l_done = shared_cb_done;
-          shmem_clear_lock(shared_cb_lock);
-
-          if (shared_l_cancel) {
-              local_l_cancel;
+          if (shared_cb_cancel) {
+              shared_cb_cancel = 0;
           } else {
-              assert(shared_l_done);
-              local_l_done = shared_l_done;
+              shmem_set_lock(shared_cb_lock);
+              shared_cb_count++;
+              PUT_ALL(shared_cb_count, shared_cb_count);
+              if (shared_cb_count == shmem_n_pes()) {
+                  shared_cb_done = 1;
+                  PUT_ALL(shared_cb_done, shared_cb_done);
+              }
+              shared_l_count = shared_cb_count;
+              shared_l_done = shared_cb_done;
+              shmem_clear_lock(shared_cb_lock);
+
+              const double startSharedSpin = uts_wctime();
+              do {
+                  shared_l_count = shared_cb_count;
+                  shared_l_cancel = shared_cb_cancel;
+                  shared_l_done = shared_cb_done;
+                  // fprintf(stderr, "  %d %d: shared_l_cancel = %d shared_l_done = %d\n", shmem_my_pe(), omp_get_thread_num(), shared_l_cancel, shared_l_done);
+              }
+              while (!shared_l_cancel && !shared_l_done);
+              const double endSharedSpin = uts_wctime();
+              local_ss->timeInSharedSpin += (endSharedSpin - startSharedSpin);
+              local_ss->nSharedSpins++;
+
+              shmem_set_lock(shared_cb_lock);
+              shared_cb_count--;
+              shared_l_count = shared_cb_count;
+              PUT_ALL(shared_cb_count, shared_cb_count);
+              shared_cb_cancel = 0;
+              shared_l_done = shared_cb_done;
+              shmem_clear_lock(shared_cb_lock);
+
+              if (shared_l_cancel) {
+                  local_l_cancel;
+              } else {
+                  assert(shared_l_done);
+                  local_l_done = shared_l_done;
+              }
           }
       }
 
@@ -1067,13 +1070,18 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
   int done = 0;
   Node * parent;
   Node child;
+  int came_out_of_barrier = 0;
 
   /* template for children */
   initNode(&child);
 
   /* tree search */
   while (done == 0) {
-    
+  
+    if (came_out_of_barrier) {
+        assert(ss_localDepth(local_ss) == 0);
+    }
+
     /* local work */
     while (ss_localDepth(local_ss) > 0) {		
 
@@ -1103,12 +1111,16 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      * to re-acquire work from shared portion of this thread's stack
      */
     if (ss_acquire(local_ss, chunkSize)) {
-      continue;
+        if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work locally\n", shmem_my_pe(), omp_get_thread_num());
+        came_out_of_barrier = 0;
+        continue;
     }
 
     // Do remote checks
     if (omp_get_thread_num() == 0) {
         if (ss_remote_acquire(remote_ss, local_ss, chunkSize)) {
+            if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work remotely\n", shmem_my_pe(), omp_get_thread_num());
+            came_out_of_barrier = 0;
             continue;
         }
     }
@@ -1117,6 +1129,7 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
     /* try to steal work from another thread's stack */
     int goodSteal = 0;
     int victimId;
+    int remote_victim;
 
     const int n_local_attempts_before_remote = 2;
     ss_setState(local_ss, SS_SEARCH);
@@ -1125,6 +1138,7 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
         for (j = 0; j < n_local_attempts_before_remote && !goodSteal; j++) {
             victimId = findwork_local(chunkSize);
             if (victimId != -1) {
+                remote_victim = 0;
                 goodSteal = ss_steal(local_ss, local_stealStack[victimId],
                         victimId, chunkSize, 1);
             }
@@ -1133,6 +1147,7 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
         if (!goodSteal && omp_get_thread_num() == 0) {
             victimId = findwork_remote(chunkSize);
             if (victimId != -1) {
+                remote_victim = 1;
                 goodSteal = ss_steal(remote_ss, remote_stealStack[victimId],
                         victimId, chunkSize, 0);
             }
@@ -1140,6 +1155,8 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
     } while (victimId != -1 && !goodSteal);
 
     if (goodSteal) {
+        if (came_out_of_barrier) fprintf(stderr, "%d %d: stole from %s victim %d\n", shmem_my_pe(), omp_get_thread_num(), remote_victim ? "remote" : "local", victimId);
+        came_out_of_barrier = 0;
         continue;
     }
     // fprintf(stderr, "No good steal\n");
@@ -1150,7 +1167,9 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      * (done == 0).
      */
     ss_setState(local_ss, SS_IDLE);
+    if (came_out_of_barrier) fprintf(stderr, "%d %d: going straight back to barrier\n", shmem_my_pe(), omp_get_thread_num());
     done = cbarrier_wait(local_ss);
+    came_out_of_barrier = 1;
   }
   
   /* tree search complete ! */
