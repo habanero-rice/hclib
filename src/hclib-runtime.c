@@ -845,13 +845,25 @@ static void crt_work_loop(LiteCtx *ctx) {
     HASSERT(0); // Should never return here
 }
 
-pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
 volatile static int _master_not_ready = 1;
 
-void wake_up_helpers() {
+typedef struct user_main {
+  generic_frame_ptr fct_ptr;
+  void *arg; 
+} user_main;
+
+/*
+ * Used by the master thread to wake up helper threads
+ * who was waiting after their creation. 
+ */
+void wake_up_helpers(void* args) {
     const int wid = (CURRENT_WS_INTERNAL)->id;
+    user_main* user_func = (user_main*) args;
+
     assert(wid == 0);
+    // First signal helpers as they are waiting for my signal
     if(pthread_mutex_lock(&_waiting_for_master_singal) < 0) {
       fprintf(stderr,"%d: Error in pthread_mutex_lock\n",wid);
     }
@@ -862,8 +874,26 @@ void wake_up_helpers() {
     if(pthread_mutex_unlock(&_waiting_for_master_singal) < 0) {
       fprintf(stderr,"%d: Error in pthread_mutex_unlock\n",wid);
     }
+  
+    // Now launch the user main function
+    user_func->fct_ptr(user_func->arg);
+    free(args);
 }
 
+/*
+ * To implement non-blocking finish, its important that the
+ * main function is fired as an async call from the master 
+ * thread. But by doing this, there is no gurantee that the
+ * main would get executed by the master thread. The async
+ * could get stolen by the helper threads. In some situations
+ * this behaviour may give undesirable results. Most of such
+ * situations currently occur with the integration of hclib
+ * with HPC libraries (e.g., UPC++, OpenSHMEM, etc.).
+ * 
+ * Hence, by default all non-master threads would wait after 
+ * their creation. They would start execution only after the 
+ * master thread signal them.
+ */
 void wait_for_master_signal() {
     const int wid = (CURRENT_WS_INTERNAL)->id;
     assert(wid > 0);
@@ -878,7 +908,6 @@ void wait_for_master_signal() {
     if(pthread_mutex_unlock(&_waiting_for_master_singal) < 0) {
       fprintf(stderr,"%d: Error in pthread_mutex_unlock\n",wid);
     }
-    printf("%d: awake\n",wid);
 }
 
 /*
@@ -1329,7 +1358,16 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
 #else    
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
+    /* 
+     * non-master threads are waiting, hence instead of passing the 
+     * user supplied function (i.e. main) we call the function that
+     * would executed by the master thread to wakeup the helper threads
+     * and then master will execute the user supplied function.
+     */
+    user_main* user_func = (user_main*) malloc(sizeof(user_main));
+    user_func->fct_ptr = fct_ptr;
+    user_func->arg = arg;
+    hclib_async(wake_up_helpers, user_func, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 #endif
     hclib_finalize();
 }
