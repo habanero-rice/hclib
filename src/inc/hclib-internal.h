@@ -52,6 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LOG_LEVEL_DEBUG         4
 #define LOG_LEVEL_TRACE         5
 
+#define _HC_MASTER_OWN_MAIN_FUNC_
+
 /* set the current log level */
 #define LOG_LEVEL LOG_LEVEL_FATAL
 
@@ -100,6 +102,9 @@ typedef struct hc_context {
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+    worker_done_t *idle_worker;
+#endif
 #ifdef HC_CUDA
     hclib_memory_tree_node *pinned_host_allocs;
     cudaStream_t stream;

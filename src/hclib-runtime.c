@@ -63,6 +63,25 @@ pending_cuda_op *pending_cuda_ops_head = NULL;
 pending_cuda_op *pending_cuda_ops_tail = NULL;
 #endif
 
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
+volatile static int _master_not_ready = 1;
+#define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n"); }}
+
+typedef struct user_main {
+  generic_frame_ptr fct_ptr;
+  void *arg;
+} user_main;
+
+#define IDLE_STATUS         1
+#define BUSY_STATUS         0
+#define WORKER_IDLE(wid)	{ hclib_context->idle_worker[wid].flag = IDLE_STATUS; }
+#define WORKER_BUSY(wid)	{ hclib_context->idle_worker[wid].flag = BUSY_STATUS; }
+#define WORKER_STATUS(wid)	hclib_context->idle_worker[wid].flag
+
+#endif //_HC_MASTER_OWN_MAIN_FUNC_
+
 hc_context *hclib_context = NULL;
 
 static char *hclib_stats = NULL;
@@ -172,6 +191,10 @@ void hclib_global_init() {
     }
     hclib_context->done_flags = (worker_done_t *)malloc(
                                     hclib_context->nworkers * sizeof(worker_done_t));
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+    hclib_context->idle_worker = (worker_done_t *)malloc(
+                                        hclib_context->nworkers * sizeof(worker_done_t));
+#endif
 #ifdef HC_CUDA
     hclib_context->pinned_host_allocs = NULL;
 #endif
@@ -185,7 +208,18 @@ void hclib_global_init() {
         total_steals[i] = 0;
         total_push_ind[i] = 0;
         hclib_context->done_flags[i].flag = 1;
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+        WORKER_IDLE(i);
+#endif
     }
+
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+    /*
+     * In this mode the master worker always own the main function
+     * and hence its always marked as BUSY_STATUS after hclib_launch
+     */
+    WORKER_BUSY(0);
+#endif
 
 #ifdef HC_COMM_WORKER
     comm_worker_out_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
@@ -802,11 +836,21 @@ void find_and_run_task(hclib_worker_state *ws) {
             // try to steal
             task = hpt_steal_task(ws);
             if (task) {
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+            	// status marking overhead only on slow-path
+            	WORKER_BUSY(ws->id);
+#endif
 #ifdef HC_COMM_WORKER_STATS
                 increment_steals_counter(ws->id);
 #endif
                 break;
             }
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+            else {
+            	// status marking overhead only on slow-path
+            	WORKER_IDLE(ws->id);
+            }
+#endif
         }
     }
 
@@ -845,16 +889,7 @@ static void crt_work_loop(LiteCtx *ctx) {
     HASSERT(0); // Should never return here
 }
 
-static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
-volatile static int _master_not_ready = 1;
-#define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n"); }}
-
-typedef struct user_main {
-  generic_frame_ptr fct_ptr;
-  void *arg; 
-} user_main;
-
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
 /*
  * Used by the master thread to wake up helper threads
  * who was waiting after their creation. 
@@ -896,6 +931,7 @@ void wait_for_master_signal() {
     }
     CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
 }
+#endif
 
 /*
  * With the addition of lightweight context switching, worker creation becomes a
@@ -1344,7 +1380,8 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     hclib_init();
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#else    
+#else  // HCSHMEM
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
     /* 
      * non-master threads are waiting, hence instead of passing the 
      * user supplied function (i.e. main) we call the function that
@@ -1355,7 +1392,10 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     user_func->fct_ptr = fct_ptr;
     user_func->arg = arg;
     hclib_async(wake_up_helpers, user_func, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
-#endif
+#else // _HC_MASTER_OWN_MAIN_FUNC_
+    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
+#endif // _HC_MASTER_OWN_MAIN_FUNC_
+#endif // HCSHMEM
     hclib_finalize();
 }
 
