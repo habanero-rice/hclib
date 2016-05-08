@@ -67,7 +67,7 @@ pending_cuda_op *pending_cuda_ops_tail = NULL;
 static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
 volatile static int _master_not_ready = 1;
-#define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n"); }}
+#define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n", get_current_worker()); }}
 
 typedef struct user_main {
   generic_frame_ptr fct_ptr;
