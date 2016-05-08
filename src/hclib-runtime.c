@@ -848,6 +848,7 @@ static void crt_work_loop(LiteCtx *ctx) {
 static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
 volatile static int _master_not_ready = 1;
+#define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n"); }}
 
 typedef struct user_main {
   generic_frame_ptr fct_ptr;
@@ -861,20 +862,12 @@ typedef struct user_main {
 void wake_up_helpers(void* args) {
     const int wid = (CURRENT_WS_INTERNAL)->id;
     user_main* user_func = (user_main*) args;
-
     assert(wid == 0);
     // First signal helpers as they are waiting for my signal
-    if(pthread_mutex_lock(&_waiting_for_master_singal) < 0) {
-      fprintf(stderr,"%d: Error in pthread_mutex_lock\n",wid);
-    }
+    CHECK_RC(pthread_mutex_lock(&_waiting_for_master_singal));
     _master_not_ready = 0;
-    if(pthread_cond_broadcast(&_cond_waiting_for_master_singal) < 0) {
-      fprintf(stderr,"%d: Error in pthread_cond_wait\n",wid);
-    }
-    if(pthread_mutex_unlock(&_waiting_for_master_singal) < 0) {
-      fprintf(stderr,"%d: Error in pthread_mutex_unlock\n",wid);
-    }
-  
+    CHECK_RC(pthread_cond_broadcast(&_cond_waiting_for_master_singal));
+    CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
     // Now launch the user main function
     user_func->fct_ptr(user_func->arg);
     free(args);
@@ -897,17 +890,11 @@ void wake_up_helpers(void* args) {
 void wait_for_master_signal() {
     const int wid = (CURRENT_WS_INTERNAL)->id;
     assert(wid > 0);
-    if(pthread_mutex_lock(&_waiting_for_master_singal) < 0) {
-      fprintf(stderr,"%d: Error in pthread_mutex_lock\n",wid);
-    }
+    CHECK_RC(pthread_mutex_lock(&_waiting_for_master_singal));
     if(_master_not_ready) {
-      if(pthread_cond_wait(&_cond_waiting_for_master_singal, &_waiting_for_master_singal) < 0) {
-        fprintf(stderr,"%d: Error in pthread_cond_wait\n",wid);
-      }
+    	CHECK_RC(pthread_cond_wait(&_cond_waiting_for_master_singal, &_waiting_for_master_singal));
     }
-    if(pthread_mutex_unlock(&_waiting_for_master_singal) < 0) {
-      fprintf(stderr,"%d: Error in pthread_mutex_unlock\n",wid);
-    }
+    CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
 }
 
 /*
