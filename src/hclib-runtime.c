@@ -826,7 +826,7 @@ void find_and_run_task(hclib_worker_state *ws) {
     if (!task) {
         while (hclib_context->done_flags[ws->id].flag) {
 #ifdef _HC_MASTER_OWN_MAIN_FUNC_
-        	if(IS_SIGNAL_SET(wid)) {
+        	if(IS_SIGNAL_SET(wid) && wid>0) {
         		wait_for_master_signal();
         	}
 #endif
@@ -935,7 +935,7 @@ void move_continuation_on_master() {
 		// workers gets inside signaled wait condition
 		int i;
 		// mark only myself as idle workers
-		_total_idle_workers = 1;
+		_total_idle_workers = 2; //set as 2 for myself+master_worker
 		_master_not_ready = 1;
 		for(i=0; i<hclib_num_workers(); i++) {
 			MARK_FOR_SIGNAL_WORKER(i);
@@ -945,13 +945,13 @@ void move_continuation_on_master() {
 		// At this point only me and master are awake
 		hclib_end_finish();
 	}
+	// ensure that the control is on master worker only
+	assert((CURRENT_WS_INTERNAL)->id == 0);
 	if(helpers_waiting) {
 		// Now we are sure that its the master who is executing the continuation
 		// so we can now signal helpers to wake up
 		wake_up_helpers(NULL);
 	}
-	// ensure that the control is on master worker only
-	assert((CURRENT_WS_INTERNAL)->id == 0);
 }
 #endif
 
