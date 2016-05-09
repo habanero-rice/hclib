@@ -76,6 +76,7 @@ typedef struct user_main {
 } user_main;
 
 #define MARK_FOR_SIGNAL_WORKER(wid)	{ hclib_context->wait_for_signal[wid].flag = 1; }
+#define UNMARK_FOR_SIGNAL_WORKER(wid)	{ hclib_context->wait_for_signal[wid].flag = 0; }
 #define IS_SIGNAL_SET(wid)  (hclib_context->wait_for_signal[wid].flag == 1)
 
 void wait_for_master_signal();
@@ -208,7 +209,7 @@ void hclib_global_init() {
         total_push_ind[i] = 0;
         hclib_context->done_flags[i].flag = 1;
 #ifdef _HC_MASTER_OWN_MAIN_FUNC_
-        hclib_context->wait_for_signal[i].flag = 0;
+	UNMARK_FOR_SIGNAL_WORKER(i);
 #endif
     }
 
@@ -882,15 +883,28 @@ static void crt_work_loop(LiteCtx *ctx) {
  * who was waiting after their creation. 
  */
 void wake_up_helpers(void* args) {
+    // Note: This method is executed only by the master thread
+    int i;
     const int wid = (CURRENT_WS_INTERNAL)->id;
-    user_main* user_func = (user_main*) args;
     assert(wid == 0);
-    // First signal helpers as they are waiting for my signal
+    user_main* user_func = (user_main*) args;
+    // wait until all helpers are waiting for my signal inside cond_wait
+    while(_total_idle_workers != (hclib_num_workers() - 1));
+    // now reset the flag that helper workers check to see if 
+    // they should wait for my signal
+    for(i=0; i<hclib_num_workers(); i++) {
+	UNMARK_FOR_SIGNAL_WORKER(i);
+    }
+    // Now signal helpers as they are waiting for my signal
     CHECK_RC(pthread_mutex_lock(&_waiting_for_master_singal));
     _master_not_ready = 0;
+    _total_idle_workers = 0;
     CHECK_RC(pthread_cond_broadcast(&_cond_waiting_for_master_singal));
     CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
     if(user_func != NULL) {
+        // This block will only execute only once.
+        // This block is executed for the main function
+        // passed via function hclib_launch .
     	// Now launch the user main function
     	user_func->fct_ptr(user_func->arg);
     	free(args);
@@ -912,11 +926,15 @@ void wake_up_helpers(void* args) {
  * master thread signal them.
  */
 void wait_for_master_signal() {
+    // Note: This method is executed only by non-master threads
     const int wid = (CURRENT_WS_INTERNAL)->id;
+    assert(wid > 0);
     CHECK_RC(pthread_mutex_lock(&_waiting_for_master_singal));
+    // increment the total idle count
     _total_idle_workers++;
     if(wid > 0) {
     	if(_master_not_ready) {
+                // If master is not yet ready, wait for its signal
     		CHECK_RC(pthread_cond_wait(&_cond_waiting_for_master_singal, &_waiting_for_master_singal));
     	}
     }
@@ -931,17 +949,19 @@ void move_continuation_on_master() {
 		hclib_start_finish();
 		ws->current_finish->outtermost_user_end_finish = 1;
 		helpers_waiting = 1;
+		assert(_master_not_ready == 0);
+		assert(_total_idle_workers == 0);
+                // set the flag so that all helper wait for the signal from master
+                // its safe at this point to set this flag without holding locks
+		_master_not_ready = 1;
 		// I should now mark signal as set so that non-master
 		// workers gets inside signaled wait condition
 		int i;
-		// mark only myself as idle workers
-		_total_idle_workers = 2; //set as 2 for myself+master_worker
-		_master_not_ready = 1;
 		for(i=0; i<hclib_num_workers(); i++) {
 			MARK_FOR_SIGNAL_WORKER(i);
 		}
-		// wait until all (but me & master) are inside cond_wait
-		while(_total_idle_workers != hclib_num_workers());
+		// wait until all (but me & master -- total 2 worker) are inside cond_wait
+		while(_total_idle_workers != (hclib_num_workers() - 2));
 		// At this point only me and master are awake
 		hclib_end_finish();
 	}
