@@ -1115,8 +1115,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 
     	// First assure that I am not the master thread
     	assert((CURRENT_WS_INTERNAL)->id != 0);
-    	printf("%d: outter_help_finish\n",(CURRENT_WS_INTERNAL)->id);
-    	// Now simply wait signaled by the master thread
+    	// Now simply wait for the signal by the master thread
     	wait_for_master_signal();
     }
 #endif
