@@ -112,6 +112,8 @@ void hclib_launch(generic_frame_ptr fct_ptr,
         void * arg);
 #ifdef _HC_MASTER_OWN_MAIN_FUNC_
 void move_continuation_on_master();
+int get_master_id();
+void set_master_id();
 #endif
 #ifdef __cplusplus
 }

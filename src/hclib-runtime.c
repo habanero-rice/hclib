@@ -68,6 +68,7 @@ static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIA
 static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
 volatile static int _master_not_ready = 1;
 volatile static int _total_idle_workers = 0;
+int _current_master_id = 0;
 #define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n", get_current_worker()); }}
 
 typedef struct user_main {
@@ -939,6 +940,14 @@ void wait_for_master_signal() {
     	}
     }
     CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
+}
+
+int get_master_id() {
+  return _current_master_id;
+}
+
+void set_master_id() {
+  _current_master_id = get_current_worker();
 }
 
 void move_continuation_on_master() {
