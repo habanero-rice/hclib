@@ -1,5 +1,11 @@
 #include "hclib_cpp.h"
 
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+void hclib::execute_continuation_on_master() {
+	return move_continuation_on_master();
+}
+#endif
+
 hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
         const int null_terminated) {
     hclib::promise_t **promises = (hclib::promise_t **)malloc(

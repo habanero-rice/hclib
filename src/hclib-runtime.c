@@ -67,6 +67,7 @@ pending_cuda_op *pending_cuda_ops_tail = NULL;
 static pthread_cond_t      _cond_waiting_for_master_singal = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t     _waiting_for_master_singal  = PTHREAD_MUTEX_INITIALIZER;
 volatile static int _master_not_ready = 1;
+volatile static int _total_idle_workers = 0;
 #define CHECK_RC(x)	{if((x) < 0) { fprintf(stderr,"%d: Error in calling pthread API\n", get_current_worker()); }}
 
 typedef struct user_main {
@@ -74,12 +75,10 @@ typedef struct user_main {
   void *arg;
 } user_main;
 
-#define IDLE_STATUS         1
-#define BUSY_STATUS         0
-#define WORKER_IDLE(wid)	{ hclib_context->idle_worker[wid].flag = IDLE_STATUS; }
-#define WORKER_BUSY(wid)	{ hclib_context->idle_worker[wid].flag = BUSY_STATUS; }
-#define WORKER_STATUS(wid)	hclib_context->idle_worker[wid].flag
+#define MARK_FOR_SIGNAL_WORKER(wid)	{ hclib_context->wait_for_signal[wid].flag = 1; }
+#define IS_SIGNAL_SET(wid)  (hclib_context->wait_for_signal[wid].flag == 1)
 
+void wait_for_master_signal();
 #endif //_HC_MASTER_OWN_MAIN_FUNC_
 
 hc_context *hclib_context = NULL;
@@ -192,7 +191,7 @@ void hclib_global_init() {
     hclib_context->done_flags = (worker_done_t *)malloc(
                                     hclib_context->nworkers * sizeof(worker_done_t));
 #ifdef _HC_MASTER_OWN_MAIN_FUNC_
-    hclib_context->idle_worker = (worker_done_t *)malloc(
+    hclib_context->wait_for_signal = (worker_done_t *)malloc(
                                         hclib_context->nworkers * sizeof(worker_done_t));
 #endif
 #ifdef HC_CUDA
@@ -209,17 +208,9 @@ void hclib_global_init() {
         total_push_ind[i] = 0;
         hclib_context->done_flags[i].flag = 1;
 #ifdef _HC_MASTER_OWN_MAIN_FUNC_
-        WORKER_IDLE(i);
+        hclib_context->wait_for_signal[i].flag = 0;
 #endif
     }
-
-#ifdef _HC_MASTER_OWN_MAIN_FUNC_
-    /*
-     * In this mode the master worker always own the main function
-     * and hence its always marked as BUSY_STATUS after hclib_launch
-     */
-    WORKER_BUSY(0);
-#endif
 
 #ifdef HC_COMM_WORKER
     comm_worker_out_deque = (semi_conc_deque_t *)malloc(sizeof(semi_conc_deque_t));
@@ -831,26 +822,22 @@ void *communication_worker_routine(void *finish_ptr) {
 
 void find_and_run_task(hclib_worker_state *ws) {
     hclib_task_t *task = hpt_pop_task(ws);
+    const int wid = ws->id;
     if (!task) {
         while (hclib_context->done_flags[ws->id].flag) {
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+        	if(IS_SIGNAL_SET(wid)) {
+        		wait_for_master_signal();
+        	}
+#endif
             // try to steal
             task = hpt_steal_task(ws);
             if (task) {
-#ifdef _HC_MASTER_OWN_MAIN_FUNC_
-            	// status marking overhead only on slow-path
-            	WORKER_BUSY(ws->id);
-#endif
 #ifdef HC_COMM_WORKER_STATS
                 increment_steals_counter(ws->id);
 #endif
                 break;
             }
-#ifdef _HC_MASTER_OWN_MAIN_FUNC_
-            else {
-            	// status marking overhead only on slow-path
-            	WORKER_IDLE(ws->id);
-            }
-#endif
         }
     }
 
@@ -903,9 +890,11 @@ void wake_up_helpers(void* args) {
     _master_not_ready = 0;
     CHECK_RC(pthread_cond_broadcast(&_cond_waiting_for_master_singal));
     CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
-    // Now launch the user main function
-    user_func->fct_ptr(user_func->arg);
-    free(args);
+    if(user_func != NULL) {
+    	// Now launch the user main function
+    	user_func->fct_ptr(user_func->arg);
+    	free(args);
+    }
 }
 
 /*
@@ -924,12 +913,45 @@ void wake_up_helpers(void* args) {
  */
 void wait_for_master_signal() {
     const int wid = (CURRENT_WS_INTERNAL)->id;
-    assert(wid > 0);
     CHECK_RC(pthread_mutex_lock(&_waiting_for_master_singal));
-    if(_master_not_ready) {
-    	CHECK_RC(pthread_cond_wait(&_cond_waiting_for_master_singal, &_waiting_for_master_singal));
+    _total_idle_workers++;
+    if(wid > 0) {
+    	if(_master_not_ready) {
+    		CHECK_RC(pthread_cond_wait(&_cond_waiting_for_master_singal, &_waiting_for_master_singal));
+    	}
     }
     CHECK_RC(pthread_mutex_unlock(&_waiting_for_master_singal));
+}
+
+void move_continuation_on_master() {
+	hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+	const int wid = ws->id;
+	int helpers_waiting = 0;
+	if(wid > 0) {
+		hclib_start_finish();
+		ws->current_finish->outtermost_user_end_finish = 1;
+		helpers_waiting = 1;
+		// I should now mark signal as set so that non-master
+		// workers gets inside signaled wait condition
+		int i;
+		// mark only myself as idle workers
+		_total_idle_workers = 1;
+		_master_not_ready = 1;
+		for(i=0; i<hclib_num_workers(); i++) {
+			MARK_FOR_SIGNAL_WORKER(i);
+		}
+		// wait until all (but me & master) are inside cond_wait
+		while(_total_idle_workers != hclib_num_workers());
+		// At this point only me and master are awake
+		hclib_end_finish();
+	}
+	if(helpers_waiting) {
+		// Now we are sure that its the master who is executing the continuation
+		// so we can now signal helpers to wake up
+		wake_up_helpers(NULL);
+	}
+	// ensure that the control is on master worker only
+	assert((CURRENT_WS_INTERNAL)->id == 0);
 }
 #endif
 
@@ -1085,6 +1107,19 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * so check it out.
      */
     check_out_finish(finish);
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+    if(finish->outtermost_user_end_finish) {
+    	// This is the special case that is called only when
+    	// the end_finish being called is the outtermost
+    	// end_finish called by the user.
+
+    	// First assure that I am not the master thread
+    	assert((CURRENT_WS_INTERNAL)->id != 0);
+    	printf("%d: outter_help_finish\n",(CURRENT_WS_INTERNAL)->id);
+    	// Now simply wait signaled by the master thread
+    	wait_for_master_signal();
+    }
+#endif
     // keep workstealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     HASSERT(0); // we should never return here

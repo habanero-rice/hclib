@@ -23,6 +23,9 @@ void launch(T lambda) {
 
 promise_t **promise_create_n(size_t nb_promises, int null_terminated);
 
+#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+void execute_continuation_on_master();
+#endif
 extern hclib_worker_state *current_ws();
 int current_worker();
 int num_workers();
