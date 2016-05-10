@@ -81,6 +81,10 @@ typedef struct user_main {
 #define IS_SIGNAL_SET(wid)  (hclib_context->wait_for_signal[wid].flag == 1)
 
 void wait_for_master_signal();
+#else
+#define MARK_FOR_SIGNAL_WORKER(wid)
+#define UNMARK_FOR_SIGNAL_WORKER(wid)
+#define IS_SIGNAL_SET(wid)  0
 #endif //_HC_MASTER_OWN_MAIN_FUNC_
 
 hc_context *hclib_context = NULL;
@@ -850,40 +854,10 @@ void find_and_run_task(hclib_worker_state *ws) {
     }
 }
 
-#if HCLIB_LITECTX_STRATEGY
-static void _hclib_finalize_ctx(LiteCtx *ctx) {
-    hclib_end_finish();
-    // Signal shutdown to all worker threads
-    hclib_signal_join(hclib_context->nworkers);
-    // Jump back to the system thread context for this worker
-    ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, __func__);
-    HASSERT(0); // Should never return here
-}
-
-static void core_work_loop(void) {
-    uint64_t wid;
-    do {
-        hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-        wid = (uint64_t)ws->id;
-        find_and_run_task(ws);
-    } while (hclib_context->done_flags[wid].flag);
-
-    // Jump back to the system thread context for this worker
-    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    HASSERT(ws->root_ctx);
-    ctx_swap(get_curr_lite_ctx(), ws->root_ctx, __func__);
-    HASSERT(0); // Should never return here
-}
-
-static void crt_work_loop(LiteCtx *ctx) {
-    core_work_loop(); // this function never returns
-    HASSERT(0); // Should never return here
-}
-
 #ifdef _HC_MASTER_OWN_MAIN_FUNC_
 /*
  * Used by the master thread to wake up helper threads
- * who was waiting after their creation. 
+ * who was waiting after their creation.
  */
 void wake_up_helpers(void* args) {
     // Note: This method is executed only by the master thread
@@ -893,7 +867,7 @@ void wake_up_helpers(void* args) {
     user_main* user_func = (user_main*) args;
     // wait until all helpers are waiting for my signal inside cond_wait
     while(_total_idle_workers != (hclib_num_workers() - 1));
-    // now reset the flag that helper workers check to see if 
+    // now reset the flag that helper workers check to see if
     // they should wait for my signal
     for(i=0; i<hclib_num_workers(); i++) {
 	UNMARK_FOR_SIGNAL_WORKER(i);
@@ -916,16 +890,16 @@ void wake_up_helpers(void* args) {
 
 /*
  * To implement non-blocking finish, its important that the
- * main function is fired as an async call from the master 
+ * main function is fired as an async call from the master
  * thread. But by doing this, there is no gurantee that the
  * main would get executed by the master thread. The async
  * could get stolen by the helper threads. In some situations
  * this behaviour may give undesirable results. Most of such
  * situations currently occur with the integration of hclib
  * with HPC libraries (e.g., UPC++, OpenSHMEM, etc.).
- * 
- * Hence, by default all non-master threads would wait after 
- * their creation. They would start execution only after the 
+ *
+ * Hence, by default all non-master threads would wait after
+ * their creation. They would start execution only after the
  * master thread signal them.
  */
 void wait_for_master_signal() {
@@ -984,7 +958,42 @@ void move_continuation_on_master() {
 		wake_up_helpers(NULL);
 	}
 }
+#else
+void set_master_id() {
+}
+void move_continuation_on_master() {
+}
 #endif
+
+#if HCLIB_LITECTX_STRATEGY
+static void _hclib_finalize_ctx(LiteCtx *ctx) {
+    hclib_end_finish();
+    // Signal shutdown to all worker threads
+    hclib_signal_join(hclib_context->nworkers);
+    // Jump back to the system thread context for this worker
+    ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, __func__);
+    HASSERT(0); // Should never return here
+}
+
+static void core_work_loop(void) {
+    uint64_t wid;
+    do {
+        hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+        wid = (uint64_t)ws->id;
+        find_and_run_task(ws);
+    } while (hclib_context->done_flags[wid].flag);
+
+    // Jump back to the system thread context for this worker
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    HASSERT(ws->root_ctx);
+    ctx_swap(get_curr_lite_ctx(), ws->root_ctx, __func__);
+    HASSERT(0); // Should never return here
+}
+
+static void crt_work_loop(LiteCtx *ctx) {
+    core_work_loop(); // this function never returns
+    HASSERT(0); // Should never return here
+}
 
 /*
  * With the addition of lightweight context switching, worker creation becomes a
