@@ -1165,6 +1165,11 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 }
 #else /* default (broken) strategy */
 
+void *hclib_future_wait(hclib_future_t *future) {
+	assert(0 && "HClib not built with conitnuation support and hence futures not supported");
+	return NULL;
+}
+
 static inline void slave_worker_finishHelper_routine(finish_t *finish) {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
 #ifdef HC_COMM_WORKER_STATS
