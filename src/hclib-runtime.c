@@ -1477,10 +1477,9 @@ static void hclib_finalize() {
 
 void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     hclib_init();
-#ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#else  // HCSHMEM
-#ifdef _HC_MASTER_OWN_MAIN_FUNC_
+#if defined(HCLIB_LITECTX_STRATEGY)
+    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
+#elif defined(_HC_MASTER_OWN_MAIN_FUNC_)
     /* 
      * non-master threads are waiting, hence instead of passing the 
      * user supplied function (i.e. main) we call the function that
@@ -1491,10 +1490,9 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     user_func->fct_ptr = fct_ptr;
     user_func->arg = arg;
     hclib_async(wake_up_helpers, user_func, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
-#else // _HC_MASTER_OWN_MAIN_FUNC_
-    hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
-#endif // _HC_MASTER_OWN_MAIN_FUNC_
-#endif // HCSHMEM
+#else
+    fct_ptr(arg);
+#endif
     hclib_finalize();
 }
 
