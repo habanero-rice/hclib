@@ -25,4 +25,8 @@
 #define HCLIB_LITECTX_STRATEGY 1
 // #define VERBOSE 1
 
+#ifdef HCLIB_LITECTX_STRATEGY
+#define _HC_MASTER_OWN_MAIN_FUNC_
+#endif
+
 #endif

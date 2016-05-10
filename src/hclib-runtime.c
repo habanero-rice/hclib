@@ -137,6 +137,7 @@ int get_current_worker() {
     return ((hclib_worker_state *)pthread_getspecific(ws_key))->id;
 }
 
+#if HCLIB_LITECTX_STRATEGY
 static void set_curr_lite_ctx(LiteCtx *ctx) {
     CURRENT_WS_INTERNAL->curr_ctx = ctx;
 }
@@ -153,6 +154,7 @@ static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
     // switched back to this context
     set_curr_lite_ctx(current);
 }
+#endif
 
 hclib_worker_state *current_ws() {
     return CURRENT_WS_INTERNAL;
@@ -1287,6 +1289,7 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
 
     HASSERT(current_finish->counter > 0);
 
+#if HCLIB_LITECTX_STRATEGY
     // Based on help_finish
     hclib_future_t **finish_deps = malloc(2 * sizeof(hclib_future_t *));
     HASSERT(finish_deps);
@@ -1294,6 +1297,7 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     finish_deps[0] = &event->future;
     finish_deps[1] = NULL;
     current_finish->finish_deps = finish_deps;
+#endif
 
     // Check out this "task" from the current finish
     check_out_finish(current_finish);

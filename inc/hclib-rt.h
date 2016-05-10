@@ -51,7 +51,6 @@ extern "C" {
 
 #define COMMUNICATION_WORKER_ID 1
 #define GPU_WORKER_ID 2
-#define _HC_MASTER_OWN_MAIN_FUNC_
 
 // forward declaration
 extern pthread_key_t ws_key;
