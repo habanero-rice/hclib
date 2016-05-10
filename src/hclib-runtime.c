@@ -1253,6 +1253,7 @@ void hclib_start_finish() {
     finish_t *finish = (finish_t *) HC_MALLOC(sizeof(finish_t));
     HASSERT(finish);
     memset(finish, 0x00, sizeof(finish_t));
+#if HCLIB_LITECTX_STRATEGY
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
      * finish being a task registered on the finish. When we reach the
@@ -1268,20 +1269,37 @@ void hclib_start_finish() {
     finish->counter = 1;
     finish->parent = ws->current_finish;
     check_in_finish(finish->parent); // check_in_finish performs NULL check
+#else
+    finish->counter = 0;
+    finish->parent = ws->current_finish;
+    if(finish->parent) {
+    	check_in_finish(finish->parent);
+    }
+#endif
     ws->current_finish = finish;
 }
 
 void hclib_end_finish() {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
+#if HCLIB_LITECTX_STRATEGY
     HASSERT(current_finish->counter > 0);
     help_finish(current_finish);
     HASSERT(current_finish->counter == 0);
 
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
-
+#else
+    if (current_finish->counter > 0) {
+    	help_finish(current_finish);
+    }
+    HASSERT(current_finish->counter == 0);
+    if(current_finish->parent) {
+    	check_out_finish(current_finish->parent);
+    }
+#endif
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
     HC_FREE(current_finish);
+
 }
 
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
