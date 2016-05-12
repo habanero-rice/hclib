@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -80,7 +84,7 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
-typedef struct _pragma103 {
+typedef struct _pragma108_omp_parallel {
     int (*t_ptr);
     unsigned long long (*cycles_ptr);
     int (*(*src_ptr));
@@ -89,9 +93,9 @@ typedef struct _pragma103 {
     int min;
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma103;
+ } pragma108_omp_parallel;
 
-static void pragma103_hclib_async(void *____arg, const int ___iter0);
+static void pragma108_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     unsigned long long cycles;
     int (*src);
@@ -117,7 +121,7 @@ for (int t = 0; t < rows-1; t++) {
         src = dst;
         dst = temp;
  { 
-pragma103 *new_ctx = (pragma103 *)malloc(sizeof(pragma103));
+pragma108_omp_parallel *new_ctx = (pragma108_omp_parallel *)malloc(sizeof(pragma108_omp_parallel));
 new_ctx->t_ptr = &(t);
 new_ctx->cycles_ptr = &(cycles);
 new_ctx->src_ptr = &(src);
@@ -131,7 +135,7 @@ domain[0].low = 0;
 domain[0].high = cols;
 domain[0].stride = 1;
 domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma103_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma108_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -180,8 +184,8 @@ hclib_launch(main_entrypoint, new_ctx);
     delete [] dst;
     delete [] src;
 }  
-static void pragma103_hclib_async(void *____arg, const int ___iter0) {
-    pragma103 *ctx = (pragma103 *)____arg;
+static void pragma108_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma108_omp_parallel *ctx = (pragma108_omp_parallel *)____arg;
     int min; min = ctx->min;
     hclib_start_finish();
     do {

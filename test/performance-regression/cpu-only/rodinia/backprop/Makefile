@@ -4,12 +4,12 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
 # C compiler
 CC = gcc
-CC_FLAGS = -g -fopenmp -O2 $(PROJECT_CXXFLAGS)
+CC_FLAGS = -g -fopenmp -O2 $(HCLIB_CXXFLAGS)
 
 
 backprop: backprop.o facetrain.o imagenet.o backprop_kernel.o 
 	g++ $(CC_FLAGS) backprop.o facetrain.o \
-		imagenet.o backprop_kernel.o $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS) -o backprop -lm
+		imagenet.o backprop_kernel.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o backprop -lm
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c

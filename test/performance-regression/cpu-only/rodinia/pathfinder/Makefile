@@ -4,7 +4,7 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 CC = g++
 SRC = pathfinder.cpp
 EXE = pathfinder
-FLAGS = -fopenmp $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+FLAGS = -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 release:
 	$(CC) $(SRC) $(FLAGS) -o $(EXE)

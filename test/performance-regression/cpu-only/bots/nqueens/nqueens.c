@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -105,7 +109,7 @@ void nqueens_ser (int n, int j, char *a, int *solutions)
 	}
 }
 
-typedef struct _pragma128 {
+typedef struct _pragma133_omp_task {
     int (*(*csols_ptr));
     int (*i_ptr);
     int n;
@@ -113,9 +117,9 @@ typedef struct _pragma128 {
     char (*(*a_ptr));
     int (*(*solutions_ptr));
     int (*depth_ptr);
- } pragma128;
+ } pragma133_omp_task;
 
-static void pragma128_hclib_async(void *____arg);
+static void pragma133_omp_task_hclib_async(void *____arg);
 void nqueens(int n, int j, char *a, int *solutions, int depth)
 {
 	int *csols;
@@ -136,7 +140,7 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
  { 
-pragma128 *new_ctx = (pragma128 *)malloc(sizeof(pragma128));
+pragma133_omp_task *new_ctx = (pragma133_omp_task *)malloc(sizeof(pragma133_omp_task));
 new_ctx->csols_ptr = &(csols);
 new_ctx->i_ptr = &(i);
 new_ctx->n = n;
@@ -144,15 +148,15 @@ new_ctx->j_ptr = &(j);
 new_ctx->a_ptr = &(a);
 new_ctx->solutions_ptr = &(solutions);
 new_ctx->depth_ptr = &(depth);
-hclib_async(pragma128_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma133_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
 	}
 
  hclib_end_finish(); hclib_start_finish(); ;
 	for ( i = 0; i < n; i++) *solutions += csols[i];
 } 
-static void pragma128_hclib_async(void *____arg) {
-    pragma128 *ctx = (pragma128 *)____arg;
+static void pragma133_omp_task_hclib_async(void *____arg) {
+    pragma133_omp_task *ctx = (pragma133_omp_task *)____arg;
     int n; n = ctx->n;
     hclib_start_finish();
 {

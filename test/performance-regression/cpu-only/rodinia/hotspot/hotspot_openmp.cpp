@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
@@ -48,7 +52,7 @@ int num_omp_threads;
  * advances the solution of the discretized difference equations 
  * by one time step
  */
-typedef struct _pragma64 {
+typedef struct _pragma69_omp_parallel {
     FLOAT delta;
     int r;
     int c;
@@ -66,9 +70,9 @@ typedef struct _pragma64 {
     FLOAT (*Ry_1_ptr);
     FLOAT (*Rz_1_ptr);
     FLOAT (*step_ptr);
- } pragma64;
+ } pragma69_omp_parallel;
 
-static void pragma64_hclib_async(void *____arg, const int ___iter0);
+static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col,
 					  FLOAT Cap_1, FLOAT Rx_1, FLOAT Ry_1, FLOAT Rz_1, 
 					  FLOAT step)
@@ -82,7 +86,7 @@ void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col
 
 	// omp_set_num_threads(num_omp_threads);
  { 
-pragma64 *new_ctx = (pragma64 *)malloc(sizeof(pragma64));
+pragma69_omp_parallel *new_ctx = (pragma69_omp_parallel *)malloc(sizeof(pragma69_omp_parallel));
 new_ctx->delta = delta;
 new_ctx->r = r;
 new_ctx->c = c;
@@ -105,13 +109,13 @@ domain[0].low = 0;
 domain[0].high = num_chunk;
 domain[0].stride = 1;
 domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma64_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma69_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma64_hclib_async(void *____arg, const int ___iter0) {
-    pragma64 *ctx = (pragma64 *)____arg;
+static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma69_omp_parallel *ctx = (pragma69_omp_parallel *)____arg;
     FLOAT delta; delta = ctx->delta;
     int r; r = ctx->r;
     int c; c = ctx->c;

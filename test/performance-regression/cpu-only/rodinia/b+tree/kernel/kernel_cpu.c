@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 // #ifdef __cplusplus
 // extern "C" {
 // #endif
@@ -31,7 +35,7 @@
 //	KERNEL_CPU FUNCTION
 //========================================================================================================================================================================================================200
 
-typedef struct _pragma84 {
+typedef struct _pragma89_omp_parallel {
     int thid;
     int bid;
     int i;
@@ -50,9 +54,9 @@ typedef struct _pragma84 {
     long (*(*offset_ptr));
     int (*(*keys_ptr));
     record (*(*ans_ptr));
- } pragma84;
+ } pragma89_omp_parallel;
 
-static void pragma84_hclib_async(void *____arg, const int ___iter0);
+static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void 
 kernel_cpu(	int cores_arg,
 
@@ -103,7 +107,7 @@ kernel_cpu(	int cores_arg,
 
 	// process number of querries
  { 
-pragma84 *new_ctx = (pragma84 *)malloc(sizeof(pragma84));
+pragma89_omp_parallel *new_ctx = (pragma89_omp_parallel *)malloc(sizeof(pragma89_omp_parallel));
 new_ctx->thid = thid;
 new_ctx->bid = bid;
 new_ctx->i = i;
@@ -127,7 +131,7 @@ domain[0].low = 0;
 domain[0].high = count;
 domain[0].stride = 1;
 domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma84_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma89_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -148,8 +152,8 @@ free(new_ctx);
 	printf("%.12f s\n", 												(float) (time2-time0) / 1000000);
 
 } 
-static void pragma84_hclib_async(void *____arg, const int ___iter0) {
-    pragma84 *ctx = (pragma84 *)____arg;
+static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma89_omp_parallel *ctx = (pragma89_omp_parallel *)____arg;
     int thid; thid = ctx->thid;
     int bid; bid = ctx->bid;
     int i; i = ctx->i;

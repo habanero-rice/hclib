@@ -5,11 +5,11 @@ all: avimod.o avilib.o
 
 # compile supporting function file into object (binary)
 avimod.o: avilib.h avimod.c 
-	gcc -c avimod.c $(PROJECT_CXXFLAGS)
+	gcc -c avimod.c $(HCLIB_CXXFLAGS)
 
 # compile supporting function file into object (binary)
 avilib.o: avilib.h avilib.c
-	gcc -c avilib.c $(PROJECT_CXXFLAGS)
+	gcc -c avilib.c $(HCLIB_CXXFLAGS)
 
 # delete files
 clean:

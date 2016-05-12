@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 /*
  ******************************************************************
  * HISTORY
@@ -233,7 +237,7 @@ int n_in, n_hidden, n_out;
 }
 
 
-typedef struct _pragma246 {
+typedef struct _pragma251_omp_parallel {
     float sum;
     int j;
     int k;
@@ -243,9 +247,9 @@ typedef struct _pragma246 {
     int (*n1_ptr);
     int (*n2_ptr);
     pthread_mutex_t reduction_mutex;
- } pragma246;
+ } pragma251_omp_parallel;
 
-static void pragma246_hclib_async(void *____arg, const int ___iter0);
+static void pragma251_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void bpnn_layerforward(l1, l2, conn, n1, n2)
 float *l1, *l2, **conn;
 int n1, n2;
@@ -256,7 +260,7 @@ int n1, n2;
   /*** Set up thresholding unit ***/
   l1[0] = 1.0;
  { 
-pragma246 *new_ctx = (pragma246 *)malloc(sizeof(pragma246));
+pragma251_omp_parallel *new_ctx = (pragma251_omp_parallel *)malloc(sizeof(pragma251_omp_parallel));
 new_ctx->sum = sum;
 new_ctx->j = j;
 new_ctx->k = k;
@@ -273,14 +277,14 @@ domain[0].low = 1;
 domain[0].high = (n2) + 1;
 domain[0].stride = 1;
 domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma246_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma251_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
 sum = new_ctx->sum;
  } 
 } 
-static void pragma246_hclib_async(void *____arg, const int ___iter0) {
-    pragma246 *ctx = (pragma246 *)____arg;
+static void pragma251_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma251_omp_parallel *ctx = (pragma251_omp_parallel *)____arg;
     float sum; sum = ctx->sum;
     int j; j = ctx->j;
     int k; k = ctx->k;
@@ -352,7 +356,7 @@ int nh, no;
 }
 
 
-typedef struct _pragma313 {
+typedef struct _pragma318_omp_parallel {
     float new_dw;
     int k;
     int j;
@@ -362,9 +366,9 @@ typedef struct _pragma313 {
     int nly;
     float (*(*(*w_ptr)));
     float (*(*(*oldw_ptr)));
- } pragma313;
+ } pragma318_omp_parallel;
 
-static void pragma313_hclib_async(void *____arg, const int ___iter0);
+static void pragma318_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void bpnn_adjust_weights(delta, ndelta, ly, nly, w, oldw)
 float *delta, *ly, **w, **oldw;
 {
@@ -375,7 +379,7 @@ float *delta, *ly, **w, **oldw;
   //momentum = 0.3;
 
  { 
-pragma313 *new_ctx = (pragma313 *)malloc(sizeof(pragma313));
+pragma318_omp_parallel *new_ctx = (pragma318_omp_parallel *)malloc(sizeof(pragma318_omp_parallel));
 new_ctx->new_dw = new_dw;
 new_ctx->k = k;
 new_ctx->j = j;
@@ -390,13 +394,13 @@ domain[0].low = 1;
 domain[0].high = (ndelta) + 1;
 domain[0].stride = 1;
 domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma313_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma318_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma313_hclib_async(void *____arg, const int ___iter0) {
-    pragma313 *ctx = (pragma313 *)____arg;
+static void pragma318_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma318_omp_parallel *ctx = (pragma318_omp_parallel *)____arg;
     float new_dw; new_dw = ctx->new_dw;
     int k; k = ctx->k;
     int j; j = ctx->j;

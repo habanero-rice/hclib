@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 # include <stdlib.h>
 # include <stdio.h>
 # include <math.h>
@@ -62,7 +66,7 @@ John Burkardt
 
 /******************************************************************************/
 
-typedef struct _pragma121 {
+typedef struct _pragma126_omp_task {
     int (*matrix_size_ptr);
     int (*block_size_ptr);
     int (*niter_ptr);
@@ -79,9 +83,9 @@ typedef struct _pragma121 {
     double (*(*u_ptr));
     double (*(*unew_ptr));
     struct user_parameters (*(*params_ptr));
- } pragma121;
+ } pragma126_omp_task;
 
-static void pragma121_hclib_async(void *____arg);
+static void pragma126_omp_task_hclib_async(void *____arg);
 double run(struct user_parameters* params)
 {
     int matrix_size = params->matrix_size;
@@ -134,7 +138,7 @@ double run(struct user_parameters* params)
 hclib_start_finish(); for (j = 0; j < ny; j+= block_size) {
             for (i = 0; i < nx; i+= block_size) {
  { 
-pragma121 *new_ctx = (pragma121 *)malloc(sizeof(pragma121));
+pragma126_omp_task *new_ctx = (pragma126_omp_task *)malloc(sizeof(pragma126_omp_task));
 new_ctx->matrix_size_ptr = &(matrix_size);
 new_ctx->block_size_ptr = &(block_size);
 new_ctx->niter_ptr = &(niter);
@@ -151,7 +155,7 @@ new_ctx->f_ptr = &(f);
 new_ctx->u_ptr = &(u);
 new_ctx->unew_ptr = &(unew);
 new_ctx->params_ptr = &(params);
-hclib_async(pragma121_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma126_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             }
         } ; hclib_end_finish(); 
@@ -213,8 +217,8 @@ hclib_async(pragma121_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
     free(unew);
     return TIMER;
 } 
-static void pragma121_hclib_async(void *____arg) {
-    pragma121 *ctx = (pragma121 *)____arg;
+static void pragma126_omp_task_hclib_async(void *____arg) {
+    pragma126_omp_task *ctx = (pragma126_omp_task *)____arg;
     int ii; ii = ctx->ii;
     int i; i = ctx->i;
     int jj; jj = ctx->jj;
@@ -256,7 +260,7 @@ double r8mat_rms(int nx, int ny, double *a_) {
 }
 
 /* RHS initializes the right hand side "vector". */
-typedef struct _pragma230 {
+typedef struct _pragma235_omp_task {
     int i;
     int ii;
     int j;
@@ -267,9 +271,9 @@ typedef struct _pragma230 {
     int ny;
     double (*(*f_ptr));
     int block_size;
- } pragma230;
+ } pragma235_omp_task;
 
-static void pragma230_hclib_async(void *____arg);
+static void pragma235_omp_task_hclib_async(void *____arg);
 void rhs(int nx, int ny, double *f, int block_size)
 {
     int i,ii;
@@ -283,7 +287,7 @@ void rhs(int nx, int ny, double *f, int block_size)
 hclib_start_finish(); for (j = 0; j < ny; j+=block_size) {
         for (i = 0; i < nx; i+=block_size) {
  { 
-pragma230 *new_ctx = (pragma230 *)malloc(sizeof(pragma230));
+pragma235_omp_task *new_ctx = (pragma235_omp_task *)malloc(sizeof(pragma235_omp_task));
 new_ctx->i = i;
 new_ctx->ii = ii;
 new_ctx->j = j;
@@ -294,13 +298,13 @@ new_ctx->nx = nx;
 new_ctx->ny = ny;
 new_ctx->f_ptr = &(f);
 new_ctx->block_size = block_size;
-hclib_async(pragma230_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma235_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
         }
     } ; hclib_end_finish(); 
 } 
-static void pragma230_hclib_async(void *____arg) {
-    pragma230 *ctx = (pragma230 *)____arg;
+static void pragma235_omp_task_hclib_async(void *____arg) {
+    pragma235_omp_task *ctx = (pragma235_omp_task *)____arg;
     int i; i = ctx->i;
     int ii; ii = ctx->ii;
     int j; j = ctx->j;

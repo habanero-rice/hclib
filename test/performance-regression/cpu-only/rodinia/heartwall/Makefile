@@ -8,11 +8,11 @@ endif
 
 # link objects(binaries) together
 heartwall: main.o ./AVI/avilib.o ./AVI/avimod.o
-	g++ main.o ./AVI/avilib.o ./AVI/avimod.o -lm -fopenmp -o heartwall $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+	g++ main.o ./AVI/avilib.o ./AVI/avimod.o -lm -fopenmp -o heartwall $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 # compile main function file into object (binary)
 main.o: main.c define.c kernel.c
-	gcc $(OUTPUT) main.c -I./AVI -c -O3 -fopenmp $(PROJECT_CXXFLAGS)
+	gcc $(OUTPUT) main.c -I./AVI -c -O3 -fopenmp $(HCLIB_CXXFLAGS)
 
 ./AVI/avilib.o ./AVI/avimod.o:
 	cd AVI; make;

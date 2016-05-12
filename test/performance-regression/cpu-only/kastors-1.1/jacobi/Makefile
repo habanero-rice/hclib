@@ -7,7 +7,7 @@ TARGETS=jacobi-task jacobi-block-for jacobi-block-task
 all: $(TARGETS)
 
 SHARED_SRC=main.c src/jacobi-seq.c src/poisson.c
-FLAGS=-Iinclude -I../common -fopenmp $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+FLAGS=-Iinclude -I../common -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 jacobi-task: src/jacobi-task.c $(SHARED_SRC)
 	g++ $^ $(FLAGS) -o $@

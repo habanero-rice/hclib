@@ -24,7 +24,7 @@ CXX             := g++
 # ------------  compiler flags  ------------------------------------------------
 DEBUG_CFLAGS    := -Wall -O0 -g
 RELEASE_CFLAGS  := -Wall -O3 
-COMMON_CFLAGS   := -fopenmp $(PROJECT_CXXFLAGS)
+COMMON_CFLAGS   := -fopenmp $(HCLIB_CXXFLAGS)
 
 # ------------  compiler defs  ------------------------------------------------
 DEBUG_CDEFS    := 
@@ -34,7 +34,7 @@ COMMON_CDEFS   :=
 # ------------  linker flags  --------------------------------------------------
 DEBUG_LDFLAGS    := -g
 RELEASE_LDFLAGS  := 
-COMMON_LDFLAGS   := -fopenmp $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+COMMON_LDFLAGS   := -fopenmp $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 ifeq (YES, ${DEBUG})
   CFLAGS       := ${DEBUG_CFLAGS} ${DEBUG_CDEFS}

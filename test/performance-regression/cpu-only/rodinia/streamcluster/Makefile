@@ -14,7 +14,7 @@ endif
 all: omp
 
 omp:
-	g++ -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+	g++ -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

@@ -7,7 +7,7 @@ TARGETS=cilksort FFT fib fib-ddt nqueens qsort
 all: ${TARGETS}
 
 %: %.cpp
-	$(CXX) $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	$(CXX) $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS)
 
 clean:
 	rm -rf *.o ${TARGETS} *.dSYM

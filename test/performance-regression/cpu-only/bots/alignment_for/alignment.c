@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -431,7 +435,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pragma463 {
+typedef struct _pragma468_omp_task {
     int i;
     int n;
     int m;
@@ -444,10 +448,10 @@ typedef struct _pragma463 {
     double mm_score;
     int (*(*mat_xref_ptr));
     int (*(*matptr_ptr));
- } pragma463;
+ } pragma468_omp_task;
 
-static void pragma463_hclib_async(void *____arg);
-typedef struct _pragma466 {
+static void pragma468_omp_task_hclib_async(void *____arg);
+typedef struct _pragma471_omp_parallel {
     int i;
     int n;
     int m;
@@ -460,9 +464,9 @@ typedef struct _pragma466 {
     double (*mm_score_ptr);
     int (*(*mat_xref_ptr));
     int (*(*matptr_ptr));
- } pragma466;
+ } pragma471_omp_parallel;
 
-static void pragma466_hclib_async(void *____arg, const int ___iter0);
+static void pragma471_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     int i;
     int n;
@@ -496,7 +500,7 @@ static void main_entrypoint(void *____arg) {
 {
 
  { 
-pragma466 *new_ctx = (pragma466 *)malloc(sizeof(pragma466));
+pragma471_omp_parallel *new_ctx = (pragma471_omp_parallel *)malloc(sizeof(pragma471_omp_parallel));
 new_ctx->i = i;
 new_ctx->n = n;
 new_ctx->m = m;
@@ -514,7 +518,7 @@ domain[0].low = 0;
 domain[0].high = nseqs;
 domain[0].stride = 1;
 domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma466_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma471_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
  }  // end parallel for (i)
@@ -550,8 +554,8 @@ hclib_launch(main_entrypoint, new_ctx);
 
    return 0;
 }  
-static void pragma466_hclib_async(void *____arg, const int ___iter0) {
-    pragma466 *ctx = (pragma466 *)____arg;
+static void pragma471_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma471_omp_parallel *ctx = (pragma471_omp_parallel *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
@@ -574,7 +578,7 @@ static void pragma466_hclib_async(void *____arg, const int ___iter0) {
            bench_output[si*nseqs+sj] = (int) 1.0;
         } else {
  { 
-pragma463 *new_ctx = (pragma463 *)malloc(sizeof(pragma463));
+pragma468_omp_task *new_ctx = (pragma468_omp_task *)malloc(sizeof(pragma468_omp_task));
 new_ctx->i = i;
 new_ctx->n = n;
 new_ctx->m = m;
@@ -587,7 +591,7 @@ new_ctx->gg = *(ctx->gg_ptr);
 new_ctx->mm_score = *(ctx->mm_score_ptr);
 new_ctx->mat_xref_ptr = ctx->mat_xref_ptr;
 new_ctx->matptr_ptr = ctx->matptr_ptr;
-hclib_async(pragma463_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma468_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  }  // end task
         } // end if (n == 0 || m == 0)
      } // for (j)
@@ -597,8 +601,8 @@ hclib_async(pragma463_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 }
 
  
-static void pragma463_hclib_async(void *____arg) {
-    pragma463 *ctx = (pragma463 *)____arg;
+static void pragma468_omp_task_hclib_async(void *____arg) {
+    pragma468_omp_task *ctx = (pragma468_omp_task *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
