@@ -1,0 +1,7 @@
+all: lud_omp.ref
+
+lud_omp.ref:
+	cd omp; make -f Makefile.ref
+
+clean:
+	cd omp; make -f Makefile.ref clean

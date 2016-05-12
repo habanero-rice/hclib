@@ -1,2 +1,3 @@
 *.o
 omp/lud_omp
+omp/lud_omp.ref

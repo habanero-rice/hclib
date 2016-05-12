@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <omp.h>
 #include <assert.h>
+#include <time.h>
 
 #define MAX_ARGS 10
 #define REC_LENGTH 49	// size of a record in db

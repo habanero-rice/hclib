@@ -1,2 +1,4 @@
 alignment.icc.for-omp-tasks
 alignment.icc.for-omp-tasks-tied
+alignment.icc.for.ref-omp-tasks
+alignment.icc.for.ref-omp-tasks-tied
