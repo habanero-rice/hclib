@@ -1,7 +1,7 @@
 FFT
 cilksort
-fib
+./fib
 fib-ddt
-nqueens
+./nqueens
 qsort
 test_logs

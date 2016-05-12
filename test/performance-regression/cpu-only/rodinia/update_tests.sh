@@ -74,8 +74,8 @@ for DIR in $(ls $SCRIPT_DIR); do
                 fi
             fi
 
-            NO_EXTENSION="${FILENAME%.*}"
-            cp $REFERENCE_CODE_DIR/$FILENAME $DIR/$NO_EXTENSION.ref.c
+            NO_EXTENSION="${ACTUAL%.*}"
+            cp $REFERENCE_CODE_DIR/$FILENAME $NO_EXTENSION.ref.c
         done
 
         for CPP_FILE in $(find $GENERATED_CODE_DIR -name "*.cpp"); do
@@ -101,8 +101,8 @@ for DIR in $(ls $SCRIPT_DIR); do
                 fi
             fi
 
-            NO_EXTENSION="${FILENAME%.*}"
-            cp $REFERENCE_CODE_DIR/$FILENAME $DIR/$NO_EXTENSION.ref.cpp
+            NO_EXTENSION="${ACTUAL%.*}"
+            cp $REFERENCE_CODE_DIR/$FILENAME $NO_EXTENSION.ref.cpp
         done
     fi
 done
