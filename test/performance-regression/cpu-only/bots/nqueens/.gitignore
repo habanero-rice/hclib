@@ -10,3 +10,4 @@ nqueens.ref.icc.omp-tasks-if_clause-tied
 nqueens.ref.icc.omp-tasks-manual
 nqueens.ref.icc.omp-tasks-manual-tied
 nqueens.ref.icc.omp-tasks-tied
+nqueens.icc.omp-tasks.ref

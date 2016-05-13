@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=48000m
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 #SBATCH --mail-user=jmg3@rice.edu
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -49,22 +49,38 @@ make -j
 for FOLDER in $(ls rodinia/); do
     if [[ -d rodinia/$FOLDER ]]; then
         echo Compiling rodinia/$FOLDER
-        cd rodinia/$FOLDER && make clean && make && cd ../../
+        cd rodinia/$FOLDER && make clean && make -f Makefile.ref clean && make && make -f Makefile.ref && cd ../../
     fi
 done
 
 for FOLDER in $(ls bots/); do
     if [[ -d bots/$FOLDER ]]; then
         echo Compiling bots/$FOLDER
-        cd bots/$FOLDER && make clean && make && cd ../../
+        cd bots/$FOLDER && make clean && make -f Makefile.ref clean && make && make -f Makefile.ref && cd ../../
     fi
 done
 
 for FOLDER in $(ls kastors-1.1/); do
     if [[ -d kastors-1.1/$FOLDER && $FOLDER != common ]]; then
         echo Compiling kastor-1.1/$FOLDER
-        cd kastors-1.1/$FOLDER && make clean && make && cd ../../
+        cd kastors-1.1/$FOLDER && make clean && make -f Makefile.ref clean && make && make -f Makefile.ref && cd ../../
     fi
+done
+
+for FIX in 'bots/alignment_single/alignment.ref.icc.omp-tasks bots/alignment_single/alignment.icc.single-omp-tasks.ref' \
+        'bots/fft/fft.ref.icc.omp-tasks bots/fft/fft.icc.omp-tasks.ref' \
+        'bots/fib/fib.ref.icc.omp-tasks bots/fib/fib.icc.omp-tasks.ref' \
+        'bots/floorplan/floorplan.ref.icc.omp-tasks bots/floorplan/floorplan.icc.omp-tasks.ref' \
+        'bots/health/health.ref.icc.omp-tasks bots/health/health.icc.omp-tasks.ref' \
+        'bots/nqueens/nqueens.ref.icc.omp-tasks bots/nqueens/nqueens.icc.omp-tasks.ref' \
+        'bots/sort/sort.ref.icc.omp-tasks bots/sort/sort.icc.omp-tasks.ref' \
+        'bots/sparselu_for/sparselu.ref.icc.omp-tasks bots/sparselu_for/sparselu.icc.for-omp-tasks.ref' \
+        'bots/sparselu_single/sparselu.ref.icc.omp-tasks bots/sparselu_single/sparselu.icc.single-omp-tasks.ref' \
+        'bots/strassen/strassen.ref.icc.omp-tasks bots/strassen/strassen.icc.omp-tasks.ref' \
+        'bots/uts/uts.ref.icc.omp-tasks bots/uts/uts.icc.omp-tasks.ref'; do
+    SRC=$(echo $FIX | awk '{ print $1 }')
+    DST=$(echo $FIX | awk '{ print $2 }')
+    mv $SRC $DST
 done
 
 echo Compilation completed!
@@ -135,16 +151,37 @@ touch $LOG_FILE
 mkdir -p test_logs
 
 for TEST in "${BENCHMARKS[@]}"; do
-    TESTNAME=$(basename $(echo $TEST | awk '{ print $1 }'))
+    TEST_EXE=$(echo $TEST | awk '{ print $1 }')
+    TEST_ARGS=$(echo $TEST | awk '{ $1 = ""; print $0 }')
+    TESTNAME=$(basename $TEST_EXE)
     TEST_LOG=test_logs/tmp.$TESTNAME.log
+    REF_LOG=test_logs/tmp.$TESTNAME.ref.log
+
     echo "Running $TESTNAME from $(pwd), \"$TEST\""
 
-    for TRIAL in $(seq 1 $NTRIALS); do
-        HCLIB_PROFILE_LAUNCH_BODY=1 $TEST 2>&1
-    done > $TEST_LOG
+    if [[ ! -f "$TEST_EXE" ]]; then
+        echo Missing executable $TEST_EXE
+    else
+        REF=$TEST_EXE.ref
 
-    T=$(cat $TEST_LOG | grep 'HCLIB TIME' | awk '{ print $3 }'| python $MEAN_PY)
-    echo $TESTNAME $T >> $LOG_FILE
+        for TRIAL in $(seq 1 $NTRIALS); do
+            HCLIB_PROFILE_LAUNCH_BODY=1 $TEST 2>&1
+        done > $TEST_LOG
+
+        T=$(cat $TEST_LOG | grep 'HCLIB TIME' | awk '{ print $3 }'| python $MEAN_PY)
+
+        if [[ ! -f "$REF" ]]; then
+            echo Missing reference executable $REF
+            echo $TESTNAME $T >> $LOG_FILE
+        else
+            for TRIAL in $(seq 1 $NTRIALS); do
+                $REF $TEST_ARGS 2>&1
+            done > $REF_LOG
+
+            REF_T=$(cat $REF_LOG | grep 'HCLIB TIME' | awk '{ print $3 }' | python $MEAN_PY)
+            echo $TESTNAME $T $REF_T >> $LOG_FILE
+        fi
+    fi
 done
 
 if [[ -z "$REFERENCE_LOG_FILE" || ! -f regression-logs-$MACHINE/$REFERENCE_LOG_FILE ]]; then

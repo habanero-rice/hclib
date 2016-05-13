@@ -1,3 +1,4 @@
+#include "hclib.h"
 #include "find_ellipse.h"
 #include "track_ellipse.h"
 
@@ -45,8 +46,7 @@ int main(int argc, char ** argv) {
 	MAT *grad_y = gradient_y(image_chopped);
 	
 	m_free(image_chopped);
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
 	// Get GICOV matrix corresponding to image gradients
 	long long GICOV_start_time = get_time();
 	MAT *gicov = ellipsematching(grad_x, grad_y);
@@ -262,7 +262,7 @@ int main(int argc, char ** argv) {
 	int num_snaxels = 20;
 	ellipsetrack(cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames);
 	printf("           Total: %.5f seconds\n", ((float) (get_time() - tracking_start_time)) / (float) (1000*1000*num_frames));
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 	
 	// Report total program execution time
     printf("\nTotal application run time: %.5f seconds\n", ((float) (get_time() - program_start_time)) / (1000*1000));

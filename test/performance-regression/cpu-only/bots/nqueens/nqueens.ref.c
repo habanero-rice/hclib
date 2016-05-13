@@ -1,3 +1,4 @@
+#include "hclib.h"
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -123,7 +124,7 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
 
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
- 		#pragma omp task untied private(n)
+ 		#pragma omp task untied firstprivate(n)
 		{
 	  		/* allocate a temporary array and copy <a> into it */
 	  		char * b = (char *)alloca(n * sizeof(char));
@@ -140,8 +141,7 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
 
 void find_queens (int size)
 {
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
 	total_count=0;
 
         bots_message("Computing N-Queens algorithm (n=%d) ", size);
@@ -156,7 +156,7 @@ void find_queens (int size)
 		}
 	}
 	bots_message(" completed!\n");
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 }
 
 

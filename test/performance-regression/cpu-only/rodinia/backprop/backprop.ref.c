@@ -1,3 +1,4 @@
+#include "hclib.h"
 /*
  ******************************************************************
  * HISTORY
@@ -344,8 +345,7 @@ void bpnn_train(net, eo, eh)
 BPNN *net;
 float *eo, *eh;
 {
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
   int in, hid, out;
   float out_err, hid_err;
 
@@ -372,7 +372,7 @@ float *eo, *eh;
       net->hidden_weights, net->hidden_prev_weights);
   bpnn_adjust_weights(net->hidden_delta, hid, net->input_units, in,
       net->input_weights, net->input_prev_weights);
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 
 }
 

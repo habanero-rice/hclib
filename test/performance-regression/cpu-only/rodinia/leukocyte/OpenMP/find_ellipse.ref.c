@@ -1,3 +1,4 @@
+#include "hclib.h"
 #include "find_ellipse.h"
 #include <sys/time.h>
 

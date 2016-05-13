@@ -121,6 +121,10 @@ static unsigned long long current_time_ns() {
 #endif
 }
 
+unsigned long long hclib_current_time_ns() {
+    return current_time_ns();
+}
+
 static void set_current_worker(int wid) {
     int err;
     if ((err = pthread_setspecific(ws_key, hc_context->workers[wid])) != 0) {

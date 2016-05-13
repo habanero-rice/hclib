@@ -1,3 +1,4 @@
+#include "hclib.h"
 // srad.cpp : Defines the entry point for the console application.
 //
 
@@ -107,8 +108,7 @@ int main(int argc, char* argv[])
    
 	printf("Start the SRAD main loop\n");
 
-#pragma omp_to_hclib
-	for (iter=0; iter< niter; iter++){
+	unsigned long long ____hclib_start_time = hclib_current_time_ns(); for (iter=0; iter< niter; iter++){
 		sum=0; sum2=0;     
 		for (i=r1; i<=r2; i++) {
             for (j=c1; j<=c2; j++) {
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
                 #endif //output
 	     }
 
-	}
+	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 
 
 #ifdef OUTPUT

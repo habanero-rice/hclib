@@ -1,3 +1,4 @@
+#include "hclib.h"
 #include <stdio.h>
 #include <omp.h>
 
@@ -33,8 +34,7 @@ void lud_diagonal_omp (float* a, int size, int offset)
 // implements block LU factorization 
 void lud_omp(float *a, int size)
 {
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
     int offset, chunk_idx, size_inter, chunks_in_inter_row, chunks_per_inter;
 
     for (offset = 0; offset < size - BS ; offset += BS)
@@ -140,5 +140,5 @@ void lud_omp(float *a, int size)
     }
 
     lud_diagonal_omp(a, size, offset);
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 }

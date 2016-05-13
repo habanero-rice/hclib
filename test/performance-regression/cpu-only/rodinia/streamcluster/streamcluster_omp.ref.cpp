@@ -1,3 +1,4 @@
+#include "hclib.h"
 /***********************************************
 	streamcluster_omp.cpp
 	: parallelized code of streamcluster using OpenMP
@@ -739,8 +740,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
     }
 
 
-#pragma omp_to_hclib
-  while(1) {
+  unsigned long long ____hclib_start_time = hclib_current_time_ns(); while(1) {
 		d++;
 #ifdef PRINTINFO
     if( pid==0 )
@@ -790,7 +790,7 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
       { 
 	break;
       }
-  }
+  } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 
   //clean up...
   if( pid==0 ) {

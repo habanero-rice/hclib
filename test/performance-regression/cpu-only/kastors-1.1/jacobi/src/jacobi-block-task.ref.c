@@ -1,3 +1,4 @@
+#include "hclib.h"
 # include "poisson.h"
 
 /* #pragma omp task/taskwait version of SWEEP. */

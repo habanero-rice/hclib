@@ -1,3 +1,4 @@
+#include "hclib.h"
 // # ifdef __cplusplus
 // extern "C" {
 // # endif
@@ -2019,8 +2020,7 @@ main(	int argc,
 	printf("Waiting for command\n");
 	printf("> ");
 
-#pragma omp_to_hclib
-	while (sscanf(commandPointer, "%c", &instruction) != EOF) {
+	unsigned long long ____hclib_start_time = hclib_current_time_ns(); while (sscanf(commandPointer, "%c", &instruction) != EOF) {
 	  commandPointer++;
 		switch (instruction) {
 			// ----------------------------------------40
@@ -2414,7 +2414,7 @@ main(	int argc,
 		}
 		printf("> ");
 
-	}
+	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 	printf("\n");
 
 	// ------------------------------------------------------------60

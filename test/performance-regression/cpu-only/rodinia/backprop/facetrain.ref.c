@@ -1,8 +1,4 @@
 #include "hclib.h"
-#ifdef __cplusplus
-#include "hclib_cpp.h"
-#include "hclib_system.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -14,22 +10,6 @@ extern void exit();
 
 int layer_size = 0;
 
-typedef struct _main_entrypoint_ctx {
-    BPNN (*net);
-    int i;
- } main_entrypoint_ctx;
-
-
-static void main_entrypoint(void *____arg) {
-    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
-    BPNN (*net); net = ctx->net;
-    int i; i = ctx->i;
-{
-    float out_err, hid_err;
-    bpnn_train_kernel(net, &out_err, &hid_err);
-  } ;     free(____arg);
-}
-
 backprop_face()
 {
   BPNN *net;
@@ -39,14 +19,13 @@ backprop_face()
   load(net);
   //entering the training kernel, only one iteration
   printf("Starting training kernel\n");
-main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-new_ctx->net = net;
-new_ctx->i = i;
-hclib_launch(main_entrypoint, new_ctx);
-
+  unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+    float out_err, hid_err;
+    bpnn_train_kernel(net, &out_err, &hid_err);
+  } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
   bpnn_free(net);
   printf("Training done\n");
-} 
+}
 
 int setup(argc, argv)
 int argc;

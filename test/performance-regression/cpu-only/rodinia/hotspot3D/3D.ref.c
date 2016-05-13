@@ -1,3 +1,4 @@
+#include "hclib.h"
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
@@ -248,8 +249,7 @@ int main(int argc, char** argv)
 
     memcpy(tempCopy,tempIn, size * sizeof(float));
 
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
     struct timeval start, stop;
     float time;
     gettimeofday(&start,NULL);
@@ -261,7 +261,7 @@ int main(int argc, char** argv)
     float acc = accuracy(tempOut,answer,numRows*numCols*layers);
     printf("Time: %.3f (s)\n",time);
     printf("Accuracy: %e\n",acc);
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
     writeoutput(tempOut,numRows, numCols, layers, ofile);
     free(tempIn);
     free(tempOut); free(powerIn);

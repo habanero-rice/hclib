@@ -1,3 +1,4 @@
+#include "hclib.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -83,8 +84,7 @@ int main(int argc, char* argv[]) {
 	float *z;
 	z  = (float *) malloc(REC_WINDOW * sizeof(float));
 
-#pragma omp_to_hclib
-	while(!done) {
+	unsigned long long ____hclib_start_time = hclib_current_time_ns(); while(!done) {
 		//Read in REC_WINDOW number of records
 		rec_count = fread(sandbox, REC_LENGTH, REC_WINDOW, fp);
 		if( rec_count != REC_WINDOW ) {
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 			  	neighbors[max_idx].dist = z[i];
 			}
 		}
-	}//End while loop
+	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);//End while loop
 
 	fprintf(stderr, "The %d nearest neighbors are:\n", k);
 	for( j = 0 ; j < k ; j++ ) {

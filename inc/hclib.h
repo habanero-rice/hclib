@@ -62,6 +62,7 @@ size_t hclib_current_worker_backlog();
 
 void hclib_launch(async_fct_t fct_ptr, void * arg);
 
+unsigned long long hclib_current_time_ns();
 
 /**
  * Register a function to be called when a thread in the hclib runtime is idle,

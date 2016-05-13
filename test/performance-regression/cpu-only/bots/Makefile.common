@@ -27,8 +27,8 @@ ifeq ($(config_ready),)
 endif
 
 include $(BASE_DIR)/config/make.config
-OMPC=g++ -fopenmp
-OMPLINK=g++ -fopenmp
+OMPC=icpc -fopenmp
+OMPLINK=icpc -fopenmp
 
 # Don't change below this line
 ##############################

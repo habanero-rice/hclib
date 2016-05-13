@@ -8,7 +8,7 @@ endif
 
 # link objects(binaries) together
 heartwall.ref: main.ref.o ./AVI/avilib.o ./AVI/avimod.o
-	g++ main.ref.o ./AVI/avilib.o ./AVI/avimod.o -lm -fopenmp -o heartwall $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	g++ main.ref.o ./AVI/avilib.o ./AVI/avimod.o -lm -fopenmp -o heartwall.ref $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 # compile main function file into object (binary)
 main.ref.o: main.ref.c define.ref.c kernel.ref.c

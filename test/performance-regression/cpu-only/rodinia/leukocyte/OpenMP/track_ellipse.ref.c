@@ -1,3 +1,4 @@
+#include "hclib.h"
 #include "track_ellipse.h"
 
 

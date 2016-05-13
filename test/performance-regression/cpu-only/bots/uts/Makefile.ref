@@ -19,7 +19,7 @@
 ##############################################################################################
 
 LIBS = -lm
-PROGRAM_OBJS=uts.o brg_sha1.o
+PROGRAM_OBJS=uts.ref.o brg_sha1.o
 PROGRAM=uts.ref
 
 #CUTOFF_VERSIONS = manual if_clause

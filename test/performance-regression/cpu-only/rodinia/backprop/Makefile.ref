@@ -7,14 +7,14 @@ CC = gcc
 CC_FLAGS = -g -fopenmp -O2 $(HCLIB_CXXFLAGS)
 
 
-backprop.ref: backprop.ref.o facetrain.o imagenet.o backprop_kernel.o 
+backprop.ref: backprop.ref.o facetrain.ref.o imagenet.o backprop_kernel.o 
 	g++ $(CC_FLAGS) $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o backprop.ref -lm
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c
 
-facetrain.o: facetrain.c backprop.h
-	$(CC) $(CC_FLAGS) facetrain.c -c
+facetrain.ref.o: facetrain.ref.c backprop.h
+	$(CC) $(CC_FLAGS) facetrain.ref.c -c
 	
 backprop.ref.o: backprop.c backprop.h
 	$(CC) $(CC_FLAGS) backprop.ref.c -c

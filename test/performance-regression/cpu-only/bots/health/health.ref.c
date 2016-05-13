@@ -1,3 +1,4 @@
+#include "hclib.h"
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -547,8 +548,7 @@ int check_village(struct Village *top)
 void sim_village_main_par(struct Village *top)
 {
     long i;
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
 #pragma omp parallel
         {
 #pragma omp single
@@ -559,6 +559,6 @@ void sim_village_main_par(struct Village *top)
                 }
             }
         }
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 }
 

@@ -1,3 +1,4 @@
+#include "hclib.h"
 // Copyright 2009, Andrew Corrigan, acorriga@gmu.edu
 // This code is from the AIAA-2009-4001 paper
 
@@ -338,8 +339,7 @@ int main(int argc, char** argv)
 	}
 	const char* data_file_name = argv[1];
 
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
 	// set far field conditions
 	{
 		const double angle_of_attack = double(3.1415926535897931 / 180.0) * double(deg_angle_of_attack);
@@ -456,7 +456,7 @@ int main(int argc, char** argv)
 	dealloc<double>(old_variables);
 	dealloc<double>(fluxes);
 	dealloc<double>(step_factors);
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 
 	std::cout << "Done..." << std::endl;
 

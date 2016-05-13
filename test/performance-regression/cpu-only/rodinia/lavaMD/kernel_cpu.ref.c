@@ -1,3 +1,4 @@
+#include "hclib.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -103,8 +104,7 @@ void  kernel_cpu(	par_str par,
 
 	time3 = get_time();
 
-#pragma omp_to_hclib
-    {
+    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
 
 	//======================================================================================================================================================150
 	//	PROCESS INTERACTIONS
@@ -195,7 +195,7 @@ void  kernel_cpu(	par_str par,
 		} // for k
 
 	} // for l
-    }
+    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 
 	time4 = get_time();
 
