@@ -299,25 +299,25 @@ ELM *binsplit(ELM val, ELM *low, ELM *high)
 
 
 typedef struct _pragma355_omp_task {
-    ELM (*(*split1_ptr));
-    ELM (*(*split2_ptr));
+    long (*(*split1_ptr));
+    long (*(*split2_ptr));
     long (*lowsize_ptr);
-    ELM (*(*low1_ptr));
-    ELM (*(*high1_ptr));
-    ELM (*(*low2_ptr));
-    ELM (*(*high2_ptr));
-    ELM (*(*lowdest_ptr));
+    long (*(*low1_ptr));
+    long (*(*high1_ptr));
+    long (*(*low2_ptr));
+    long (*(*high2_ptr));
+    long (*(*lowdest_ptr));
  } pragma355_omp_task;
 
 typedef struct _pragma357_omp_task {
-    ELM (*(*split1_ptr));
-    ELM (*(*split2_ptr));
+    long (*(*split1_ptr));
+    long (*(*split2_ptr));
     long (*lowsize_ptr);
-    ELM (*(*low1_ptr));
-    ELM (*(*high1_ptr));
-    ELM (*(*low2_ptr));
-    ELM (*(*high2_ptr));
-    ELM (*(*lowdest_ptr));
+    long (*(*low1_ptr));
+    long (*(*high1_ptr));
+    long (*(*low2_ptr));
+    long (*(*high2_ptr));
+    long (*(*lowdest_ptr));
  } pragma357_omp_task;
 
 static void pragma355_omp_task_hclib_async(void *____arg);
@@ -424,91 +424,91 @@ cilkmerge_par((*(ctx->split1_ptr)) + 1, (*(ctx->high1_ptr)), (*(ctx->split2_ptr)
 
 typedef struct _pragma391_omp_task {
     long (*quarter_ptr);
-    ELM (*(*A_ptr));
-    ELM (*(*B_ptr));
-    ELM (*(*C_ptr));
-    ELM (*(*D_ptr));
-    ELM (*(*tmpA_ptr));
-    ELM (*(*tmpB_ptr));
-    ELM (*(*tmpC_ptr));
-    ELM (*(*tmpD_ptr));
-    ELM (*(*low_ptr));
-    ELM (*(*tmp_ptr));
+    long (*(*A_ptr));
+    long (*(*B_ptr));
+    long (*(*C_ptr));
+    long (*(*D_ptr));
+    long (*(*tmpA_ptr));
+    long (*(*tmpB_ptr));
+    long (*(*tmpC_ptr));
+    long (*(*tmpD_ptr));
+    long (*(*low_ptr));
+    long (*(*tmp_ptr));
     long (*size_ptr);
  } pragma391_omp_task;
 
 typedef struct _pragma393_omp_task {
     long (*quarter_ptr);
-    ELM (*(*A_ptr));
-    ELM (*(*B_ptr));
-    ELM (*(*C_ptr));
-    ELM (*(*D_ptr));
-    ELM (*(*tmpA_ptr));
-    ELM (*(*tmpB_ptr));
-    ELM (*(*tmpC_ptr));
-    ELM (*(*tmpD_ptr));
-    ELM (*(*low_ptr));
-    ELM (*(*tmp_ptr));
+    long (*(*A_ptr));
+    long (*(*B_ptr));
+    long (*(*C_ptr));
+    long (*(*D_ptr));
+    long (*(*tmpA_ptr));
+    long (*(*tmpB_ptr));
+    long (*(*tmpC_ptr));
+    long (*(*tmpD_ptr));
+    long (*(*low_ptr));
+    long (*(*tmp_ptr));
     long (*size_ptr);
  } pragma393_omp_task;
 
 typedef struct _pragma395_omp_task {
     long (*quarter_ptr);
-    ELM (*(*A_ptr));
-    ELM (*(*B_ptr));
-    ELM (*(*C_ptr));
-    ELM (*(*D_ptr));
-    ELM (*(*tmpA_ptr));
-    ELM (*(*tmpB_ptr));
-    ELM (*(*tmpC_ptr));
-    ELM (*(*tmpD_ptr));
-    ELM (*(*low_ptr));
-    ELM (*(*tmp_ptr));
+    long (*(*A_ptr));
+    long (*(*B_ptr));
+    long (*(*C_ptr));
+    long (*(*D_ptr));
+    long (*(*tmpA_ptr));
+    long (*(*tmpB_ptr));
+    long (*(*tmpC_ptr));
+    long (*(*tmpD_ptr));
+    long (*(*low_ptr));
+    long (*(*tmp_ptr));
     long (*size_ptr);
  } pragma395_omp_task;
 
 typedef struct _pragma397_omp_task {
     long (*quarter_ptr);
-    ELM (*(*A_ptr));
-    ELM (*(*B_ptr));
-    ELM (*(*C_ptr));
-    ELM (*(*D_ptr));
-    ELM (*(*tmpA_ptr));
-    ELM (*(*tmpB_ptr));
-    ELM (*(*tmpC_ptr));
-    ELM (*(*tmpD_ptr));
-    ELM (*(*low_ptr));
-    ELM (*(*tmp_ptr));
+    long (*(*A_ptr));
+    long (*(*B_ptr));
+    long (*(*C_ptr));
+    long (*(*D_ptr));
+    long (*(*tmpA_ptr));
+    long (*(*tmpB_ptr));
+    long (*(*tmpC_ptr));
+    long (*(*tmpD_ptr));
+    long (*(*low_ptr));
+    long (*(*tmp_ptr));
     long (*size_ptr);
  } pragma397_omp_task;
 
 typedef struct _pragma401_omp_task {
     long (*quarter_ptr);
-    ELM (*(*A_ptr));
-    ELM (*(*B_ptr));
-    ELM (*(*C_ptr));
-    ELM (*(*D_ptr));
-    ELM (*(*tmpA_ptr));
-    ELM (*(*tmpB_ptr));
-    ELM (*(*tmpC_ptr));
-    ELM (*(*tmpD_ptr));
-    ELM (*(*low_ptr));
-    ELM (*(*tmp_ptr));
+    long (*(*A_ptr));
+    long (*(*B_ptr));
+    long (*(*C_ptr));
+    long (*(*D_ptr));
+    long (*(*tmpA_ptr));
+    long (*(*tmpB_ptr));
+    long (*(*tmpC_ptr));
+    long (*(*tmpD_ptr));
+    long (*(*low_ptr));
+    long (*(*tmp_ptr));
     long (*size_ptr);
  } pragma401_omp_task;
 
 typedef struct _pragma403_omp_task {
     long (*quarter_ptr);
-    ELM (*(*A_ptr));
-    ELM (*(*B_ptr));
-    ELM (*(*C_ptr));
-    ELM (*(*D_ptr));
-    ELM (*(*tmpA_ptr));
-    ELM (*(*tmpB_ptr));
-    ELM (*(*tmpC_ptr));
-    ELM (*(*tmpD_ptr));
-    ELM (*(*low_ptr));
-    ELM (*(*tmp_ptr));
+    long (*(*A_ptr));
+    long (*(*B_ptr));
+    long (*(*C_ptr));
+    long (*(*D_ptr));
+    long (*(*tmpA_ptr));
+    long (*(*tmpB_ptr));
+    long (*(*tmpC_ptr));
+    long (*(*tmpD_ptr));
+    long (*(*low_ptr));
+    long (*(*tmp_ptr));
     long (*size_ptr);
  } pragma403_omp_task;
 

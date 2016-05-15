@@ -53,23 +53,23 @@ int num_omp_threads;
  * by one time step
  */
 typedef struct _pragma69_omp_parallel {
-    FLOAT delta;
+    float delta;
     int r;
     int c;
     int chunk;
     int num_chunk;
     int chunks_in_row;
     int (*chunks_in_col_ptr);
-    FLOAT (*(*result_ptr));
-    FLOAT (*(*temp_ptr));
-    FLOAT (*(*power_ptr));
+    float (*(*result_ptr));
+    float (*(*temp_ptr));
+    float (*(*power_ptr));
     int row;
     int col;
-    FLOAT (*Cap_1_ptr);
-    FLOAT (*Rx_1_ptr);
-    FLOAT (*Ry_1_ptr);
-    FLOAT (*Rz_1_ptr);
-    FLOAT (*step_ptr);
+    float (*Cap_1_ptr);
+    float (*Rx_1_ptr);
+    float (*Ry_1_ptr);
+    float (*Rz_1_ptr);
+    float (*step_ptr);
  } pragma69_omp_parallel;
 
 static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0);
@@ -116,7 +116,7 @@ free(new_ctx);
 } 
 static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
     pragma69_omp_parallel *ctx = (pragma69_omp_parallel *)____arg;
-    FLOAT delta; delta = ctx->delta;
+    float delta; delta = ctx->delta;
     int r; r = ctx->r;
     int c; c = ctx->c;
     int chunk; chunk = ctx->chunk;
@@ -324,9 +324,9 @@ typedef struct _main_entrypoint_ctx {
     int grid_cols;
     int sim_time;
     int i;
-    FLOAT (*temp);
-    FLOAT (*power);
-    FLOAT (*result);
+    float (*temp);
+    float (*power);
+    float (*result);
     char (*tfile);
     char (*pfile);
     char (*ofile);
@@ -342,9 +342,9 @@ static void main_entrypoint(void *____arg) {
     int grid_cols; grid_cols = ctx->grid_cols;
     int sim_time; sim_time = ctx->sim_time;
     int i; i = ctx->i;
-    FLOAT (*temp); temp = ctx->temp;
-    FLOAT (*power); power = ctx->power;
-    FLOAT (*result); result = ctx->result;
+    float (*temp); temp = ctx->temp;
+    float (*power); power = ctx->power;
+    float (*result); result = ctx->result;
     char (*tfile); tfile = ctx->tfile;
     char (*pfile); pfile = ctx->pfile;
     char (*ofile); ofile = ctx->ofile;

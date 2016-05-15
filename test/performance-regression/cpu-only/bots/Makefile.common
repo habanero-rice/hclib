@@ -27,8 +27,11 @@ ifeq ($(config_ready),)
 endif
 
 include $(BASE_DIR)/config/make.config
-OMPC=icpc -fopenmp
-OMPLINK=icpc -fopenmp
+
+HCLIB_PERF_CXX?=icpc
+
+OMPC=$(HCLIB_PERF_CXX) -fopenmp
+OMPLINK=$(HCLIB_PERF_CXX) -fopenmp
 
 # Don't change below this line
 ##############################

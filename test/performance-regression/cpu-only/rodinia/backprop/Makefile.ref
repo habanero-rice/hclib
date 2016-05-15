@@ -3,12 +3,13 @@ include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
 # C compiler
-CC = gcc
-CC_FLAGS = -g -fopenmp -O2 $(HCLIB_CXXFLAGS)
+HCLIB_PERF_CC?=icc
+CC = $(HCLIB_PERF_CC)
+CC_FLAGS=-g -fopenmp -O2 $(HCLIB_CXXFLAGS)
 
 
 backprop.ref: backprop.ref.o facetrain.ref.o imagenet.o backprop_kernel.o 
-	g++ $(CC_FLAGS) $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o backprop.ref -lm
+	$(HCLIB_PERF_CC) $(CC_FLAGS) $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o backprop.ref -lm
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c

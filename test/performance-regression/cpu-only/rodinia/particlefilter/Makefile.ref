@@ -2,9 +2,10 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 #makefile
+HCLIB_PERF_CXX?=icpc
 
 particle_filter.ref: ex_particle_OPENMP_seq.ref.c
-	g++ -O3 -ffast-math -fopenmp ex_particle_OPENMP_seq.ref.c -o particle_filter.ref -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(HCLIB_PERF_CXX) -O3 -ffast-math -fopenmp ex_particle_OPENMP_seq.ref.c -o particle_filter.ref -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

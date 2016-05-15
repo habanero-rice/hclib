@@ -292,7 +292,7 @@ static void pragma190_omp_parallel_hclib_async(void *____arg, const int ___iter0
     i = ___iter0;
 {
 	        /* find the index of nestest cluster centers */					
-            int tid = hclib_get_current_worker();				
+            int tid = hclib_get_current_worker();
 	        index = find_nearest_point((*(ctx->feature_ptr))[i],
 		             nfeatures,
 		             (*(ctx->clusters_ptr)),

@@ -43,16 +43,16 @@ int main( int argc, char** argv)
 ////////////////////////////////////////////////////////////////////////////////
 typedef struct _pragma133_omp_parallel {
     int (*k_ptr);
-    _Bool (*stop_ptr);
+    bool (*stop_ptr);
     int (*no_of_nodes_ptr);
     int (*edge_list_size_ptr);
     char (*(*input_f_ptr));
     int (*num_omp_threads_ptr);
     int (*source_ptr);
     Node (*h_graph_nodes);
-    _Bool (*h_graph_mask);
-    _Bool (*h_updating_graph_mask);
-    _Bool (*h_graph_visited);
+    bool (*h_graph_mask);
+    bool (*h_updating_graph_mask);
+    bool (*h_graph_visited);
     int (*start_ptr);
     int (*edgeno_ptr);
     int (*id_ptr);
@@ -65,16 +65,16 @@ typedef struct _pragma133_omp_parallel {
 
 typedef struct _pragma150_omp_parallel {
     int (*k_ptr);
-    _Bool (*stop_ptr);
+    bool (*stop_ptr);
     int (*no_of_nodes_ptr);
     int (*edge_list_size_ptr);
     char (*(*input_f_ptr));
     int (*num_omp_threads_ptr);
     int (*source_ptr);
     Node (*(*h_graph_nodes_ptr));
-    _Bool (*h_graph_mask);
-    _Bool (*h_updating_graph_mask);
-    _Bool (*h_graph_visited);
+    bool (*h_graph_mask);
+    bool (*h_updating_graph_mask);
+    bool (*h_graph_visited);
     int (*start_ptr);
     int (*edgeno_ptr);
     int (*id_ptr);
@@ -94,9 +94,9 @@ typedef struct _main_entrypoint_ctx {
     int num_omp_threads;
     int source;
     Node (*h_graph_nodes);
-    _Bool (*h_graph_mask);
-    _Bool (*h_updating_graph_mask);
-    _Bool (*h_graph_visited);
+    bool (*h_graph_mask);
+    bool (*h_updating_graph_mask);
+    bool (*h_graph_visited);
     int start;
     int edgeno;
     int id;
@@ -116,9 +116,9 @@ static void main_entrypoint(void *____arg) {
     int num_omp_threads; num_omp_threads = ctx->num_omp_threads;
     int source; source = ctx->source;
     Node (*h_graph_nodes); h_graph_nodes = ctx->h_graph_nodes;
-    _Bool (*h_graph_mask); h_graph_mask = ctx->h_graph_mask;
-    _Bool (*h_updating_graph_mask); h_updating_graph_mask = ctx->h_updating_graph_mask;
-    _Bool (*h_graph_visited); h_graph_visited = ctx->h_graph_visited;
+    bool (*h_graph_mask); h_graph_mask = ctx->h_graph_mask;
+    bool (*h_updating_graph_mask); h_updating_graph_mask = ctx->h_updating_graph_mask;
+    bool (*h_graph_visited); h_graph_visited = ctx->h_graph_visited;
     int start; start = ctx->start;
     int edgeno; edgeno = ctx->edgeno;
     int id; id = ctx->id;
@@ -321,9 +321,9 @@ hclib_launch(main_entrypoint, new_ctx);
 static void pragma133_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
     pragma133_omp_parallel *ctx = (pragma133_omp_parallel *)____arg;
     Node (*h_graph_nodes); h_graph_nodes = ctx->h_graph_nodes;
-    _Bool (*h_graph_mask); h_graph_mask = ctx->h_graph_mask;
-    _Bool (*h_updating_graph_mask); h_updating_graph_mask = ctx->h_updating_graph_mask;
-    _Bool (*h_graph_visited); h_graph_visited = ctx->h_graph_visited;
+    bool (*h_graph_mask); h_graph_mask = ctx->h_graph_mask;
+    bool (*h_updating_graph_mask); h_updating_graph_mask = ctx->h_updating_graph_mask;
+    bool (*h_graph_visited); h_graph_visited = ctx->h_graph_visited;
     int (*h_graph_edges); h_graph_edges = ctx->h_graph_edges;
     int (*h_cost); h_cost = ctx->h_cost;
     do {
@@ -347,9 +347,9 @@ static void pragma133_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 static void pragma150_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
     pragma150_omp_parallel *ctx = (pragma150_omp_parallel *)____arg;
-    _Bool (*h_graph_mask); h_graph_mask = ctx->h_graph_mask;
-    _Bool (*h_updating_graph_mask); h_updating_graph_mask = ctx->h_updating_graph_mask;
-    _Bool (*h_graph_visited); h_graph_visited = ctx->h_graph_visited;
+    bool (*h_graph_mask); h_graph_mask = ctx->h_graph_mask;
+    bool (*h_updating_graph_mask); h_updating_graph_mask = ctx->h_updating_graph_mask;
+    bool (*h_graph_visited); h_graph_visited = ctx->h_graph_visited;
     do {
     int tid;     tid = ___iter0;
 {

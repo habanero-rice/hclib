@@ -1,5 +1,3 @@
-all: OpenMP/leukocyte.ref
-
 OpenMP/leukocyte.ref:
 	cd OpenMP; make -f Makefile.ref
 

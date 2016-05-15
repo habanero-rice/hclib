@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "backprop.h"
 
-extern layer_size;
+extern int layer_size;
 
 load(net)
 BPNN *net;

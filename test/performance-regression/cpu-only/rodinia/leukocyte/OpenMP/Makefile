@@ -5,9 +5,10 @@ ifdef OUTPUT
 override OUTPUT = -DOUTPUT
 endif
 
+HCLIB_PERF_CC?=icc
+CC = $(HCLIB_PERF_CC)
 
 # C compiler
-CC = gcc
 CC_FLAGS = -g -O3 -Wall -fopenmp -I$(MATRIX_DIR) $(HCLIB_CXXFLAGS)
 
 # Matrix library path
@@ -15,7 +16,7 @@ MATRIX_DIR = ../meschach_lib
 
 
 leukocyte: detect_main.o avilib.o find_ellipse.o track_ellipse.o misc_math.o $(MATRIX_DIR)/meschach.a
-	g++ $(CC_FLAGS) -lm avilib.o find_ellipse.o track_ellipse.o misc_math.o detect_main.o -o leukocyte -lm $(MATRIX_DIR)/meschach.a -lpthread $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(CC) $(CC_FLAGS) -lm avilib.o find_ellipse.o track_ellipse.o misc_math.o detect_main.o -o leukocyte -lm $(MATRIX_DIR)/meschach.a -lpthread $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 %.o: %.c
 	$(CC) $(OUTPUT) $(CC_FLAGS) $< -c

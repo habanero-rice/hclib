@@ -1,7 +1,8 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
-CC = g++
+HCLIB_PERF_CXX?=icpc
+CC = $(HCLIB_PERF_CXX)
 SRC = pathfinder.ref.cpp
 EXE = pathfinder.ref
 FLAGS = -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)

@@ -101,10 +101,12 @@ void run(int argc, char** argv)
         #pragma omp parallel for private(min)
         for(int n = 0; n < cols; n++){
           min = src[n];
-          if (n > 0)
-            min = MIN(min, src[n-1]);
-          if (n < cols-1)
-            min = MIN(min, src[n+1]);
+          if (n > 0) {
+              min = src[n - 1] < min ? src[n - 1] : min;
+          }
+          if (n < cols-1) {
+              min = src[n + 1] < min ? src[n + 1] : min;
+          }
           dst[n] = wall[t+1][n]+min;
         }
     } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);

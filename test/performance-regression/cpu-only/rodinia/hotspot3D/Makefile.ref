@@ -1,12 +1,13 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
-CC = gcc
+HCLIB_PERF_CXX?=icpc
+CC = $(HCLIB_PERF_CXX)
 CCFLAGS = -g -fopenmp -O3
 OUTPUT = *.out
 
 3D.ref:
-	g++ -o 3D.ref $(CCFLAGS) 3D.ref.c -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(HCLIB_PERF_CXX) -o 3D.ref $(CCFLAGS) 3D.ref.c -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 clean:
 	rm -f 3D.ref $(OUTPUT)

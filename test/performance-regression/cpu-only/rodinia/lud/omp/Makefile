@@ -5,6 +5,8 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 #
 #
 
+HCLIB_PERF_CXX?=icpc
+
 # DEBUG can be set to YES to include debugging info, or NO otherwise
 DEBUG          := NO
 
@@ -18,8 +20,8 @@ EXECUTABLE      := lud_omp
 SOURCES         := lud.c lud_omp.c ../common/common.c 
 
 # ------------  compiler  ------------------------------------------------------
-CC              := gcc
-CXX             := g++
+CC              := $(HCLIB_PERF_CXX)
+CXX             := $(HCLIB_PERF_CXX)
 
 # ------------  compiler flags  ------------------------------------------------
 DEBUG_CFLAGS    := -Wall -O0 -g

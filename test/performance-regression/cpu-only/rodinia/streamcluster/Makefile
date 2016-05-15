@@ -11,10 +11,12 @@ ifdef version
   endif
 endif
 
+HCLIB_PERF_CXX?=icpc
+
 all: omp
 
 omp:
-	g++ -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(HCLIB_PERF_CXX) -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

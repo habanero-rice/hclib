@@ -2,13 +2,15 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
+HCLIB_PERF_CC?=icc
+CC = $(HCLIB_PERF_CC)
+
 # C compiler
-CC = gcc
 CC_FLAGS = -g -fopenmp -O2 $(HCLIB_CXXFLAGS)
 
 
 backprop: backprop.o facetrain.o imagenet.o backprop_kernel.o 
-	g++ $(CC_FLAGS) backprop.o facetrain.o \
+	$(CC) $(CC_FLAGS) backprop.o facetrain.o \
 		imagenet.o backprop_kernel.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o backprop -lm
 
 %.o: %.[ch]

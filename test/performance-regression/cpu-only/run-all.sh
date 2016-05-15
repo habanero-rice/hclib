@@ -12,6 +12,10 @@
 #SBATCH --partition=commons
 #SBATCH --exclusive
 
+# Setting the environment variables HCLIB_PERF_CXX and HCLIB_PERF_CC will
+# control which compilers are used for these tests. By default the Intel
+# compilers are used.
+
 set -e
 
 if [[ -z "$RODINIA_DATA_DIR" ]]; then
@@ -111,7 +115,6 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/lavaMD/lavaMD -cores 4 -boxes1d 10"
         "rodinia/leukocyte/OpenMP/leukocyte 5 4 $RODINIA_DATA_DIR/leukocyte/testfile.avi"
         "rodinia/lud/omp/lud_omp -s 8000"
-        "rodinia/nn/nn rodinia/nn/filelist_4 5 30 90"
         "rodinia/nw/needle 32768 10 2"
         "rodinia/particlefilter/particle_filter -x 128 -y 128 -z 128 -np 10000"
         "rodinia/pathfinder/pathfinder 100000 100"
@@ -122,7 +125,7 @@ BENCHMARKS=("cilksort 100000000"
         "bots/fft/fft.icc.omp-tasks"
         "bots/fib/fib.icc.omp-tasks -n 30"
         "bots/floorplan/floorplan.icc.omp-tasks -f $BOTS_ROOT/inputs/floorplan/input.20"
-        "bots/health/health.icc.omp-tasks -f $BOTS_ROOT/inputs/health/large.input"
+        "bots/health/health.icc.omp-tasks -f $BOTS_ROOT/inputs/health/medium.input"
         "bots/nqueens/nqueens.icc.omp-tasks -n 13"
         "bots/sort/sort.icc.omp-tasks -n 100000000"
         "bots/sparselu_for/sparselu.icc.for-omp-tasks -n 50"

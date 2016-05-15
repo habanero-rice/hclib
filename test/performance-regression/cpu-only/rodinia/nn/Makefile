@@ -1,8 +1,10 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
-LOCAL_CC = gcc -g -O3 -Wall
-CC = gcc
+
+HCLIB_PERF_CXX?=icpc
+CC = $(HCLIB_PERF_CXX)
+LOCAL_CC = $(CC) -g -O3 -Wall
 CFLAGS = -lm -fopenmp -Wall $(HCLIB_CXXFLAGS)
 
 
@@ -12,7 +14,7 @@ clean :
 	rm -rf *.o nn hurricane_gen
 
 nn : nn_openmp.c
-	g++ -o $@ $< $(LDFLAGS) $(CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(CC) -o $@ $< $(LDFLAGS) $(CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 hurricane_gen : hurricane_gen.c
 	$(LOCAL_CC) -o $@ $< -lm

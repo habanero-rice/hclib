@@ -21,8 +21,8 @@ typedef struct _pragma73_omp_parallel {
     int i;
     int j;
     int (*MatrixDim_ptr);
-    FP_NUMBER (*(*(*L_ptr)));
-    FP_NUMBER (*(*(*U_ptr)));
+    float (*(*(*L_ptr)));
+    float (*(*(*U_ptr)));
  } pragma73_omp_parallel;
 
 typedef struct _pragma89_omp_parallel {
@@ -30,10 +30,10 @@ typedef struct _pragma89_omp_parallel {
     int j;
     int k;
     int (*MatrixDim_ptr);
-    FP_NUMBER sum;
-    FP_NUMBER (*(*(*L_ptr)));
-    FP_NUMBER (*(*(*U_ptr)));
-    FP_NUMBER (*(*(*A_ptr)));
+    float sum;
+    float (*(*(*L_ptr)));
+    float (*(*(*U_ptr)));
+    float (*(*(*A_ptr)));
  } pragma89_omp_parallel;
 
 static void pragma73_omp_parallel_hclib_async(void *____arg, const int ___iter0);
@@ -190,7 +190,7 @@ static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0)
     int i; i = ctx->i;
     int j; j = ctx->j;
     int k; k = ctx->k;
-    FP_NUMBER sum; sum = ctx->sum;
+    float sum; sum = ctx->sum;
     do {
     i = ___iter0;
 {

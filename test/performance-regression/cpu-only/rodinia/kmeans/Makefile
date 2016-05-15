@@ -2,11 +2,13 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 # C compiler
-CC = gcc
+
+HCLIB_PERF_CC?=icc
+CC = $(HCLIB_PERF_CC)
 CC_FLAGS = -g -fopenmp -O0
 
 kmeans: cluster.o getopt.o kmeans.o kmeans_clustering.o 
-	g++ $(CC_FLAGS) cluster.o getopt.o kmeans.o kmeans_clustering.o  -o kmeans $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(CC) $(CC_FLAGS) cluster.o getopt.o kmeans.o kmeans_clustering.o  -o kmeans $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c $(HCLIB_CXXFLAGS)
