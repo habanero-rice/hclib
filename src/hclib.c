@@ -15,25 +15,27 @@ extern "C" {
 
 /*** START ASYNC IMPLEMENTATION ***/
 
-void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
-        hclib_locale_t *locale) {
+void hclib_async(generic_frame_ptr fp, void *arg,
+        hclib_future_t *singleton_future_0, hclib_locale_t *locale) {
 
-    if (future_list) {
+    if (singleton_future_0) {
         hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
         task->async_task._fp = fp;
-        task->async_task.future_list = NULL;
+        task->async_task.singleton_future_0 = NULL;
+        task->async_task.singleton_future_1 = NULL;
         task->async_task.args = arg;
         task->async_task.locale = NULL;
 
         if (locale) {
-            spawn_await_at((hclib_task_t *)task, future_list, locale);
+            spawn_await_at((hclib_task_t *)task, singleton_future_0, NULL, locale);
         } else {
-            spawn_await((hclib_task_t *)task, future_list);
+            spawn_await((hclib_task_t *)task, singleton_future_0, NULL);
         }
     } else {
         hclib_task_t *task = malloc(sizeof(hclib_task_t));
         task->_fp = fp;
-        task->future_list = NULL;
+        task->singleton_future_0 = NULL;
+        task->singleton_future_1 = NULL;
         task->args = arg;
         task->locale = NULL;
 
@@ -58,12 +60,12 @@ static void future_caller(void *in) {
 }
 
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t **future_list, hclib_locale_t *locale) {
+        hclib_future_t *future, hclib_locale_t *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, future_list, locale);
+    hclib_async(future_caller, wrapper, future, locale);
 
     return hclib_get_future_for_promise(&wrapper->event);
 }
@@ -161,7 +163,8 @@ void forasync1D_recursive(void *forasync_arg) {
         forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0.low = mid;
         new_forasync_task->def.loop0.high = high0;
@@ -202,7 +205,8 @@ void forasync2D_recursive(void *forasync_arg) {
         new_forasync_task = allocate_forasync2D_task();
         new_forasync_task->forasync_task._fp = forasync2D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         hclib_loop_domain_t new_loop0 = {mid, high0, stride0, tile0};;
         new_forasync_task->def.loop0 = new_loop0;
@@ -215,7 +219,8 @@ void forasync2D_recursive(void *forasync_arg) {
         new_forasync_task = allocate_forasync2D_task();
         new_forasync_task->forasync_task._fp = forasync2D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         hclib_loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
@@ -261,7 +266,8 @@ void forasync3D_recursive(void *forasync_arg) {
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         hclib_loop_domain_t new_loop0 = {mid, high0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
@@ -275,7 +281,8 @@ void forasync3D_recursive(void *forasync_arg) {
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         hclib_loop_domain_t new_loop1 = {mid, high1, stride1, tile1};
@@ -289,7 +296,8 @@ void forasync3D_recursive(void *forasync_arg) {
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         new_forasync_task->def.loop0 = loop0;
         new_forasync_task->def.loop1 = loop1;
@@ -327,7 +335,8 @@ void forasync1D_flat(void *forasync_arg) {
         forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_runner;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         hclib_loop_domain_t new_loop0 = {low0, low0+tile0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
@@ -341,7 +350,8 @@ void forasync1D_flat(void *forasync_arg) {
         forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_runner;
         new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-        new_forasync_task->forasync_task.future_list = NULL;
+        new_forasync_task->forasync_task.singleton_future_0 = NULL;
+        new_forasync_task->forasync_task.singleton_future_1 = NULL;
         new_forasync_task->def.base.user = forasync->base.user;
         hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
         new_forasync_task->def.loop0 = new_loop0;
@@ -367,7 +377,8 @@ void forasync2D_flat(void *forasync_arg) {
             forasync2D_task_t *new_forasync_task = allocate_forasync2D_task();
             new_forasync_task->forasync_task._fp = forasync2D_runner;
             new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-            new_forasync_task->forasync_task.future_list = NULL;
+            new_forasync_task->forasync_task.singleton_future_0 = NULL;
+            new_forasync_task->forasync_task.singleton_future_1 = NULL;
             new_forasync_task->def.base.user = forasync->base.user;
             hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
             new_forasync_task->def.loop0 = new_loop0;
@@ -402,7 +413,8 @@ void forasync3D_flat(void *forasync_arg) {
                 forasync3D_task_t *new_forasync_task = allocate_forasync3D_task();
                 new_forasync_task->forasync_task._fp = forasync3D_runner;
                 new_forasync_task->forasync_task.args = &(new_forasync_task->def);
-                new_forasync_task->forasync_task.future_list = NULL;
+                new_forasync_task->forasync_task.singleton_future_0 = NULL;
+                new_forasync_task->forasync_task.singleton_future_1 = NULL;
                 new_forasync_task->def.base.user = forasync->base.user;
                 hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
                 new_forasync_task->def.loop0 = new_loop0;
@@ -425,7 +437,8 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
     HASSERT(user_def);
     user_def->_fp = user_fct_ptr;
     user_def->args = user_arg;
-    user_def->future_list = NULL;
+    user_def->singleton_future_0 = NULL;
+    user_def->singleton_future_1 = NULL;
     user_def->locale = NULL;
 
     HASSERT(dim>0 && dim<4);
@@ -451,12 +464,8 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
     }
 }
 
-void hclib_forasync(void *forasync_fct, void *argv,
-                    hclib_future_t **future_list, int dim,
+void hclib_forasync(void *forasync_fct, void *argv, int dim,
                     hclib_loop_domain_t *domain, forasync_mode_t mode) {
-    HASSERT(future_list == NULL &&
-            "Limitation: forasync does not support futures yet");
-
     const int nworkers = hclib_num_workers();
     int i;
     for (i = 0; i < dim; i++) {
@@ -469,12 +478,11 @@ void hclib_forasync(void *forasync_fct, void *argv,
 }
 
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-                                      hclib_future_t **future_list, int dim,
-                                      hclib_loop_domain_t *domain,
+                                      int dim, hclib_loop_domain_t *domain,
                                       forasync_mode_t mode) {
 
     hclib_start_finish();
-    hclib_forasync(forasync_fct, argv, future_list, dim, domain, mode);
+    hclib_forasync(forasync_fct, argv, dim, domain, mode);
     return hclib_end_finish_nonblocking();
 }
 
@@ -527,18 +535,16 @@ void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
      * Each element of the variable argument list is a tuple of address and
      * length.
      */
+    assert(n_in == 1 || n_in == 0);
+
     va_list vl;
     va_start(vl, n_out);
-
-    hclib_future_t **dependencies = (hclib_future_t **)malloc((n_in + 1) *
-            sizeof(hclib_future_t));
-    HASSERT(dependencies);
-    dependencies[n_in] = NULL;
 
     const int lock_err = pthread_mutex_lock(&depends_lock);
     HASSERT(lock_err == 0);
 
-    for (i = 0; i < n_in; i++) {
+    hclib_future_t *in_future = NULL;
+    if (n_in == 1) {
         const void * const addr = va_arg(vl, void *);
         const size_t length = va_arg(vl, size_t);
 
@@ -548,11 +554,10 @@ void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
                     "length=%lu\n", addr, length);
             exit(1);
         }
-
-        dependencies[i] = found->future;
+        in_future = found->future;
     }
 
-    hclib_future_t *fut = hclib_async_future(fct_ptr, arg, dependencies,
+    hclib_future_t *fut = hclib_async_future(fct_ptr, arg, in_future,
             locale);
 
     depends_info *infos = (depends_info *)malloc(n_out * sizeof(depends_info));

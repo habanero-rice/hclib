@@ -27,7 +27,8 @@ typedef struct _hclib_task_t {
     void *args;
     struct finish_t *current_finish;
     generic_frame_ptr _fp;
-    hclib_future_t **future_list; // Null terminated list
+    hclib_future_t *singleton_future_0;
+    hclib_future_t *singleton_future_1;
     hclib_locale_t *locale;
 } hclib_task_t;
 
@@ -103,10 +104,6 @@ static inline struct finish_t* get_current_finish(hclib_task_t *t) {
 static inline void set_current_finish(hclib_task_t *t,
         struct finish_t* finish) {
     t->current_finish = finish;
-}
-
-static inline void set_future_list(hclib_task_t *t, hclib_future_t **futures) {
-    t->future_list = futures;
 }
 
 #endif

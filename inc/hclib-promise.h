@@ -56,6 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @file User Interface to HCLIB's futures and promises.
  */
 
+#define MAX_NUM_WAITS 2
+
 /**
  * @brief Opaque type for promises.
  */
@@ -79,7 +81,8 @@ typedef struct _hclib_future_t {
  */
 typedef struct hclib_triggered_task_st {
     // NULL-terminated list of futures this task is registered on
-    hclib_future_t **waiting_frontier;
+    hclib_future_t *waiting_on[MAX_NUM_WAITS];
+    int waiting_on_index;
     /*
      * This allows us to chain all dependent tasks waiting on a same promise.
      * Whenever a triggered task wants to register on a promise, and that
@@ -95,7 +98,14 @@ typedef struct hclib_promise_st {
     hclib_future_t future;
 	int kind;
     volatile void *datum;
-    // List of tasks that are awaiting the satisfaction of this promise
+    /*
+     * List of tasks that are awaiting the satisfaction of this promise.
+     * wait_list_head is initialized to UNINITIALIZED_PROMISE_WAITLIST_PTR when
+     * the promise has no dependent tasks and swapped out to point to different
+     * tasks as a chained list of tasks is created hanging off of this promise.
+     * When the promise is satisfied, this is set to EMPTY_FUTURE_WAITLIST_PTR
+     * to indicate that no chaining needs to occur anymore.
+     */
     volatile hclib_triggered_task_t *wait_list_head;
 } hclib_promise_t;
 
@@ -164,6 +174,6 @@ void *hclib_future_wait(hclib_future_t *future);
  * Some extras
  */
 void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_future_t **future_list);
+        hclib_future_t *waiting_future_0, hclib_future_t *waiting_future_1);
 
 #endif /* HCLIB_PROMISE_H_ */

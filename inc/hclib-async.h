@@ -106,7 +106,8 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
         new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
     t->_fp = lambda_wrapper<Function, T1 *>;
     t->args = args;
-    t->future_list = NULL;
+    t->singleton_future_0 = NULL;
+    t->singleton_future_1 = NULL;
     t->locale = NULL;
 }
 
@@ -185,31 +186,36 @@ inline hclib_future_t **construct_future_list(future_list_t... futures) {
 }
 
 template <typename T>
-inline void async_await(T lambda, hclib_future_t **future_list) {
+inline void async_await(T lambda, hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future_list);
+	spawn_await(task, future->internal, NULL);
 }
 
-template <typename T, typename... future_list_t>
-inline void async_await(T lambda, future_list_t... futures) {
-    hclib_future_t **future_list = construct_future_list(futures...);
-    async_await(lambda, future_list);
+template <typename T>
+inline void async_await(T lambda, hclib::future_t *future1, hclib::future_t *future2) {
+	MARK_OVH(current_ws()->id);
+	hclib_task_t* task = _allocate_async<T>(lambda, true);
+	spawn_await(task, future1->internal, future2->internal);
 }
 
 template <typename T>
 inline void async_await_at(T lambda, hclib_locale_t *locale,
-        hclib_future_t **future_list) {
+        hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, future_list, locale);
+	spawn_await_at(task, future ? future->internal : NULL, NULL, locale);
 }
 
-template <typename T, typename... future_list_t>
-inline void async_await_at(T lambda, hclib_locale_t *locale, future_list_t... futures) {
-    hclib_future_t **future_list = construct_future_list(futures...);
-    async_await_at(lambda, locale, future_list);
+template <typename T>
+inline void async_await_at(T lambda, hclib_locale_t *locale,
+        hclib::future_t *future1, hclib::future_t *future2) {
+	MARK_OVH(current_ws()->id);
+	hclib_task_t* task = _allocate_async<T>(lambda, true);
+	spawn_await_at(task, future1 ? future1->internal : NULL,
+            future2 ? future2->internal : NULL, locale);
 }
+
 
 template <typename T>
 inline void async_comm(T lambda) {
@@ -235,8 +241,8 @@ hclib::future_t *async_future(T lambda) {
     return event->get_future();
 }
 
-template <typename T, typename... future_list_t>
-hclib::future_t *async_future_await(T lambda, future_list_t... futures) {
+template <typename T>
+hclib::future_t *async_future_await(T lambda, hclib::future_t *future) {
     hclib::promise_t *event = new hclib::promise_t();
     hclib_promise_t *internal_event = &event->internal;
     /*
@@ -249,10 +255,8 @@ hclib::future_t *async_future_await(T lambda, future_list_t... futures) {
         hclib_promise_put(internal_event, NULL);
     };
 
-    hclib_future_t **future_list = construct_future_list(futures...);
-
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await(task, future_list);
+    spawn_await(task, future->internal, NULL);
     return event->get_future();
 }
 
@@ -271,13 +275,13 @@ hclib::future_t *async_future_at(T lambda, hclib_locale_t *locale) {
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await_at(task, NULL, locale);
+    spawn_await_at(task, NULL, NULL, locale);
     return event->get_future();
 }
 
-template <typename T, typename... future_list_t>
+template <typename T>
 hclib::future_t *async_future_await_at(T lambda, hclib_locale_t *locale,
-        future_list_t... futures) {
+        hclib::future_t *future) {
     hclib::promise_t *event = new hclib::promise_t();
     hclib_promise_t *internal_event = &event->internal;
     /*
@@ -290,10 +294,8 @@ hclib::future_t *async_future_await_at(T lambda, hclib_locale_t *locale,
         hclib_promise_put(internal_event, NULL);
     };
 
-    hclib_future_t **future_list = construct_future_list(futures...);
-
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await_at(task, future_list, locale);
+    spawn_await_at(task, future->internal, NULL, locale);
     return event->get_future();
 }
 

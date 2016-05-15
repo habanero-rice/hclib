@@ -364,7 +364,7 @@ static inline void check_out_finish(finish_t *finish) {
     if (finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
-            hclib_promise_put(finish->finish_deps[0]->owner, finish);
+            hclib_promise_put(finish->finish_dep->owner, finish);
         }
     }
 }
@@ -433,10 +433,10 @@ static inline void rt_schedule_async(hclib_task_t *async_task, hclib_worker_stat
  */
 static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
 #ifdef VERBOSE
-    fprintf(stderr, "is_eligible_to_schedule: async_task=%p future_list=%p\n",
-            async_task, async_task->future_list);
+    fprintf(stderr, "is_eligible_to_schedule: async_task=%p singleton_future_0=%p\n",
+            async_task, async_task->singleton_future_0);
 #endif
-    if (async_task->future_list != NULL) {
+    if (async_task->singleton_future_0 || async_task->singleton_future_1) {
         hclib_triggered_task_t *triggered_task = (hclib_triggered_task_t *)
                 rt_async_task_to_triggered_task(async_task);
         return register_on_all_promise_dependencies(triggered_task);
@@ -460,7 +460,8 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 }
 
 void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
-        hclib_future_t **future_list, int escaping) {
+        hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
+        int escaping) {
 
     HASSERT(task);
 
@@ -477,10 +478,11 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         task->locale = locale;
     }
 
-    if (future_list) {
-        set_future_list(task, future_list);
+    if (singleton_future_0) {
+        task->singleton_future_0 = singleton_future_0;
+        task->singleton_future_1 = singleton_future_1;
         hclib_dependent_task_t *t = (hclib_dependent_task_t *) task;
-        hclib_triggered_task_init(&(t->deps), future_list);
+        hclib_triggered_task_init(&(t->deps), singleton_future_0, singleton_future_1);
     }
 
 #ifdef VERBOSE
@@ -491,29 +493,30 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
 }
 
 void spawn_at(hclib_task_t *task, hclib_locale_t *locale) {
-    spawn_handler(task, locale, NULL, 0);
+    spawn_handler(task, locale, NULL, NULL, 0);
 }
 
 void spawn(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0);
+    spawn_handler(task, NULL, NULL, NULL, 0);
 }
 
-void spawn_escaping(hclib_task_t *task, hclib_future_t **future_list) {
-    spawn_handler(task, NULL, future_list, 1);
+void spawn_escaping(hclib_task_t *task, hclib_future_t *future) {
+    spawn_handler(task, NULL, future, NULL, 1);
 }
 
 void spawn_escaping_at(hclib_locale_t *locale, hclib_task_t *task,
-                       hclib_future_t **future_list) {
-    spawn_handler(task, locale, future_list, 1);
+        hclib_future_t *future) {
+    spawn_handler(task, locale, future, NULL, 1);
 }
 
-void spawn_await_at(hclib_task_t *task, hclib_future_t **future_list,
-                    hclib_locale_t *locale) {
-    spawn_handler(task, locale, future_list, 0);
+void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
+        hclib_future_t *future2, hclib_locale_t *locale) {
+    spawn_handler(task, locale, future1, future2, 0);
 }
 
-void spawn_await(hclib_task_t *task, hclib_future_t **future_list) {
-    spawn_await_at(task, future_list, NULL);
+void spawn_await(hclib_task_t *task, hclib_future_t *future1,
+        hclib_future_t *future2) {
+    spawn_await_at(task, future1, future2, NULL);
 }
 
 #ifdef HC_CUDA
@@ -882,7 +885,7 @@ void crt_work_loop(LiteCtx *ctx);
  * context when a thread waits on a future.
  */
 void _help_wait(LiteCtx *ctx) {
-    hclib_future_t **continuation_deps = ctx->arg;
+    hclib_future_t *continuation_dep = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
@@ -892,7 +895,7 @@ void _help_wait(LiteCtx *ctx) {
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
     task->async_task.args = wait_ctx;
 
-    spawn_escaping((hclib_task_t *)task, continuation_deps);
+    spawn_escaping((hclib_task_t *)task, continuation_dep);
 
     core_work_loop();
     HASSERT(0);
@@ -907,11 +910,10 @@ void *hclib_future_wait(hclib_future_t *future) {
 #endif
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
-    hclib_future_t *continuation_deps[] = { future, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
     LiteCtx *newCtx = LiteCtx_create(_help_wait);
-    newCtx->arg = continuation_deps;
+    newCtx->arg = future;
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
@@ -949,9 +951,9 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     /*
      * Create an async to handle the continuation after the finish, whose state
      * is captured in hclib_finish_ctx and whose execution is pending on
-     * finish->finish_deps.
+     * finish->finish_dep.
      */
-    spawn_escaping((hclib_task_t *)task, finish->finish_deps);
+    spawn_escaping((hclib_task_t *)task, finish->finish_dep);
 
     /*
      * The main thread is now exiting the finish (albeit in a separate context),
@@ -977,8 +979,7 @@ void help_finish(finish_t *finish) {
     }
     // create finish event
     hclib_promise_t *finish_promise = hclib_promise_create();
-    hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
-    finish->finish_deps = finish_deps;
+    finish->finish_dep = &finish_promise->future;
     // TODO - should only switch contexts after actually finding work
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
@@ -1011,10 +1012,10 @@ void hclib_start_finish() {
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
      * finish being a task registered on the finish. When we reach the
-     * corresponding end_finish we set up the finish_deps for the continuation
+     * corresponding end_finish we set up the finish_dep for the continuation
      * and then decrement the counter from the main thread. This ensures that
      * anytime the counter reaches zero, it is safe to do a promise_put on the
-     * finish_deps. If we initialized counter to zero here, any async inside the
+     * finish_dep. If we initialized counter to zero here, any async inside the
      * finish could start and finish before the main thread reaches the
      * end_finish, decrementing the finish counter to zero when it completes.
      * This would make it harder to detect when all tasks within the finish have
@@ -1066,11 +1067,7 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
-    hclib_future_t **finish_deps = malloc(2 * sizeof(hclib_future_t *));
-    HASSERT(finish_deps);
-    finish_deps[0] = &event->future;
-    finish_deps[1] = NULL;
-    current_finish->finish_deps = finish_deps;
+    current_finish->finish_dep = &event->future;
 
     // Check out this "task" from the current finish
     check_out_finish(current_finish);
