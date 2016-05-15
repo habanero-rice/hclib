@@ -82,7 +82,7 @@ static void pragma51_omp_task_hclib_async(void *____arg) {
     pragma51_omp_task *ctx = (pragma51_omp_task *)____arg;
     int n; n = ctx->n;
     hclib_start_finish();
-(*(ctx->x_ptr)) = fib(n - 1) ;     ; hclib_end_finish();
+(*(ctx->x_ptr)) = fib(n - 1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -92,7 +92,7 @@ static void pragma53_omp_task_hclib_async(void *____arg) {
     pragma53_omp_task *ctx = (pragma53_omp_task *)____arg;
     int n; n = ctx->n;
     hclib_start_finish();
-(*(ctx->y_ptr)) = fib(n - 2) ;     ; hclib_end_finish();
+(*(ctx->y_ptr)) = fib(n - 2) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

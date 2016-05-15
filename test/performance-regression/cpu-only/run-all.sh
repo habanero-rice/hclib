@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=48000m
-#SBATCH --time=04:00:00
+#SBATCH --time=03:00:00
 #SBATCH --mail-user=jmg3@rice.edu
 #SBATCH --mail-type=ALL
 #SBATCH --export=ALL
@@ -24,7 +24,10 @@ if [[ -z "$BOTS_ROOT" ]]; then
     exit 1
 fi
 
-NTRIALS=10
+if [[ -z "$NTRIALS" ]]; then
+    NTRIALS=10
+fi
+
 if [[ $# -ge 1 ]]; then
     NTRIALS=$1
 fi
@@ -109,8 +112,8 @@ BENCHMARKS=("cilksort 100000000"
         "rodinia/leukocyte/OpenMP/leukocyte 5 4 $RODINIA_DATA_DIR/leukocyte/testfile.avi"
         "rodinia/lud/omp/lud_omp -s 8000"
         "rodinia/nn/nn rodinia/nn/filelist_4 5 30 90"
-        "rodinia/nw/needle 2048 10 2"
-        "rodinia/particlefilter/particle_filter -x 128 -y 128 -z 10 -np 10000"
+        "rodinia/nw/needle 32768 10 2"
+        "rodinia/particlefilter/particle_filter -x 128 -y 128 -z 128 -np 10000"
         "rodinia/pathfinder/pathfinder 100000 100"
         "rodinia/srad/srad 2048 2048 0 127 0 127 2 0.5 2"
         "rodinia/streamcluster/sc_omp 10 20 256 65536 65536 1000 none output.txt 4"
@@ -120,7 +123,7 @@ BENCHMARKS=("cilksort 100000000"
         "bots/fib/fib.icc.omp-tasks -n 30"
         "bots/floorplan/floorplan.icc.omp-tasks -f $BOTS_ROOT/inputs/floorplan/input.20"
         "bots/health/health.icc.omp-tasks -f $BOTS_ROOT/inputs/health/large.input"
-        "bots/nqueens/nqueens.icc.omp-tasks -n 1000"
+        "bots/nqueens/nqueens.icc.omp-tasks -n 13"
         "bots/sort/sort.icc.omp-tasks -n 100000000"
         "bots/sparselu_for/sparselu.icc.for-omp-tasks -n 50"
         "bots/sparselu_single/sparselu.icc.single-omp-tasks -n 50"

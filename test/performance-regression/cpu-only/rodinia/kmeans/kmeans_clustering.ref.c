@@ -188,8 +188,7 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
                         reduction(+:delta)
             for (i=0; i<npoints; i++) {
 	        /* find the index of nestest cluster centers */					
-            // int tid = hclib_get_current_worker();				
-            int tid = omp_get_thread_num();
+            int tid = omp_get_thread_num();				
 	        index = find_nearest_point(feature[i],
 		             nfeatures,
 		             clusters,

@@ -108,7 +108,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = num_chunk;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma69_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -124,7 +124,6 @@ static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0)
     int chunks_in_row; chunks_in_row = ctx->chunks_in_row;
     int row; row = ctx->row;
     int col; col = ctx->col;
-    hclib_start_finish();
     do {
     chunk = ___iter0;
 {
@@ -203,8 +202,6 @@ for ( c = c_start; c < c_start + BLOCK_SIZE_C; ++c ) {
             }
         }
     } ;     } while (0);
-    ; hclib_end_finish();
-
 }
 
 

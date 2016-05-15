@@ -102,12 +102,9 @@ static void pragma28_omp_task_hclib_async(void *____arg) {
     int i; i = ctx->i;
     int j; j = ctx->j;
     int ny; ny = ctx->ny;
-    hclib_start_finish();
 for (j = 0; j < ny; j++) {
                     ((*(ctx->u_ptr)))[i * ny + j] = ((*(ctx->unew_ptr)))[i * ny + j];
-                } ;     ; hclib_end_finish();
-
-    free(____arg);
+                } ;     free(____arg);
 }
 
 
@@ -119,7 +116,6 @@ static void pragma36_omp_task_hclib_async(void *____arg) {
     int ny; ny = ctx->ny;
     double dx; dx = ctx->dx;
     double dy; dy = ctx->dy;
-    hclib_start_finish();
 for (j = 0; j < ny; j++) {
                     if (i == 0 || j == 0 || i == nx - 1 || j == ny - 1) {
                         ((*(ctx->unew_ptr)))[i * ny + j] = ((*(ctx->f_ptr)))[i * ny + j];
@@ -128,9 +124,7 @@ for (j = 0; j < ny; j++) {
                                                 + ((*(ctx->u_ptr)))[i * ny + (j-1)] + ((*(ctx->u_ptr)))[(i+1) * ny + j]
                                                 + ((*(ctx->f_ptr)))[i * ny + j] * dx * dy);
                     }
-                } ;     ; hclib_end_finish();
-
-    free(____arg);
+                } ;     free(____arg);
 }
 
 

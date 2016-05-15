@@ -223,7 +223,7 @@ hclib_launch(main_entrypoint, new_ctx);
 static void pragma193_omp_task_hclib_async(void *____arg) {
     pragma193_omp_task *ctx = (pragma193_omp_task *)____arg;
     hclib_start_finish();
-(*(ctx->num_nodes_ptr)) = parTreeSearch( 0, (*(ctx->root_ptr)), (*(ctx->root_ptr))->numChildren ) ;     ; hclib_end_finish();
+(*(ctx->num_nodes_ptr)) = parTreeSearch( 0, (*(ctx->root_ptr)), (*(ctx->root_ptr))->numChildren ) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -294,7 +294,7 @@ static void pragma225_omp_task_hclib_async(void *____arg) {
     Node (*nodePtr); nodePtr = ctx->nodePtr;
     int i; i = ctx->i;
     hclib_start_finish();
-(*(ctx->partialCount_ptr))[i] = parTreeSearch((*(ctx->depth_ptr))+1, nodePtr, nodePtr->numChildren) ;     ; hclib_end_finish();
+(*(ctx->partialCount_ptr))[i] = parTreeSearch((*(ctx->depth_ptr))+1, nodePtr, nodePtr->numChildren) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

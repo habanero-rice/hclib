@@ -123,7 +123,7 @@ void BFSGraph( int argc, char** argv)
             stop=false;
 
             //omp_set_num_threads(num_omp_threads);
-    #pragma omp parallel for 
+    #pragma omp parallel for firstprivate(h_graph_mask, h_graph_nodes, h_graph_edges, h_graph_visited, h_cost, h_updating_graph_mask)
             for(int tid = 0; tid < no_of_nodes; tid++ )
             {
                 if (h_graph_mask[tid] == true){ 
@@ -140,7 +140,7 @@ void BFSGraph( int argc, char** argv)
                 }
             }
 
-    #pragma omp parallel for
+    #pragma omp parallel for firstprivate(h_updating_graph_mask, h_graph_mask, h_graph_visited)
             for(int tid=0; tid< no_of_nodes ; tid++ )
             {
                 if (h_updating_graph_mask[tid] == true){

@@ -457,6 +457,14 @@ void hclib_forasync(void *forasync_fct, void *argv,
     HASSERT(future_list == NULL &&
             "Limitation: forasync does not support futures yet");
 
+    const int nworkers = hclib_num_workers();
+    int i;
+    for (i = 0; i < dim; i++) {
+        if (domain[i].tile == -1) {
+            domain[i].tile = ((domain[i].high - domain[i].low) + nworkers - 1) / nworkers;
+        }
+    }
+
     forasync_internal(forasync_fct, argv, dim, domain, mode);
 }
 

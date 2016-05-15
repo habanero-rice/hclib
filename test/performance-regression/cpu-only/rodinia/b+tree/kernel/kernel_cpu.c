@@ -130,7 +130,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = count;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma89_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -157,7 +157,6 @@ static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0)
     int thid; thid = ctx->thid;
     int bid; bid = ctx->bid;
     int i; i = ctx->i;
-    hclib_start_finish();
     do {
     bid = ___iter0;
 {
@@ -197,8 +196,6 @@ static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0)
 		}
 
 	} ;     } while (0);
-    ; hclib_end_finish();
-
 }
 
 

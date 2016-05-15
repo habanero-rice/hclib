@@ -109,7 +109,7 @@ static void pragma31_omp_task_hclib_async(void *____arg) {
     int block_x; block_x = ctx->block_x;
     int block_y; block_y = ctx->block_y;
     hclib_start_finish();
-copy_block((*(ctx->nx_ptr)), (*(ctx->ny_ptr)), block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->block_size_ptr))) ;     ; hclib_end_finish();
+copy_block((*(ctx->nx_ptr)), (*(ctx->ny_ptr)), block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->block_size_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -121,7 +121,7 @@ static void pragma41_omp_task_hclib_async(void *____arg) {
     int block_y; block_y = ctx->block_y;
     hclib_start_finish();
 compute_estimate(block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->f__ptr)), (*(ctx->dx_ptr)), (*(ctx->dy_ptr)),
-                                     (*(ctx->nx_ptr)), (*(ctx->ny_ptr)), (*(ctx->block_size_ptr))) ;     ; hclib_end_finish();
+                                     (*(ctx->nx_ptr)), (*(ctx->ny_ptr)), (*(ctx->block_size_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

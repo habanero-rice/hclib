@@ -359,7 +359,7 @@ static void pragma273_omp_task_hclib_async(void *____arg) {
     hclib_start_finish();
 {
             fwd((*(ctx->BENCH_ptr))[kk*bots_arg_size+kk], (*(ctx->BENCH_ptr))[kk*bots_arg_size+jj]);
-             } ;     ; hclib_end_finish();
+             } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -372,7 +372,7 @@ static void pragma281_omp_task_hclib_async(void *____arg) {
     hclib_start_finish();
 {
             bdiv ((*(ctx->BENCH_ptr))[kk*bots_arg_size+kk], (*(ctx->BENCH_ptr))[ii*bots_arg_size+kk]);
-             } ;     ; hclib_end_finish();
+             } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -387,7 +387,7 @@ static void pragma292_omp_task_hclib_async(void *____arg) {
 {
                      if ((*(ctx->BENCH_ptr))[ii*bots_arg_size+jj]==NULL) (*(ctx->BENCH_ptr))[ii*bots_arg_size+jj] = allocate_clean_block();
                      bmod((*(ctx->BENCH_ptr))[ii*bots_arg_size+kk], (*(ctx->BENCH_ptr))[kk*bots_arg_size+jj], (*(ctx->BENCH_ptr))[ii*bots_arg_size+jj]);
-                   } ;     ; hclib_end_finish();
+                   } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <memory.h>
-#include <alloca.h>
 #include "bots.h"
 #include "app-desc.h"
 #include <omp.h>
@@ -110,13 +109,13 @@ void nqueens_ser (int n, int j, char *a, int *solutions)
 }
 
 typedef struct _pragma133_omp_task {
-    int (*(*csols_ptr));
-    int (*i_ptr);
+    int (*csols);
+    int i;
     int n;
-    int (*j_ptr);
-    char (*(*a_ptr));
-    int (*(*solutions_ptr));
-    int (*depth_ptr);
+    int j;
+    char (*a);
+    int (*solutions);
+    int depth;
  } pragma133_omp_task;
 
 static void pragma133_omp_task_hclib_async(void *____arg);
@@ -134,39 +133,47 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
 
 
 	*solutions = 0;
-	csols = (int *)alloca(n*sizeof(int));
+	csols = (int *)malloc(n*sizeof(int));
 	memset(csols,0,n*sizeof(int));
 
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
+
  { 
 pragma133_omp_task *new_ctx = (pragma133_omp_task *)malloc(sizeof(pragma133_omp_task));
-new_ctx->csols_ptr = &(csols);
-new_ctx->i_ptr = &(i);
+new_ctx->csols = csols;
+new_ctx->i = i;
 new_ctx->n = n;
-new_ctx->j_ptr = &(j);
-new_ctx->a_ptr = &(a);
-new_ctx->solutions_ptr = &(solutions);
-new_ctx->depth_ptr = &(depth);
+new_ctx->j = j;
+new_ctx->a = a;
+new_ctx->solutions = solutions;
+new_ctx->depth = depth;
 hclib_async(pragma133_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
 	}
 
  hclib_end_finish(); hclib_start_finish(); ;
 	for ( i = 0; i < n; i++) *solutions += csols[i];
+    free(csols);
 } 
 static void pragma133_omp_task_hclib_async(void *____arg) {
     pragma133_omp_task *ctx = (pragma133_omp_task *)____arg;
+    int (*csols); csols = ctx->csols;
+    int i; i = ctx->i;
     int n; n = ctx->n;
+    int j; j = ctx->j;
+    char (*a); a = ctx->a;
+    int (*solutions); solutions = ctx->solutions;
+    int depth; depth = ctx->depth;
     hclib_start_finish();
 {
 	  		/* allocate a temporary array and copy <a> into it */
-	  		char * b = (char *)alloca(n * sizeof(char));
-	  		memcpy(b, (*(ctx->a_ptr)), (*(ctx->j_ptr)) * sizeof(char));
-	  		b[(*(ctx->j_ptr))] = (char) (*(ctx->i_ptr));
-	  		if (ok((*(ctx->j_ptr)) + 1, b))
-       				nqueens(n, (*(ctx->j_ptr)) + 1, b,&(*(ctx->csols_ptr))[(*(ctx->i_ptr))],(*(ctx->depth_ptr))); //FIXME: depth or depth+1 ???
-		} ;     ; hclib_end_finish();
+	  		char * b = (char *)malloc(n * sizeof(char));
+	  		memcpy(b, a, j * sizeof(char));
+	  		b[j] = (char) i;
+	  		if (ok(j + 1, b))
+       				nqueens(n, j + 1, b,&csols[i],depth); //FIXME: depth or depth+1 ???
+		} ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -188,7 +195,7 @@ static void main_entrypoint(void *____arg) {
 hclib_start_finish(); {
 			char *a;
 
-			a = (char *)alloca(size * sizeof(char));
+			a = (char *)malloc(size * sizeof(char));
 			nqueens(size, 0, a, &total_count,0);
 		} ; hclib_end_finish(); 
 	bots_message(" completed!\n");

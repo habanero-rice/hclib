@@ -1387,7 +1387,7 @@ hclib_async(pragma708_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma684_omp_task_hclib_async(void *____arg) {
     pragma684_omp_task *ctx = (pragma684_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->M2_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->M2_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1396,7 +1396,7 @@ OptimizedStrassenMultiply_par((*(ctx->M2_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr))
 static void pragma688_omp_task_hclib_async(void *____arg) {
     pragma688_omp_task *ctx = (pragma688_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->M5_ptr)), (*(ctx->S1_ptr)), (*(ctx->S5_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->M5_ptr)), (*(ctx->S1_ptr)), (*(ctx->S5_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1405,7 +1405,7 @@ OptimizedStrassenMultiply_par((*(ctx->M5_ptr)), (*(ctx->S1_ptr)), (*(ctx->S5_ptr
 static void pragma692_omp_task_hclib_async(void *____arg) {
     pragma692_omp_task *ctx = (pragma692_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->T1sMULT_ptr)), (*(ctx->S2_ptr)), (*(ctx->S6_ptr)),  (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->T1sMULT_ptr)), (*(ctx->S2_ptr)), (*(ctx->S6_ptr)),  (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1414,7 +1414,7 @@ OptimizedStrassenMultiply_par((*(ctx->T1sMULT_ptr)), (*(ctx->S2_ptr)), (*(ctx->S
 static void pragma696_omp_task_hclib_async(void *____arg) {
     pragma696_omp_task *ctx = (pragma696_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->C22_ptr)), (*(ctx->S3_ptr)), (*(ctx->S7_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)) /*FIXME*/, (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->C22_ptr)), (*(ctx->S3_ptr)), (*(ctx->S7_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)) /*FIXME*/, (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1423,7 +1423,7 @@ OptimizedStrassenMultiply_par((*(ctx->C22_ptr)), (*(ctx->S3_ptr)), (*(ctx->S7_pt
 static void pragma700_omp_task_hclib_async(void *____arg) {
     pragma700_omp_task *ctx = (pragma700_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A12_ptr)), (*(ctx->B21_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A12_ptr)), (*(ctx->B21_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1432,7 +1432,7 @@ OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A12_ptr)), (*(ctx->B21_pt
 static void pragma704_omp_task_hclib_async(void *____arg) {
     pragma704_omp_task *ctx = (pragma704_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->C12_ptr)), (*(ctx->S4_ptr)), (*(ctx->B22_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->C12_ptr)), (*(ctx->S4_ptr)), (*(ctx->B22_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1441,7 +1441,7 @@ OptimizedStrassenMultiply_par((*(ctx->C12_ptr)), (*(ctx->S4_ptr)), (*(ctx->B22_p
 static void pragma708_omp_task_hclib_async(void *____arg) {
     pragma708_omp_task *ctx = (pragma708_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->C21_ptr)), (*(ctx->A22_ptr)), (*(ctx->S8_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->C21_ptr)), (*(ctx->A22_ptr)), (*(ctx->S8_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1545,7 +1545,7 @@ hclib_launch(main_entrypoint, new_ctx);
 static void pragma829_omp_task_hclib_async(void *____arg) {
     pragma829_omp_task *ctx = (pragma829_omp_task *)____arg;
     hclib_start_finish();
-OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), 1) ;     ; hclib_end_finish();
+OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), 1) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

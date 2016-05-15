@@ -593,7 +593,7 @@ static void pragma470_omp_task_hclib_async(void *____arg) {
                   else                        mm_score /= (double) MIN(len1,len2);
 
                   bench_output[si*nseqs+sj] = (int) mm_score;
-               } ;     ; hclib_end_finish();
+               } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

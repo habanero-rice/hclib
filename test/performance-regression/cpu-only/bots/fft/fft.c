@@ -118,7 +118,7 @@ hclib_async(pragma67_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma65_omp_task_hclib_async(void *____arg) {
     pragma65_omp_task *ctx = (pragma65_omp_task *)____arg;
     hclib_start_finish();
-compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish();
+compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -127,7 +127,7 @@ compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ct
 static void pragma67_omp_task_hclib_async(void *____arg) {
     pragma67_omp_task *ctx = (pragma67_omp_task *)____arg;
     hclib_start_finish();
-compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->ab_ptr)) + 1, (*(ctx->b_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish();
+compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->ab_ptr)) + 1, (*(ctx->b_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -273,7 +273,7 @@ hclib_async(pragma144_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma142_omp_task_hclib_async(void *____arg) {
     pragma142_omp_task *ctx = (pragma142_omp_task *)____arg;
     hclib_start_finish();
-unshuffle((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+unshuffle((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -282,7 +282,7 @@ unshuffle((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr))
 static void pragma144_omp_task_hclib_async(void *____arg) {
     pragma144_omp_task *ctx = (pragma144_omp_task *)____arg;
     hclib_start_finish();
-unshuffle((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+unshuffle((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -442,7 +442,7 @@ static void pragma212_omp_task_hclib_async(void *____arg) {
     pragma212_omp_task *ctx = (pragma212_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen1((*(ctx->in_ptr)) + (*(ctx->i_ptr)), (*(ctx->out_ptr)) + (*(ctx->i_ptr)), (*(ctx->W_ptr)),
-				 (*(ctx->r_ptr)), (*(ctx->m_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->i_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+				 (*(ctx->r_ptr)), (*(ctx->m_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->i_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -452,7 +452,7 @@ static void pragma217_omp_task_hclib_async(void *____arg) {
     pragma217_omp_task *ctx = (pragma217_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen((*(ctx->i_ptr)), (*(ctx->i2_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)),
-				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -462,7 +462,7 @@ static void pragma220_omp_task_hclib_async(void *____arg) {
     pragma220_omp_task *ctx = (pragma220_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen((*(ctx->i2_ptr)), (*(ctx->i1_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)),
-				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -614,7 +614,7 @@ hclib_async(pragma284_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma282_omp_task_hclib_async(void *____arg) {
     pragma282_omp_task *ctx = (pragma282_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -623,7 +623,7 @@ fft_twiddle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_p
 static void pragma284_omp_task_hclib_async(void *____arg) {
     pragma284_omp_task *ctx = (pragma284_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -734,7 +734,7 @@ hclib_async(pragma338_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma336_omp_task_hclib_async(void *____arg) {
     pragma336_omp_task *ctx = (pragma336_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -743,7 +743,7 @@ fft_unshuffle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 static void pragma338_omp_task_hclib_async(void *____arg) {
     pragma338_omp_task *ctx = (pragma338_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -959,7 +959,7 @@ hclib_async(pragma465_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma463_omp_task_hclib_async(void *____arg) {
     pragma463_omp_task *ctx = (pragma463_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -968,7 +968,7 @@ fft_twiddle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_p
 static void pragma465_omp_task_hclib_async(void *____arg) {
     pragma465_omp_task *ctx = (pragma465_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1117,7 +1117,7 @@ hclib_async(pragma557_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma555_omp_task_hclib_async(void *____arg) {
     pragma555_omp_task *ctx = (pragma555_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1126,7 +1126,7 @@ fft_unshuffle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 static void pragma557_omp_task_hclib_async(void *____arg) {
     pragma557_omp_task *ctx = (pragma557_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1501,7 +1501,7 @@ hclib_async(pragma843_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma841_omp_task_hclib_async(void *____arg) {
     pragma841_omp_task *ctx = (pragma841_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1510,7 +1510,7 @@ fft_twiddle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_p
 static void pragma843_omp_task_hclib_async(void *____arg) {
     pragma843_omp_task *ctx = (pragma843_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1751,7 +1751,7 @@ hclib_async(pragma1027_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma1025_omp_task_hclib_async(void *____arg) {
     pragma1025_omp_task *ctx = (pragma1025_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -1760,7 +1760,7 @@ fft_unshuffle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 static void pragma1027_omp_task_hclib_async(void *____arg) {
     pragma1027_omp_task *ctx = (pragma1027_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -2511,7 +2511,7 @@ hclib_async(pragma1689_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma1687_omp_task_hclib_async(void *____arg) {
     pragma1687_omp_task *ctx = (pragma1687_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -2520,7 +2520,7 @@ fft_twiddle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_
 static void pragma1689_omp_task_hclib_async(void *____arg) {
     pragma1689_omp_task *ctx = (pragma1689_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -2977,7 +2977,7 @@ hclib_async(pragma2089_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma2087_omp_task_hclib_async(void *____arg) {
     pragma2087_omp_task *ctx = (pragma2087_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -2986,7 +2986,7 @@ fft_unshuffle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->ou
 static void pragma2089_omp_task_hclib_async(void *____arg) {
     pragma2089_omp_task *ctx = (pragma2089_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -4617,7 +4617,7 @@ hclib_async(pragma3631_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma3629_omp_task_hclib_async(void *____arg) {
     pragma3629_omp_task *ctx = (pragma3629_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -4626,7 +4626,7 @@ fft_twiddle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_
 static void pragma3631_omp_task_hclib_async(void *____arg) {
     pragma3631_omp_task *ctx = (pragma3631_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -5579,7 +5579,7 @@ hclib_async(pragma4527_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma4525_omp_task_hclib_async(void *____arg) {
     pragma4525_omp_task *ctx = (pragma4525_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -5588,7 +5588,7 @@ fft_unshuffle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->ou
 static void pragma4527_omp_task_hclib_async(void *____arg) {
     pragma4527_omp_task *ctx = (pragma4527_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6073,7 +6073,7 @@ hclib_async(pragma4712_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 static void pragma4667_omp_task_hclib_async(void *____arg) {
     pragma4667_omp_task *ctx = (pragma4667_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6082,7 +6082,7 @@ fft_unshuffle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx
 static void pragma4670_omp_task_hclib_async(void *____arg) {
     pragma4670_omp_task *ctx = (pragma4670_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6091,7 +6091,7 @@ fft_unshuffle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx
 static void pragma4673_omp_task_hclib_async(void *____arg) {
     pragma4673_omp_task *ctx = (pragma4673_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6100,7 +6100,7 @@ fft_unshuffle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx-
 static void pragma4676_omp_task_hclib_async(void *____arg) {
     pragma4676_omp_task *ctx = (pragma4676_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6109,7 +6109,7 @@ fft_unshuffle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx-
 static void pragma4679_omp_task_hclib_async(void *____arg) {
     pragma4679_omp_task *ctx = (pragma4679_omp_task *)____arg;
     hclib_start_finish();
-fft_unshuffle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_unshuffle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6119,7 +6119,7 @@ static void pragma4687_omp_task_hclib_async(void *____arg) {
     pragma4687_omp_task *ctx = (pragma4687_omp_task *)____arg;
     int k; k = ctx->k;
     hclib_start_finish();
-fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + k, (*(ctx->in_ptr)) + k, (*(ctx->factors_ptr)) + 1, (*(ctx->W_ptr)), (*(ctx->nW_ptr))) ;     ; hclib_end_finish();
+fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + k, (*(ctx->in_ptr)) + k, (*(ctx->factors_ptr)) + 1, (*(ctx->W_ptr)), (*(ctx->nW_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6128,7 +6128,7 @@ fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + k, (*(ctx->in_ptr)) + k, (*(ctx->fa
 static void pragma4697_omp_task_hclib_async(void *____arg) {
     pragma4697_omp_task *ctx = (pragma4697_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6137,7 +6137,7 @@ fft_twiddle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W
 static void pragma4700_omp_task_hclib_async(void *____arg) {
     pragma4700_omp_task *ctx = (pragma4700_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6146,7 +6146,7 @@ fft_twiddle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W
 static void pragma4703_omp_task_hclib_async(void *____arg) {
     pragma4703_omp_task *ctx = (pragma4703_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6155,7 +6155,7 @@ fft_twiddle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W
 static void pragma4706_omp_task_hclib_async(void *____arg) {
     pragma4706_omp_task *ctx = (pragma4706_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6164,7 +6164,7 @@ fft_twiddle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->
 static void pragma4709_omp_task_hclib_async(void *____arg) {
     pragma4709_omp_task *ctx = (pragma4709_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6173,7 +6173,7 @@ fft_twiddle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->
 static void pragma4712_omp_task_hclib_async(void *____arg) {
     pragma4712_omp_task *ctx = (pragma4712_omp_task *)____arg;
     hclib_start_finish();
-fft_twiddle_gen(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish();
+fft_twiddle_gen(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6370,7 +6370,7 @@ static void pragma4804_omp_task_hclib_async(void *____arg) {
     hclib_start_finish();
 {
                  compute_w_coefficients((*(ctx->n_ptr)), 0, (*(ctx->n_ptr)) / 2, (*(ctx->W_ptr)));
-             } ;     ; hclib_end_finish();
+             } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
@@ -6381,7 +6381,7 @@ static void pragma4827_omp_task_hclib_async(void *____arg) {
     hclib_start_finish();
 {
                  fft_aux((*(ctx->n_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->factors_ptr)), (*(ctx->W_ptr)), (*(ctx->n_ptr)));
-             } ;     ; hclib_end_finish();
+             } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

@@ -137,7 +137,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = blk;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma107_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -161,7 +161,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = blk - 1;
 domain[0].high = (max_cols - 1) / 16;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma159_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -222,7 +222,7 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
             }
             
         } ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
@@ -280,7 +280,7 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
                 }
             }
         } ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 

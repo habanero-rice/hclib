@@ -100,7 +100,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = MatrixDim;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma73_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -120,7 +120,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = MatrixDim;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma89_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -180,7 +180,7 @@ static void pragma73_omp_parallel_hclib_async(void *____arg, const int ___iter0)
             }
         }
     } ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
@@ -191,7 +191,6 @@ static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0)
     int j; j = ctx->j;
     int k; k = ctx->k;
     FP_NUMBER sum; sum = ctx->sum;
-    hclib_start_finish();
     do {
     i = ___iter0;
 {
@@ -202,8 +201,6 @@ static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0)
             (*(ctx->A_ptr))[i][j] = sum;
         }
     } ;     } while (0);
-    ; hclib_end_finish();
-
 }
 
 

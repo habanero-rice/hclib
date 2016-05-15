@@ -8,7 +8,7 @@ CC_FLAGS = -g -O3 -fopenmp $(HCLIB_CXXFLAGS)
 
 all: needle
 
-needle: 
+needle: needle.cpp
 	$(CC) $(CC_FLAGS) needle.cpp -o needle  $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 clean:

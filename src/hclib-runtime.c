@@ -80,6 +80,14 @@ static int profile_launch_body = 0;
 typedef struct _per_worker_stats {
     size_t count_tasks;
     size_t count_steals;
+
+    /*
+     * Blocking operations that imply context creation and switching, which can
+     * be expensive.
+     */
+    size_t count_end_finishes;
+    size_t count_future_waits;
+    size_t count_end_finishes_nonblocking;
 } per_worker_stats;
 static per_worker_stats *worker_stats = NULL;
 #endif
@@ -894,6 +902,9 @@ void *hclib_future_wait(hclib_future_t *future) {
     if (future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
         return (void *)future->owner->datum;
     }
+#ifdef HCLIB_STATS
+    worker_stats[CURRENT_WS_INTERNAL->id].count_future_waits++;
+#endif
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
     hclib_future_t *continuation_deps[] = { future, NULL };
@@ -960,6 +971,10 @@ void help_finish(finish_t *finish) {
      * async is created inside _help_finish_ctx).
      */
 
+    if (finish->counter == 0) {
+        // Quick optimization: if no asyncs remain in this finish scope, just return
+        return;
+    }
     // create finish event
     hclib_promise_t *finish_promise = hclib_promise_create();
     hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
@@ -1022,6 +1037,9 @@ void hclib_end_finish() {
     fprintf(stderr, "hclib_end_finish: ending finish %p on worker %p\n",
             current_finish, CURRENT_WS_INTERNAL);
 #endif
+#ifdef HCLIB_STATS
+    worker_stats[CURRENT_WS_INTERNAL->id].count_end_finishes++;
+#endif
 
     HASSERT(current_finish);
     HASSERT(current_finish->counter > 0);
@@ -1041,13 +1059,15 @@ void hclib_end_finish() {
 
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+#ifdef HCLIB_STATS
+    worker_stats[CURRENT_WS_INTERNAL->id].count_end_finishes_nonblocking++;
+#endif
 
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
     hclib_future_t **finish_deps = malloc(2 * sizeof(hclib_future_t *));
     HASSERT(finish_deps);
-    memset(finish_deps, 0x00, 2 * sizeof(hclib_future_t *));
     finish_deps[0] = &event->future;
     finish_deps[1] = NULL;
     current_finish->finish_deps = finish_deps;
@@ -1149,10 +1169,19 @@ static void hclib_finalize() {
 #ifdef HCLIB_STATS
     int i;
     printf("===== HClib statistics: =====\n");
+    size_t sum_end_finishes = 0;
+    size_t sum_future_waits = 0;
+    size_t sum_end_finishes_nonblocking = 0;
     for (i = 0; i < hc_context->nworkers; i++) {
         printf("  Worker %d: %lu tasks, %lu steals\n", i,
                 worker_stats[i].count_tasks, worker_stats[i].count_steals);
+        sum_end_finishes += worker_stats[i].count_end_finishes;
+        sum_future_waits += worker_stats[i].count_future_waits;
+        sum_end_finishes_nonblocking += worker_stats[i].count_end_finishes_nonblocking;
     }
+    printf("Total: %lu end finishes, %lu future waits, %lu non-blocking end "
+            "finishes\n", sum_end_finishes, sum_future_waits,
+            sum_end_finishes_nonblocking);
     free(worker_stats);
 #endif
 

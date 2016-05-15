@@ -276,7 +276,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 1;
 domain[0].high = (n2) + 1;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma251_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -305,7 +305,7 @@ static void pragma251_omp_parallel_hclib_async(void *____arg, const int ___iter0
     ctx->sum += sum;
     const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
     assert(unlock_err == 0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
@@ -393,7 +393,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 1;
 domain[0].high = (ndelta) + 1;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma318_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -406,7 +406,6 @@ static void pragma318_omp_parallel_hclib_async(void *____arg, const int ___iter0
     int j; j = ctx->j;
     int ndelta; ndelta = ctx->ndelta;
     int nly; nly = ctx->nly;
-    hclib_start_finish();
     do {
     j = ___iter0;
 {
@@ -416,8 +415,6 @@ static void pragma318_omp_parallel_hclib_async(void *____arg, const int ___iter0
 	  (*(ctx->oldw_ptr))[k][j] = new_dw;
     }
   } ;     } while (0);
-    ; hclib_end_finish();
-
 }
 
 

@@ -319,7 +319,7 @@ __sync_fetch_and_add(&((*(ctx->nnc_ptr))), add_cell(cells[id].next, footprint, b
  
 	  }
 _end:;  
-} ;     ; hclib_end_finish();
+} ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

@@ -80,11 +80,11 @@ hclib_loop_domain_t domain[2];
 domain[0].low = 0;
 domain[0].high = max_blocks_x;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 domain[1].low = 0;
 domain[1].high = max_blocks_y;
 domain[1].stride = 1;
-domain[1].tile = 1;
+domain[1].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma26_omp_parallel_hclib_async, new_ctx, NULL, 2, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -111,11 +111,11 @@ hclib_loop_domain_t domain[2];
 domain[0].low = 0;
 domain[0].high = max_blocks_x;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 domain[1].low = 0;
 domain[1].high = max_blocks_y;
 domain[1].stride = 1;
-domain[1].tile = 1;
+domain[1].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma31_omp_parallel_hclib_async, new_ctx, NULL, 2, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -132,7 +132,7 @@ static void pragma26_omp_parallel_hclib_async(void *____arg, const int ___iter0,
     block_x = ___iter0;
     block_y = ___iter1;
 copy_block((*(ctx->nx_ptr)), (*(ctx->ny_ptr)), block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->block_size_ptr))) ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
@@ -148,7 +148,7 @@ static void pragma31_omp_parallel_hclib_async(void *____arg, const int ___iter0,
     block_y = ___iter1;
 compute_estimate(block_x, block_y, (*(ctx->u__ptr)), (*(ctx->unew__ptr)), (*(ctx->f__ptr)), (*(ctx->dx_ptr)), (*(ctx->dy_ptr)),
                                  (*(ctx->nx_ptr)), (*(ctx->ny_ptr)), (*(ctx->block_size_ptr))) ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 

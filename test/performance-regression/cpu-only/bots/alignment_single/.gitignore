@@ -2,3 +2,4 @@ alignment.icc.single-omp-tasks
 alignment.icc.single-omp-tasks-tied
 alignment.ref.icc.omp-tasks
 alignment.ref.icc.omp-tasks-tied
+alignment.icc.single-omp-tasks.ref

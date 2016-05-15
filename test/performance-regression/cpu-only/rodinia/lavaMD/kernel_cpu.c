@@ -192,7 +192,7 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = dim.number_boxes;
 domain[0].stride = 1;
-domain[0].tile = 1;
+domain[0].tile = -1;
 hclib_future_t *fut = hclib_forasync_future((void *)pragma120_omp_parallel_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
 hclib_future_wait(fut);
 free(new_ctx);
@@ -423,7 +423,7 @@ static void pragma120_omp_parallel_hclib_async(void *____arg, const int ___iter0
 		} // for k
 
 	} ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
