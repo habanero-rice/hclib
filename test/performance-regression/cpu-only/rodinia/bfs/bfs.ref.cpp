@@ -153,14 +153,15 @@ void BFSGraph( int argc, char** argv)
             k++;
         }
 	while(stop);
+    fprintf(stderr, "k=%d\n", k);
     } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
 
 	//Store the result into a file
-	FILE *fpo = fopen("result.txt","w");
-	for(int i=0;i<no_of_nodes;i++)
-		fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
-	fclose(fpo);
-	printf("Result stored in result.txt\n");
+	// FILE *fpo = fopen("result.txt","w");
+	// for(int i=0;i<no_of_nodes;i++)
+	// 	fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
+	// fclose(fpo);
+	// printf("Result stored in result.txt\n");
 
 
 	// cleanup memory

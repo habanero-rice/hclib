@@ -124,7 +124,11 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
 
+#ifdef HCLIB_TASK_UNTIED
  		#pragma omp task untied firstprivate(n, csols, i, j, a, depth, solutions)
+#else
+ 		#pragma omp task firstprivate(n, csols, i, j, a, depth, solutions)
+#endif
 		{
 	  		/* allocate a temporary array and copy <a> into it */
 	  		char * b = (char *)malloc(n * sizeof(char));

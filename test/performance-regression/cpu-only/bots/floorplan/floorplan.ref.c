@@ -216,9 +216,15 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
       nnl += nn;
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied private(board, footprint,area) \
 firstprivate(NWS,i,j,id,nn) \
 shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) 
+#else
+#pragma omp task private(board, footprint,area) \
+firstprivate(NWS,i,j,id,nn) \
+shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) 
+#endif
 {
 	  struct cell cells[N+1];
 	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));

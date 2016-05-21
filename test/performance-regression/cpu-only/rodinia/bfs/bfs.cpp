@@ -200,6 +200,8 @@ free(new_ctx);
             k++;
         }
 	while(stop);
+    fprintf(stderr, "k=%d\n", k);
+
     } ;     free(____arg);
 }
 
@@ -302,11 +304,11 @@ hclib_launch(main_entrypoint, new_ctx);
 
 
 	//Store the result into a file
-	FILE *fpo = fopen("result.txt","w");
-	for(int i=0;i<no_of_nodes;i++)
-		fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
-	fclose(fpo);
-	printf("Result stored in result.txt\n");
+	// FILE *fpo = fopen("result.txt","w");
+	// for(int i=0;i<no_of_nodes;i++)
+	// 	fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
+	// fclose(fpo);
+	// printf("Result stored in result.txt\n");
 
 
 	// cleanup memory

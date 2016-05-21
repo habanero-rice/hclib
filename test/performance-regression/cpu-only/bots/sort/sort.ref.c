@@ -346,9 +346,17 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
       * the appropriate location
       */
      *(lowdest + lowsize + 1) = *split1;
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilkmerge_par(low1, split1 - 1, low2, split2, lowdest);
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilkmerge_par(split1 + 1, high1, split2 + 1, high2,
 		     lowdest + lowsize + 2);
 #pragma omp taskwait
@@ -382,19 +390,43 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
      D = C + quarter;
      tmpD = tmpC + quarter;
 
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilksort_par(A, tmpA, quarter);
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilksort_par(B, tmpB, quarter);
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilksort_par(C, tmpC, quarter);
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilksort_par(D, tmpD, size - 3 * quarter);
 #pragma omp taskwait
 
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilkmerge_par(A, A + quarter - 1, B, B + quarter - 1, tmpA);
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
      cilkmerge_par(C, C + quarter - 1, D, low + size - 1, tmpC);
 #pragma omp taskwait
 
@@ -473,7 +505,11 @@ void sort_par ( void )
         {
 #pragma omp single nowait
             {
+#ifdef HCLIB_TASK_UNTIED
 #pragma omp task untied
+#else
+#pragma omp task
+#endif
                 {
                     cilksort_par(array, tmp, bots_arg_size);
                 }

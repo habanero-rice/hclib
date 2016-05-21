@@ -24,7 +24,11 @@ void sweep (int nx, int ny, double dx, double dy, double *f_,
             // Save the current estimate.
             for (block_x = 0; block_x < max_blocks_x; block_x++) {
                 for (block_y = 0; block_y < max_blocks_y; block_y++) {
+#ifdef HCLIB_TASK_UNTIED
+#pragma omp task untied shared(u_, unew_, nx, ny, block_size) firstprivate(block_x, block_y)
+#else
 #pragma omp task shared(u_, unew_, nx, ny, block_size) firstprivate(block_x, block_y)
+#endif
                     copy_block(nx, ny, block_x, block_y, u_, unew_, block_size);
                 }
             }
@@ -34,7 +38,11 @@ void sweep (int nx, int ny, double dx, double dy, double *f_,
             // Compute a new estimate.
             for (block_x = 0; block_x < max_blocks_x; block_x++) {
                 for (block_y = 0; block_y < max_blocks_y; block_y++) {
+#ifdef HCLIB_TASK_UNTIED
+#pragma omp task untied default(none) shared(u_, unew_, f_, dx, dy, nx, ny, block_size) firstprivate(block_x, block_y)
+#else
 #pragma omp task default(none) shared(u_, unew_, f_, dx, dy, nx, ny, block_size) firstprivate(block_x, block_y)
+#endif
                     compute_estimate(block_x, block_y, u_, unew_, f_, dx, dy,
                                      nx, ny, block_size);
                 }

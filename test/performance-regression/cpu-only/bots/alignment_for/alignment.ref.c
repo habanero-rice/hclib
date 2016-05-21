@@ -458,9 +458,15 @@ int pairalign()
         if ( n == 0 || m == 0 ) {
            bench_output[si*nseqs+sj] = (int) 1.0;
         } else {
+#ifdef HCLIB_TASK_UNTIED
            #pragma omp task untied \
            private(i,gg,len2,mm_score) firstprivate(m,n,si,sj,len1) \
            shared(nseqs, bench_output,seqlen_array,seq_array,gap_pos1,gap_pos2,pw_ge_penalty,pw_go_penalty,mat_avscore)
+#else
+           #pragma omp task \
+           private(i,gg,len2,mm_score) firstprivate(m,n,si,sj,len1) \
+           shared(nseqs, bench_output,seqlen_array,seq_array,gap_pos1,gap_pos2,pw_ge_penalty,pw_go_penalty,mat_avscore)
+#endif
            {
               int se1, se2, sb1, sb2, maxscore, seq1, seq2, g, gh;
               int displ[2*MAX_ALN_LENGTH+1];

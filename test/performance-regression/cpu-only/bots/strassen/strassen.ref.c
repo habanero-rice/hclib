@@ -675,31 +675,59 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   } /* end column loop */
 
   /* M2 = A11 x B11 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(M2, A, B, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1);
 
   /* M5 = S1 * S5 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of T1 = S2 x S6 + M2 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of T2 = T1 + S3 x S7 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of C11 = M2 + A12 * B21 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(C, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1);
   
   /* Step 1 of C12 = S4 x B22 + T1 + M5 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1);
 
   /* Step 1 of C21 = T2 - A22 * S8 */
+#ifdef HCLIB_TASK_UNTIED
   #pragma omp task untied
+#else
+  #pragma omp task
+#endif
   OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1);
 
   /**********************************************
@@ -819,7 +847,11 @@ void strassen_main_par(REAL *A, REAL *B, REAL *C, int n)
         {
 	#pragma omp single
             {
+#ifdef HCLIB_TASK_UNTIED
 	#pragma omp task untied     
+#else
+	#pragma omp task
+#endif
 		OptimizedStrassenMultiply_par(C, A, B, n, n, n, n, 1);
             }
         }
