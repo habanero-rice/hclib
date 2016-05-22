@@ -17,16 +17,12 @@ void sweep (int nx, int ny, double dx, double dy, double *f_,
     for (it = itold + 1; it <= itnew; it++)
     {
         // Save the current estimate.
-#pragma omp parallel for                                                   \
-    shared(u_, unew_, f_, max_blocks_x, max_blocks_y, nx, ny, dx, dy, itold, itnew, block_size) \
-    private(it, block_x, block_y) collapse(2)
+#pragma omp parallel for                                                        shared(u_, unew_, f_, max_blocks_x, max_blocks_y, nx, ny, dx, dy, itold, itnew, block_size)      private(it, block_x, block_y) collapse(2)
         for (block_x = 0; block_x < max_blocks_x; block_x++)
             for (block_y = 0; block_y < max_blocks_y; block_y++)
                 copy_block(nx, ny, block_x, block_y, u_, unew_, block_size);
 
-#pragma omp parallel for                                                   \
-    shared(u_, unew_, f_, max_blocks_x, max_blocks_y, nx, ny, dx, dy, itold, itnew, block_size) \
-    private(it, block_x, block_y) collapse(2)
+#pragma omp parallel for                                                        shared(u_, unew_, f_, max_blocks_x, max_blocks_y, nx, ny, dx, dy, itold, itnew, block_size)      private(it, block_x, block_y) collapse(2)
         // Compute a new estimate.
         for (block_x = 0; block_x < max_blocks_x; block_x++)
             for (block_y = 0; block_y < max_blocks_y; block_y++)

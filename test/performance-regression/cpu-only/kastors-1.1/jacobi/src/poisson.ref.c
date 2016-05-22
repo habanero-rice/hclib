@@ -118,7 +118,7 @@ double run(struct user_parameters* params)
         for (j = 0; j < ny; j+= block_size) {
             for (i = 0; i < nx; i+= block_size) {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied firstprivate(i,j) private(ii,jj)
+#pragma omp task firstprivate(i,j) private(ii,jj) untied
 #else
 #pragma omp task firstprivate(i,j) private(ii,jj)
 #endif
@@ -231,7 +231,7 @@ void rhs(int nx, int ny, double *f, int block_size)
     for (j = 0; j < ny; j+=block_size) {
         for (i = 0; i < nx; i+=block_size) {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied firstprivate(block_size,i,j,nx,ny) private(ii,jj,x,y)
+#pragma omp task firstprivate(block_size,i,j,nx,ny) private(ii,jj,x,y) untied
 #else
 #pragma omp task firstprivate(block_size,i,j,nx,ny) private(ii,jj,x,y)
 #endif

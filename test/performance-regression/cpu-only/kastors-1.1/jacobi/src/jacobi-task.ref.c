@@ -20,7 +20,7 @@ void sweep (int nx, int ny, double dx, double dy, double *f,
             // Save the current estimate.
             for (i = 0; i < nx; i++) {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied firstprivate(i, ny) private(j) shared(u, unew)
+#pragma omp task firstprivate(i, ny) private(j) shared(u, unew) untied
 #else
 #pragma omp task firstprivate(i, ny) private(j) shared(u, unew)
 #endif
@@ -32,7 +32,7 @@ void sweep (int nx, int ny, double dx, double dy, double *f,
             // Compute a new estimate.
             for (i = 0; i < nx; i++) {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied firstprivate(i, dx, dy, nx, ny) private(j) shared(u, unew, f)
+#pragma omp task firstprivate(i, dx, dy, nx, ny) private(j) shared(u, unew, f) untied
 #else
 #pragma omp task firstprivate(i, dx, dy, nx, ny) private(j) shared(u, unew, f)
 #endif

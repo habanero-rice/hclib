@@ -419,9 +419,9 @@ void sim_village_par(struct Village *village)
    while(vlist)
    {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied firstprivate(vlist, village)
+#pragma omp task  firstprivate(vlist, village) untied
 #else
-#pragma omp task firstprivate(vlist, village)
+#pragma omp task  firstprivate(vlist, village)
 #endif
       sim_village_par(vlist);
       vlist = vlist->next;
@@ -558,9 +558,9 @@ void sim_village_main_par(struct Village *top)
 #pragma omp single
             {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied
+#pragma omp task  untied
 #else
-#pragma omp task
+#pragma omp task 
 #endif
                 {
                     for (i = 0; i < sim_time; i++) sim_village_par(top);   

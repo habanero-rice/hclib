@@ -12,4 +12,4 @@ particle_filter: ex_particle_OPENMP_seq.c
 
 
 clean:
-	rm particle_filter
+	rm -f particle_filter

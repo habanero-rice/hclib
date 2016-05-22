@@ -17,15 +17,7 @@
 
 #define ABS(x)          (((x) > 0.0) ? (x) : (-(x)))
 
-#define fastcopy(to,from,len)\
-{\
-  register char *_to,*_from;\
-  register int _i,_l;\
-  _to = (char *)(to);\
-  _from = (char *)(from);\
-  _l = (len);\
-  for (_i = 0; _i < _l; _i++) *_to++ = *_from++;\
-}
+#define fastcopy(to,from,len) {   register char *_to,*_from;   register int _i,_l;   _to = (char *)(to);   _from = (char *)(from);   _l = (len);   for (_i = 0; _i < _l; _i++) *_to++ = *_from++; }
 
 /*** Return random number between 0.0 and 1.0 ***/
 float drnd()
@@ -309,10 +301,7 @@ float *delta, *ly, **w, **oldw;
   //eta = 0.3;
   //momentum = 0.3;
 
-  #pragma omp parallel for  \
-      shared(oldw, w, delta) \
-	  private(j, k, new_dw) \
-	  firstprivate(ndelta, nly) 
+  #pragma omp parallel for         shared(oldw, w, delta)  	  private(j, k, new_dw)  	  firstprivate(ndelta, nly) 
   for (j = 1; j <= ndelta; j++) {
     for (k = 0; k <= nly; k++) {
       new_dw = ((ETA * delta[j] * ly[k]) + (MOMENTUM * oldw[k][j]));

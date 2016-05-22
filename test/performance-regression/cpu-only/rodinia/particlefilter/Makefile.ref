@@ -10,4 +10,4 @@ particle_filter.ref: ex_particle_OPENMP_seq.ref.c
 
 
 clean:
-	rm particle_filter.ref
+	rm -f particle_filter.ref

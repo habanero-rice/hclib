@@ -264,9 +264,9 @@ void sparselu_par_call(float **BENCH)
          if (BENCH[kk*bots_arg_size+jj] != NULL)
          {
 #ifdef HCLIB_TASK_UNTIED
-            #pragma omp task untied firstprivate(kk, jj) shared(BENCH)
+#pragma omp task  firstprivate(kk, jj) shared(BENCH) untied
 #else
-            #pragma omp task firstprivate(kk, jj) shared(BENCH)
+#pragma omp task  firstprivate(kk, jj) shared(BENCH)
 #endif
              {
             fwd(BENCH[kk*bots_arg_size+kk], BENCH[kk*bots_arg_size+jj]);
@@ -276,9 +276,9 @@ void sparselu_par_call(float **BENCH)
          if (BENCH[ii*bots_arg_size+kk] != NULL)
          {
 #ifdef HCLIB_TASK_UNTIED
-            #pragma omp task untied firstprivate(kk, ii) shared(BENCH)
+#pragma omp task  firstprivate(kk, ii) shared(BENCH) untied
 #else
-            #pragma omp task firstprivate(kk, ii) shared(BENCH)
+#pragma omp task  firstprivate(kk, ii) shared(BENCH)
 #endif
              {
             bdiv (BENCH[kk*bots_arg_size+kk], BENCH[ii*bots_arg_size+kk]);
@@ -291,9 +291,9 @@ void sparselu_par_call(float **BENCH)
                if (BENCH[kk*bots_arg_size+jj] != NULL)
                {
 #ifdef HCLIB_TASK_UNTIED
-               #pragma omp task untied firstprivate(kk, jj, ii) shared(BENCH)
+#pragma omp task  firstprivate(kk, jj, ii) shared(BENCH) untied
 #else
-               #pragma omp task firstprivate(kk, jj, ii) shared(BENCH)
+#pragma omp task  firstprivate(kk, jj, ii) shared(BENCH)
 #endif
                    {
                      if (BENCH[ii*bots_arg_size+jj]==NULL) BENCH[ii*bots_arg_size+jj] = allocate_clean_block();

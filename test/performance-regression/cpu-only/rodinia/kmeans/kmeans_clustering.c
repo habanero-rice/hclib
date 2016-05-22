@@ -240,7 +240,7 @@ domain[0].low = 0;
 domain[0].high = npoints;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma190_omp_parallel_hclib_async, new_ctx, 1, domain, FORASYNC_MODE_RECURSIVE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma190_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
 delta = new_ctx->delta;
@@ -292,7 +292,7 @@ static void pragma190_omp_parallel_hclib_async(void *____arg, const int ___iter0
     i = ___iter0;
 {
 	        /* find the index of nestest cluster centers */					
-            int tid = hclib_get_current_worker();
+            int tid = hclib_get_current_worker();				
 	        index = find_nearest_point((*(ctx->feature_ptr))[i],
 		             nfeatures,
 		             (*(ctx->clusters_ptr)),

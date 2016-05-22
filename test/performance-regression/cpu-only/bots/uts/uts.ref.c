@@ -184,9 +184,9 @@ unsigned long long parallel_uts ( Node *root )
       #pragma omp single nowait
            {
 #ifdef HCLIB_TASK_UNTIED
-      #pragma omp task untied
+#pragma omp task  untied
 #else
-      #pragma omp task
+#pragma omp task 
 #endif
         num_nodes = parTreeSearch( 0, root, root->numChildren );
            }
@@ -218,10 +218,11 @@ unsigned long long parTreeSearch(int depth, Node *parent, int numChildren)
      }
 
      nodePtr->numChildren = uts_numChildren(nodePtr);
+
 #ifdef HCLIB_TASK_UNTIED
-     #pragma omp task untied firstprivate(i, nodePtr) shared(partialCount)
+#pragma omp task  firstprivate(i, nodePtr) shared(partialCount) untied
 #else
-     #pragma omp task firstprivate(i, nodePtr) shared(partialCount)
+#pragma omp task  firstprivate(i, nodePtr) shared(partialCount)
 #endif
         partialCount[i] = parTreeSearch(depth+1, nodePtr, nodePtr->numChildren);
   }

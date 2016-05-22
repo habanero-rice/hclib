@@ -110,11 +110,7 @@ void  kernel_cpu(	par_str par,
 	//	PROCESS INTERACTIONS
 	//======================================================================================================================================================150
 
-	#pragma omp	parallel for \
-				private(i, j, k) \
-				private(first_i, rA, fA) \
-				private(pointer, first_j, rB, qB) \
-				private(r2, u2, fs, vij, fxij, fyij, fzij, d)
+	#pragma omp	parallel for  				private(i, j, k)  				private(first_i, rA, fA)  				private(pointer, first_j, rB, qB)  				private(r2, u2, fs, vij, fxij, fyij, fzij, d)
 	for(l=0; l<dim.number_boxes; l=l+1){
 
 		//------------------------------------------------------------------------------------------100

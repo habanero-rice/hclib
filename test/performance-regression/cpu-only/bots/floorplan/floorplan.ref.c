@@ -142,11 +142,7 @@ static int lay_down(int id, ibrd board, struct cell *cells) {
 }
 
 
-#define read_integer(file,var) \
-  if ( fscanf(file, "%d", &var) == EOF ) {\
-	bots_message(" Bogus input file\n");\
-	exit(-1);\
-  }
+#define read_integer(file,var)    if ( fscanf(file, "%d", &var) == EOF ) { 	bots_message(" Bogus input file\n"); 	exit(-1);   }
 
 static void read_inputs() {
   int i, j, n;
@@ -217,13 +213,9 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
 #ifdef HCLIB_TASK_UNTIED
-#pragma omp task untied private(board, footprint,area) \
-firstprivate(NWS,i,j,id,nn) \
-shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) 
+#pragma omp task  private(board, footprint,area) firstprivate(NWS,i,j,id,nn) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) untied
 #else
-#pragma omp task private(board, footprint,area) \
-firstprivate(NWS,i,j,id,nn) \
-shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) 
+#pragma omp task  private(board, footprint,area) firstprivate(NWS,i,j,id,nn) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode)
 #endif
 {
 	  struct cell cells[N+1];

@@ -48,8 +48,7 @@ void lud_omp(float *a, int size)
         
         // calculate perimeter block matrices
         // 
-        #pragma omp parallel for default(none) \
-          private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset) 
+        #pragma omp parallel for default(none)            private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset) 
         for ( chunk_idx = 0; chunk_idx < chunks_in_inter_row; chunk_idx++)
         {
             int i, j, k, i_global, j_global, i_here, j_here;
@@ -102,8 +101,7 @@ void lud_omp(float *a, int size)
         //
         chunks_per_inter = chunks_in_inter_row*chunks_in_inter_row;
 
-#pragma omp parallel for schedule(auto) default(none) \
-         private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset) 
+#pragma omp parallel for schedule(auto) default(none)           private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset) 
         for  (chunk_idx =0; chunk_idx < chunks_per_inter; chunk_idx++)
         {
             int i, j, k, i_global, j_global;
