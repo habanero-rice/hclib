@@ -1,0 +1,32 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+
+# C compiler
+HCLIB_PERF_CC?=icc
+CC = $(HCLIB_PERF_CC)
+CC_FLAGS=-g -fopenmp -O2 $(HCLIB_CXXFLAGS)
+
+
+backprop.ref: backprop.ref.o facetrain.ref.o imagenet.o backprop_kernel.o 
+	$(HCLIB_PERF_CC) $(CC_FLAGS) $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o backprop.ref -lm
+
+%.o: %.[ch]
+	$(CC) $(CC_FLAGS) $< -c
+
+facetrain.ref.o: facetrain.ref.c backprop.h
+	$(CC) $(CC_FLAGS) facetrain.ref.c -c
+	
+backprop.ref.o: backprop.c backprop.h
+	$(CC) $(CC_FLAGS) backprop.ref.c -c
+
+backprop_kernel.o: backprop_kernel.c backprop.h
+	$(CC) $(CC_FLAGS) backprop_kernel.c -c
+
+imagenet.o: imagenet.c backprop.h
+	$(CC) $(CC_FLAGS) imagenet.c -c
+
+
+clean:
+	rm -f *.o *~ backprop backprop_cuda.linkinfo

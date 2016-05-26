@@ -1,0 +1,6 @@
+OpenMP/leukocyte.ref:
+	cd OpenMP; make -f Makefile.ref
+
+clean:
+	cd OpenMP; make -f Makefile.ref clean
+	rm -f meschach_lib/meschach.a

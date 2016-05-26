@@ -1,15 +1,16 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
 # C compiler
-CC = g++
-ICC = icc
-CC_FLAGS = -g -O3 -fopenmp $(PROJECT_CXXFLAGS)
+HCLIB_PERF_CXX?=icpc
+CC = $(HCLIB_PERF_CXX)
+CC_FLAGS = -g -O3 -fopenmp $(HCLIB_CXXFLAGS)
 
 all: needle
 
-needle: 
-	$(CC) $(CC_FLAGS) needle.cpp -o needle  $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+needle: needle.cpp
+	$(CC) $(CC_FLAGS) needle.cpp -o needle  $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 clean:
 	rm -f needle

@@ -1,2 +1,5 @@
 sparselu.icc.single-omp-tasks
 sparselu.icc.single-omp-tasks-tied
+sparselu.ref.icc.omp-tasks
+sparselu.ref.icc.omp-tasks-tied
+sparselu.icc.single-omp-tasks.ref

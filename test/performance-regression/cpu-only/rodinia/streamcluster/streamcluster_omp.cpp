@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 /***********************************************
 	streamcluster_omp.cpp
 	: parallelized code of streamcluster using OpenMP
@@ -302,7 +306,7 @@ float pspeedy(Points *points, float z, long *kcenter, int pid)
 /* z is the facility cost, x is the number of this point in the array 
    points */
 
-typedef struct _pragma391 {
+typedef struct _pragma396_omp_parallel {
     double (*t0_ptr);
     long (*bsize_ptr);
     long (*k1_ptr);
@@ -326,9 +330,9 @@ typedef struct _pragma391 {
     long (*(*numcenters_ptr));
     int (*pid_ptr);
     pthread_mutex_t reduction_mutex;
- } pragma391;
+ } pragma396_omp_parallel;
 
-typedef struct _pragma467 {
+typedef struct _pragma472_omp_parallel {
     double (*t0_ptr);
     long (*bsize_ptr);
     long (*k1_ptr);
@@ -352,10 +356,10 @@ typedef struct _pragma467 {
     double (*z_ptr);
     long (*(*numcenters_ptr));
     int (*pid_ptr);
- } pragma467;
+ } pragma472_omp_parallel;
 
-static void pragma391_hclib_async(void *____arg, const int ___iter0);
-static void pragma467_hclib_async(void *____arg, const int ___iter0);
+static void pragma396_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma472_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 {
   //  printf("pgain pthread %d begin\n",pid);
@@ -442,7 +446,7 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 	// OpenMP parallelization
 //	#pragma omp parallel for 
  { 
-pragma391 *new_ctx = (pragma391 *)malloc(sizeof(pragma391));
+pragma396_omp_parallel *new_ctx = (pragma396_omp_parallel *)malloc(sizeof(pragma396_omp_parallel));
 new_ctx->t0_ptr = &(t0);
 new_ctx->bsize_ptr = &(bsize);
 new_ctx->k1_ptr = &(k1);
@@ -472,8 +476,8 @@ hclib_loop_domain_t domain[1];
 domain[0].low = k1;
 domain[0].high = k2;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma391_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma396_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
 cost_of_opening_x = new_ctx->cost_of_opening_x;
@@ -529,7 +533,7 @@ cost_of_opening_x = new_ctx->cost_of_opening_x;
   if ( gl_cost_of_opening_x < 0 ) {
     //  we'd save money by opening x; we'll do it
  { 
-pragma467 *new_ctx = (pragma467 *)malloc(sizeof(pragma467));
+pragma472_omp_parallel *new_ctx = (pragma472_omp_parallel *)malloc(sizeof(pragma472_omp_parallel));
 new_ctx->t0_ptr = &(t0);
 new_ctx->bsize_ptr = &(bsize);
 new_ctx->k1_ptr = &(k1);
@@ -557,8 +561,8 @@ hclib_loop_domain_t domain[1];
 domain[0].low = k1;
 domain[0].high = k2;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma467_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma472_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -596,8 +600,8 @@ free(new_ctx);
 	//printf("cost=%f\n", -gl_cost_of_opening_x);
   return -gl_cost_of_opening_x;
 } 
-static void pragma391_hclib_async(void *____arg, const int ___iter0) {
-    pragma391 *ctx = (pragma391 *)____arg;
+static void pragma396_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma396_omp_parallel *ctx = (pragma396_omp_parallel *)____arg;
     int i; i = ctx->i;
     double cost_of_opening_x; cost_of_opening_x = ctx->cost_of_opening_x;
     hclib_start_finish();
@@ -633,13 +637,13 @@ static void pragma391_hclib_async(void *____arg, const int ___iter0) {
     ctx->cost_of_opening_x += cost_of_opening_x;
     const int unlock_err = pthread_mutex_unlock(&ctx->reduction_mutex);
     assert(unlock_err == 0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
 
-static void pragma467_hclib_async(void *____arg, const int ___iter0) {
-    pragma467 *ctx = (pragma467 *)____arg;
+static void pragma472_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma472_omp_parallel *ctx = (pragma472_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {
@@ -654,7 +658,7 @@ static void pragma467_hclib_async(void *____arg, const int ___iter0) {
 				(*(ctx->points_ptr))->p[i].assign = (*(ctx->x_ptr));
       }
     } ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 

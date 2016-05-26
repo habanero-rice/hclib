@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,27 +17,27 @@ typedef float FP_NUMBER;
 #define GET_RAND_FP ((FP_NUMBER)rand()/((FP_NUMBER)(RAND_MAX)+(FP_NUMBER)(1)))
 char L_FNAME[32], U_FNAME[32], A_FNAME[32];
 
-typedef struct _pragma68 {
+typedef struct _pragma73_omp_parallel {
     int i;
     int j;
     int (*MatrixDim_ptr);
-    FP_NUMBER (*(*(*L_ptr)));
-    FP_NUMBER (*(*(*U_ptr)));
- } pragma68;
+    float (*(*(*L_ptr)));
+    float (*(*(*U_ptr)));
+ } pragma73_omp_parallel;
 
-typedef struct _pragma84 {
+typedef struct _pragma89_omp_parallel {
     int i;
     int j;
     int k;
     int (*MatrixDim_ptr);
-    FP_NUMBER sum;
-    FP_NUMBER (*(*(*L_ptr)));
-    FP_NUMBER (*(*(*U_ptr)));
-    FP_NUMBER (*(*(*A_ptr)));
- } pragma84;
+    float sum;
+    float (*(*(*L_ptr)));
+    float (*(*(*U_ptr)));
+    float (*(*(*A_ptr)));
+ } pragma89_omp_parallel;
 
-static void pragma68_hclib_async(void *____arg, const int ___iter0);
-static void pragma84_hclib_async(void *____arg, const int ___iter0);
+static void pragma73_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 int main (int argc, char **argv){
     int i,j,k,MatrixDim;
     FP_NUMBER sum, **L, **U, **A;
@@ -86,7 +90,7 @@ int main (int argc, char **argv){
         A[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
     }
  { 
-pragma68 *new_ctx = (pragma68 *)malloc(sizeof(pragma68));
+pragma73_omp_parallel *new_ctx = (pragma73_omp_parallel *)malloc(sizeof(pragma73_omp_parallel));
 new_ctx->i = i;
 new_ctx->j = j;
 new_ctx->MatrixDim_ptr = &(MatrixDim);
@@ -96,14 +100,14 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = MatrixDim;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma68_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma73_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 
  { 
-pragma84 *new_ctx = (pragma84 *)malloc(sizeof(pragma84));
+pragma89_omp_parallel *new_ctx = (pragma89_omp_parallel *)malloc(sizeof(pragma89_omp_parallel));
 new_ctx->i = i;
 new_ctx->j = j;
 new_ctx->k = k;
@@ -116,8 +120,8 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = MatrixDim;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma84_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma89_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -155,8 +159,8 @@ free(new_ctx);
 
     return 0;
 } 
-static void pragma68_hclib_async(void *____arg, const int ___iter0) {
-    pragma68 *ctx = (pragma68 *)____arg;
+static void pragma73_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma73_omp_parallel *ctx = (pragma73_omp_parallel *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     hclib_start_finish();
@@ -176,18 +180,17 @@ static void pragma68_hclib_async(void *____arg, const int ___iter0) {
             }
         }
     } ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 
 
-static void pragma84_hclib_async(void *____arg, const int ___iter0) {
-    pragma84 *ctx = (pragma84 *)____arg;
+static void pragma89_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma89_omp_parallel *ctx = (pragma89_omp_parallel *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int k; k = ctx->k;
-    FP_NUMBER sum; sum = ctx->sum;
-    hclib_start_finish();
+    float sum; sum = ctx->sum;
     do {
     i = ___iter0;
 {
@@ -198,8 +201,6 @@ static void pragma84_hclib_async(void *____arg, const int ___iter0) {
             (*(ctx->A_ptr))[i][j] = sum;
         }
     } ;     } while (0);
-    ; hclib_end_finish();
-
 }
 
 

@@ -38,13 +38,10 @@ void free_at(void *ptr, hclib::locale_t *locale);
 hclib::future_t *memset_at(void *ptr, int pattern, size_t nbytes,
         hclib::locale_t *locale);
 
-template<typename... future_list_t>
 inline hclib::future_t *async_copy_await(hclib::locale_t *dst_locale, void *dst,
-        hclib::locale_t *src_locale, void *src, size_t nbytes,
-        future_list_t... futures) {
-    hclib_future_t **future_list = construct_future_list(futures...);
+        hclib::locale_t *src_locale, void *src, size_t nbytes, hclib::future_t *future) {
     return new hclib::future_t(hclib_async_copy(dst_locale, dst, src_locale,
-                src, nbytes, future_list));
+                src, nbytes, future->internal));
 }
 
 inline hclib::future_t *async_copy(hclib::locale_t *dst_locale, void *dst,

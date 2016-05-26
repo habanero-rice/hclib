@@ -46,15 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-inline hclib_future_t ** get_future_list(hclib_task_t *t) {
-    return t->future_list;
-}
-
 extern void spawn(hclib_task_t * task);
-extern void spawn_await_at(hclib_task_t * task, hclib_future_t** future_list,
-        hclib_locale_t *locale);
+extern void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
+        hclib_future_t *future2, hclib_locale_t *locale);
 extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale);
-extern void spawn_await(hclib_task_t * task, hclib_future_t** future_list);
+extern void spawn_await(hclib_task_t *task, hclib_future_t *future,
+        hclib_future_t *future2);
 extern void spawn_comm_task(hclib_task_t * task);
 extern void spawn_gpu_task(hclib_task_t *task);
 

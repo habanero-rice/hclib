@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -432,7 +436,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pragma465 {
+typedef struct _pragma470_omp_task {
     int i;
     int n;
     int m;
@@ -445,9 +449,9 @@ typedef struct _pragma465 {
     double mm_score;
     int (*(*mat_xref_ptr));
     int (*(*matptr_ptr));
- } pragma465;
+ } pragma470_omp_task;
 
-static void pragma465_hclib_async(void *____arg);
+static void pragma470_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     int i;
     int n;
@@ -492,7 +496,7 @@ hclib_start_finish(); for (si = 0; si < nseqs; si++) {
                bench_output[si*nseqs+sj] = (int) 1.0;
             } else {
  { 
-pragma465 *new_ctx = (pragma465 *)malloc(sizeof(pragma465));
+pragma470_omp_task *new_ctx = (pragma470_omp_task *)malloc(sizeof(pragma470_omp_task));
 new_ctx->i = i;
 new_ctx->n = n;
 new_ctx->m = m;
@@ -505,7 +509,7 @@ new_ctx->gg = gg;
 new_ctx->mm_score = mm_score;
 new_ctx->mat_xref_ptr = &(mat_xref);
 new_ctx->matptr_ptr = &(matptr);
-hclib_async(pragma465_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma470_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  }  // end task
             } // end if (n == 0 || m == 0)
          } // for (j)
@@ -543,8 +547,8 @@ hclib_launch(main_entrypoint, new_ctx);
 
    return 0;
 }  
-static void pragma465_hclib_async(void *____arg) {
-    pragma465 *ctx = (pragma465 *)____arg;
+static void pragma470_omp_task_hclib_async(void *____arg) {
+    pragma470_omp_task *ctx = (pragma470_omp_task *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
@@ -589,7 +593,7 @@ static void pragma465_hclib_async(void *____arg) {
                   else                        mm_score /= (double) MIN(len1,len2);
 
                   bench_output[si*nseqs+sj] = (int) mm_score;
-               } ;     ; hclib_end_finish();
+               } ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }

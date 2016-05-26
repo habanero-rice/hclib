@@ -1,0 +1,24 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+
+TARGETS=jacobi-task.ref jacobi-block-for.ref jacobi-block-task.ref
+HCLIB_PERF_CXX?=icpc
+
+all: $(TARGETS)
+
+SHARED_SRC=main.ref.c src/jacobi-seq.c src/poisson.ref.c
+FLAGS=-Iinclude -I../common -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+jacobi-task.ref: src/jacobi-task.ref.c $(SHARED_SRC)
+	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@
+
+jacobi-block-for.ref: src/jacobi-block-for.ref.c $(SHARED_SRC)
+	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@
+
+jacobi-block-task.ref: src/jacobi-block-task.ref.c $(SHARED_SRC)
+	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@
+
+clean:
+	rm -f $(TARGETS)

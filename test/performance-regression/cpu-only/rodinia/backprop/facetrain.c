@@ -1,3 +1,8 @@
+#include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -9,10 +14,20 @@ extern void exit();
 
 int layer_size = 0;
 
-void backprop_face_entrypoint(void *arg) {
-    BPNN *net = (BPNN *)arg;
+typedef struct _main_entrypoint_ctx {
+    BPNN (*net);
+    int i;
+ } main_entrypoint_ctx;
+
+
+static void main_entrypoint(void *____arg) {
+    main_entrypoint_ctx *ctx = (main_entrypoint_ctx *)____arg;
+    BPNN (*net); net = ctx->net;
+    int i; i = ctx->i;
+{
     float out_err, hid_err;
     bpnn_train_kernel(net, &out_err, &hid_err);
+  } ;     free(____arg);
 }
 
 backprop_face()
@@ -24,10 +39,14 @@ backprop_face()
   load(net);
   //entering the training kernel, only one iteration
   printf("Starting training kernel\n");
-  hclib_launch(backprop_face_entrypoint, net);
+main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
+new_ctx->net = net;
+new_ctx->i = i;
+hclib_launch(main_entrypoint, new_ctx);
+
   bpnn_free(net);
   printf("Training done\n");
-}
+} 
 
 int setup(argc, argv)
 int argc;

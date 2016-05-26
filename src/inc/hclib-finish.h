@@ -6,7 +6,7 @@
 typedef struct finish_t {
     struct finish_t* parent;
     volatile int counter;
-    hclib_future_t ** finish_deps;
+    hclib_future_t *finish_dep;
 } finish_t;
 
 #endif

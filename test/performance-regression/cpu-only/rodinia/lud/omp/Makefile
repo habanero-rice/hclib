@@ -1,9 +1,12 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../../custom.mak
 # Makefile for LU Decomposition
 #
 #
+
+HCLIB_PERF_CXX?=icpc
 
 # DEBUG can be set to YES to include debugging info, or NO otherwise
 DEBUG          := NO
@@ -18,13 +21,13 @@ EXECUTABLE      := lud_omp
 SOURCES         := lud.c lud_omp.c ../common/common.c 
 
 # ------------  compiler  ------------------------------------------------------
-CC              := gcc
-CXX             := g++
+CC              := $(HCLIB_PERF_CXX)
+CXX             := $(HCLIB_PERF_CXX)
 
 # ------------  compiler flags  ------------------------------------------------
 DEBUG_CFLAGS    := -Wall -O0 -g
 RELEASE_CFLAGS  := -Wall -O3 
-COMMON_CFLAGS   := -fopenmp $(PROJECT_CXXFLAGS)
+COMMON_CFLAGS   := -fopenmp $(HCLIB_CXXFLAGS)
 
 # ------------  compiler defs  ------------------------------------------------
 DEBUG_CDEFS    := 
@@ -34,7 +37,7 @@ COMMON_CDEFS   :=
 # ------------  linker flags  --------------------------------------------------
 DEBUG_LDFLAGS    := -g
 RELEASE_LDFLAGS  := 
-COMMON_LDFLAGS   := -fopenmp $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+COMMON_LDFLAGS   := -fopenmp $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 ifeq (YES, ${DEBUG})
   CFLAGS       := ${DEBUG_CFLAGS} ${DEBUG_CDEFS}

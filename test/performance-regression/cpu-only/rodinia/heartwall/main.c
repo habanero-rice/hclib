@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
 //	DEFINE / INCLUDE
@@ -95,7 +99,7 @@ void write_data(	char* filename,
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
 
-typedef struct _pragma549 {
+typedef struct _pragma554_omp_parallel {
     int i;
     int (*frames_processed_ptr);
     public_struct (*public_ptr);
@@ -105,9 +109,9 @@ typedef struct _pragma549 {
     int (*omp_num_threads_ptr);
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma549;
+ } pragma554_omp_parallel;
 
-static void pragma549_hclib_async(void *____arg, const int ___iter0);
+static void pragma554_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     int i;
     int frames_processed;
@@ -150,7 +154,7 @@ for(public.frame_no=0; public.frame_no<frames_processed; public.frame_no++){
 	//====================================================================================================
 
  { 
-pragma549 *new_ctx = (pragma549 *)malloc(sizeof(pragma549));
+pragma554_omp_parallel *new_ctx = (pragma554_omp_parallel *)malloc(sizeof(pragma554_omp_parallel));
 new_ctx->i = i;
 new_ctx->frames_processed_ptr = &(frames_processed);
 new_ctx->public_ptr = &(public);
@@ -164,8 +168,8 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = public.allPoints;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma549_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma554_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -707,8 +711,8 @@ hclib_launch(main_entrypoint, new_ctx);
 
     return 0;
 }  
-static void pragma549_hclib_async(void *____arg, const int ___iter0) {
-    pragma549 *ctx = (pragma549 *)____arg;
+static void pragma554_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma554_omp_parallel *ctx = (pragma554_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {
@@ -717,7 +721,7 @@ static void pragma549_hclib_async(void *____arg, const int ___iter0) {
 			kernel(	(*(ctx->public_ptr)),
 						(*(ctx->private_ptr))[i]);
 		} ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 

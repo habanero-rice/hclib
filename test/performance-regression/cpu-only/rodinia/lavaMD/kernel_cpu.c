@@ -1,5 +1,9 @@
 #include "hclib.h"
 #ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -38,7 +42,7 @@ extern "C" {
 //	PLASMAKERNEL_GPU
 //========================================================================================================================================================================================================200
 
-typedef struct _pragma115 {
+typedef struct _pragma120_omp_parallel {
     long long (*time0_ptr);
     long long (*time1_ptr);
     long long (*time2_ptr);
@@ -71,9 +75,9 @@ typedef struct _pragma115 {
     FOUR_VECTOR (*(*rv_ptr));
     double (*(*qv_ptr));
     FOUR_VECTOR (*(*fv_ptr));
- } pragma115;
+ } pragma120_omp_parallel;
 
-static void pragma115_hclib_async(void *____arg, const int ___iter0);
+static void pragma120_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     long long time0;
     long long time1;
@@ -151,7 +155,7 @@ static void main_entrypoint(void *____arg) {
 	//======================================================================================================================================================150
 
  { 
-pragma115 *new_ctx = (pragma115 *)malloc(sizeof(pragma115));
+pragma120_omp_parallel *new_ctx = (pragma120_omp_parallel *)malloc(sizeof(pragma120_omp_parallel));
 new_ctx->time0_ptr = &(time0);
 new_ctx->time1_ptr = &(time1);
 new_ctx->time2_ptr = &(time2);
@@ -188,8 +192,8 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = dim.number_boxes;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma115_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma120_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  }  // for l
@@ -315,8 +319,8 @@ hclib_launch(main_entrypoint, new_ctx);
 	printf("%.12f s\n", 												(float) (time4-time0) / 1000000);
 
 }  
-static void pragma115_hclib_async(void *____arg, const int ___iter0) {
-    pragma115 *ctx = (pragma115 *)____arg;
+static void pragma120_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma120_omp_parallel *ctx = (pragma120_omp_parallel *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int k; k = ctx->k;
@@ -419,7 +423,7 @@ static void pragma115_hclib_async(void *____arg, const int ___iter0) {
 		} // for k
 
 	} ;     } while (0);
-    ; hclib_end_finish();
+    ; hclib_end_finish_nonblocking();
 
 }
 

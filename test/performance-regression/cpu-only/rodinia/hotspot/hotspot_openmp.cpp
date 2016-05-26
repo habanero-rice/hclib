@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
@@ -48,27 +52,27 @@ int num_omp_threads;
  * advances the solution of the discretized difference equations 
  * by one time step
  */
-typedef struct _pragma64 {
-    FLOAT delta;
+typedef struct _pragma69_omp_parallel {
+    float delta;
     int r;
     int c;
     int chunk;
     int num_chunk;
     int chunks_in_row;
     int (*chunks_in_col_ptr);
-    FLOAT (*(*result_ptr));
-    FLOAT (*(*temp_ptr));
-    FLOAT (*(*power_ptr));
+    float (*(*result_ptr));
+    float (*(*temp_ptr));
+    float (*(*power_ptr));
     int row;
     int col;
-    FLOAT (*Cap_1_ptr);
-    FLOAT (*Rx_1_ptr);
-    FLOAT (*Ry_1_ptr);
-    FLOAT (*Rz_1_ptr);
-    FLOAT (*step_ptr);
- } pragma64;
+    float (*Cap_1_ptr);
+    float (*Rx_1_ptr);
+    float (*Ry_1_ptr);
+    float (*Rz_1_ptr);
+    float (*step_ptr);
+ } pragma69_omp_parallel;
 
-static void pragma64_hclib_async(void *____arg, const int ___iter0);
+static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col,
 					  FLOAT Cap_1, FLOAT Rx_1, FLOAT Ry_1, FLOAT Rz_1, 
 					  FLOAT step)
@@ -82,7 +86,7 @@ void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col
 
 	// omp_set_num_threads(num_omp_threads);
  { 
-pragma64 *new_ctx = (pragma64 *)malloc(sizeof(pragma64));
+pragma69_omp_parallel *new_ctx = (pragma69_omp_parallel *)malloc(sizeof(pragma69_omp_parallel));
 new_ctx->delta = delta;
 new_ctx->r = r;
 new_ctx->c = c;
@@ -104,15 +108,15 @@ hclib_loop_domain_t domain[1];
 domain[0].low = 0;
 domain[0].high = num_chunk;
 domain[0].stride = 1;
-domain[0].tile = 1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma64_hclib_async, new_ctx, NULL, 1, domain, FORASYNC_MODE_RECURSIVE);
+domain[0].tile = -1;
+hclib_future_t *fut = hclib_forasync_future((void *)pragma69_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma64_hclib_async(void *____arg, const int ___iter0) {
-    pragma64 *ctx = (pragma64 *)____arg;
-    FLOAT delta; delta = ctx->delta;
+static void pragma69_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma69_omp_parallel *ctx = (pragma69_omp_parallel *)____arg;
+    float delta; delta = ctx->delta;
     int r; r = ctx->r;
     int c; c = ctx->c;
     int chunk; chunk = ctx->chunk;
@@ -120,7 +124,6 @@ static void pragma64_hclib_async(void *____arg, const int ___iter0) {
     int chunks_in_row; chunks_in_row = ctx->chunks_in_row;
     int row; row = ctx->row;
     int col; col = ctx->col;
-    hclib_start_finish();
     do {
     chunk = ___iter0;
 {
@@ -199,8 +202,6 @@ for ( c = c_start; c < c_start + BLOCK_SIZE_C; ++c ) {
             }
         }
     } ;     } while (0);
-    ; hclib_end_finish();
-
 }
 
 
@@ -323,9 +324,9 @@ typedef struct _main_entrypoint_ctx {
     int grid_cols;
     int sim_time;
     int i;
-    FLOAT (*temp);
-    FLOAT (*power);
-    FLOAT (*result);
+    float (*temp);
+    float (*power);
+    float (*result);
     char (*tfile);
     char (*pfile);
     char (*ofile);
@@ -341,9 +342,9 @@ static void main_entrypoint(void *____arg) {
     int grid_cols; grid_cols = ctx->grid_cols;
     int sim_time; sim_time = ctx->sim_time;
     int i; i = ctx->i;
-    FLOAT (*temp); temp = ctx->temp;
-    FLOAT (*power); power = ctx->power;
-    FLOAT (*result); result = ctx->result;
+    float (*temp); temp = ctx->temp;
+    float (*power); power = ctx->power;
+    float (*result); result = ctx->result;
     char (*tfile); tfile = ctx->tfile;
     char (*pfile); pfile = ctx->pfile;
     char (*ofile); ofile = ctx->ofile;

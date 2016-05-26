@@ -57,8 +57,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Associate a triggered task to a promise list.
  */
 void hclib_triggered_task_init(hclib_triggered_task_t *task,
-                               hclib_future_t **future_list) {
-    task->waiting_frontier = future_list;
+        hclib_future_t *waiting_future_0, hclib_future_t *waiting_future_1) {
+    task->waiting_on[0] = waiting_future_0;
+    task->waiting_on[1] = waiting_future_1;
+    task->waiting_on_index = -1;
     task->next_waiting_on_same_future = NULL;
 }
 
@@ -140,9 +142,8 @@ void hclib_promise_free(hclib_promise_t *promise) {
     free(promise);
 }
 
-__inline__ int __register_if_promise_not_ready(
-    hclib_triggered_task_t *wrapper_task,
-    hclib_future_t *future_to_check) {
+__inline__ int __register_if_promise_not_ready(hclib_triggered_task_t *wrapper_task,
+        hclib_future_t *future_to_check) {
     int success = 0;
     hclib_triggered_task_t *wait_list_of_future =
         (hclib_triggered_task_t *)future_to_check->owner->wait_list_head;
@@ -180,15 +181,18 @@ __inline__ int __register_if_promise_not_ready(
  * Returns '1' if all promise dependencies have been satisfied.
  */
 int register_on_all_promise_dependencies(hclib_triggered_task_t *wrapper_task) {
-    hclib_future_t **curr_promise_not_to_wait_on =
-        wrapper_task->waiting_frontier;
 
-    while (*curr_promise_not_to_wait_on && !__register_if_promise_not_ready(
-                wrapper_task, *curr_promise_not_to_wait_on) ) {
-        ++curr_promise_not_to_wait_on;
+    while (wrapper_task->waiting_on_index < MAX_NUM_WAITS - 1) {
+        wrapper_task->waiting_on_index++;
+        hclib_future_t *curr = wrapper_task->waiting_on[wrapper_task->waiting_on_index];
+        if (curr) {
+            if (__register_if_promise_not_ready(wrapper_task, curr)) {
+                return 0;
+            }
+        }
     }
-    wrapper_task->waiting_frontier = curr_promise_not_to_wait_on;
-    return *curr_promise_not_to_wait_on == NULL;
+
+    return 1;
 }
 
 //
@@ -219,26 +223,35 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put, void *datum_to_be_put
              "violated single assignment property for promises");
 
     volatile hclib_triggered_task_t *wait_list_of_promise =
-        promise_to_be_put->wait_list_head;;
+        promise_to_be_put->wait_list_head;
     hclib_triggered_task_t *curr_task = NULL;
     hclib_triggered_task_t *next_task = NULL;
 
     promise_to_be_put->datum = datum_to_be_put;
-    /*seems like I can not avoid a CAS here*/
-    while (!__sync_bool_compare_and_swap( &(promise_to_be_put->wait_list_head),
-                                          wait_list_of_promise, EMPTY_FUTURE_WAITLIST_PTR)) {
-        wait_list_of_promise = promise_to_be_put -> wait_list_head;
+    /*
+     * Loop while this CAS fails, trying to atomically grab the list of tasks
+     * dependent on the future of this promise. Anyone else who comes along will
+     * see that the datum was set and will not add themselves to this list.
+     * Seems like we can't avoid a CAS here.
+     */
+    while (!__sync_bool_compare_and_swap(&(promise_to_be_put->wait_list_head),
+                                         wait_list_of_promise,
+                                         EMPTY_FUTURE_WAITLIST_PTR)) {
+        wait_list_of_promise = promise_to_be_put->wait_list_head;
     }
 
     curr_task = (hclib_triggered_task_t *)wait_list_of_promise;
 
-    int iter_count = 0;
     while (curr_task != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
 
         next_task = curr_task->next_waiting_on_same_future;
+        /*
+         * For each task that was registered on this promise, we register on the
+         * next promise in its list. If there are no remaining unsatisfied
+         * promises in its list, the dependent task is made eligible for
+         * scheduling.
+         */
         if (register_on_all_promise_dependencies(curr_task)) {
-            /*deque_push_default(currFrame);*/
-            // task eligible to scheduling
             hclib_task_t *async_task = rt_triggered_task_to_async_task(
                                            curr_task);
             if (DEBUG_PROMISE) {
@@ -246,8 +259,8 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put, void *datum_to_be_put
             }
             try_schedule_async(async_task, CURRENT_WS_INTERNAL);
         }
+
         curr_task = next_task;
-        iter_count++;
     }
 }
 

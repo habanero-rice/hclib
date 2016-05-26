@@ -1,0 +1,13 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+
+HCLIB_PERF_CXX?=icpc
+OMP_NUM_THREADS = 8
+
+euler3d_cpu_double.ref: euler3d_cpu_double.ref.cpp
+	$(HCLIB_PERF_CXX) -O3 -Dblock_length=$(OMP_NUM_THREADS) euler3d_cpu_double.ref.cpp -o euler3d_cpu_double.ref $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+clean:
+	rm -f euler3d_cpu_double.ref

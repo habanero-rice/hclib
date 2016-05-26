@@ -1,7 +1,10 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
-C_C = gcc
+include ../../custom.mak
+
+HCLIB_PERF_CC?=icc
+C_C = $(HCLIB_PERF_CC)
 
 # ========================================================================================================================================================================================================200
 #	EXECUTABLES (LINK OBJECTS TOGETHER INTO BINARY)
@@ -12,12 +15,12 @@ b+tree.out:	./main.o \
 		./kernel/kernel_cpu_2.o \
 		./util/timer/timer.o \
 		./util/num/num.o
-	g++	./main.o \
+	$(C_C)	./main.o \
 			./kernel/kernel_cpu.o \
 			./kernel/kernel_cpu_2.o \
 			./util/timer/timer.o \
 			./util/num/num.o \
-			-lm -o b+tree.out $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+			-lm -o b+tree.out $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 # ========================================================================================================================================================================================================200
 #	OBJECTS (COMPILE SOURCE FILES INTO OBJECTS)
 # ========================================================================================================================================================================================================200
@@ -32,7 +35,7 @@ main.o:	./common.h \
 	$(C_C)	./main.c \
 			-c \
 			-o ./main.o \
-			-O3 $(PROJECT_CXXFLAGS)
+			-O3 $(HCLIB_CXXFLAGS)
 
 # ======================================================================================================================================================150
 #	KERNELS
@@ -44,7 +47,7 @@ main.o:	./common.h \
 	$(C_C)	./kernel/kernel_cpu.c \
 			-c \
 			-o ./kernel/kernel_cpu.o \
-			-O3 $(PROJECT_CXXFLAGS)
+			-O3 $(HCLIB_CXXFLAGS)
 
 ./kernel/kernel_cpu_2.o:./common.h \
 						./kernel/kernel_cpu_2.h \
@@ -52,7 +55,7 @@ main.o:	./common.h \
 	$(C_C)	./kernel/kernel_cpu_2.c \
 			-c \
 			-o ./kernel/kernel_cpu_2.o \
-			-O3 $(PROJECT_CXXFLAGS)
+			-O3 $(HCLIB_CXXFLAGS)
 
 # ======================================================================================================================================================150
 #	UTILITIES
@@ -64,7 +67,7 @@ main.o:	./common.h \
 	$(C_C)	./util/timer/timer.c \
 			-c \
 			-o ./util/timer/timer.o \
-			-O3 $(PROJECT_CXXFLAGS)
+			-O3 $(HCLIB_CXXFLAGS)
 
 ./util/num/num.o:	./common.h \
 					./util/num/num.h \
@@ -72,7 +75,7 @@ main.o:	./common.h \
 	$(C_C)	./util/num/num.c \
 			-c \
 			-o ./util/num/num.o \
-			-O3 $(PROJECT_CXXFLAGS)
+			-O3 $(HCLIB_CXXFLAGS)
 
 # ======================================================================================================================================================150
 #	END

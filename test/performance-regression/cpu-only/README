@@ -1,0 +1,34 @@
+This directory contains a number of performance tests for the HClib runtime.
+Currently, those tests are primarily taken from the Rodinia, Kastors, and BOTS
+benchmark suites. When possible, these tests will also be run with both small
+and large datasets. These tests output both the mean of the experiments run, as
+well as the standard deviation.
+
+These tests verify the performance of HClib in two ways. First, they compare new
+runs of HClib benchmarks against old runs to assert that the performance of
+HClib is not regressing relative to what it was in the past.
+
+These tests also compare HClib against reference OpenMP versions of the same
+benchmarks, with the HClib versions having been automatically generated to be
+semantically equivalent using the OMP-to-X tool developed in the Habanero
+Research Group:
+
+https://github.com/agrippa/omp-to-x
+
+These tests can be run manually an interactively using the run-all.sh script.
+You can also submit the run-all.sh script to a SLURM job scheduling system.
+
+For example, to run an instance of the regression tests that uses the Intel
+compilers, runs each test ten times, and only tests the BOTS Sparse LU benchmark
+on a SLURM system you would use the following command:
+
+HCLIB_PERF_CXX=icpc HCLIB_PERF_CC=icc NTRIALS=10 TARGET_TEST=bots/sparselu_for/sparselu.icc.for-omp-tasks sbatch ./run-all.sh
+
+If HCLIB_PERF_CXX and HCLIB_PERF_CC are not set, the tests will default to the
+Intel compiler toolchain. If NTRIALS is not set, it will default to 10 trials.
+If TARGET_TEST is not set, all tests will be run.
+
+You can also toggle whether OMP continuations are created tied or untied by
+manually editing the custom.mak file in this directory. Commenting all lines
+will result in tied continuations, uncommenting will result in untied
+continuations.

@@ -1,6 +1,7 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
 PREFIX=${PARSECDIR}/pkgs/kernels/streamcluster/inst/${PARSECPLAT}
 
 TARGET_O = sc_omp
@@ -11,10 +12,12 @@ ifdef version
   endif
 endif
 
+HCLIB_PERF_CXX?=icpc
+
 all: omp
 
 omp:
-	g++ -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+	$(HCLIB_PERF_CXX) -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

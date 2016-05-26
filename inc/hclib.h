@@ -62,6 +62,7 @@ size_t hclib_current_worker_backlog();
 
 void hclib_launch(async_fct_t fct_ptr, void * arg);
 
+unsigned long long hclib_current_time_ns();
 
 /**
  * Register a function to be called when a thread in the hclib runtime is idle,
@@ -87,15 +88,15 @@ struct hclib_promise_st;
  * @param[in] future_list       The list of promises the async depends on
  * @param[in] property          Flag to pass information to the runtime
  */
-void hclib_async(async_fct_t fct_ptr, void * arg,
-        hclib_future_t **future_list,
+void hclib_async(generic_frame_ptr fp, void *arg,
+        hclib_future_t *singleton_future_0,
         hclib_locale_t *locale);
 
 /*
  * Spawn an async that automatically puts a promise on termination.
  */
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t **future_list, hclib_locale_t *locale);
+        hclib_future_t *future, hclib_locale_t *locale);
 
 /*
  * Locale-aware memory management functions.
@@ -108,7 +109,7 @@ hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes,
 void hclib_free_at(void *ptr, hclib_locale_t *locale);
 hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
         hclib_locale_t *src_locale, void *src, size_t nbytes,
-        hclib_future_t **future_list);
+        hclib_future_t *future);
 
 
 /*
@@ -164,17 +165,16 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  * @param[in] domain            Loop domains to iterate over (array of size 'dim').
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
-void hclib_forasync(void *forasync_fct, void *argv,
-        hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
-        forasync_mode_t mode);
+void hclib_forasync(void *forasync_fct, void *argv, int dim,
+                    hclib_loop_domain_t *domain, forasync_mode_t mode);
 
 /*
  * Semantically equivalent to hclib_forasync, but returns a promise that is
  * triggered when all tasks belonging to this forasync have finished.
  */
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-        hclib_future_t **future_list, int dim, hclib_loop_domain_t *domain,
-        forasync_mode_t mode);
+                                      int dim, hclib_loop_domain_t *domain,
+                                      forasync_mode_t mode);
 
 /**
  * @brief starts a new finish scope

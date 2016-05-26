@@ -1,4 +1,8 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 // # ifdef __cplusplus
 // extern "C" {
 // # endif
@@ -1851,7 +1855,7 @@ typedef struct _main_entrypoint_ctx {
     FILE (*commandFile);
     long lSize;
     char (*commandBuffer);
-    size_t result;
+    unsigned long result;
     char (*sPointer);
     FILE (*file_pointer);
     node (*root);
@@ -1877,7 +1881,7 @@ static void main_entrypoint(void *____arg) {
     FILE (*commandFile); commandFile = ctx->commandFile;
     long lSize; lSize = ctx->lSize;
     char (*commandBuffer); commandBuffer = ctx->commandBuffer;
-    size_t result; result = ctx->result;
+    unsigned long result; result = ctx->result;
     char (*sPointer); sPointer = ctx->sPointer;
     FILE (*file_pointer); file_pointer = ctx->file_pointer;
     node (*root); root = ctx->root;

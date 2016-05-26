@@ -1,6 +1,9 @@
 #include "hclib.h"
+#ifdef __cplusplus
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#endif
 pthread_mutex_t critical_0_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-pthread_mutex_t critical_1_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -203,7 +206,7 @@ static void write_outputs() {
     }  
 }
 
-typedef struct _pragma222 {
+typedef struct _pragma226_omp_task {
     int i;
     int j;
     int nn;
@@ -218,9 +221,9 @@ typedef struct _pragma222 {
     char (*(*BOARD_ptr));
     struct cell (*(*CELLS_ptr));
     int (*dummy_level_ptr);
- } pragma222;
+ } pragma226_omp_task;
 
-static void pragma222_hclib_async(void *____arg);
+static void pragma226_omp_task_hclib_async(void *____arg);
 static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int dummy_level) {
   int  i, j, nn, area, nnc,nnl;
 
@@ -237,7 +240,7 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
  { 
-pragma222 *new_ctx = (pragma222 *)malloc(sizeof(pragma222));
+pragma226_omp_task *new_ctx = (pragma226_omp_task *)malloc(sizeof(pragma226_omp_task));
 new_ctx->i = i;
 new_ctx->j = j;
 new_ctx->nn = nn;
@@ -252,15 +255,15 @@ new_ctx->FOOTPRINT_ptr = &(FOOTPRINT);
 new_ctx->BOARD_ptr = &(BOARD);
 new_ctx->CELLS_ptr = &(CELLS);
 new_ctx->dummy_level_ptr = &(dummy_level);
-hclib_async(pragma222_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma226_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
       }
 }
  hclib_end_finish(); hclib_start_finish(); ;
 return nnc+nnl;
 } 
-static void pragma222_hclib_async(void *____arg) {
-    pragma222 *ctx = (pragma222 *)____arg;
+static void pragma226_omp_task_hclib_async(void *____arg) {
+    pragma226_omp_task *ctx = (pragma226_omp_task *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nn; nn = ctx->nn;
@@ -308,8 +311,7 @@ static void pragma222_hclib_async(void *____arg) {
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
-const int ____critical_section_tmp_1 = add_cell(cells[id].next, footprint, board,cells, 0);
- { const int ____lock_1_err = pthread_mutex_lock(&critical_1_lock); assert(____lock_1_err == 0); (*(ctx->nnc_ptr)) += ____critical_section_tmp_1 ; const int ____unlock_1_err = pthread_mutex_unlock(&critical_1_lock); assert(____unlock_1_err == 0); } ;
+__sync_fetch_and_add(&((*(ctx->nnc_ptr))), add_cell(cells[id].next, footprint, board,cells, 0)); ;
 /* if area is greater than or equal to best area, prune search */
           } else {
 
@@ -317,7 +319,7 @@ const int ____critical_section_tmp_1 = add_cell(cells[id].next, footprint, board
  
 	  }
 _end:;  
-} ;     ; hclib_end_finish();
+} ;     ; hclib_end_finish_nonblocking();
 
     free(____arg);
 }
