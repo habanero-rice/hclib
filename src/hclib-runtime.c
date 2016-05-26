@@ -91,17 +91,19 @@ int total_push_outd;
 int *total_push_ind;
 int *total_steals;
 
-inline void increment_async_counter(int wid) {
+static inline void increment_async_counter(int wid) {
     total_push_ind[wid]++;
 }
 
-inline void increment_steals_counter(int wid) {
+static inline void increment_steals_counter(int wid) {
     total_steals[wid]++;
 }
 
-inline void increment_asyncComm_counter() {
+#ifdef HC_COMM_WORKER_STATS
+static inline void increment_asyncComm_counter() {
     total_push_outd++;
 }
+#endif
 
 void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hclib_context->workers[wid]) != 0) {
@@ -429,7 +431,7 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
  * registered on each, and it is only placed in a work deque once all promises have
  * been satisfied.
  */
-inline int is_eligible_to_schedule(hclib_task_t *async_task) {
+static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
 #ifdef VERBOSE
     fprintf(stderr, "is_eligible_to_schedule: async_task=%p future_list=%p\n",
             async_task, async_task->future_list);
@@ -1173,7 +1175,7 @@ void hclib_gather_comm_worker_stats(int *push_outd, int *push_ind,
     *steal_ind = steals;
 }
 
-double mysecond() {
+static double mysecond() {
     struct timeval tv;
     gettimeofday(&tv, 0);
     return tv.tv_sec + ((double) tv.tv_usec / 1000000);
