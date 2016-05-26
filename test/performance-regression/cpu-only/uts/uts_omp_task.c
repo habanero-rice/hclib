@@ -82,6 +82,12 @@ typedef struct _thread_metadata {
 thread_metadata t_metadata[MAX_THREADS];
 #endif
 
+typedef struct _per_thread_info {
+    int n_nodes;
+    int n_leaves;
+} per_thread_info;
+per_thread_info thread_info[MAX_THREADS];
+
 #ifdef __BERKELEY_UPC__
 /* BUPC nonblocking I/O Handles */
 bupc_handle_t cb_handle       = BUPC_COMPLETE_HANDLE;
@@ -568,8 +574,7 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-#pragma omp atomic
-  n_nodes += 1;
+  thread_info[omp_get_thread_num()].n_nodes++;
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
@@ -618,8 +623,7 @@ void genChildren(Node * parent, Node * child) {
       }
     }
   } else {
-#pragma omp atomic
-      n_leaves += 1;
+      thread_info[omp_get_thread_num()].n_leaves++;
   }
 }
 
@@ -799,6 +803,7 @@ int main(int argc, char *argv[]) {
 #ifdef THREAD_METADATA
   memset(t_metadata, 0x00, MAX_THREADS * sizeof(thread_metadata));
 #endif
+  memset(thread_info, 0x00, MAX_THREADS * sizeof(per_thread_info));
 
   /* determine benchmark parameters (all PEs) */
   uts_parseParams(argc, argv);
@@ -837,6 +842,13 @@ int main(int argc, char *argv[]) {
 
   t2 = uts_wctime();
   et = t2 - t1;
+
+  int i;
+  for (i = 0; i < MAX_THREADS; i++) {
+      n_nodes += thread_info[i].n_nodes;
+      n_leaves += thread_info[i].n_leaves;
+  }
+
   showStats(et);
 /********** End Parallel Region **********/
 #ifdef THREAD_METADATA

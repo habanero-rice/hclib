@@ -137,7 +137,7 @@ uts-omp-task-cutoff: uts_omp_task.c $(RNG_SRC) $(COMMON_SRCS)
 	$(OMPCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) -DOMP_CUTOFF
 
 uts-omp-task-shmem: uts_omp_task_shmem.c $(RNG_SRC) $(COMMON_SRCS)
-	$(SHMCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) $(SHMCC_OPTS) $(SHMLD_OPTS)
+	$(SHMCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) $(SHMCC_OPTS) $(SHMLD_OPTS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(HCLIB_OSHMEM_LDLIBS) $(HCLIB_LDFLAGS)
 
 uts-upc: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(UPCC) $(UPCC_OPTS) $(UPCLD_OPTS) $(RNG_DEF) $(FLAGS) -o $@ $+
