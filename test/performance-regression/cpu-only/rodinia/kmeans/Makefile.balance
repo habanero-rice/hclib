@@ -1,0 +1,29 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+# C compiler
+HCLIB_PERF_CC?=icc
+CC = $(HCLIB_PERF_CC)
+CC_FLAGS = -g -fopenmp -O0
+
+kmeans.balance: cluster.o getopt.o kmeans.balance.o kmeans_clustering.balance.o 
+	$(HCLIB_PERF_CC) $(CC_FLAGS) cluster.o getopt.o kmeans.balance.o kmeans_clustering.balance.o  -o kmeans.balance $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+%.o: %.[ch]
+	$(CC) $(CC_FLAGS) $< -c $(HCLIB_CXXFLAGS)
+
+cluster.o: cluster.c 
+	$(CC) $(CC_FLAGS) cluster.c -c $(HCLIB_CXXFLAGS)
+	
+getopt.o: getopt.c 
+	$(CC) $(CC_FLAGS) getopt.c -c $(HCLIB_CXXFLAGS)
+	
+kmeans.balance.o: kmeans.balance.c 
+	$(CC) $(CC_FLAGS) kmeans.balance.c -c $(HCLIB_CXXFLAGS)
+
+kmeans_clustering.balance.o: kmeans_clustering.balance.c kmeans.h
+	$(CC) $(CC_FLAGS) kmeans_clustering.balance.c -c $(HCLIB_CXXFLAGS)
+
+clean:
+	rm -f *.o *~ kmeans.balance 

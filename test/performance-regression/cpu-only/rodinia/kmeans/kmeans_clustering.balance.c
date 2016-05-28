@@ -1,4 +1,5 @@
 #include "hclib.h"
+extern int ____num_tasks[32];
 /*****************************************************************************/
 /*IMPORTANT:  READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.         */
 /*By downloading, copying, installing or using the software you agree        */
@@ -181,8 +182,9 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
     do {
         delta = 0.0;
         {
-            #pragma omp parallel for shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len)                          private(i,j,index)                          firstprivate(npoints,nclusters,nfeatures)                          schedule(static)                          reduction(+:delta)
-            for (i=0; i<npoints; i++) {
+#pragma omp parallel for shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len) private(i,j,index) firstprivate(npoints,nclusters,nfeatures) schedule(static) reduction(+:delta)
+            for (i=0; i<npoints; i++) { ____num_tasks[omp_get_thread_num()]++;
+{
 	        /* find the index of nestest cluster centers */					
             int tid = omp_get_thread_num();				
 	        index = find_nearest_point(feature[i],
@@ -200,7 +202,8 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 	        partial_new_centers_len[tid][index]++;				
 	        for (j=0; j<nfeatures; j++)
 		       partial_new_centers[tid][index][j] += feature[i][j];
-            }
+            } ; }
+
         } /* end of #pragma omp parallel */
 
         /* let the main thread perform the array reduction */

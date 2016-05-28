@@ -53,12 +53,13 @@ echo
 for DIR in $(ls $SCRIPT_DIR); do
     if [[ -d $SCRIPT_DIR/$DIR && "$DIR" != "common" ]]; then
         N_MATCHING_DIRECTORIES=$(find $OMP_TO_HCLIB_HOME/test -name "$DIR" | wc -l)
-        if [[ $N_MATCHING_DIRECTORIES -ne 3 ]]; then
-            echo Unexpected number of matching directories, expected 3 but got $N_MATCHING_DIRECTORIES
+        if [[ $N_MATCHING_DIRECTORIES -ne 4 ]]; then
+            echo Unexpected number of matching directories for $DIR, expected 3 but got $N_MATCHING_DIRECTORIES
+            find $OMP_TO_HCLIB_HOME/test -name "$DIR"
             exit 1
         fi
 
-        GENERATED_CODE_DIR=$(find $OMP_TO_HCLIB_HOME/test -name "$DIR" | grep ref | grep -v time-body-ref)
+        GENERATED_CODE_DIR=$(find $OMP_TO_HCLIB_HOME/test -name "$DIR" | grep ref | grep -v time-body-ref | grep -v load-balance-ref)
         REFERENCE_CODE_DIR=$(find $OMP_TO_HCLIB_HOME/test -name "$DIR" | grep time-body-ref)
 
         for C_FILE in $(find $GENERATED_CODE_DIR -name "*.c"); do

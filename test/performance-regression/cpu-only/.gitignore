@@ -5,3 +5,4 @@ fib-ddt
 ./nqueens
 qsort
 test_logs
+custom.mak

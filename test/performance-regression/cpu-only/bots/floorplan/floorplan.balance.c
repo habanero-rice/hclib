@@ -1,4 +1,5 @@
 #include "hclib.h"
+int ____num_tasks[32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -217,6 +218,8 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 #else
 #pragma omp task  private(board, footprint,area) firstprivate(NWS,i,j,id,nn) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode)
 #endif
+;
+{ ____num_tasks[omp_get_thread_num()]++;
 {
 	  struct cell cells[N+1];
 	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
@@ -245,6 +248,7 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
 #pragma omp critical
+;
 			  if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
@@ -256,7 +260,8 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- 	    #pragma omp atomic
+#pragma omp atomic
+;
  	      nnc += add_cell(cells[id].next, footprint, board,cells, 0);
 /* if area is greater than or equal to best area, prune search */
           } else {
@@ -265,10 +270,12 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
  
 	  }
 _end:;  
-}
+} ; }
+
       }
 }
 #pragma omp taskwait
+;
 return nnc+nnl;
 }
 
@@ -297,23 +304,28 @@ void floorplan_init (char *filename)
 
 void compute_floorplan (void)
 {
-#pragma omp parallel
-#pragma omp single
-    printf("Initialized\n");
-
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+{
         coor footprint;
         /* footprint of initial board is zero */
         footprint[0] = 0;
         footprint[1] = 0;
         bots_message("Computing floorplan ");
 #pragma omp parallel
+;
         {
 #pragma omp single
+;
             bots_number_of_tasks = add_cell(1, footprint, board, gcells, 0);
         }
         bots_message(" completed!\n");
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; {
+    int __i;
+    assert(omp_get_max_threads() <= 32);
+    for (__i = 0; __i < omp_get_max_threads(); __i++) {
+        fprintf(stderr, "Thread %d: %d\n", __i, ____num_tasks[__i]);
+    }
+}
+
 }
 
 void floorplan_end (void)

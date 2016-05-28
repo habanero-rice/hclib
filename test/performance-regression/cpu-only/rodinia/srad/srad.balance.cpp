@@ -1,4 +1,5 @@
 #include "hclib.h"
+int ____num_tasks[32] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 // srad.cpp : Defines the entry point for the console application.
 //
 
@@ -105,15 +106,10 @@ int main(int argc, char* argv[])
     for (k = 0;  k < size_I; k++ ) {
      	J[k] = (float)exp(I[k]) ;
     }
-
-#pragma omp parallel
-#pragma omp single
-    printf("Initialized\n");
-
    
 	printf("Start the SRAD main loop\n");
 
-	unsigned long long ____hclib_start_time = hclib_current_time_ns(); for (iter=0; iter< niter; iter++){
+for (iter=0; iter< niter; iter++){
 		sum=0; sum2=0;     
 		for (i=r1; i<=r2; i++) {
             for (j=c1; j<=c2; j++) {
@@ -127,8 +123,9 @@ int main(int argc, char* argv[])
         q0sqr   = varROI / (meanROI*meanROI);
 		
 
-		#pragma omp parallel for shared(J, dN, dS, dW, dE, c, rows, cols, iN, iS, jW, jE) private(i, j, k, Jc, G2, L, num, den, qsqr)
-		for (int i = 0 ; i < rows ; i++) {
+#pragma omp parallel for shared(J, dN, dS, dW, dE, c, rows, cols, iN, iS, jW, jE) private(i, j, k, Jc, G2, L, num, den, qsqr)
+		for (int i = 0 ; i < rows ; i++) { ____num_tasks[omp_get_thread_num()]++;
+{
             for (int j = 0; j < cols; j++) { 
 		
 				k = i * cols + j;
@@ -159,9 +156,11 @@ int main(int argc, char* argv[])
    
 		}
   
-    }
-		#pragma omp parallel for shared(J, c, rows, cols, lambda) private(i, j, k, D, cS, cN, cW, cE)
-		for (int i = 0; i < rows; i++) {
+    } ; }
+
+#pragma omp parallel for shared(J, c, rows, cols, lambda) private(i, j, k, D, cS, cN, cW, cE)
+		for (int i = 0; i < rows; i++) { ____num_tasks[omp_get_thread_num()]++;
+{
             for (int j = 0; j < cols; j++) {        
 
                 // current index
@@ -185,9 +184,17 @@ int main(int argc, char* argv[])
 	            #ifdef OUTPUT
                 //printf("\n"); 
                 #endif //output
-	     }
+	     } ; }
 
-	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+
+	} ; {
+    int __i;
+    assert(omp_get_max_threads() <= 32);
+    for (__i = 0; __i < omp_get_max_threads(); __i++) {
+        fprintf(stderr, "Thread %d: %d\n", __i, ____num_tasks[__i]);
+    }
+}
+
 
 
 #ifdef OUTPUT
