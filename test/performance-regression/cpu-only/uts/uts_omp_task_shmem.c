@@ -85,6 +85,12 @@ typedef struct _thread_metadata {
 thread_metadata t_metadata[MAX_OMP_THREADS];
 #endif
 
+typedef struct _per_thread_info {
+    int n_nodes;
+    int n_leaves;
+} per_thread_info;
+per_thread_info thread_info[MAX_OMP_THREADS];
+
 #define N_BUFFERED_STEALS 16
 Node steal_buffer[N_BUFFERED_STEALS];
 volatile int n_buffered_steals = 0;
@@ -624,8 +630,7 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-#pragma omp atomic
-  n_nodes += 1;
+  thread_info[omp_get_thread_num()].n_nodes++;
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
@@ -679,8 +684,7 @@ void genChildren(Node * parent, Node * child) {
       }
     }
   } else {
-#pragma omp atomic
-      n_leaves += 1;
+      thread_info[omp_get_thread_num()].n_leaves++;
   }
 }
 
@@ -834,6 +838,7 @@ int main(int argc, char *argv[]) {
 #ifdef THREAD_METADATA
   memset(t_metadata, 0x00, MAX_OMP_THREADS * sizeof(thread_metadata));
 #endif
+  memset(thread_info, 0x00, MAX_OMP_THREADS * sizeof(per_thread_info));
   memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
 
   shmem_init();
@@ -909,6 +914,19 @@ retry:
       }
   }
 
+  shmem_barrier_all();
+
+  t2 = uts_wctime();
+  et = t2 - t1;
+
+  int i;
+  for (i = 0; i < MAX_OMP_THREADS; i++) {
+      n_nodes += thread_info[i].n_nodes;
+      n_leaves += thread_info[i].n_leaves;
+  }
+
+  shmem_barrier_all();
+
   if (pe != 0) {
       shmem_int_add(&n_nodes, n_nodes, 0);
       shmem_int_add(&n_leaves, n_leaves, 0);
@@ -916,8 +934,6 @@ retry:
 
   shmem_barrier_all();
 
-  t2 = uts_wctime();
-  et = t2 - t1;
   if (pe == 0) {
       showStats(et);
   }

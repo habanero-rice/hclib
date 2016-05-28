@@ -149,7 +149,7 @@ char debug_str[1000];
  * StealStack types                                        *
  ***********************************************************/
 
-#define MAXSTACKDEPTH 500000
+#define MAXSTACKDEPTH 100000000
 
 /* stack of nodes */
 struct stealStack_t
@@ -1070,7 +1070,9 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
   int done = 0;
   Node * parent;
   Node child;
+#ifdef VERBOSE
   int came_out_of_barrier = 0;
+#endif
 
   /* template for children */
   initNode(&child);
@@ -1078,9 +1080,11 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
   /* tree search */
   while (done == 0) {
   
+#ifdef VERBOSE
     if (came_out_of_barrier) {
         assert(ss_localDepth(local_ss) == 0);
     }
+#endif
 
     /* local work */
     while (ss_localDepth(local_ss) > 0) {		
@@ -1111,16 +1115,20 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      * to re-acquire work from shared portion of this thread's stack
      */
     if (ss_acquire(local_ss, chunkSize)) {
+#ifdef VERBOSE
         if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work locally\n", shmem_my_pe(), omp_get_thread_num());
         came_out_of_barrier = 0;
+#endif
         continue;
     }
 
     // Do remote checks
     if (omp_get_thread_num() == 0) {
         if (ss_remote_acquire(remote_ss, local_ss, chunkSize)) {
+#ifdef VERBOSE
             if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work remotely\n", shmem_my_pe(), omp_get_thread_num());
             came_out_of_barrier = 0;
+#endif
             continue;
         }
     }
@@ -1155,8 +1163,10 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
     } while (victimId != -1 && !goodSteal);
 
     if (goodSteal) {
+#ifdef VERBOSE
         if (came_out_of_barrier) fprintf(stderr, "%d %d: stole from %s victim %d\n", shmem_my_pe(), omp_get_thread_num(), remote_victim ? "remote" : "local", victimId);
         came_out_of_barrier = 0;
+#endif
         continue;
     }
     // fprintf(stderr, "No good steal\n");
@@ -1167,9 +1177,13 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      * (done == 0).
      */
     ss_setState(local_ss, SS_IDLE);
+#ifdef VERBOSE
     if (came_out_of_barrier) fprintf(stderr, "%d %d: going straight back to barrier\n", shmem_my_pe(), omp_get_thread_num());
+#endif
     done = cbarrier_wait(local_ss);
+#ifdef VERBOSE
     came_out_of_barrier = 1;
+#endif
   }
   
   /* tree search complete ! */
