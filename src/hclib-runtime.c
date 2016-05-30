@@ -353,9 +353,9 @@ static inline void check_out_finish(finish_t *finish) {
     if (finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
-#if HCLIB_LITECTX_STRATEGY
+            #if HCLIB_LITECTX_STRATEGY
             hclib_promise_put(finish->finish_deps[0]->owner, finish);
-#endif /* HCLIB_LITECTX_STRATEGY */
+            #endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
 }
@@ -375,7 +375,7 @@ static inline void execute_task(hclib_task_t *task) {
 #endif
     (task->_fp)(task->args);
     check_out_finish(current_finish);
-    HC_FREE(task);
+    free(task);
 }
 
 static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
@@ -855,25 +855,25 @@ static void crt_work_loop(LiteCtx *ctx) {
  * context to switch from and create a lightweight context to switch to, which
  * enters crt_work_loop immediately, moving into the main work loop, eventually
  * swapping back to the proxy task
- * to clean up this worker thread when the worker thread is signalled to exit.
+ * to clean up this worker thread when the worker thread is signaled to exit.
  */
 static void *worker_routine(void *args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
 
-#ifdef HC_COMM_WORKER
+    #ifdef HC_COMM_WORKER
     if (wid == COMMUNICATION_WORKER_ID) {
         communication_worker_routine(ws->current_finish);
         return NULL;
     }
-#endif
-#ifdef HC_CUDA
+    #endif
+    #ifdef HC_CUDA
     if (wid == GPU_WORKER_ID) {
         gpu_worker_routine(ws->current_finish);
         return NULL;
     }
-#endif
+    #endif
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create(__func__);
@@ -889,10 +889,10 @@ static void *worker_routine(void *args) {
     // Swap in the newCtx lite context
     ctx_swap(currentCtx, newCtx, __func__);
 
-#ifdef VERBOSE
+    #ifdef VERBOSE
     fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
             "and lite ctx %p\n", get_current_worker(), currentCtx, newCtx);
-#endif
+    #endif
 
     // free resources
     LiteCtx_destroy(currentCtx->prev);
@@ -931,17 +931,13 @@ static void _finish_ctx_resume(void *arg) {
     HASSERT(0);
 }
 
-void crt_work_loop(LiteCtx *ctx);
-
 // Based on _help_finish_ctx
 void _help_wait(LiteCtx *ctx) {
     hclib_future_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
-                                       hclib_dependent_task_t));
+    hclib_dependent_task_t *task = calloc(1, sizeof(*task));
     HASSERT(task);
-    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
     task->async_task.args = wait_ctx;
 
@@ -979,10 +975,8 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
-                                       hclib_dependent_task_t));
+    hclib_dependent_task_t *task = calloc(1, sizeof(*task));
     HASSERT(task);
-    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.args = hclib_finish_ctx;
 
@@ -998,7 +992,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * so check it out.
      */
     check_out_finish(finish);
-    // keep workstealing until this context gets swapped out and destroyed
+    // keep work-stealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     HASSERT(0); // we should never return here
 }
@@ -1074,9 +1068,9 @@ void help_finish(finish_t *finish) {
         LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
         newCtx->arg = finish;
 
-#ifdef VERBOSE
-    printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
-#endif
+        #ifdef VERBOSE
+        printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
+        #endif
         ctx_swap(currentCtx, newCtx, __func__);
         /*
          * destroy the context that resumed this one since it's now defunct
@@ -1098,9 +1092,8 @@ void help_finish(finish_t *finish) {
 
 void hclib_start_finish() {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    finish_t *finish = (finish_t *) HC_MALLOC(sizeof(finish_t));
+    finish_t *finish = malloc(sizeof(*finish));
     HASSERT(finish);
-    memset(finish, 0x00, sizeof(finish_t));
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
      * finish being a task registered on the finish. When we reach the
@@ -1115,6 +1108,9 @@ void hclib_start_finish() {
      */
     finish->counter = 1;
     finish->parent = ws->current_finish;
+    #if HCLIB_LITECTX_STRATEGY
+    finish->finish_deps = NULL;
+    #endif
     check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
 }
@@ -1129,7 +1125,7 @@ void hclib_end_finish() {
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
 
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
-    HC_FREE(current_finish);
+    free(current_finish);
 }
 
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
@@ -1138,9 +1134,8 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
-    hclib_future_t **finish_deps = malloc(2 * sizeof(hclib_future_t *));
+    hclib_future_t **finish_deps = malloc(2 * sizeof(*finish_deps));
     HASSERT(finish_deps);
-    memset(finish_deps, 0x00, 2 * sizeof(hclib_future_t *));
     finish_deps[0] = &event->future;
     finish_deps[1] = NULL;
     current_finish->finish_deps = finish_deps;
