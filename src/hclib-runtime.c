@@ -99,7 +99,7 @@ static inline void increment_steals_counter(int wid) {
     total_steals[wid]++;
 }
 
-#ifdef HC_COMM_WORKER_STATS
+#if defined(HC_COMM_WORKER) && defined(HC_COMM_WORKER_STATS)
 static inline void increment_asyncComm_counter() {
     total_push_outd++;
 }
@@ -1058,32 +1058,67 @@ void help_finish(finish_t *finish) {
          * async is created inside _help_finish_ctx).
          */
 
-        // create finish event
-        hclib_promise_t *finish_promise = hclib_promise_create();
-        hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
-        finish->finish_deps = finish_deps;
         // TODO - should only switch contexts after actually finding work
-        LiteCtx *currentCtx = get_curr_lite_ctx();
-        HASSERT(currentCtx);
-        LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
-        newCtx->arg = finish;
 
-        #ifdef VERBOSE
-        printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
-        #endif
-        ctx_swap(currentCtx, newCtx, __func__);
-        /*
-         * destroy the context that resumed this one since it's now defunct
-         * (there are no other handles to it, and it will never be resumed)
-         */
-        LiteCtx_destroy(currentCtx->prev);
-        hclib_promise_free(finish_promise);
+        // Try to execute a sub-task of the current finish scope
+        do {
+            hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+            hclib_task_t *task = hpt_pop_task(ws);
+            // Fall through if we have no local tasks.
+            if (!task) { break; }
+            // Since the current finish scope is not yet complete,
+            // there's a good chance that the task at the top of the
+            // deque is a task from the current finish scope.
+            // It's safe to continue executing sub-tasks on the current
+            // stack, since the finish scope blocks on them anyway.
+            else if (task->current_finish == finish) {
+                execute_task(task); // !!! May cause a worker-swap!!!
+            }
+            // For tasks in a different finish scope, we need a new context.
+            // FIXME: Figure out a better way to handle this!
+            // For now, just put it back in the deque and fall through.
+            else {
+                deque_push_place(ws, NULL, task);
+                break;
+            }
+        } while (finish->counter > 1);
+
+        // Someone stole our last task...
+        // Create a new context to do other work,
+        // and suspend this finish scope pending on the outstanding tasks.
+        if (finish->counter > 1) {
+            // create finish event
+            hclib_promise_t *finish_promise = hclib_promise_create();
+            hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
+            finish->finish_deps = finish_deps;
+
+            LiteCtx *currentCtx = get_curr_lite_ctx();
+            HASSERT(currentCtx);
+            LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
+            newCtx->arg = finish;
+
+            #ifdef VERBOSE
+            printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
+            #endif
+            ctx_swap(currentCtx, newCtx, __func__);
+
+            // destroy the context that resumed this one since it's now defunct
+            // (there are no other handles to it, and it will never be resumed)
+            LiteCtx_destroy(currentCtx->prev);
+            hclib_promise_free(finish_promise);
+        }
+        else {
+            HASSERT(finish->counter == 1);
+            // finish->counter == 1 implies that all the tasks are done
+            // (it's only waiting on itself now), so just return!
+            --finish->counter;
+        }
     }
 #else /* default (broken) strategy */
     _help_finish(finish);
+    HASSERT(finish->counter == 0);
 #endif /* HCLIB_???_STRATEGY */
 
-    HASSERT(finish->counter == 0);
 }
 
 /*
@@ -1124,6 +1159,7 @@ void hclib_end_finish() {
 
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
 
+    // Don't reuse worker-state! (we might not be on the same worker anymore)
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
     free(current_finish);
 }
