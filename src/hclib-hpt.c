@@ -115,8 +115,8 @@ hclib_task_t *hpt_pop_task(hclib_worker_state *ws) {
     while (current != NULL) {
 #ifdef VERBOSE
         printf("hpt_pop_task: worker %d looking to pop from deque %p in "
-                "place %p at level %d\n", ws->id, current, current->pl,
-                current->pl->level);
+               "place %p at level %d\n", ws->id, current, current->pl,
+               current->pl->level);
 #endif
         hclib_task_t *buff = deque_pop(&current->deque);
         if (buff) {

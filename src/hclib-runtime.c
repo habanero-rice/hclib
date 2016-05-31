@@ -353,9 +353,9 @@ static inline void check_out_finish(finish_t *finish) {
     if (finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
-            #if HCLIB_LITECTX_STRATEGY
+#if HCLIB_LITECTX_STRATEGY
             hclib_promise_put(finish->finish_deps[0]->owner, finish);
-            #endif /* HCLIB_LITECTX_STRATEGY */
+#endif /* HCLIB_LITECTX_STRATEGY */
         }
     }
 }
@@ -417,7 +417,8 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
                 execute_task(async_task);
             }
 #ifdef VERBOSE
-            fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
+            fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n",
+                    wid);
 #endif
         }
     }
@@ -862,18 +863,18 @@ static void *worker_routine(void *args) {
     set_current_worker(wid);
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
 
-    #ifdef HC_COMM_WORKER
+#ifdef HC_COMM_WORKER
     if (wid == COMMUNICATION_WORKER_ID) {
         communication_worker_routine(ws->current_finish);
         return NULL;
     }
-    #endif
-    #ifdef HC_CUDA
+#endif
+#ifdef HC_CUDA
     if (wid == GPU_WORKER_ID) {
         gpu_worker_routine(ws->current_finish);
         return NULL;
     }
-    #endif
+#endif
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create(__func__);
@@ -889,10 +890,10 @@ static void *worker_routine(void *args) {
     // Swap in the newCtx lite context
     ctx_swap(currentCtx, newCtx, __func__);
 
-    #ifdef VERBOSE
+#ifdef VERBOSE
     fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
             "and lite ctx %p\n", get_current_worker(), currentCtx, newCtx);
-    #endif
+#endif
 
     // free resources
     LiteCtx_destroy(currentCtx->prev);
@@ -1065,7 +1066,9 @@ void help_finish(finish_t *finish) {
             hclib_worker_state *ws = CURRENT_WS_INTERNAL;
             hclib_task_t *task = hpt_pop_task(ws);
             // Fall through if we have no local tasks.
-            if (!task) { break; }
+            if (!task) {
+                break;
+            }
             // Since the current finish scope is not yet complete,
             // there's a good chance that the task at the top of the
             // deque is a task from the current finish scope.
@@ -1097,17 +1100,16 @@ void help_finish(finish_t *finish) {
             LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
             newCtx->arg = finish;
 
-            #ifdef VERBOSE
+#ifdef VERBOSE
             printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
-            #endif
+#endif
             ctx_swap(currentCtx, newCtx, __func__);
 
             // destroy the context that resumed this one since it's now defunct
             // (there are no other handles to it, and it will never be resumed)
             LiteCtx_destroy(currentCtx->prev);
             hclib_promise_free(finish_promise);
-        }
-        else {
+        } else {
             HASSERT(finish->counter == 1);
             // finish->counter == 1 implies that all the tasks are done
             // (it's only waiting on itself now), so just return!
@@ -1143,9 +1145,9 @@ void hclib_start_finish() {
      */
     finish->counter = 1;
     finish->parent = ws->current_finish;
-    #if HCLIB_LITECTX_STRATEGY
+#if HCLIB_LITECTX_STRATEGY
     finish->finish_deps = NULL;
-    #endif
+#endif
     check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
 }
@@ -1324,7 +1326,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     hclib_init();
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#else    
+#else
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 #endif
     hclib_finalize();
