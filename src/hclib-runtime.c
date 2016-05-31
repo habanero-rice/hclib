@@ -159,10 +159,10 @@ void hclib_global_init() {
                                   &hclib_context->workers, &hclib_context->nworkers);
 
 #ifdef HC_COMM_WORKER
-    assert(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
+    HASSERT(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
 #endif
 #ifdef HC_CUDA
-    assert(hclib_context->nworkers > GPU_WORKER_ID);
+    HASSERT(hclib_context->nworkers > GPU_WORKER_ID);
 #endif
 
     for (int i = 0; i < hclib_context->nworkers; i++) {
