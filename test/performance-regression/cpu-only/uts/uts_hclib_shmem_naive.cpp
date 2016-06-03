@@ -19,6 +19,10 @@
 #include <math.h>
 #include <assert.h>
 #include <shmem.h>
+#include "hclib_cpp.h"
+#include "hclib_atomic.h"
+#include "hclib_system.h"
+#include "hclib_openshmem.h"
 
 #include "uts.h"
 
@@ -44,22 +48,13 @@
 #define MAX_OMP_THREADS       32
 #define MAX_SHMEM_THREADS     64
 #define LOCK_T           omp_lock_t
-#define GET_NUM_THREADS  omp_get_num_threads()
-#define GET_THREAD_NUM   omp_get_thread_num()
+#define GET_NUM_THREADS  hclib::num_workers()
+#define GET_THREAD_NUM   hclib::get_current_worker()
 #define SET_LOCK(zlk)    omp_set_lock(zlk)
 #define UNSET_LOCK(zlk)  omp_unset_lock(zlk)
-#define INIT_LOCK(zlk)   zlk=omp_global_lock_alloc()
-#define INIT_SINGLE_LOCK(zlk) zlk=omp_global_lock_alloc()
 #define SMEMCPY          memcpy
 #define ALLOC            malloc
 #define BARRIER          
-// OpenMP helper function to match UPC lock allocation semantics
-omp_lock_t * omp_global_lock_alloc() {
-  omp_lock_t *lock = (omp_lock_t *) malloc(sizeof(omp_lock_t) + 128);
-  omp_init_lock(lock);
-  return lock;
-}
-
 
 #else
 #error Only supports OMP
@@ -103,19 +98,19 @@ static int pe, npes;
 static int steal_from(int target_pe, Node *stolen_out) {
     int remote_buffered_steals;
 
-    shmem_set_lock(&steal_buffer_locks[target_pe]);
-    shmem_int_get(&remote_buffered_steals, &n_buffered_steals, 1, target_pe);
+    hclib::shmem_set_lock(&steal_buffer_locks[target_pe]);
+    hclib::shmem_int_get(&remote_buffered_steals, (const int *)&n_buffered_steals, 1, target_pe);
 
     int stole_something = 0;
     if (remote_buffered_steals > 0) {
         remote_buffered_steals--;
-        shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
+        hclib::shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
                 sizeof(Node), target_pe);
-        shmem_int_put(&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
+        hclib::shmem_int_put((int *)&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
         stole_something = 1;
     }
 
-    shmem_clear_lock(&steal_buffer_locks[target_pe]);
+    hclib::shmem_clear_lock(&steal_buffer_locks[target_pe]);
     return stole_something;
 }
 
@@ -124,14 +119,14 @@ static int remote_steal(Node *stolen_out) {
     int pe_below = pe - 1;
     if (pe_below < 0) pe_below = npes - 1;
 
-    shmem_int_add(&complete_pes, 1, 0);
+    hclib::shmem_int_add(&complete_pes, 1, 0);
 
-    int ndone = shmem_int_fadd(&complete_pes, 0, 0);
+    int ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
     while (ndone != npes) {
         // Try to remote steal
 
         if (steal_from(pe_above, stolen_out) || steal_from(pe_below, stolen_out)) {
-            shmem_int_add(&complete_pes, -1, 0);
+            hclib::shmem_int_add(&complete_pes, -1, 0);
             return 1;
         }
 
@@ -139,7 +134,7 @@ static int remote_steal(Node *stolen_out) {
         pe_below = pe_below - 1;
         if (pe_below < 0) pe_below = npes - 1;
 
-        ndone = shmem_int_fadd(&complete_pes, 0, 0);
+        ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
     }
 
     assert(ndone == npes);
@@ -254,10 +249,7 @@ char * impl_getName() {
 
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
-    int n_omp_threads;
-#pragma omp parallel
-#pragma omp single
-    n_omp_threads = omp_get_num_threads();
+    int n_omp_threads = hclib::num_workers();
 
   ind += sprintf(strBuf+ind, "Execution strategy:  ");
   if (PARALLEL) {
@@ -630,7 +622,7 @@ void genChildren(Node * parent, Node * child) {
   t_metadata[omp_get_thread_num()].ntasks += 1;
 #endif
 
-  thread_info[omp_get_thread_num()].n_nodes++;
+  thread_info[hclib::get_current_worker()].n_nodes++;
 
   numChildren = uts_numChildren(parent);
   childType   = uts_childType(parent);
@@ -650,7 +642,7 @@ void genChildren(Node * parent, Node * child) {
     }
 #endif
 
-    unsigned char * parent_state = parent->state.state;
+    const unsigned char * parent_state = parent->state.state;
     unsigned char * child_state = child->state.state;
 
     for (i = 0; i < numChildren; i++) {
@@ -663,17 +655,26 @@ void genChildren(Node * parent, Node * child) {
       Node parent = *child;
 
       int made_available_for_stealing = 0;
-      if (omp_get_thread_num() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
-          shmem_set_lock(&steal_buffer_locks[pe]);
+      if (hclib::get_current_worker() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
+          hclib::shmem_set_lock(&steal_buffer_locks[pe]);
           if (n_buffered_steals < N_BUFFERED_STEALS) {
               steal_buffer[n_buffered_steals++] = parent;
               made_available_for_stealing = 1;
           }
-          shmem_clear_lock(&steal_buffer_locks[pe]);
+          hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
       }
+
       if (!made_available_for_stealing) {
-#pragma omp task untied firstprivate(parent) if(parent.height < 9)
-          {
+          if (parent.height < 9) {
+              hclib::async([parent] {
+                  Node child;
+                  initNode(&child);
+
+                  Node tmp = parent;
+
+                  genChildren(&tmp, &child);
+              });
+          } else {
               Node child;
               initNode(&child);
 
@@ -682,7 +683,7 @@ void genChildren(Node * parent, Node * child) {
       }
     }
   } else {
-      thread_info[omp_get_thread_num()].n_leaves++;
+      thread_info[hclib::get_current_worker()].n_leaves++;
   }
 }
 
@@ -831,7 +832,6 @@ void showStats(double elapsedSecs) {
  *       parsing parameters
  */
 int main(int argc, char *argv[]) {
-  Node root;
 
 #ifdef THREAD_METADATA
   memset(t_metadata, 0x00, MAX_OMP_THREADS * sizeof(thread_metadata));
@@ -839,48 +839,47 @@ int main(int argc, char *argv[]) {
   memset(thread_info, 0x00, MAX_OMP_THREADS * sizeof(per_thread_info));
   memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
 
-  shmem_init();
+  hclib::launch([argc, argv] {
 
-  pe = shmem_my_pe();
-  npes = shmem_n_pes();
+      pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+      npes = hclib::shmem_n_pes();
 
-  /* determine benchmark parameters (all PEs) */
-  uts_parseParams(argc, argv);
+      /* determine benchmark parameters (all PEs) */
+      uts_parseParams(argc, argv);
 
 #ifdef UTS_STAT
-  if (stats) {
-    initHist();
-  }
+      if (stats) {
+        initHist();
+      }
 #endif  
 
-  double t1, t2, et;
+      double t1, t2, et;
 
-  /* show parameter settings */
-  if (pe == 0) {
-      uts_printParams();
-  }
+      /* show parameter settings */
+      if (pe == 0) {
+          uts_printParams();
+      }
 
-  initRootNode(&root, type);
+      Node root;
+      initRootNode(&root, type);
 
-  shmem_barrier_all();
+      hclib::shmem_barrier_all();
 
-  /* time parallel search */
-  t1 = uts_wctime();
+      /* time parallel search */
+      t1 = uts_wctime();
 
-  int n_omp_threads;
+      int n_omp_threads;
 
-/********** SPMD Parallel Region **********/
-#pragma omp parallel
-  {
-#pragma omp master
-      {
-          int first = 1;
-          n_omp_threads = omp_get_num_threads();
-          assert(n_omp_threads <= MAX_OMP_THREADS);
+    /********** SPMD Parallel Region **********/
+      int first = 1;
+      n_omp_threads = hclib::num_workers();
+      assert(n_omp_threads <= MAX_OMP_THREADS);
 
-          Node child;
+      Node child;
 retry:
-          initNode(&child);
+      initNode(&child);
+
+      hclib::finish([&first, &root, &child] {
 
           if (first) {
               if (pe == 0) {
@@ -889,67 +888,64 @@ retry:
           } else {
               genChildren(&root, &child);
           }
-          first = 0;
+      });
+      first = 0;
 
-#pragma omp taskwait
-
+      if (n_buffered_steals > 0) {
+          hclib::shmem_set_lock(&steal_buffer_locks[pe]);
           if (n_buffered_steals > 0) {
-              shmem_set_lock(&steal_buffer_locks[pe]);
-              if (n_buffered_steals > 0) {
-                  n_buffered_steals--;
-                  memcpy(&root, &steal_buffer[n_buffered_steals], sizeof(root));
-                  shmem_clear_lock(&steal_buffer_locks[pe]);
-                  goto retry;
-              } else {
-                  shmem_clear_lock(&steal_buffer_locks[pe]);
+              n_buffered_steals--;
+              memcpy(&root, &steal_buffer[n_buffered_steals], sizeof(root));
+              hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+              goto retry;
+          } else {
+              hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+          }
+      }
+
+      const int got_more_work = remote_steal(&root);
+      if (got_more_work == 1) {
+          goto retry;
+      }
+
+      hclib::shmem_barrier_all();
+
+      t2 = uts_wctime();
+      et = t2 - t1;
+
+      int i;
+      for (i = 0; i < MAX_OMP_THREADS; i++) {
+          n_nodes += thread_info[i].n_nodes;
+          n_leaves += thread_info[i].n_leaves;
+      }
+
+      hclib::shmem_barrier_all();
+
+      if (pe != 0) {
+          hclib::shmem_int_add(&n_nodes, n_nodes, 0);
+          hclib::shmem_int_add(&n_leaves, n_leaves, 0);
+      }
+
+      hclib::shmem_barrier_all();
+
+      if (pe == 0) {
+          showStats(et);
+      }
+    /********** End Parallel Region **********/
+#ifdef THREAD_METADATA
+      int p;
+      for (p = 0; p < npes; p++) {
+          if (p == pe) {
+              printf("\n");
+              int i;
+              for (i = 0; i < n_omp_threads; i++) {
+                  printf("PE %d, thread %d: %lu tasks\n", p, i, t_metadata[i].ntasks);
               }
           }
-
-          const int got_more_work = remote_steal(&root);
-          if (got_more_work == 1) {
-              goto retry;
-          }
+          hclib::shmem_barrier_all();
       }
-  }
-
-  shmem_barrier_all();
-
-  t2 = uts_wctime();
-  et = t2 - t1;
-
-  int i;
-  for (i = 0; i < MAX_OMP_THREADS; i++) {
-      n_nodes += thread_info[i].n_nodes;
-      n_leaves += thread_info[i].n_leaves;
-  }
-
-  shmem_barrier_all();
-
-  if (pe != 0) {
-      shmem_int_add(&n_nodes, n_nodes, 0);
-      shmem_int_add(&n_leaves, n_leaves, 0);
-  }
-
-  shmem_barrier_all();
-
-  if (pe == 0) {
-      showStats(et);
-  }
-/********** End Parallel Region **********/
-#ifdef THREAD_METADATA
-  int p;
-  for (p = 0; p < npes; p++) {
-      if (p == pe) {
-          printf("\n");
-          int i;
-          for (i = 0; i < n_omp_threads; i++) {
-              printf("PE %d, thread %d: %lu tasks\n", p, i, t_metadata[i].ntasks);
-          }
-      }
-      shmem_barrier_all();
-  }
 #endif
 
-  shmem_finalize();
+  });
   return 0;
 }

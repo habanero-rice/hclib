@@ -107,10 +107,10 @@ double rng_toProb(int n);
 
 /* Common tree routines */
 void   uts_initRoot(Node * root, int type);
-int    uts_numChildren(Node *parent);
-int    uts_numChildren_bin(Node * parent);
-int    uts_numChildren_geo(Node * parent);
-int    uts_childType(Node *parent);
+int    uts_numChildren(const Node *parent);
+int    uts_numChildren_bin(const Node * parent);
+int    uts_numChildren_geo(const Node * parent);
+int    uts_childType(const Node *parent);
 
 /* Implementation Specific Functions */
 char * impl_getName();

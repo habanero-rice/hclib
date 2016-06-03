@@ -25,7 +25,7 @@ TARGETS     = uts-seq uts-dfs uts-stat          \
               uts-mpi-wm uts-mpi-wm-nb          \
 	      uts-mpi-ws uts-mpi-hws            \
               uts-mta uts-gtc time_rng time_poll\
-              uts-dot uts-shmem-omp uts-omp-task uts-omp-task-cutoff uts-omp-task-shmem uts-hclib uts-hclib-shmem
+              uts-dot uts-shmem-omp uts-omp-task uts-omp-task-cutoff uts-omp-task-shmem uts-hclib uts-hclib-shmem uts-hclib-shmem-naive
 
 # ------------------------------------- #
 # Set Random Number Generator sources:
@@ -138,6 +138,9 @@ uts-omp-task-cutoff: uts_omp_task.c $(RNG_SRC) $(COMMON_SRCS)
 
 uts-omp-task-shmem: uts_omp_task_shmem.c $(RNG_SRC) $(COMMON_SRCS)
 	$(SHMCC) $(RNG_DEF) $(FLAGS) -o $@ $+ $(OMPCC_OPTS) $(OMPLD_OPTS) $(SHMCC_OPTS) $(SHMLD_OPTS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(HCLIB_OSHMEM_LDLIBS) $(HCLIB_LDFLAGS)
+
+uts-hclib-shmem-naive: uts_hclib_shmem_naive.cpp $(RNG_SRC) $(COMMON_SRCS)
+	g++ -std=c++11 $(RNG_DEF) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) -o $@ $+ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS) $(CC_OPTS) $(LD_OPTS) -D_OPENMP
 
 uts-upc: $(SHM_SRCS) $(RNG_SRC) $(COMMON_SRCS)
 	$(UPCC) $(UPCC_OPTS) $(UPCLD_OPTS) $(RNG_DEF) $(FLAGS) -o $@ $+

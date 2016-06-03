@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:10:00
-#PBS -l nodes=2
+#PBS -l nodes=32
 #PBS -V
 
 # export GASNET_MAX_SEGSIZE='512MB'
@@ -12,14 +12,18 @@ cd $PBS_O_WORKDIR
 source sample_trees.sh
 
 # for NODES in 16 32; do
-for NODES in 2; do
+for NODES in 32 ; do
     # for THREADS in 1 2 4 8 16; do
     for THREADS in 1 2 4 8 16; do
         export OMP_NUM_THREADS=$THREADS
         export HCLIB_WORKERS=$THREADS
-        export LD_PRELOAD=libtbbmalloc_proxy.so.2
+        export LD_PRELOAD=/lustre/atlas/sw/tbb/43/sles11.3_gnu4.8.2/source/build/linux_intel64_gcc_cc4.8.2_libc2.11.3_kernel3.0.101_release/libtbbmalloc_proxy.so.2
         export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
-        aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem $T1L
+        export GASNET_BACKTRACE=1
+        # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem $T1L
+        # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-naive $T1L
+        aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-naive $T1L
+        # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-omp-task-shmem $T1L
     done
 done
 

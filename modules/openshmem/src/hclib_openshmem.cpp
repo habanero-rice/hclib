@@ -134,7 +134,7 @@ static void *shmem_clear_lock_impl(void *arg) {
     return NULL;
 }
 
-void hclib::shmem_set_lock(long *lock) {
+void hclib::shmem_set_lock(volatile long *lock) {
     int err = pthread_mutex_lock(&lock_info_mutex);
     HASSERT(err == 0);
 
@@ -143,24 +143,23 @@ void hclib::shmem_set_lock(long *lock) {
 
     hclib_promise_t *promise = hclib_promise_create();
 
-    std::map<long *, lock_context_t *>::iterator found = lock_info.find(lock);
+    std::map<long *, lock_context_t *>::iterator found = lock_info.find((long *)lock);
     if (found != lock_info.end()) {
-        hclib_future_t **future_list = (hclib_future_t **)malloc(2 * sizeof(hclib_future_t *));
-        future_list[0] = found->second->last_lock;
-        future_list[1] = NULL;
-
         ctx = found->second;
-        await = hclib_async_future(shmem_set_lock_impl, lock, future_list, nic);
-        ctx->last_lock = hclib_get_future_for_promise(promise);
     } else {
-        HASSERT(*lock == 0L);
+        /*
+         * Cannot assert that *lock == 0L here as another node may be locking
+         * it. Can only guarantee that no one else on the same node has locked
+         * it.
+         */
         ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
         memset(ctx, 0x00, sizeof(lock_context_t));
 
-        lock_info.insert(std::pair<long *, lock_context_t *>(lock, ctx));
-        await = hclib_async_future(shmem_set_lock_impl, lock, NULL, nic);
-        ctx->last_lock = hclib_get_future_for_promise(promise);
+        lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
     }
+
+    await = hclib_async_future(shmem_set_lock_impl, (void *)lock, ctx->last_lock, nic);
+    ctx->last_lock = hclib_get_future_for_promise(promise);
 
     err = pthread_mutex_unlock(&lock_info_mutex);
     HASSERT(err == 0);
@@ -177,7 +176,8 @@ void hclib::shmem_clear_lock(long *lock) {
     std::map<long *, lock_context_t *>::iterator found = lock_info.find(lock);
     HASSERT(found != lock_info.end()) // Doesn't make much sense to clear a lock that hasn't been set
 
-    hclib_future_t *await = hclib_async_future(shmem_clear_lock_impl, lock, NULL, nic);
+    hclib_future_t *await = hclib_async_future(shmem_clear_lock_impl, lock,
+            NULL, nic);
 
     err = pthread_mutex_unlock(&lock_info_mutex);
     HASSERT(err == 0);

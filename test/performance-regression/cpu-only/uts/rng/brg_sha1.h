@@ -64,8 +64,8 @@ typedef uint_8t RNG_state;
 /* random number generator operations  */
 /***************************************/
 void   rng_init(RNG_state *state, int seed);
-void   rng_spawn(RNG_state *mystate, RNG_state *newstate, int spawnNumber);
-int    rng_rand(RNG_state *mystate);
+void   rng_spawn(const RNG_state *mystate, RNG_state *newstate, int spawnNumber);
+int    rng_rand(const RNG_state *mystate);
 int    rng_nextrand(RNG_state *mystate);
 char * rng_showstate(RNG_state *state, char *s);
 int    rng_showtype(char *strBuf, int ind);

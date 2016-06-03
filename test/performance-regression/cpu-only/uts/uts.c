@@ -159,7 +159,7 @@ void uts_initRoot(Node * root, int type) {
 }
 
 
-int uts_numChildren_bin(Node * parent) {
+int uts_numChildren_bin(const Node * parent) {
   // distribution is identical everywhere below root
   int    v = rng_rand(parent->state.state);	
   double d = rng_toProb(v);
@@ -168,7 +168,7 @@ int uts_numChildren_bin(Node * parent) {
 }
 
 
-int uts_numChildren_geo(Node * parent) {
+int uts_numChildren_geo(const Node * parent) {
   double b_i = b_0;
   int depth = parent->height;
   int numChildren, h;
@@ -222,7 +222,7 @@ int uts_numChildren_geo(Node * parent) {
 }
 
 
-int uts_numChildren(Node *parent) {
+int uts_numChildren(const Node *parent) {
   int numChildren = 0;
 
   /* Determine the number of children */
@@ -274,7 +274,7 @@ int uts_numChildren(Node *parent) {
 }
 
 
-int uts_childType(Node *parent) {
+int uts_childType(const Node *parent) {
   switch (type) {
     case BIN:
       return BIN;

@@ -402,8 +402,15 @@ void load_locality_info(const char *filename, int *nworkers_out,
     // Number of workers to create
     assert(string_token_equals(tokens + token_index, json, "nworkers") == 0);
     token_index++;
-    const int nworkers = parse_int_from_primitive(tokens + token_index, json);
+    int nworkers = parse_int_from_primitive(tokens + token_index, json);
     token_index++;
+
+    const char *nworkers_str = getenv("HCLIB_WORKERS");
+    if (nworkers_str) {
+        nworkers = atoi(nworkers_str);
+        fprintf(stderr, "WARNING: Overloading # workers set in locality file "
+                "from HCLIB_WORKERS environment variable\n");
+    }
 
     // Declarations field of top-level object
     assert(string_token_equals(tokens + token_index, json, "declarations") == 0);
