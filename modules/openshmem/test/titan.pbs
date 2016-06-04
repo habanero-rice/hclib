@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -A csc205
+#PBS -N max
+#PBS -j oe
+#PBS -q debug
+#PBS -l walltime=00:02:00,nodes=4
+#PBS -V
+
+# THREADS=( 1 4 8 12 16 )
+# ITER=1
+# HCLIB=3	# 0=HCLIB_ONLY; 1=OMP_ONLY; 2=MPI_ONLY 3=HCLIB-and-OMP-and-MPI
+# SHMEM_ASYNC_EXE="./sample_sort_shmem-async.x"
+# SHMEM_OMP_EXE="./sample_sort_shmem-omp.x"
+# MPI_EXE="./sample_sort_mpi-omp.x"
+# export SHM_TASK=2
+# export PREFIX="samplesort.3096.1024"
+# export SUFFIX=".th3072"
+
+export GASNET_MAX_SEGSIZE='512MB'
+export GASNET_BACKTRACE=1
+export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
+
+cd $PBS_O_WORKDIR
+# -n is # of nodes
+# -N is PEs per node
+# -d is # cores per PE
+
+# for TEST in init shmem_malloc shmem_barrier_all shmem_put64 shmem_broadcast64 shmem_lock_stress; do
+for TEST in shmem_int_wait_until shmem_int_wait_until_any; do
+    echo ======= $TEST =======
+    aprun -n 4 -N 1 -d 16 ./$TEST
+    echo
+done

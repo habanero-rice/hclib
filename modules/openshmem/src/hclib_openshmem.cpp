@@ -3,6 +3,7 @@
 #include "hclib-locality-graph.h"
 
 #include <map>
+#include <vector>
 #include <iostream>
 
 typedef struct _lock_context_t {
@@ -10,10 +11,34 @@ typedef struct _lock_context_t {
     hclib_promise_t * volatile live;
 } lock_context_t;
 
+enum wait_type {
+    integer
+};
+
+typedef union _wait_cmp_value_t {
+    int i;
+} wait_cmp_value_t;
+
+typedef struct _wait_info_t {
+    wait_type type;
+    volatile void *var;
+    int cmp;
+    wait_cmp_value_t cmp_value;
+} wait_info_t;
+
+typedef struct _wait_set_t {
+    wait_info_t *infos;
+    int ninfos;
+    hclib_promise_t *signal;
+} wait_set_t;
+
 static int nic_locale_id;
 static hclib::locale_t *nic = NULL;
 static std::map<long *, lock_context_t *> lock_info;
 static pthread_mutex_t lock_info_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static std::vector<wait_set_t *> waiting_on;
+static pthread_mutex_t waiting_on_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static int pe_to_locale_id(int pe) {
     HASSERT(pe >= 0);
@@ -308,6 +333,115 @@ std::string hclib::shmem_name() {
     ss << SHMEM_VENDOR_STRING << " v" << SHMEM_MAJOR_VERSION << "." <<
         SHMEM_MINOR_VERSION << std::endl;
     return ss.str();
+}
+
+static void poll_on_waits() {
+    int err = pthread_mutex_lock(&waiting_on_mutex);
+    HASSERT(err == 0);
+
+    HASSERT(waiting_on.size() > 0);
+
+    std::vector<wait_set_t *>::iterator curr = waiting_on.begin();
+    while (curr != waiting_on.end()) {
+        wait_set_t *wait_set = *curr;
+
+        bool any_complete = false;
+        for (int i = 0; i < wait_set->ninfos && !any_complete; i++) {
+            wait_info_t *wait_info = wait_set->infos + i;
+
+            switch (wait_info->cmp) {
+                case SHMEM_CMP_EQ:
+                    switch (wait_info->type) {
+                        case integer:
+                            if (*((volatile int *)wait_info->var) == wait_info->cmp_value.i) {
+                                any_complete = true;
+                            }
+                            break; // integer
+
+                        default:
+                            std::cerr << "Unsupported wait type " << wait_info->type << std::endl;
+                            exit(1);
+                    }
+                    break; // SHMEM_CMP_EQ
+           
+                default:
+                    std::cerr << "Unsupported cmp type " << wait_info->cmp << std::endl;
+                    exit(1);
+            }
+        }
+
+        if (any_complete) {
+            waiting_on.erase(curr);
+            hclib_promise_put(wait_set->signal, NULL);
+            free(wait_set->infos);
+            free(wait_set);
+        } else {
+            curr++;
+        }
+    }
+
+    if (!waiting_on.empty()) {
+        hclib::async_at(nic, [] {
+            poll_on_waits();
+        });
+    }
+
+    err = pthread_mutex_unlock(&waiting_on_mutex);
+    HASSERT(err == 0);
+}
+
+#define construct_and_insert_wait_set(vars, cmp, cmp_values, nwaits, wait_type, fieldname) ({ \
+    hclib_promise_t *promise = hclib_promise_create(); \
+    \
+    wait_info_t *infos = (wait_info_t *)malloc((nwaits) * sizeof(wait_info_t)); \
+    HASSERT(infos); \
+    for (int i = 0; i < (nwaits); i++) { \
+        infos[i].type = (wait_type); \
+        infos[i].var = (vars)[i]; \
+        infos[i].cmp = (cmp); \
+        infos[i].cmp_value.fieldname = (cmp_values)[i]; \
+    } \
+    \
+    wait_set_t *wait_set = (wait_set_t *)malloc(sizeof(wait_set_t)); \
+    HASSERT(wait_set); \
+    wait_set->signal = promise; \
+    wait_set->ninfos = (nwaits); \
+    wait_set->infos = infos; \
+    \
+    int err = pthread_mutex_lock(&waiting_on_mutex); \
+    HASSERT(err == 0); \
+    \
+    waiting_on.push_back(wait_set); \
+    \
+    if (waiting_on.size() == 1) { \
+        hclib::async_at(nic, [] { \
+            poll_on_waits(); \
+        }); \
+    } \
+    \
+    err = pthread_mutex_unlock(&waiting_on_mutex); \
+    HASSERT(err == 0); \
+    \
+    promise; \
+})
+
+void hclib::shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value) {
+    hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
+            &cmp_value, 1, integer, i);
+
+    hclib_future_wait(hclib_get_future_for_promise(promise));
+
+    hclib_promise_free(promise);
+}
+
+void hclib::shmem_int_wait_until_any(volatile int **ivars, int cmp,
+        int *cmp_values, int nwaits) {
+    hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
+            cmp_values, nwaits, integer, i);
+
+    hclib_future_wait(hclib_get_future_for_promise(promise));
+
+    hclib_promise_free(promise);
 }
 
 HCLIB_REGISTER_MODULE("openshmem", openshmem_pre_initialize, openshmem_post_initialize, openshmem_finalize)

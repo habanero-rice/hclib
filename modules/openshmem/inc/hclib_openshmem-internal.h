@@ -49,6 +49,10 @@ void shmem_longlong_sum_to_all(long long *target, long long *source,
                                int logPE_stride, int PE_size,
                                long long *pWrk, long *pSync);
 
+void shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value);
+void shmem_int_wait_until_any(volatile int **ivars, int cmp,
+        int *cmp_values, int nwaits);
+
 locale_t *shmem_remote_pe(int pe);
 int pe_for_locale(locale_t *locale);
 std::string shmem_name();
