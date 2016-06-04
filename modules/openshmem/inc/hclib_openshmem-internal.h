@@ -12,6 +12,28 @@
 
 namespace hclib {
 
+enum wait_type {
+    integer
+};
+
+typedef union _wait_cmp_value_t {
+    int i;
+} wait_cmp_value_t;
+
+typedef struct _wait_info_t {
+    wait_type type;
+    volatile void *var;
+    int cmp;
+    wait_cmp_value_t cmp_value;
+} wait_info_t;
+
+typedef struct _wait_set_t {
+    wait_info_t *infos;
+    int ninfos;
+    hclib_promise_t *signal;
+    hclib_task_t *task;
+} wait_set_t;
+
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize);
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize);
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize);
@@ -52,6 +74,52 @@ void shmem_longlong_sum_to_all(long long *target, long long *source,
 void shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value);
 void shmem_int_wait_until_any(volatile int **ivars, int cmp,
         int *cmp_values, int nwaits);
+
+#define construct_and_insert_wait_set(vars, cmp, cmp_values, nwaits, wait_type, fieldname, dependent_task) ({ \
+    wait_info_t *infos = (wait_info_t *)malloc((nwaits) * sizeof(wait_info_t)); \
+    HASSERT(infos); \
+    for (int i = 0; i < (nwaits); i++) { \
+        infos[i].type = (wait_type); \
+        infos[i].var = (vars)[i]; \
+        infos[i].cmp = (cmp); \
+        infos[i].cmp_value.fieldname = (cmp_values)[i]; \
+    } \
+    \
+    wait_set_t *wait_set = (wait_set_t *)calloc(1, sizeof(wait_set_t)); \
+    HASSERT(wait_set); \
+    \
+    if (dependent_task) wait_set->task = (dependent_task); \
+    else wait_set->signal = hclib_promise_create(); \
+    \
+    wait_set->ninfos = (nwaits); \
+    wait_set->infos = infos; \
+    \
+    enqueue_wait_set(wait_set); \
+    \
+    wait_set->signal; \
+})
+
+void enqueue_wait_set(wait_set_t *wait_set);
+
+template <typename T>
+void shmem_int_async_when(volatile int *ivar, int cmp,
+        int cmp_value, T lambda) {
+    hclib_task_t *task = _allocate_async_hclib(lambda, false);
+
+    hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
+            &cmp_value, 1, integer, i, task);
+    HASSERT(promise == NULL);
+}
+
+template <typename T>
+void shmem_int_async_when_any(volatile int **ivars, int cmp,
+        int *cmp_values, int nwaits, T lambda) {
+    hclib_task_t *task = _allocate_async_hclib(lambda, false);
+
+    hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
+            cmp_values, nwaits, integer, i, task);
+    HASSERT(promise == NULL);
+}
 
 locale_t *shmem_remote_pe(int pe);
 int pe_for_locale(locale_t *locale);

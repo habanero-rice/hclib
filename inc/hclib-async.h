@@ -112,7 +112,7 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
 }
 
 template <typename T>
-inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
+inline hclib_task_t* _allocate_async(T lambda, bool await) {
 	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
     // create off-stack storage for this task
 	hclib_task_t* task = (hclib_task_t*)HC_MALLOC(hclib_task_size);
@@ -129,12 +129,6 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
 	memcpy(task, &t, sizeof(hclib_task_t));
 	return task;
 }
-
-#if defined(HUPCPP) && defined(DIST_WS)	// i.e. if we are supporting distributed work-stealing in HabaneroUPC++
-#define _allocate_async _allocate_async_hcupc
-#else
-#define _allocate_async _allocate_async_hclib
-#endif
 
 template <typename T>
 inline void async_at(hclib_locale_t *locale, T lambda) {
