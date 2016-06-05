@@ -353,7 +353,7 @@ static void poll_on_waits() {
             waiting_on.erase(curr);
             if (wait_set->task) {
                 HASSERT(wait_set->signal == NULL);
-                spawn(wait_set->task);
+                spawn(wait_set->task, FINISH_FREE);
             } else {
                 HASSERT(wait_set->task == NULL);
                 hclib_promise_put(wait_set->signal, NULL);
