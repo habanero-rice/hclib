@@ -6,3 +6,5 @@ uts-omp-task-shmem
 uts-hclib
 uts-hclib-shmem
 config.in
+uts-hclib-shmem-naive
+uts-hclib-shmem-opt
