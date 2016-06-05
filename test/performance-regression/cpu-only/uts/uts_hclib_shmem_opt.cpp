@@ -91,6 +91,8 @@ Node steal_buffer[N_BUFFERED_STEALS];
 volatile int n_buffered_steals = 0;
 long steal_buffer_locks[MAX_SHMEM_THREADS];
 
+int n_tasks_available_for_remote_steals[MAX_SHMEM_THREADS];
+
 int complete_pes = 0;
 
 static int pe, npes;
@@ -99,14 +101,16 @@ static int steal_from(int target_pe, Node *stolen_out) {
     int remote_buffered_steals;
 
     hclib::shmem_set_lock(&steal_buffer_locks[target_pe]);
-    hclib::shmem_int_get(&remote_buffered_steals, (const int *)&n_buffered_steals, 1, target_pe);
+    hclib::shmem_int_get(&remote_buffered_steals,
+            (const int *)&n_buffered_steals, 1, target_pe);
 
     int stole_something = 0;
     if (remote_buffered_steals > 0) {
         remote_buffered_steals--;
         hclib::shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
                 sizeof(Node), target_pe);
-        hclib::shmem_int_put((int *)&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
+        hclib::shmem_int_put((int *)&n_buffered_steals, &remote_buffered_steals,
+                1, target_pe);
         stole_something = 1;
     }
 
@@ -655,7 +659,8 @@ void genChildren(Node * parent, Node * child) {
       Node parent = *child;
 
       int made_available_for_stealing = 0;
-      if (hclib::get_current_worker() == 0 && n_buffered_steals < N_BUFFERED_STEALS) {
+      if (hclib::get_current_worker() == 0 &&
+              n_buffered_steals < N_BUFFERED_STEALS) {
           hclib::shmem_set_lock(&steal_buffer_locks[pe]);
           if (n_buffered_steals < N_BUFFERED_STEALS) {
               steal_buffer[n_buffered_steals++] = parent;
@@ -721,107 +726,12 @@ void showStats(double elapsedSecs) {
   int mdepth = 0, mheight = 0;
   double twork = 0.0, tsearch = 0.0, tidle = 0.0, tovh = 0.0, tcbovh = 0.0;
 
-//   // combine measurements from all threads
-//   for (i = 0; i < GET_NUM_THREADS; i++) {
-//     tnodes  += stealStack[i]->nNodes;
-//     tleaves += stealStack[i]->nLeaves;
-//     trel    += stealStack[i]->nRelease;
-//     tacq    += stealStack[i]->nAcquire;
-//     tsteal  += stealStack[i]->nSteal;
-//     tfail   += stealStack[i]->nFail;
-//     twork   += stealStack[i]->time[SS_WORK];
-//     tsearch += stealStack[i]->time[SS_SEARCH];
-//     tidle   += stealStack[i]->time[SS_IDLE];
-//     tovh    += stealStack[i]->time[SS_OVH];
-//     tcbovh  += stealStack[i]->time[SS_CBOVH];
-//     mdepth   = max(mdepth, stealStack[i]->maxStackDepth);
-//     mheight  = max(mheight, stealStack[i]->maxTreeDepth);
-//   }
-//   if (trel != tacq + tsteal) {
-//     printf("*** error! total released != total acquired + total stolen\n");
-//   }
-//     
-  uts_showStats(GET_NUM_THREADS, chunkSize, elapsedSecs, n_nodes, n_leaves, mheight);
-// 
-//   if (verbose > 1) {
-//     if (doSteal) {
-//       printf("Total chunks released = %d, of which %d reacquired and %d stolen\n",
-//           trel, tacq, tsteal);
-//       printf("Failed steal operations = %d, ", tfail);
-//     }
-// 
-//     printf("Max stealStack size = %d\n", mdepth);
-//     printf("Avg time per thread: Work = %.6f, Search = %.6f, Idle = %.6f\n", (twork / GET_NUM_THREADS),
-//         (tsearch / GET_NUM_THREADS), (tidle / GET_NUM_THREADS));
-//     printf("                     Overhead = %6f, CB_Overhead = %6f\n\n", (tovh / GET_NUM_THREADS),
-//         (tcbovh/GET_NUM_THREADS));
-//   }
-// 
-//   // per thread execution info
-//   if (verbose > 2) {
-//     for (i = 0; i < GET_NUM_THREADS; i++) {
-//       printf("** Thread %d\n", i);
-//       printf("  # nodes explored    = %d\n", stealStack[i]->nNodes);
-//       printf("  # chunks released   = %d\n", stealStack[i]->nRelease);
-//       printf("  # chunks reacquired = %d\n", stealStack[i]->nAcquire);
-//       printf("  # chunks stolen     = %d\n", stealStack[i]->nSteal);
-//       printf("  # failed steals     = %d\n", stealStack[i]->nFail);
-//       printf("  maximum stack depth = %d\n", stealStack[i]->maxStackDepth);
-//       printf("  work time           = %.6f secs (%d sessions)\n",
-//              stealStack[i]->time[SS_WORK], stealStack[i]->entries[SS_WORK]);
-//       printf("  overhead time       = %.6f secs (%d sessions)\n",
-//              stealStack[i]->time[SS_OVH], stealStack[i]->entries[SS_OVH]);
-//       printf("  search time         = %.6f secs (%d sessions)\n",
-//              stealStack[i]->time[SS_SEARCH], stealStack[i]->entries[SS_SEARCH]);
-//       printf("  idle time           = %.6f secs (%d sessions)\n",
-//              stealStack[i]->time[SS_IDLE], stealStack[i]->entries[SS_IDLE]);
-//       printf("  wakeups             = %d, false wakeups = %d (%.2f%%)",
-//              stealStack[i]->wakeups, stealStack[i]->falseWakeups,
-//              (stealStack[i]->wakeups == 0) ? 0.00 : ((((double)stealStack[i]->falseWakeups)/stealStack[i]->wakeups)*100.0));
-//       printf("\n");
-//     }
-//   }
-// 
-//   #ifdef TRACE
-//     printSessionRecords();
-//   #endif
-// 
-//   // tree statistics output to stat.txt, if requested
-// #ifdef UTS_STAT
-//   if (stats) {
-//     FILE *fp;
-//     char * tmpstr;
-//     char strBuf[5000];
-//     int  ind = 0;
-//     
-//     fp = fopen("stat.txt", "a+w");
-//     fprintf(fp, "\n------------------------------------------------------------------------------------------------------\n");
-//     ind = uts_paramsToStr(strBuf, ind);
-//     ind = impl_paramsToStr(strBuf, ind);
-//     //showParametersStr(strBuf);
-//     fprintf(fp, "%s\n", strBuf);
-//     
-//     fprintf(fp, "\nTotal nodes = %d\n", totalNodes); 
-//     fprintf(fp, "Max depth   = %d\n\n", maxHeight); 
-//     fprintf(fp, "Tseng ImbMeasure(overall)\n max:\t\t%lf \n avg:\t\t%lf \n devMaxAvg:\t %lf\n normDevMaxAvg: %lf\t\t\n\n", 
-//             imb_max/totalNodes, imb_avg/totalNodes, imb_devmaxavg/totalNodes, 
-//             imb_normdevmaxavg/totalNodes);
-//     
-//     switch (unbType){
-//     case 0: tmpstr = "(min imb weighted by size)"; break;
-//     case 1: tmpstr = "(min imb not weighted by size)"; break;
-//     case 2: tmpstr = "(max imb not weighted by size)"; break;
-//     default: tmpstr = "(?unknown measure)"; break;
-//     }
-//     fprintf(fp, "ImbMeasure:\t%s\n Overall:\t %lf\n Max:\t\t%lf\n Min:\t\t%lf\n\n", 
-//             tmpstr, treeImb, minImb, maxImb);
-//     showHist(fp);
-//     fprintf(fp, "\n------------------------------------------------------------------------------------------------------\n\n\n");
-//     fclose(fp);
-//   }
-// #endif
+  uts_showStats(GET_NUM_THREADS, chunkSize, elapsedSecs, n_nodes, n_leaves,
+          mheight);
 }
 
+void check_on_neighbors() {
+}
 
 /*  Main() function for: Sequential, OpenMP, UPC, and Shmem
  *
@@ -838,8 +748,12 @@ int main(int argc, char *argv[]) {
 #endif
   memset(thread_info, 0x00, MAX_OMP_THREADS * sizeof(per_thread_info));
   memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
+  memset(n_tasks_available_for_remote_steals, 0x00,
+          MAX_SHMEM_THREADS * sizeof(int));
 
   hclib::launch([argc, argv] {
+
+      hclib_set_idle_callback(handle_idle_thread);
 
       pe = hclib::pe_for_locale(hclib::shmem_my_pe());
       npes = hclib::shmem_n_pes();
@@ -868,18 +782,21 @@ int main(int argc, char *argv[]) {
       /* time parallel search */
       t1 = uts_wctime();
 
-      int n_omp_threads;
+      int n_omp_threads = hclib::num_workers();
+      assert(n_omp_threads <= MAX_OMP_THREADS);
 
     /********** SPMD Parallel Region **********/
       int first = 1;
-      n_omp_threads = hclib::num_workers();
-      assert(n_omp_threads <= MAX_OMP_THREADS);
 
       Node child;
 retry:
       initNode(&child);
 
       hclib::finish([&first, &root, &child] {
+
+          template <typename T>
+          void shmem_int_async_when_any(volatile int **ivars, int cmp,
+              int *cmp_values, int nwaits, T lambda);
 
           if (first) {
               if (pe == 0) {

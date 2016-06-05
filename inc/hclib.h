@@ -51,6 +51,11 @@ extern "C" {
  * @{
  **/
 
+enum ASYNC_PROPERTIES {
+    NONE = 0,
+    FINISH_FREE
+};
+
 /**
  * @brief Function prototype executable by an async.
  * @param[in] arg           Arguments to the function
@@ -70,7 +75,7 @@ unsigned long long hclib_current_time_ns();
  * stealing. This method can be used by the user to create more work for the
  * runtime to do.
  */
-void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned));
+void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, int));
 
 void hclib_run_on_main_ctx(void (*fp)(void *), void *data);
 
@@ -90,7 +95,7 @@ struct hclib_promise_st;
  */
 void hclib_async(generic_frame_ptr fp, void *arg,
         hclib_future_t *singleton_future_0,
-        hclib_locale_t *locale);
+        hclib_locale_t *locale, enum ASYNC_PROPERTIES props);
 
 /*
  * Spawn an async that automatically puts a promise on termination.

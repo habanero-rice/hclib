@@ -16,7 +16,8 @@ extern "C" {
 /*** START ASYNC IMPLEMENTATION ***/
 
 void hclib_async(generic_frame_ptr fp, void *arg,
-        hclib_future_t *singleton_future_0, hclib_locale_t *locale) {
+        hclib_future_t *singleton_future_0, hclib_locale_t *locale,
+        enum ASYNC_PROPERTIES props) {
 
     if (singleton_future_0) {
         hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
@@ -27,9 +28,10 @@ void hclib_async(generic_frame_ptr fp, void *arg,
         task->async_task.locale = NULL;
 
         if (locale) {
-            spawn_await_at((hclib_task_t *)task, singleton_future_0, NULL, locale);
+            spawn_await_at((hclib_task_t *)task, singleton_future_0, NULL,
+                    locale, props);
         } else {
-            spawn_await((hclib_task_t *)task, singleton_future_0, NULL);
+            spawn_await((hclib_task_t *)task, singleton_future_0, NULL, props);
         }
     } else {
         hclib_task_t *task = malloc(sizeof(hclib_task_t));
@@ -40,9 +42,9 @@ void hclib_async(generic_frame_ptr fp, void *arg,
         task->locale = NULL;
 
         if (locale) {
-            spawn_at(task, locale);
+            spawn_at(task, locale, props);
         } else {
-            spawn(task);
+            spawn(task, props);
         }
     }
 }
@@ -65,7 +67,7 @@ hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, future, locale);
+    hclib_async(future_caller, wrapper, future, locale, NONE);
 
     return hclib_get_future_for_promise(&wrapper->event);
 }
@@ -175,7 +177,7 @@ void forasync1D_recursive(void *forasync_arg) {
         forasync->loop0.high = mid;
         // delegate scheduling to the underlying runtime
 
-        spawn((hclib_task_t *)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task, NONE);
         //continue to work on the half task
         forasync1D_recursive(forasync_arg);
     } else {
@@ -232,7 +234,7 @@ void forasync2D_recursive(void *forasync_arg) {
     if(new_forasync_task != NULL) {
         // delegate scheduling to the underlying runtime
         //TODO can we make this a special async to avoid a get_current_async ?
-        spawn((hclib_task_t *)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task, NONE);
         //continue to work on the half task
         forasync2D_recursive(forasync_arg);
     } else { //compute the tile
@@ -310,7 +312,7 @@ void forasync3D_recursive(void *forasync_arg) {
     if(new_forasync_task != NULL) {
         // delegate scheduling to the underlying runtime
         //TODO can we make this a special async to avoid a get_current_async ?
-        spawn((hclib_task_t *)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task, NONE);
         //continue to work on the half task
         forasync3D_recursive(forasync_arg);
     } else { //compute the tile
@@ -340,7 +342,7 @@ void forasync1D_flat(void *forasync_arg) {
         new_forasync_task->def.base.user = forasync->base.user;
         hclib_loop_domain_t new_loop0 = {low0, low0+tile0, stride0, tile0};
         new_forasync_task->def.loop0 = new_loop0;
-        spawn((hclib_task_t *)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task, NONE);
     }
     // handling leftover
     if (size < high0) {
@@ -355,7 +357,7 @@ void forasync1D_flat(void *forasync_arg) {
         new_forasync_task->def.base.user = forasync->base.user;
         hclib_loop_domain_t new_loop0 = {low0, high0, loop0.stride, loop0.tile};
         new_forasync_task->def.loop0 = new_loop0;
-        spawn((hclib_task_t *)new_forasync_task);
+        spawn((hclib_task_t *)new_forasync_task, NONE);
     }
 }
 
@@ -384,7 +386,7 @@ void forasync2D_flat(void *forasync_arg) {
             new_forasync_task->def.loop0 = new_loop0;
             hclib_loop_domain_t new_loop1 = {low1, high1, loop1.stride, loop1.tile};
             new_forasync_task->def.loop1 = new_loop1;
-            spawn((hclib_task_t *)new_forasync_task);
+            spawn((hclib_task_t *)new_forasync_task, NONE);
         }
     }
 }
@@ -422,7 +424,7 @@ void forasync3D_flat(void *forasync_arg) {
                 new_forasync_task->def.loop1 = new_loop1;
                 hclib_loop_domain_t new_loop2 = {low2, high2, loop2.stride, loop2.tile};
                 new_forasync_task->def.loop2 = new_loop2;
-                spawn((hclib_task_t *)new_forasync_task);
+                spawn((hclib_task_t *)new_forasync_task, NONE);
             }
         }
     }

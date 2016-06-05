@@ -92,7 +92,7 @@ typedef struct _per_worker_stats {
 static per_worker_stats *worker_stats = NULL;
 #endif
 
-static void (*idle_callback)(unsigned, unsigned) = NULL;
+static void (*idle_callback)(unsigned, int) = NULL;
 
 void hclib_start_finish();
 
@@ -170,7 +170,7 @@ static void set_current_worker(int wid) {
 #endif
 }
 
-void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned)) {
+void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, int)) {
     HASSERT(idle_callback == NULL);
     idle_callback = set_idle_callback;
 }
@@ -459,14 +459,14 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
     }
 }
 
-void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
+static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
-        int escaping) {
+        enum ASYNC_PROPERTIES props) {
 
     HASSERT(task);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    if (!escaping) {
+    if ((props & FINISH_FREE) == 0) {
         check_in_finish(ws->current_finish);
         set_current_finish(task, ws->current_finish);
     } else {
@@ -486,37 +486,39 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     }
 
 #ifdef VERBOSE
-    fprintf(stderr, "spawn_handler: task=%p escaping=%d\n", task, escaping);
+    fprintf(stderr, "spawn_handler: task=%p props=%d\n", task, props);
 #endif
 
     try_schedule_async(task, ws);
 }
 
-void spawn_at(hclib_task_t *task, hclib_locale_t *locale) {
-    spawn_handler(task, locale, NULL, NULL, 0);
+void spawn_at(hclib_task_t *task, hclib_locale_t *locale,
+        enum ASYNC_PROPERTIES props) {
+    spawn_handler(task, locale, NULL, NULL, NONE);
 }
 
-void spawn(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, NULL, 0);
+void spawn(hclib_task_t *task, enum ASYNC_PROPERTIES props) {
+    spawn_handler(task, NULL, NULL, NULL, NONE);
 }
 
 void spawn_escaping(hclib_task_t *task, hclib_future_t *future) {
-    spawn_handler(task, NULL, future, NULL, 1);
+    spawn_handler(task, NULL, future, NULL, FINISH_FREE);
 }
 
 void spawn_escaping_at(hclib_locale_t *locale, hclib_task_t *task,
         hclib_future_t *future) {
-    spawn_handler(task, locale, future, NULL, 1);
+    spawn_handler(task, locale, future, NULL, FINISH_FREE);
 }
 
 void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
-        hclib_future_t *future2, hclib_locale_t *locale) {
-    spawn_handler(task, locale, future1, future2, 0);
+        hclib_future_t *future2, hclib_locale_t *locale,
+        enum ASYNC_PROPERTIES props) {
+    spawn_handler(task, locale, future1, future2, NONE);
 }
 
 void spawn_await(hclib_task_t *task, hclib_future_t *future1,
-        hclib_future_t *future2) {
-    spawn_await_at(task, future1, future2, NULL);
+        hclib_future_t *future2, enum ASYNC_PROPERTIES props) {
+    spawn_await_at(task, future1, future2, NULL, props);
 }
 
 #ifdef HC_CUDA
@@ -765,7 +767,7 @@ void *communication_worker_routine(void *finish_ptr) {
 void find_and_run_task(hclib_worker_state *ws) {
     hclib_task_t *task = locale_pop_task(ws);
     if (!task) {
-        unsigned failed_steals = 1;
+        int failed_steals = 0;
         while (hc_context->done_flags[ws->id].flag) {
             // try to steal
             task = locale_steal_task(ws);
@@ -773,10 +775,19 @@ void find_and_run_task(hclib_worker_state *ws) {
 #ifdef HCLIB_STATS
                 worker_stats[CURRENT_WS_INTERNAL->id].count_steals++;
 #endif
+                if (idle_callback && failed_steals > 0) {
+                    /*
+                     * If the idle callback was made at some point, call it
+                     * again to indicate this thread is no longer idle
+                     */
+                    idle_callback(ws->id, -1);
+                }
                 break;
             }
+
+            failed_steals++;
             if (idle_callback) {
-                idle_callback(ws->id, failed_steals++);
+                idle_callback(ws->id, failed_steals);
             }
         }
     }
@@ -1213,7 +1224,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     if (profile_launch_body) {
         start_time = current_time_ns();
     }
-    hclib_async(fct_ptr, arg, NO_FUTURE, ANY_PLACE);
+    hclib_async(fct_ptr, arg, NO_FUTURE, ANY_PLACE, NONE);
     hclib_finalize();
     if (profile_launch_body) {
         end_time = current_time_ns();

@@ -134,14 +134,14 @@ template <typename T>
 inline void async_at(hclib_locale_t *locale, T lambda) {
     MARK_OVH(current_ws()->id);
     hclib_task_t* task = _allocate_async<T>(lambda, false);
-    spawn_at(task, locale);
+    spawn_at(task, locale, NONE);
 }
 
 template <typename T>
 inline void async(T lambda) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, false);
-	spawn(task);
+	spawn(task, NONE);
 }
 
 inline int _count_futures() {
@@ -183,14 +183,14 @@ template <typename T>
 inline void async_await(T lambda, hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future->internal, NULL);
+	spawn_await(task, future->internal, NULL, NONE);
 }
 
 template <typename T>
 inline void async_await(T lambda, hclib::future_t *future1, hclib::future_t *future2) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future1->internal, future2->internal);
+	spawn_await(task, future1->internal, future2->internal, NONE);
 }
 
 template <typename T>
@@ -198,7 +198,7 @@ inline void async_await_at(T lambda, hclib_locale_t *locale,
         hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, future ? future->internal : NULL, NULL, locale);
+	spawn_await_at(task, future ? future->internal : NULL, NULL, locale, NONE);
 }
 
 template <typename T>
@@ -207,7 +207,7 @@ inline void async_await_at(T lambda, hclib_locale_t *locale,
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await_at(task, future1 ? future1->internal : NULL,
-            future2 ? future2->internal : NULL, locale);
+            future2 ? future2->internal : NULL, locale, NONE);
 }
 
 
@@ -231,7 +231,7 @@ hclib::future_t *async_future(T lambda) {
         hclib_promise_put(internal_event, NULL);
     };
     hclib_task_t* task = _allocate_async(wrapper, false);
-    spawn(task);
+    spawn(task, NONE);
     return event->get_future();
 }
 
@@ -250,7 +250,7 @@ hclib::future_t *async_future_await(T lambda, hclib::future_t *future) {
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await(task, future->internal, NULL);
+    spawn_await(task, future->internal, NULL, NONE);
     return event->get_future();
 }
 
@@ -269,7 +269,7 @@ hclib::future_t *async_future_at(T lambda, hclib_locale_t *locale) {
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await_at(task, NULL, NULL, locale);
+    spawn_await_at(task, NULL, NULL, locale, NONE);
     return event->get_future();
 }
 
@@ -289,7 +289,7 @@ hclib::future_t *async_future_await_at(T lambda, hclib_locale_t *locale,
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await_at(task, future->internal, NULL, locale);
+    spawn_await_at(task, future->internal, NULL, locale, NONE);
     return event->get_future();
 }
 

@@ -46,12 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-extern void spawn(hclib_task_t * task);
+extern void spawn(hclib_task_t * task, enum ASYNC_PROPERTIES props);
 extern void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
-        hclib_future_t *future2, hclib_locale_t *locale);
-extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale);
+        hclib_future_t *future2, hclib_locale_t *locale,
+        enum ASYNC_PROPERTIES props);
+extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale,
+        enum ASYNC_PROPERTIES props);
 extern void spawn_await(hclib_task_t *task, hclib_future_t *future,
-        hclib_future_t *future2);
+        hclib_future_t *future2, enum ASYNC_PROPERTIES props);
 extern void spawn_comm_task(hclib_task_t * task);
 extern void spawn_gpu_task(hclib_task_t *task);
 
