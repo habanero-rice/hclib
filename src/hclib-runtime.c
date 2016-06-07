@@ -393,14 +393,15 @@ static inline void execute_task(hclib_task_t *task) {
     HC_FREE(task);
 }
 
-static inline void rt_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
+static inline void rt_schedule_async(hclib_task_t *async_task,
+        hclib_priority_t priority, hclib_worker_state *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p locale=%p\n", async_task, async_task->locale);
 #endif
 
     if (async_task->locale) {
         // If task was explicitly created at a locale, place it there
-        deque_push_locale(ws, async_task->locale, async_task);
+        deque_push_locale(ws, async_task->locale, priority, async_task);
     } else {
         /*
          * If no explicit locale was provided, place it at a default location.
@@ -413,11 +414,27 @@ static inline void rt_schedule_async(hclib_task_t *async_task, hclib_worker_stat
         fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
                 "hc_context=%p hc_context->graph=%p\n", wid, hc_context, hc_context->graph);
 #endif
-        if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque), async_task)) {
-            // TODO: deque is full, so execute in place
+
+        deque_t *deque = NULL;
+        switch (priority) {
+            case (LOW_PRIORITY):
+                deque = &(hc_context->graph->locales[0]
+                        .low_priority_deques[wid].deque);
+                break; // LOW_PRIORITY
+            case (HIGH_PRIORITY):
+                deque = &(hc_context->graph->locales[0]
+                        .high_priority_deques[wid].deque);
+                break; // HIGH_PRIORITY
+            default:
+                fprintf(stderr, "Unsupported priority %d\n", priority);
+                exit(1);
+        }
+
+        if (!deque_push(deque, async_task)) {
             printf("WARNING: deque full, local execution\n");
             execute_task(async_task);
         }
+
 #ifdef VERBOSE
         fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
 #endif
@@ -451,18 +468,20 @@ static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
  * runtime. See is_eligible_to_schedule to understand when a task is or isn't
  * eligible for scheduling.
  */
-void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
+void try_schedule_async(hclib_task_t *async_task, hclib_priority_t priority,
+        hclib_worker_state *ws) {
 #ifdef VERBOSE
-    fprintf(stderr, "try_schedule_async: async_task=%p ws=%p\n", async_task, ws);
+    fprintf(stderr, "try_schedule_async: async_task=%p priority=%d ws=%p\n",
+            async_task, priority, ws);
 #endif
     if (is_eligible_to_schedule(async_task)) {
-        rt_schedule_async(async_task, ws);
+        rt_schedule_async(async_task, priority, ws);
     }
 }
 
 static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
-        enum ASYNC_PROPERTIES props) {
+        enum ASYNC_PROPERTIES props, hclib_priority_t priority) {
 
     HASSERT(task);
 
@@ -496,31 +515,31 @@ static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     fprintf(stderr, "spawn_handler: task=%p props=%d\n", task, props);
 #endif
 
-    try_schedule_async(task, ws);
+    try_schedule_async(task, priority, ws);
 }
 
 void spawn_at(hclib_task_t *task, hclib_locale_t *locale,
-        enum ASYNC_PROPERTIES props) {
-    spawn_handler(task, locale, NULL, NULL, NONE);
+        enum ASYNC_PROPERTIES props, hclib_priority_t priority) {
+    spawn_handler(task, locale, NULL, NULL, NONE, priority);
 }
 
 void spawn(hclib_task_t *task, enum ASYNC_PROPERTIES props) {
-    spawn_handler(task, NULL, NULL, NULL, NONE);
+    spawn_handler(task, NULL, NULL, NULL, NONE, HIGH_PRIORITY);
 }
 
 void spawn_escaping(hclib_task_t *task, hclib_future_t *future) {
-    spawn_handler(task, NULL, future, NULL, FINISH_FREE);
+    spawn_handler(task, NULL, future, NULL, FINISH_FREE, HIGH_PRIORITY);
 }
 
 void spawn_escaping_at(hclib_locale_t *locale, hclib_task_t *task,
         hclib_future_t *future) {
-    spawn_handler(task, locale, future, NULL, FINISH_FREE);
+    spawn_handler(task, locale, future, NULL, FINISH_FREE, HIGH_PRIORITY);
 }
 
 void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
         hclib_future_t *future2, hclib_locale_t *locale,
         enum ASYNC_PROPERTIES props) {
-    spawn_handler(task, locale, future1, future2, NONE);
+    spawn_handler(task, locale, future1, future2, NONE, HIGH_PRIORITY);
 }
 
 void spawn_await(hclib_task_t *task, hclib_future_t *future1,

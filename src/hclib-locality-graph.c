@@ -338,11 +338,12 @@ static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
     locale->id = id;
     locale->lbl = lbl;
     locale->type = locale_type_id;
-    locale->deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
-    assert(locale->deques);
+    locale->high_priority_deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
+    locale->low_priority_deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
+    assert(locale->high_priority_deques && locale->low_priority_deques);
     for (i = 0; i < nworkers; i++) {
-        hclib_deque_t *deq = locale->deques + i;
-        init_hclib_deque_t(deq, locale);
+        init_hclib_deque_t(locale->low_priority_deques + i, locale);
+        init_hclib_deque_t(locale->high_priority_deques + i, locale);
     }
 
     if (hclib_has_func_for(metadata_size_registrations, locale_type_id)) {
@@ -705,17 +706,25 @@ void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers) {
  * Get the deque owned by the current worker at the specified locale.
  */
 static inline hclib_deque_t *get_deque_locale(hclib_worker_state *ws,
-        hclib_locale_t *locale) {
+        hclib_locale_t *locale, hclib_priority_t priority) {
     assert(locale);
-    return &(locale->deques[ws->id]);
+    switch (priority) {
+        case (LOW_PRIORITY):
+            return &(locale->low_priority_deques[ws->id]);
+        case (HIGH_PRIORITY):
+            return &(locale->high_priority_deques[ws->id]);
+        default:
+            fprintf(stderr, "Unsupported priority %d\n", priority);
+            exit(1);
+    }
 }
 
 /*
  * Push a task onto the deque for this thread at the specified locale.
  */
 int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
-        void *ele) {
-    hclib_deque_t *deq = get_deque_locale(ws, locale);
+        hclib_priority_t priority, void *ele) {
+    hclib_deque_t *deq = get_deque_locale(ws, locale, priority);
     return deque_push(&deq->deque, ele);
 }
 
@@ -728,10 +737,12 @@ size_t workers_backlog(hclib_worker_state *ws) {
     size_t sum_work = 0;
     for (i = 0; i < pop->path_length; i++) {
         hclib_locale_t *locale = pop->locales[i];
-        deque_t *deq = &(locale->deques[wid].deque);
-        const int tail = deq->tail;
-        const int head = deq->head;
-        sum_work += (tail - head);
+
+        sum_work += (locale->high_priority_deques[wid].deque.tail -
+                locale->high_priority_deques[wid].deque.head);
+
+        sum_work += (locale->low_priority_deques[wid].deque.tail -
+                locale->low_priority_deques[wid].deque.head);
     }
 
     return sum_work;
@@ -757,14 +768,26 @@ hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
 #ifdef VERBOSE
         fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
                 "locale->deques=%p locale->lbl=%s\n", wid, i, locale,
-                locale->deques, locale->lbl);
+                locale->high_priority_deques, locale->lbl);
 #endif
-        hclib_task_t *task = deque_pop(&(locale->deques[wid].deque));
+        hclib_task_t *task = deque_pop(&(locale->high_priority_deques[wid].deque));
         if (task) {
 #ifdef VERBOSE
         fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
-                "locale->deques=%p locale->lbl=%s successfully popped task "
-                "%p\n", wid, i, locale, locale->deques, locale->lbl, task);
+                "locale->high_priority_deques=%p locale->lbl=%s successfully popped task "
+                "%p\n", wid, i, locale, locale->high_priority_deques, locale->lbl, task);
+#endif
+
+            return task;
+        }
+
+        task = deque_pop(&(locale->low_priority_deques[wid].deque));
+        if (task) {
+#ifdef VERBOSE
+            fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
+                    "locale->low_priority_deques=%p locale->lbl=%s successfully popped "
+                    "low-priority task %p\n", wid, i, locale, locale->low_priority_deques,
+                    locale->lbl, task);
 #endif
 
             return task;
@@ -795,24 +818,35 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
 
     for (i = 0; i < steal->path_length; i++) {
         hclib_locale_t *locale = steal->locales[i];
-        hclib_deque_t *deqs = locale->deques;
 
         for (j = 1; j < nworkers; j++) {
             const int victim = (wid + j) % nworkers;
 
 #ifdef VERBOSE
         fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-                "locale->deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
-                locale->deques, locale->lbl, victim);
+                "locale->high_priority_deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
+                locale->high_priority_deques, locale->lbl, victim);
 #endif
 
-            hclib_task_t *task = deque_steal(&(deqs[victim].deque));
+            hclib_task_t *task = deque_steal(
+                    &(locale->high_priority_deques[victim].deque));
             if (task) {
 #ifdef VERBOSE
                 fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-                        "locale->deques=%p locale->lbl=%s victim=%d "
+                        "locale->high_priority_deques=%p locale->lbl=%s victim=%d "
                         "successfully stole task %p\n", wid, i, locale,
-                        locale->deques, locale->lbl, victim, task);
+                        locale->high_priority_deques, locale->lbl, victim, task);
+#endif
+                return task;
+            }
+
+            task = deque_steal(&(locale->low_priority_deques[victim].deque));
+            if (task) {
+#ifdef VERBOSE
+                fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
+                        "locale->low_priority_deques=%p locale->lbl=%s victim=%d "
+                        "successfully stole low-priority task %p\n", wid, i,
+                        locale, locale->low_priority_deques, locale->lbl, victim, task);
 #endif
                 return task;
             }

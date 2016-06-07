@@ -42,7 +42,7 @@ void hclib_async(generic_frame_ptr fp, void *arg,
         task->locale = NULL;
 
         if (locale) {
-            spawn_at(task, locale, props);
+            spawn_at(task, locale, props, HIGH_PRIORITY);
         } else {
             spawn(task, props);
         }

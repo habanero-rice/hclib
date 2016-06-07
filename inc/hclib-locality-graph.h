@@ -53,13 +53,19 @@ struct _hclib_task_t;
 extern "C" {
 #endif
 
+typedef enum {
+    LOW_PRIORITY = 0,
+    HIGH_PRIORITY
+} hclib_priority_t;
+
 typedef struct _hclib_locale_t {
     int id;
     unsigned type;
     const char *lbl;
     void *metadata;
 
-    struct _hclib_deque_t *deques;
+    struct _hclib_deque_t *high_priority_deques;
+    struct _hclib_deque_t *low_priority_deques;
 } hclib_locale_t;
 
 typedef struct _hclib_locality_graph {
@@ -89,7 +95,7 @@ extern void check_locality_graph(hclib_locality_graph *graph,
 extern void print_locality_graph(hclib_locality_graph *graph);
 extern void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers);
 extern int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
-        void *ele);
+        hclib_priority_t priority, void *ele);
 extern size_t workers_backlog(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);

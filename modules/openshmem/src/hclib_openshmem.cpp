@@ -461,7 +461,7 @@ static void poll_on_waits() {
     }
 
     if (!waiting_on.empty()) {
-        hclib::async_at(nic, [] {
+        hclib::async_at_low_priority(nic, [] {
             poll_on_waits();
         });
     }
@@ -498,7 +498,7 @@ void hclib::enqueue_wait_set(hclib::wait_set_t *wait_set) {
     waiting_on.push_back(wait_set);
 
     if (waiting_on.size() == 1) {
-        hclib::async_at(nic, [] {
+        hclib::async_at_low_priority(nic, [] {
             poll_on_waits();
         });
     }
