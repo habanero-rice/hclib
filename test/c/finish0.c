@@ -76,7 +76,7 @@ void entrypoint(void *out_mid) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void *
         hclib_async(async_fct, (void*) (indices+i), NO_FUTURE,
-                ANY_PLACE);
+                ANY_PLACE, NONE);
         i++;
     }
 
@@ -90,7 +90,7 @@ void entrypoint(void *out_mid) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void *
         hclib_async(async_fct, (void*) (indices+i), NO_FUTURE,
-                ANY_PLACE);
+                ANY_PLACE, NONE);
         i++;
     }
     hclib_end_finish();

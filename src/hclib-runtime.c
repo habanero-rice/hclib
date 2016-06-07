@@ -378,7 +378,8 @@ static inline void execute_task(hclib_task_t *task) {
      */
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 #ifdef VERBOSE
-    fprintf(stderr, "execute_task: setting current finish of %p to %p for task %p\n", CURRENT_WS_INTERNAL, current_finish, task);
+    fprintf(stderr, "execute_task: setting current finish of %p to %p for task "
+            "%p\n", CURRENT_WS_INTERNAL, current_finish, task);
     fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
 #endif
 
@@ -388,7 +389,7 @@ static inline void execute_task(hclib_task_t *task) {
 
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
     (task->_fp)(task->args);
-    check_out_finish(current_finish);
+    if (task->registered_on_finish) check_out_finish(current_finish);
     HC_FREE(task);
 }
 
@@ -466,13 +467,19 @@ static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     HASSERT(task);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    // If escaping task, don't register with current finish
     if ((props & FINISH_FREE) == 0) {
         check_in_finish(ws->current_finish);
-        set_current_finish(task, ws->current_finish);
+        task->registered_on_finish = 1;
     } else {
-        // If escaping task, don't register with current finish
-        set_current_finish(task, NULL);
+        task->registered_on_finish = 0;
     }
+    /*
+     * We always set the current finish for the created task so that any
+     * children of it may be registered on this finish scope, regardless of
+     * whether it is finish-free or not.
+     */
+    set_current_finish(task, ws->current_finish);
 
     if (locale) {
         task->locale = locale;
@@ -683,7 +690,9 @@ void *gpu_worker_routine(void *finish_ptr) {
                 exit(1);
             }
 
-            check_out_finish(get_current_finish((hclib_task_t *)task));
+            if (task->registered_on_finish) {
+                check_out_finish(get_current_finish((hclib_task_t *)task));
+            }
 
             if (op) {
 #ifdef VERBOSE

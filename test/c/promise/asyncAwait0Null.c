@@ -49,7 +49,7 @@ void entrypoint(void *arg) {
         argv[1] = (void *)hclib_get_future_for_promise(promise_list[index - 1]);
         argv[2] = (void *)promise_list[index];
         hclib_async(async_fct, argv, hclib_get_future_for_promise(promise_list[index - 1]),
-                ANY_PLACE);
+                ANY_PLACE, NONE);
     }
 
     printf("Putting in promise 0\n");

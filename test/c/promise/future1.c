@@ -36,8 +36,8 @@ void entrypoint(void *arg) {
 
     hclib_promise_t *event = hclib_promise_create();
     hclib_async(consumer, hclib_get_future_for_promise(event), NO_FUTURE,
-            ANY_PLACE);
-    hclib_async(producer, event, NO_FUTURE, ANY_PLACE);
+            ANY_PLACE, NONE);
+    hclib_async(producer, event, NO_FUTURE, ANY_PLACE, NONE);
 
     hclib_end_finish();
 }
