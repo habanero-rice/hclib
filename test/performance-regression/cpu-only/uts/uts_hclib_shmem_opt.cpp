@@ -95,15 +95,11 @@ volatile int n_tasks_available_for_remote_steals[MAX_SHMEM_THREADS];
 #define STEAL_RADIUS 1
 volatile int *listen_to[2 * STEAL_RADIUS + 1];
 int last_known_values[2 * STEAL_RADIUS + 1];
-volatile hclib::promise_t * signal_on_done = NULL;
-
-int done_flags[MAX_SHMEM_THREADS];
+hclib::promise_t * signal_on_done = NULL;
 
 int complete_pes = 0;
 
 static int pe, npes;
-static int mid_pe;
-static int pe_below, pe_above;
 
 #ifdef __BERKELEY_UPC__
 /* BUPC nonblocking I/O Handles */
@@ -633,15 +629,17 @@ void genChildren(Node * parent, Node * child) {
               n_tasks_available_for_remote_steals[pe];
           if (n_tasks_available_currently < N_BUFFERED_STEALS) {
               steal_buffer[n_tasks_available_currently] = parent;
+              const int new_n_tasks = n_tasks_available_for_remote_steals[pe] + 1;
+              n_tasks_available_for_remote_steals[pe] = new_n_tasks;
               made_available_for_stealing = 1;
 
               int below = get_pe_below(pe);
               int above = get_pe_above(pe);
               for (int r = 0; r < STEAL_RADIUS; r++) {
-                  hclib::shmem_int_put(&n_tasks_available_for_remote_steals[pe],
-                          &n_tasks_available_for_remote_steals[pe], 1, below);
-                  hclib::shmem_int_put(&n_tasks_available_for_remote_steals[pe],
-                          &n_tasks_available_for_remote_steals[pe], 1, above);
+                  hclib::shmem_int_put((int *)&n_tasks_available_for_remote_steals[pe],
+                          &new_n_tasks, 1, below);
+                  hclib::shmem_int_put((int *)&n_tasks_available_for_remote_steals[pe],
+                          &new_n_tasks, 1, above);
 
                   below = get_pe_below(below);
                   above = get_pe_above(above);
@@ -711,76 +709,75 @@ void showStats(double elapsedSecs) {
           mheight);
 }
 
-#define STEAL_CHUNK_SIZE 1
+#define CHUNK_SIZE 1
 
-static int found_work = 0;
+static int try_steal(int victim, int known_values_index) {
+    int found_work = 0;
+    const int locked = hclib::shmem_test_lock(
+            &steal_buffer_locks[victim]);
+    if (locked == 0) {
+        hclib::shmem_int_get((int *)&n_tasks_available_for_remote_steals[victim],
+                (const int *)&n_tasks_available_for_remote_steals[victim], 1, victim);
+        last_known_values[known_values_index] =
+            n_tasks_available_for_remote_steals[victim];
+        if (n_tasks_available_for_remote_steals[victim] >=
+                n_tasks_available_for_remote_steals[pe] + 2 * CHUNK_SIZE) {
+            hclib::shmem_getmem(
+                    &steal_buffer[n_tasks_available_for_remote_steals[pe]],
+                    &steal_buffer[n_tasks_available_for_remote_steals[victim]],
+                    sizeof(Node), victim);
+            n_tasks_available_for_remote_steals[victim] =
+                n_tasks_available_for_remote_steals[victim] - 1;
+            hclib::shmem_int_put((int *)&n_tasks_available_for_remote_steals[victim],
+                    (int *)&n_tasks_available_for_remote_steals[victim], 1, victim);
+            n_tasks_available_for_remote_steals[pe] += 1;
 
-void check_on_neighbors() {
-    if (signal_on_done) {
-        signal_on_done->put(NULL);
-        return 
+            found_work = 1;
+        }
+
+        hclib::shmem_clear_lock(&steal_buffer_locks[victim]);
     }
 
-    if (pe_below == pe) {
-        // Single PE case
+    return found_work;
+}
 
+void check_on_neighbors() {
+    fprintf(stderr, "checking neighbors: signal_on_done=%p below=%d pe=%d\n", signal_on_done, get_pe_below(pe), pe);
+    if (signal_on_done) {
+        signal_on_done->put(NULL);
+        return;
+    }
+
+    if (get_pe_below(pe) == pe) {
+        // Single PE case
         hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE,
-                last_known_values, 3, [] {
+                last_known_values, 2 * STEAL_RADIUS + 1, [] {
                     check_on_neighbors();
                 });
         return;
     }
 
-    hclib::shmem_set_lock(&steal_buffer_locks[below]);
-
-    hclib::shmem_int_get(n_tasks_available_for_remote_steals + pe_below,
-            n_tasks_available_for_remote_steals + pe_below, 1, pe_below);
-    last_known_values[0] = n_tasks_available_for_remote_steals[pe_below];
-
     hclib::shmem_set_lock(&steal_buffer_locks[pe]);
-    last_known_values[1] = n_tasks_available_for_remote_steals[pe];
+    last_known_values[0] = n_tasks_available_for_remote_steals[pe];
 
-    if (n_tasks_available_for_remote_steals[pe_below] >=
-            n_tasks_available_for_remote_steals[pe] + 2 * STEAL_CHUNK_SIZE) {
-        // Steal from below in to our shared queue
-        hclib::shmem_getmem(
-                &steal_buffer[n_tasks_available_for_remote_steals[pe]],
-                &steal_buffer[n_tasks_available_for_remote_steals[pe_below]],
-                sizeof(Node), pe_below);
-        n_tasks_available_for_remote_steals[pe_below] =
-            n_tasks_available_for_remote_steals[pe_below] - 1;
-        hclib::shmem_int_put(&n_tasks_available_for_remote_steals[pe_below],
-                &n_tasks_available_for_remote_steals[pe_below], 1, pe_below);
-        n_tasks_available_for_remote_steals[pe] += 1;
-        found_work = 1;
+    int below = get_pe_below(pe);
+    int above = get_pe_above(pe);
 
-        hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
-        hclib::shmem_clear_lock(&steal_buffer_locks[pe_below]);
-    } else {
-        hclib::shmem_clear_lock(&steal_buffer_locks[pe_below]);
-        hclib::shmem_set_lock(&steal_buffer_locks[pe_above]);
+    int found_work = 0;
 
-        hclib::shmem_int_get(n_tasks_available_for_remote_steals + pe_above,
-                n_tasks_available_for_remote_steals + pe_above, 1, pe_above);
-        last_known_values[2] = n_tasks_available_for_remote_steals[pe_above];
+    assert(STEAL_RADIUS >= 0);
+    for (int i = 0; i < STEAL_RADIUS; i++) {
+        int found_below = try_steal(below, 1 + 2 * i);
+        if (found_below) break;
 
-        if (n_tasks_available_for_remote_steals[above] >=
-                n_tasks_available_for_remote_steals[pe] + 2 * STEAL_CHUNK_SIZE) {
-            // Steal from above in to our shared queue
-            hclib::shmem_getmem(
-                    &steal_buffer[n_tasks_available_for_remote_steals[pe]],
-                    &steal_buffer[n_tasks_available_for_remote_steals[pe_above]],
-                    sizeof(Node), pe_above);
-            n_tasks_available_for_remote_steals[pe_above] -= 1;
-            hclib::shmem_int_put(&n_tasks_available_for_remote_steals[pe_above],
-                    &n_tasks_available_for_remote_steals[pe_above], 1, pe_above);
-            n_tasks_available_for_remote_steals[pe] += 1;
-            found_work = 1;
-        }
+        int found_above = try_steal(above, 1 + 2 * i);
+        if (found_above) break;
 
-        hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
-        hclib::shmem_clear_lock(&steal_buffer_locks[above]);
+        below = get_pe_below(pe);
+        above = get_pe_above(pe);
     }
+
+    hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
 
     hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE, last_known_values, 3,
         [] {
@@ -793,15 +790,17 @@ static int steal_from(int target_pe, Node *stolen_out) {
 
     hclib::shmem_set_lock(&steal_buffer_locks[target_pe]);
     hclib::shmem_int_get(&remote_buffered_steals,
-            (const int *)&n_buffered_steals, 1, target_pe);
+            (const int *)&n_tasks_available_for_remote_steals[target_pe], 1,
+            target_pe);
 
     int stole_something = 0;
     if (remote_buffered_steals > 0) {
         remote_buffered_steals--;
         hclib::shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
                 sizeof(Node), target_pe);
-        hclib::shmem_int_put((int *)&n_buffered_steals, &remote_buffered_steals,
-                1, target_pe);
+        hclib::shmem_int_put(
+                (int *)&n_tasks_available_for_remote_steals[target_pe],
+                &remote_buffered_steals, 1, target_pe);
         stole_something = 1;
     }
 
@@ -849,17 +848,13 @@ int main(int argc, char *argv[]) {
 #endif
   memset(thread_info, 0x00, MAX_OMP_THREADS * sizeof(per_thread_info));
   memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
-  memset(n_tasks_available_for_remote_steals, 0x00,
+  memset((void *)n_tasks_available_for_remote_steals, 0x00,
           MAX_SHMEM_THREADS * sizeof(int));
 
   hclib::launch([argc, argv] {
 
       pe = hclib::pe_for_locale(hclib::shmem_my_pe());
       npes = hclib::shmem_n_pes();
-      mid_pe = npes / 2;
-      pe_above = (pe + 1) % npes;
-      pe_below = pe - 1;
-      if (pe_below < 0) pe_below = npes - 1;
 
       memset(last_known_values, 0x00, 3 * sizeof(int));
       listen_to[0] = &n_tasks_available_for_remote_steals[pe];
@@ -897,7 +892,9 @@ int main(int argc, char *argv[]) {
       Node root;
       initRootNode(&root, type);
 
+      fprintf(stderr, "PE %d Got to barrier\n", pe);
       hclib::shmem_barrier_all();
+      fprintf(stderr, "PE %d after barrier\n", pe);
 
       /* time parallel search */
       t1 = uts_wctime();
@@ -911,6 +908,7 @@ int main(int argc, char *argv[]) {
       Node child;
 retry:
       initNode(&child);
+      fprintf(stderr, "PE %d Got to finish\n", pe);
 
       hclib::finish([&first, &root, &child] {
 
@@ -924,10 +922,13 @@ retry:
       });
       first = 0;
 
+      fprintf(stderr, "PE %d Past finish\n", pe);
+
       hclib::shmem_set_lock(&steal_buffer_locks[pe]);
       if (n_tasks_available_for_remote_steals[pe] > 0) {
+          fprintf(stderr, "# pending = %d\n", n_tasks_available_for_remote_steals[pe]);
           n_tasks_available_for_remote_steals[pe] -= 1;
-          root = steal_buffer[n_tasks_available_for_remote_steals[pe] - 1];
+          root = steal_buffer[n_tasks_available_for_remote_steals[pe]];
           hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
           goto retry;
       } else {
@@ -937,7 +938,17 @@ retry:
           signal_on_done->get_future()->wait();
           signal_on_done = NULL;
 
+          hclib::shmem_set_lock(&steal_buffer_locks[pe]);
+          if (n_tasks_available_for_remote_steals[pe] > 0) {
+              n_tasks_available_for_remote_steals[pe] -= 1;
+              root = steal_buffer[n_tasks_available_for_remote_steals[pe] - 1];
+              hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+              goto retry;
+          }
+          hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+
           int found_work = remote_steal(&root);
+          fprintf(stderr, "found_work = %d\n", found_work);
           if (found_work) {
               // restart load balancer and continue
               hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE,

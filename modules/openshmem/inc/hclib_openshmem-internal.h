@@ -49,6 +49,7 @@ void shmem_broadcast64(void *dest, const void *source, size_t nelems,
 
 void shmem_set_lock(volatile long *lock);
 void shmem_clear_lock(long *lock);
+int shmem_test_lock(volatile long *lock);
 
 void shmem_int_get(int *dest, const int *source, size_t nelems, int pe);
 void shmem_int_put(int *dest, const int *source, size_t nelems, int pe);
@@ -104,7 +105,7 @@ void enqueue_wait_set(wait_set_t *wait_set);
 template <typename T>
 void shmem_int_async_when(volatile int *ivar, int cmp,
         int cmp_value, T lambda) {
-    hclib_task_t *task = _allocate_async_hclib(lambda, false);
+    hclib_task_t *task = _allocate_async(lambda, false);
 
     hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
             &cmp_value, 1, integer, i, task);
@@ -114,7 +115,7 @@ void shmem_int_async_when(volatile int *ivar, int cmp,
 template <typename T>
 void shmem_int_async_when_any(volatile int **ivars, int cmp,
         int *cmp_values, int nwaits, T lambda) {
-    hclib_task_t *task = _allocate_async_hclib(lambda, false);
+    hclib_task_t *task = _allocate_async(lambda, false);
 
     hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
             cmp_values, nwaits, integer, i, task);

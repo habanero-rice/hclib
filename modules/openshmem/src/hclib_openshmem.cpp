@@ -138,7 +138,88 @@ static void *shmem_clear_lock_impl(void *arg) {
     return NULL;
 }
 
+typedef struct _test_lock_ctx_t {
+    long *lock;
+    int result;
+} test_lock_ctx_t;
+
+static void *shmem_test_lock_impl(void *arg) {
+    test_lock_ctx_t *ctx = (test_lock_ctx_t *)arg;
+    ctx->result = ::shmem_test_lock(ctx->lock);
+}
+
+static lock_context_t *shmem_lock_helper(void *(*body)(void *), void *arg,
+        volatile long *lock, hclib_promise_t *promise) {
+    int err = pthread_mutex_lock(&lock_info_mutex);
+    HASSERT(err == 0);
+
+    hclib_future_t *await = NULL;
+    lock_context_t *ctx = NULL;
+
+    std::map<long *, lock_context_t *>::iterator found = lock_info.find((long *)lock);
+    if (found != lock_info.end()) {
+        ctx = found->second;
+    } else {
+        /*
+         * Cannot assert that *lock == 0L here as another node may be locking
+         * it. Can only guarantee that no one else on the same node has locked
+         * it.
+         */
+        ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
+        memset(ctx, 0x00, sizeof(lock_context_t));
+
+        lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
+    }
+
+    await = hclib_async_future(body, arg, ctx->last_lock, nic);
+    ctx->last_lock = hclib_get_future_for_promise(promise);
+
+    err = pthread_mutex_unlock(&lock_info_mutex);
+    HASSERT(err == 0);
+
+    hclib_future_wait(await);
+    HASSERT(ctx->live == NULL);
+
+    return ctx;
+}
+
 void hclib::shmem_set_lock(volatile long *lock) {
+    hclib_promise_t *promise = hclib_promise_create();
+
+    lock_context_t *ctx = shmem_lock_helper(shmem_set_lock_impl, (void *)lock,
+            lock, promise);
+
+    // Always successful
+    ctx->live = promise;
+}
+
+int hclib::shmem_test_lock(volatile long *lock) {
+    hclib_promise_t *promise = hclib_promise_create();
+
+    test_lock_ctx_t *ctx = (test_lock_ctx_t *)malloc(sizeof(test_lock_ctx_t));
+    ctx->lock = (long *)lock;
+
+    lock_context_t *lock_ctx = shmem_lock_helper(shmem_test_lock_impl, ctx,
+            lock, promise);
+
+    const int result = ctx->result;
+    free(ctx);
+
+    if (result == 0) {
+        // Successful lock
+        lock_ctx->live = promise;
+    } else {
+        hclib_promise_t *live = lock_ctx->live;
+        lock_ctx->live = NULL;
+        hclib_promise_put(live, NULL);
+    }
+
+    return result;
+}
+
+static void shmem_lock_helper(void (*body)(void *), void *arg,
+        volatile long *lock) {
+
     int err = pthread_mutex_lock(&lock_info_mutex);
     HASSERT(err == 0);
 
