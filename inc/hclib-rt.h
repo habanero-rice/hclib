@@ -95,8 +95,6 @@ typedef struct hclib_worker_state {
 int get_current_worker();
 hclib_worker_state* current_ws();
 
-#define HC_MALLOC(msize)	malloc(msize)
-#define HC_FREE(p)			free(p)
 typedef void (*generic_frame_ptr)(void*);
 
 #include "hclib-timer.h"
@@ -107,8 +105,7 @@ int  hclib_num_workers();
 void hclib_start_finish();
 void hclib_end_finish();
 void hclib_user_harness_timer(double dur);
-void hclib_launch(generic_frame_ptr fct_ptr,
-        void * arg);
+void hclib_launch(generic_frame_ptr fct_ptr, void * arg);
 
 #ifdef __cplusplus
 }

@@ -34,8 +34,8 @@ for (my $j=0; $j<$ARGV[0]; $j++) {
 
         my $total = $j + 1;
         print "\tint total = $total;\n";
-        print "\tPHASER_t* phaser_type_arr = (PHASER_t*) HC_MALLOC(sizeof(PHASER_t) * total);\n";
-        print "\tPHASER_m* phaser_mode_arr = (PHASER_m*) HC_MALLOC(sizeof(PHASER_m) * total);\n";
+        print "\tPHASER_t* phaser_type_arr = new PHASER_t[total];\n";
+        print "\tPHASER_m* phaser_mode_arr = new PHASER_m[total];\n";
 
         for (my $i=0; $i<=$j; $i++) {
                 print "\tphaser_type_arr[$i] = ph$i; \n";
