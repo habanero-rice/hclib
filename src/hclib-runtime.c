@@ -1118,8 +1118,9 @@ void help_finish(finish_t *finish) {
     }
 #else /* default (broken) strategy */
     _help_finish(finish);
-    HASSERT(finish->counter == 0);
 #endif /* HCLIB_???_STRATEGY */
+
+    HASSERT(finish->counter == 0);
 
 }
 
