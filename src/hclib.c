@@ -14,7 +14,7 @@ extern "C" {
 
 void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
                  struct _phased_t *phased_clause, place_t *place, int property) {
- //   HASSERT(property == 0);
+//   HASSERT(property == 0);
     HASSERT(phased_clause == NULL);
 
     if (future_list) {
@@ -41,16 +41,16 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
         if (place) {
             spawn_at_hpt(place, task);
         } else {
-	    if(property == 0) spawn(task);
-	    /* 
-	     * ^^^^^ TODO: Presently this path executed only for HabaneroOpenSHMEM++ ^^^^^^
-	     * This else part is executed only if hclib::launch() is called from 
-	     * HabaneroUPC++ or HabaneroOpenSHMEM++. This task is essentially the main()
-	     * function which has the finish_spmd(). This finish_spmd is only allowed
-             * to execute on a comm_async and not on a regular async. Regular async
-	     * would allow this finish_spmd to be executed by computation worker.
-	     */
-	    else spawn_comm_task(task);	
+            if(property == 0) spawn(task);
+            /*
+             * ^^^^^ TODO: Presently this path executed only for HabaneroOpenSHMEM++ ^^^^^^
+             * This else part is executed only if hclib::launch() is called from
+             * HabaneroUPC++ or HabaneroOpenSHMEM++. This task is essentially the main()
+             * function which has the finish_spmd(). This finish_spmd is only allowed
+                 * to execute on a comm_async and not on a regular async. Regular async
+             * would allow this finish_spmd to be executed by computation worker.
+             */
+            else spawn_comm_task(task);
         }
     }
 }
@@ -68,8 +68,8 @@ static void future_caller(void *in) {
 }
 
 hclib_future_t *hclib_async_future(futureFct_t fp, void *arg,
-                                    hclib_future_t **future_list, struct _phased_t *phased_clause,
-                                    place_t *place, int property) {
+                                   hclib_future_t **future_list, struct _phased_t *phased_clause,
+                                   place_t *place, int property) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;

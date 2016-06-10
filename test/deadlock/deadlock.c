@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <hclib.h>
 #include <unistd.h>
 #include <stdbool.h>
+
+#include "hclib.h"
 
 #define FINISH GEN_FINISH_SCOPE(MACRO_CONCAT(_hcGenVar_, __COUNTER__))
 #define GEN_FINISH_SCOPE(V) for (int V=(hclib_start_finish(), 1); V; hclib_end_finish(), --V)
@@ -60,7 +61,7 @@ void taskMain(void *args) {
     future_list = (hclib_future_t **)malloc(1 * sizeof(hclib_future_t *));
     promise = hclib_promise_create();
     promise_list[0] = promise;
-    future_list[0] = hclib_get_future(promise);
+    future_list[0] = hclib_get_future_for_promise(promise);
 
     hclib_async(&taskA, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
     hclib_async(&taskC, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
@@ -68,6 +69,6 @@ void taskMain(void *args) {
 }
 
 int main(int argc, char ** argv) {
-    hclib_launch(&argc, argv, taskMain, NULL);
+    hclib_launch(taskMain, NULL);
     printf("Done\n");
 }

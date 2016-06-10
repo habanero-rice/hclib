@@ -91,17 +91,19 @@ int total_push_outd;
 int *total_push_ind;
 int *total_steals;
 
-inline void increment_async_counter(int wid) {
+static inline void increment_async_counter(int wid) {
     total_push_ind[wid]++;
 }
 
-inline void increment_steals_counter(int wid) {
+static inline void increment_steals_counter(int wid) {
     total_steals[wid]++;
 }
 
-inline void increment_asyncComm_counter() {
+#if defined(HC_COMM_WORKER) && defined(HC_COMM_WORKER_STATS)
+static inline void increment_asyncComm_counter() {
     total_push_outd++;
 }
+#endif
 
 void set_current_worker(int wid) {
     if (pthread_setspecific(ws_key, hclib_context->workers[wid]) != 0) {
@@ -157,10 +159,10 @@ void hclib_global_init() {
                                   &hclib_context->workers, &hclib_context->nworkers);
 
 #ifdef HC_COMM_WORKER
-    assert(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
+    HASSERT(hclib_context->nworkers > COMMUNICATION_WORKER_ID);
 #endif
 #ifdef HC_CUDA
-    assert(hclib_context->nworkers > GPU_WORKER_ID);
+    HASSERT(hclib_context->nworkers > GPU_WORKER_ID);
 #endif
 
     for (int i = 0; i < hclib_context->nworkers; i++) {
@@ -373,7 +375,7 @@ static inline void execute_task(hclib_task_t *task) {
 #endif
     (task->_fp)(task->args);
     check_out_finish(current_finish);
-    HC_FREE(task);
+    free(task);
 }
 
 static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
@@ -415,7 +417,8 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
                 execute_task(async_task);
             }
 #ifdef VERBOSE
-            fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
+            fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n",
+                    wid);
 #endif
         }
     }
@@ -429,7 +432,7 @@ static inline void rt_schedule_async(hclib_task_t *async_task, int comm_task,
  * registered on each, and it is only placed in a work deque once all promises have
  * been satisfied.
  */
-inline int is_eligible_to_schedule(hclib_task_t *async_task) {
+static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
 #ifdef VERBOSE
     fprintf(stderr, "is_eligible_to_schedule: async_task=%p future_list=%p\n",
             async_task, async_task->future_list);
@@ -853,7 +856,7 @@ static void crt_work_loop(LiteCtx *ctx) {
  * context to switch from and create a lightweight context to switch to, which
  * enters crt_work_loop immediately, moving into the main work loop, eventually
  * swapping back to the proxy task
- * to clean up this worker thread when the worker thread is signalled to exit.
+ * to clean up this worker thread when the worker thread is signaled to exit.
  */
 static void *worker_routine(void *args) {
     const int wid = *((int *)args);
@@ -929,17 +932,13 @@ static void _finish_ctx_resume(void *arg) {
     HASSERT(0);
 }
 
-void crt_work_loop(LiteCtx *ctx);
-
 // Based on _help_finish_ctx
 void _help_wait(LiteCtx *ctx) {
     hclib_future_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
-                                       hclib_dependent_task_t));
+    hclib_dependent_task_t *task = calloc(1, sizeof(*task));
     HASSERT(task);
-    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
     task->async_task.args = wait_ctx;
 
@@ -977,10 +976,8 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
-                                       hclib_dependent_task_t));
+    hclib_dependent_task_t *task = calloc(1, sizeof(*task));
     HASSERT(task);
-    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.args = hclib_finish_ctx;
 
@@ -996,7 +993,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * so check it out.
      */
     check_out_finish(finish);
-    // keep workstealing until this context gets swapped out and destroyed
+    // keep work-stealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     HASSERT(0); // we should never return here
 }
@@ -1062,32 +1059,68 @@ void help_finish(finish_t *finish) {
          * async is created inside _help_finish_ctx).
          */
 
-        // create finish event
-        hclib_promise_t *finish_promise = hclib_promise_create();
-        hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
-        finish->finish_deps = finish_deps;
         // TODO - should only switch contexts after actually finding work
-        LiteCtx *currentCtx = get_curr_lite_ctx();
-        HASSERT(currentCtx);
-        LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
-        newCtx->arg = finish;
+
+        // Try to execute a sub-task of the current finish scope
+        do {
+            hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+            hclib_task_t *task = hpt_pop_task(ws);
+            // Fall through if we have no local tasks.
+            if (!task) {
+                break;
+            }
+            // Since the current finish scope is not yet complete,
+            // there's a good chance that the task at the top of the
+            // deque is a task from the current finish scope.
+            // It's safe to continue executing sub-tasks on the current
+            // stack, since the finish scope blocks on them anyway.
+            else if (task->current_finish == finish) {
+                execute_task(task); // !!! May cause a worker-swap!!!
+            }
+            // For tasks in a different finish scope, we need a new context.
+            // FIXME: Figure out a better way to handle this!
+            // For now, just put it back in the deque and fall through.
+            else {
+                deque_push_place(ws, NULL, task);
+                break;
+            }
+        } while (finish->counter > 1);
+
+        // Someone stole our last task...
+        // Create a new context to do other work,
+        // and suspend this finish scope pending on the outstanding tasks.
+        if (finish->counter > 1) {
+            // create finish event
+            hclib_promise_t *finish_promise = hclib_promise_create();
+            hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
+            finish->finish_deps = finish_deps;
+
+            LiteCtx *currentCtx = get_curr_lite_ctx();
+            HASSERT(currentCtx);
+            LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
+            newCtx->arg = finish;
 
 #ifdef VERBOSE
-    printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
+            printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
 #endif
-        ctx_swap(currentCtx, newCtx, __func__);
-        /*
-         * destroy the context that resumed this one since it's now defunct
-         * (there are no other handles to it, and it will never be resumed)
-         */
-        LiteCtx_destroy(currentCtx->prev);
-        hclib_promise_free(finish_promise);
+            ctx_swap(currentCtx, newCtx, __func__);
+
+            // destroy the context that resumed this one since it's now defunct
+            // (there are no other handles to it, and it will never be resumed)
+            LiteCtx_destroy(currentCtx->prev);
+            hclib_promise_free(finish_promise);
+        } else {
+            HASSERT(finish->counter == 1);
+            // finish->counter == 1 implies that all the tasks are done
+            // (it's only waiting on itself now), so just return!
+            --finish->counter;
+        }
     }
 #else /* default (broken) strategy */
     _help_finish(finish);
+    HASSERT(finish->counter == 0);
 #endif /* HCLIB_???_STRATEGY */
 
-    HASSERT(finish->counter == 0);
 }
 
 /*
@@ -1096,9 +1129,8 @@ void help_finish(finish_t *finish) {
 
 void hclib_start_finish() {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    finish_t *finish = (finish_t *) HC_MALLOC(sizeof(finish_t));
+    finish_t *finish = malloc(sizeof(*finish));
     HASSERT(finish);
-    memset(finish, 0x00, sizeof(finish_t));
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
      * finish being a task registered on the finish. When we reach the
@@ -1113,6 +1145,9 @@ void hclib_start_finish() {
      */
     finish->counter = 1;
     finish->parent = ws->current_finish;
+#if HCLIB_LITECTX_STRATEGY
+    finish->finish_deps = NULL;
+#endif
     check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
 }
@@ -1126,8 +1161,9 @@ void hclib_end_finish() {
 
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
 
+    // Don't reuse worker-state! (we might not be on the same worker anymore)
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
-    HC_FREE(current_finish);
+    free(current_finish);
 }
 
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
@@ -1136,9 +1172,8 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
-    hclib_future_t **finish_deps = malloc(2 * sizeof(hclib_future_t *));
+    hclib_future_t **finish_deps = malloc(2 * sizeof(*finish_deps));
     HASSERT(finish_deps);
-    memset(finish_deps, 0x00, 2 * sizeof(hclib_future_t *));
     finish_deps[0] = &event->future;
     finish_deps[1] = NULL;
     current_finish->finish_deps = finish_deps;
@@ -1173,7 +1208,7 @@ void hclib_gather_comm_worker_stats(int *push_outd, int *push_ind,
     *steal_ind = steals;
 }
 
-double mysecond() {
+static double mysecond() {
     struct timeval tv;
     gettimeofday(&tv, 0);
     return tv.tv_sec + ((double) tv.tv_usec / 1000000);
@@ -1291,7 +1326,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
     hclib_init();
 #ifdef HCSHMEM      // TODO (vivekk): replace with HCLIB_COMM_WORKER
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, 1);
-#else    
+#else
     hclib_async(fct_ptr, arg, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
 #endif
     hclib_finalize();
