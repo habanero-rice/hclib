@@ -57,7 +57,7 @@ typedef struct hclib_dependent_task_t {
  * @param[in] stride    Stride access
  * @param[in] tile      Tile size for chunking
  */
-typedef struct _loop_domain_t {
+typedef struct {
     int low;
     int high;
     int stride;
