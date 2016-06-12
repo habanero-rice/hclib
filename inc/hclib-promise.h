@@ -95,9 +95,9 @@ typedef struct hclib_triggered_task_st {
 typedef struct hclib_promise_st {
     hclib_future_t future;
     promise_kind_t kind;
-    volatile void *datum;
+    void *volatile datum;
     // List of tasks that are awaiting the satisfaction of this promise
-    volatile hclib_triggered_task_t *wait_list_head;
+    hclib_triggered_task_t *volatile wait_list_head;
 } hclib_promise_t;
 
 /**
