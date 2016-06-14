@@ -134,14 +134,15 @@ template <typename T>
 inline void async_at(hclib_locale_t *locale, T lambda) {
     MARK_OVH(current_ws()->id);
     hclib_task_t* task = _allocate_async<T>(lambda, false);
-    spawn_at(task, locale, NONE, HIGH_PRIORITY);
+    spawn_at(task, locale, NONE, HIGHEST_PRIORITY);
 }
 
 template <typename T>
-inline void async_at_low_priority(hclib_locale_t *locale, T lambda) {
+inline void async_at_with_priority(hclib_locale_t *locale,
+        hclib_priority_t priority, T lambda) {
     MARK_OVH(current_ws()->id);
     hclib_task_t* task = _allocate_async<T>(lambda, false);
-    spawn_at(task, locale, NONE, LOW_PRIORITY);
+    spawn_at(task, locale, NONE, priority);
 }
 
 template <typename T>

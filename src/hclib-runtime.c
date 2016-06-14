@@ -388,20 +388,21 @@ static inline void execute_task(hclib_task_t *task) {
 #endif
 
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
+    fprintf(stderr, "RUNNING TASK %p with priority = %d\n", task, task->priority);
     (task->_fp)(task->args);
     if (task->registered_on_finish) check_out_finish(current_finish);
     HC_FREE(task);
 }
 
 static inline void rt_schedule_async(hclib_task_t *async_task,
-        hclib_priority_t priority, hclib_worker_state *ws) {
+        hclib_worker_state *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p locale=%p\n", async_task, async_task->locale);
 #endif
 
     if (async_task->locale) {
         // If task was explicitly created at a locale, place it there
-        deque_push_locale(ws, async_task->locale, priority, async_task);
+        deque_push_locale(ws, async_task->locale, async_task, async_task->priority);
     } else {
         /*
          * If no explicit locale was provided, place it at a default location.
@@ -415,20 +416,7 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
                 "hc_context=%p hc_context->graph=%p\n", wid, hc_context, hc_context->graph);
 #endif
 
-        deque_t *deque = NULL;
-        switch (priority) {
-            case (LOW_PRIORITY):
-                deque = &(hc_context->graph->locales[0]
-                        .low_priority_deques[wid].deque);
-                break; // LOW_PRIORITY
-            case (HIGH_PRIORITY):
-                deque = &(hc_context->graph->locales[0]
-                        .high_priority_deques[wid].deque);
-                break; // HIGH_PRIORITY
-            default:
-                fprintf(stderr, "Unsupported priority %d\n", priority);
-                exit(1);
-        }
+        deque_t *deque = &(hc_context->graph->locales[0].priority_deques[wid][async_task->priority].deque);
 
         if (!deque_push(deque, async_task)) {
             printf("WARNING: deque full, local execution\n");
@@ -468,22 +456,21 @@ static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
  * runtime. See is_eligible_to_schedule to understand when a task is or isn't
  * eligible for scheduling.
  */
-void try_schedule_async(hclib_task_t *async_task, hclib_priority_t priority,
-        hclib_worker_state *ws) {
+void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "try_schedule_async: async_task=%p priority=%d ws=%p\n",
             async_task, priority, ws);
 #endif
     if (is_eligible_to_schedule(async_task)) {
-        rt_schedule_async(async_task, priority, ws);
+        rt_schedule_async(async_task, ws);
     }
 }
 
 static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
         enum ASYNC_PROPERTIES props, hclib_priority_t priority) {
-
     HASSERT(task);
+    HASSERT(priority >= 0 && priority < NUM_PRIORITY_LEVELS);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     // If escaping task, don't register with current finish
@@ -493,6 +480,9 @@ static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     } else {
         task->registered_on_finish = 0;
     }
+    task->priority = priority;
+    fprintf(stderr, "CREATING TASK %p with priority = %d\n", task, priority);
+
     /*
      * We always set the current finish for the created task so that any
      * children of it may be registered on this finish scope, regardless of
@@ -515,31 +505,31 @@ static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     fprintf(stderr, "spawn_handler: task=%p props=%d\n", task, props);
 #endif
 
-    try_schedule_async(task, priority, ws);
+    try_schedule_async(task, ws);
 }
 
 void spawn_at(hclib_task_t *task, hclib_locale_t *locale,
         enum ASYNC_PROPERTIES props, hclib_priority_t priority) {
-    spawn_handler(task, locale, NULL, NULL, NONE, priority);
+    spawn_handler(task, locale, NULL, NULL, props, priority);
 }
 
 void spawn(hclib_task_t *task, enum ASYNC_PROPERTIES props) {
-    spawn_handler(task, NULL, NULL, NULL, NONE, HIGH_PRIORITY);
+    spawn_handler(task, NULL, NULL, NULL, props, HIGHEST_PRIORITY);
 }
 
 void spawn_escaping(hclib_task_t *task, hclib_future_t *future) {
-    spawn_handler(task, NULL, future, NULL, FINISH_FREE, HIGH_PRIORITY);
+    spawn_handler(task, NULL, future, NULL, FINISH_FREE, HIGHEST_PRIORITY);
 }
 
 void spawn_escaping_at(hclib_locale_t *locale, hclib_task_t *task,
         hclib_future_t *future) {
-    spawn_handler(task, locale, future, NULL, FINISH_FREE, HIGH_PRIORITY);
+    spawn_handler(task, locale, future, NULL, FINISH_FREE, HIGHEST_PRIORITY);
 }
 
 void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
         hclib_future_t *future2, hclib_locale_t *locale,
         enum ASYNC_PROPERTIES props) {
-    spawn_handler(task, locale, future1, future2, NONE, HIGH_PRIORITY);
+    spawn_handler(task, locale, future1, future2, props, HIGHEST_PRIORITY);
 }
 
 void spawn_await(hclib_task_t *task, hclib_future_t *future1,

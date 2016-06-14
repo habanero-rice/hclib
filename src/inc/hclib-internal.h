@@ -118,7 +118,6 @@ void log_(const char * file, int line, hclib_worker_state * ws, const char * for
 int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);
 hclib_triggered_task_t * rt_async_task_to_triggered_task(
         hclib_task_t * async_task);
-void try_schedule_async(hclib_task_t * async_task, hclib_priority_t priority,
-        hclib_worker_state *ws);
+void try_schedule_async(hclib_task_t * async_task, hclib_worker_state *ws);
 
 #endif /* HCLIB_INTERNAL_H_ */

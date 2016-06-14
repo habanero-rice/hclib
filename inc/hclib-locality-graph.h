@@ -53,10 +53,15 @@ struct _hclib_task_t;
 extern "C" {
 #endif
 
-typedef enum {
-    LOW_PRIORITY = 0,
-    HIGH_PRIORITY
-} hclib_priority_t;
+#include <math.h>
+
+typedef unsigned hclib_priority_t;
+#define HIGHEST_PRIORITY 0
+#define NUM_PRIORITY_LEVELS 5
+#define LOWEST_PRIORITY ((NUM_PRIORITY_LEVELS) - 1)
+
+#define PRIORITY_DARTBOARD_SIZE (((int)exp2(NUM_PRIORITY_LEVELS)) - 1)
+#define PRIORITY_DARTBOARD_LEVEL(dart) ((LOWEST_PRIORITY) - ((int)log2(dart)))
 
 typedef struct _hclib_locale_t {
     int id;
@@ -64,8 +69,7 @@ typedef struct _hclib_locale_t {
     const char *lbl;
     void *metadata;
 
-    struct _hclib_deque_t *high_priority_deques;
-    struct _hclib_deque_t *low_priority_deques;
+    struct _hclib_deque_t **priority_deques;
 } hclib_locale_t;
 
 typedef struct _hclib_locality_graph {
@@ -95,7 +99,7 @@ extern void check_locality_graph(hclib_locality_graph *graph,
 extern void print_locality_graph(hclib_locality_graph *graph);
 extern void print_worker_paths(hclib_worker_paths *worker_paths, int nworkers);
 extern int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
-        hclib_priority_t priority, void *ele);
+        void *ele, hclib_priority_t priority);
 extern size_t workers_backlog(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);

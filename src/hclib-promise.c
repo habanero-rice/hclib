@@ -257,7 +257,7 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put, void *datum_to_be_put
             if (DEBUG_PROMISE) {
                 printf("promise: async_task %p\n", async_task);
             }
-            try_schedule_async(async_task, HIGH_PRIORITY, CURRENT_WS_INTERNAL);
+            try_schedule_async(async_task, CURRENT_WS_INTERNAL);
         }
 
         curr_task = next_task;

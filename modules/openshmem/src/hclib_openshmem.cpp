@@ -60,7 +60,7 @@ static hclib::locale_t *get_locale_for_pe(int pe) {
     new_locale->lbl = (char *)malloc(strlen(name_buf) + 1);
     memcpy((void *)new_locale->lbl, name_buf, strlen(name_buf) + 1);
     new_locale->metadata = NULL;
-    new_locale->deques = NULL;
+    new_locale->priority_deques = NULL;
     return new_locale;
 }
 
@@ -100,6 +100,7 @@ void hclib::shmem_barrier_all() {
             ::shmem_barrier_all();
         });
     });
+    fprintf(stderr, "COMING out of barrier all");
 }
 
 void hclib::shmem_put64(void *dest, const void *source, size_t nelems, int pe) {
@@ -396,6 +397,7 @@ std::string hclib::shmem_name() {
 }
 
 static void poll_on_waits() {
+    fprintf(stderr, "POLLING\n");
     int err = pthread_mutex_lock(&waiting_on_mutex);
     HASSERT(err == 0);
 
@@ -414,6 +416,8 @@ static void poll_on_waits() {
                     switch (wait_info->type) {
                         case hclib::integer:
                             if (*((volatile int *)wait_info->var) == wait_info->cmp_value.i) {
+
+                                // fprintf(stderr, "PE %d POLLING ON WAITS %d\n", ::shmem_my_pe(), i);
                                 any_complete = true;
                             }
                             break; // integer
@@ -428,6 +432,7 @@ static void poll_on_waits() {
                     switch (wait_info->type) {
                         case hclib::integer:
                             if (*((volatile int *)wait_info->var) != wait_info->cmp_value.i) {
+                                // fprintf(stderr, "PE %d POLLING ON WAITS %d\n", ::shmem_my_pe(), i);
                                 any_complete = true;
                             }
                             break; // integer
@@ -448,7 +453,8 @@ static void poll_on_waits() {
             waiting_on.erase(curr);
             if (wait_set->task) {
                 HASSERT(wait_set->signal == NULL);
-                spawn(wait_set->task, FINISH_FREE);
+                spawn_at(wait_set->task, hclib_get_closest_locale(),
+                        FINISH_FREE, HIGHEST_PRIORITY);
             } else {
                 HASSERT(wait_set->task == NULL);
                 hclib_promise_put(wait_set->signal, NULL);
@@ -461,7 +467,7 @@ static void poll_on_waits() {
     }
 
     if (!waiting_on.empty()) {
-        hclib::async_at_low_priority(nic, [] {
+        hclib::async_at_with_priority(nic, 2, [] {
             poll_on_waits();
         });
     }
@@ -498,7 +504,7 @@ void hclib::enqueue_wait_set(hclib::wait_set_t *wait_set) {
     waiting_on.push_back(wait_set);
 
     if (waiting_on.size() == 1) {
-        hclib::async_at_low_priority(nic, [] {
+        hclib::async_at_with_priority(nic, 2, [] {
             poll_on_waits();
         });
     }

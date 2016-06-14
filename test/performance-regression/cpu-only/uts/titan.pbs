@@ -3,7 +3,7 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:10:00
+#PBS -l walltime=00:03:00
 #PBS -l nodes=2
 #PBS -V
 
@@ -12,7 +12,7 @@ cd $PBS_O_WORKDIR
 source sample_trees.sh
 
 # for NODES in 16 32; do
-for NODES in 2 ; do
+for NODES in 2; do
     # for THREADS in 1 2 4 8 16; do
     # for THREADS in 1 2 4 8 16; do
     for THREADS in 16; do
@@ -24,8 +24,9 @@ for NODES in 2 ; do
         # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem $T1L
         # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-naive $T1L
         # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-naive $T1L
-        aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-opt $T1L
         # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-omp-task-shmem $T1L
+        # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-opt $T1L
+        aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-opt -t 1 -a 3 -d 2 -b 4 -r 19
     done
 done
 

@@ -73,6 +73,8 @@ int pollint   = 1;        // BUPC Polling interval
 int n_nodes = 0;
 int n_leaves = 0;
 
+#define THREAD_METADATA
+
 #ifdef THREAD_METADATA
 typedef struct _thread_metadata {
     size_t ntasks;
@@ -228,7 +230,6 @@ int impl_paramsToStr(char *strBuf, int ind) {
       
   return ind;
 }
-
 
 int impl_parseParam(char *param, char *value) {
   int err = 0;  // Return 0 on a match, nonzero on an error
@@ -585,7 +586,7 @@ void genChildren(Node * parent, Node * child) {
   int numChildren, childType;
 
 #ifdef THREAD_METADATA
-  t_metadata[omp_get_thread_num()].ntasks += 1;
+  t_metadata[hclib::get_current_worker()].ntasks += 1;
 #endif
 
   thread_info[hclib::get_current_worker()].n_nodes++;
@@ -610,6 +611,8 @@ void genChildren(Node * parent, Node * child) {
 
     const unsigned char * parent_state = parent->state.state;
     unsigned char * child_state = child->state.state;
+
+    fprintf(stderr, "numChildren = %d\n", numChildren);
 
     for (i = 0; i < numChildren; i++) {
       for (j = 0; j < computeGranularity; j++) {
@@ -741,9 +744,15 @@ static int try_steal(int victim, int known_values_index) {
     return found_work;
 }
 
+int neighbor_checks = 0;
+int successful_neighbor_checks = 0;
+int done_signals = 0;
+
 void check_on_neighbors() {
-    fprintf(stderr, "checking neighbors: signal_on_done=%p below=%d pe=%d\n", signal_on_done, get_pe_below(pe), pe);
+    neighbor_checks++;
+
     if (signal_on_done) {
+        done_signals++;
         signal_on_done->put(NULL);
         return;
     }
@@ -768,18 +777,28 @@ void check_on_neighbors() {
     assert(STEAL_RADIUS >= 0);
     for (int i = 0; i < STEAL_RADIUS; i++) {
         int found_below = try_steal(below, 1 + 2 * i);
-        if (found_below) break;
+        if (found_below) {
+            found_work = 1;
+            break;
+        }
 
         int found_above = try_steal(above, 1 + 2 * i);
-        if (found_above) break;
+        if (found_above) {
+            found_work = 1;
+            break;
+        }
 
         below = get_pe_below(pe);
         above = get_pe_above(pe);
     }
 
+    if (found_work) {
+        successful_neighbor_checks++;
+    }
+
     hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
 
-    hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE, last_known_values, 3,
+    hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE, last_known_values, 2 * STEAL_RADIUS + 1,
         [] {
             check_on_neighbors();
         });
@@ -872,6 +891,7 @@ int main(int argc, char *argv[]) {
               last_known_values, 2 * STEAL_RADIUS + 1, [] {
                   check_on_neighbors();
               });
+      fprintf(stderr, "PE %d past async when any\n", ::shmem_my_pe());
 
       /* determine benchmark parameters (all PEs) */
       uts_parseParams(argc, argv);
@@ -883,6 +903,7 @@ int main(int argc, char *argv[]) {
 #endif  
 
       double t1, t2, et;
+      double time_in_remote_steal;
 
       /* show parameter settings */
       if (pe == 0) {
@@ -892,9 +913,9 @@ int main(int argc, char *argv[]) {
       Node root;
       initRootNode(&root, type);
 
-      fprintf(stderr, "PE %d Got to barrier\n", pe);
+      fprintf(stderr,"PE %d blocking\n", pe);
       hclib::shmem_barrier_all();
-      fprintf(stderr, "PE %d after barrier\n", pe);
+      fprintf(stderr,"PE %d done blocking\n", pe);
 
       /* time parallel search */
       t1 = uts_wctime();
@@ -908,7 +929,6 @@ int main(int argc, char *argv[]) {
       Node child;
 retry:
       initNode(&child);
-      fprintf(stderr, "PE %d Got to finish\n", pe);
 
       hclib::finish([&first, &root, &child] {
 
@@ -922,11 +942,10 @@ retry:
       });
       first = 0;
 
-      fprintf(stderr, "PE %d Past finish\n", pe);
+      fprintf(stderr, "# nodes = %d\n", thread_info[0].n_nodes);
 
       hclib::shmem_set_lock(&steal_buffer_locks[pe]);
       if (n_tasks_available_for_remote_steals[pe] > 0) {
-          fprintf(stderr, "# pending = %d\n", n_tasks_available_for_remote_steals[pe]);
           n_tasks_available_for_remote_steals[pe] -= 1;
           root = steal_buffer[n_tasks_available_for_remote_steals[pe]];
           hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
@@ -947,8 +966,9 @@ retry:
           }
           hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
 
+          double start_remote_steal = uts_wctime();
           int found_work = remote_steal(&root);
-          fprintf(stderr, "found_work = %d\n", found_work);
+          time_in_remote_steal += (uts_wctime() - start_remote_steal);
           if (found_work) {
               // restart load balancer and continue
               hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE,
@@ -959,7 +979,9 @@ retry:
           }
       }
 
+      double start_final_barrier = uts_wctime();
       hclib::shmem_barrier_all();
+      double time_in_final_barrier = uts_wctime() - start_final_barrier;
 
       t2 = uts_wctime();
       et = t2 - t1;
@@ -992,6 +1014,10 @@ retry:
               for (i = 0; i < n_omp_threads; i++) {
                   printf("PE %d, thread %d: %lu tasks\n", p, i, t_metadata[i].ntasks);
               }
+              printf("PE %d: %d neighbor checks, %d were successful, %d done "
+                      "signals. %f s in remote steal, %f s in final barrier\n",
+                      pe, neighbor_checks, successful_neighbor_checks, done_signals,
+                      time_in_remote_steal, time_in_final_barrier);
           }
           hclib::shmem_barrier_all();
       }

@@ -31,6 +31,7 @@ typedef struct _hclib_task_t {
     hclib_future_t *singleton_future_1;
     hclib_locale_t *locale;
     int registered_on_finish;
+    hclib_priority_t priority;
 } hclib_task_t;
 
 /*
