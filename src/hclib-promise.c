@@ -44,14 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Control debug statements
 #define DEBUG_PROMISE 0
 
-#define EMPTY_DATUM_ERROR_MSG "can not put sentinel value for \"uninitialized\" as a value into promise"
-
-// For 'wait_list_head' when a promise has been satisfied
-#define PROMISE_SATISFIED NULL
-
 // For waiting frontier (last element of the list)
-#define UNINITIALIZED_PROMISE_WAITLIST_PTR ((void*) -1)
-#define EMPTY_FUTURE_WAITLIST_PTR NULL
+#define SATISFIED_FUTURE_WAITLIST_PTR NULL
+#define SENTINEL_FUTURE_WAITLIST_PTR ((void*) -1)
 
 // Index value indicating that all dependencies are ready
 #define FUTURE_FRONTIER_EMPTY (-1)
@@ -67,7 +62,7 @@ static inline hclib_task_t **_next_waiting_task(hclib_task_t *t) {
 void hclib_promise_init(hclib_promise_t *promise) {
     promise->kind = PROMISE_KIND_SHARED;
     promise->datum = UNINITIALIZED_PROMISE_DATA_PTR;
-    promise->wait_list_head = UNINITIALIZED_PROMISE_WAITLIST_PTR;
+    promise->wait_list_head = SENTINEL_FUTURE_WAITLIST_PTR;
     promise->future.owner = promise;
 }
 
@@ -112,7 +107,7 @@ void *hclib_future_get(hclib_future_t *future) {
     // FIXME - we should be able to support whatever data we want
     // we just need to check the waitlist instead of the datum
     HASSERT(future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR);
-    return (void *)future->owner->datum;
+    return future->owner->datum;
 }
 
 /**
@@ -143,15 +138,15 @@ void hclib_promise_free(hclib_promise_t *promise) {
 static inline int _register_if_promise_not_ready(
     hclib_task_t *task,
     hclib_future_t *future_to_check) {
-    HASSERT(task != UNINITIALIZED_PROMISE_WAITLIST_PTR);
+    HASSERT(task != SENTINEL_FUTURE_WAITLIST_PTR);
     int success = 0;
     hclib_promise_t *p = future_to_check->owner;
     hclib_task_t *current_head = p->wait_list_head;
 
-    if (current_head != EMPTY_FUTURE_WAITLIST_PTR) {
+    if (current_head != SATISFIED_FUTURE_WAITLIST_PTR) {
 
-        while (current_head != EMPTY_FUTURE_WAITLIST_PTR && !success) {
-            // current_head can not be EMPTY_FUTURE_WAITLIST_PTR in here
+        while (current_head != SATISFIED_FUTURE_WAITLIST_PTR && !success) {
+            // current_head can not be SATISFIED_FUTURE_WAITLIST_PTR in here
             *_next_waiting_task(task) = current_head;
 
             success = __sync_bool_compare_and_swap(
@@ -164,7 +159,7 @@ static inline int _register_if_promise_not_ready(
             if (!success) {
                 current_head = p->wait_list_head;
                 /*
-                 * if current_head was set to EMPTY_FUTURE_WAITLIST_PTR,
+                 * if current_head was set to SATISFIED_FUTURE_WAITLIST_PTR,
                  * the loop condition will handle that if another task was
                  * added, now try to add in front of that
                  */
@@ -203,12 +198,9 @@ int register_on_all_promise_dependencies(hclib_task_t *task) {
  * promise.
  */
 void hclib_promise_put(hclib_promise_t *promiseToBePut, void *datumToBePut) {
-    // FIXME - we should be able to support whatever data we want
-    // we just need to check the waitlist instead of the datum
-    HASSERT (datumToBePut != UNINITIALIZED_PROMISE_DATA_PTR &&
-             EMPTY_DATUM_ERROR_MSG);
     HASSERT (promiseToBePut != NULL && "can not put into NULL promise");
     HASSERT (promiseToBePut-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
+             promiseToBePut->wait_list_head != SATISFIED_FUTURE_WAITLIST_PTR &&
              "violated single assignment property for promises");
 
     hclib_task_t *current_list_head;
@@ -220,12 +212,12 @@ void hclib_promise_put(hclib_promise_t *promiseToBePut, void *datumToBePut) {
     /*seems like I can not avoid a CAS here*/
     // FIXME - should be able ot use __atomic_exchange builtin here
     } while (!__sync_bool_compare_and_swap( &(promiseToBePut->wait_list_head),
-                                          current_list_head, EMPTY_FUTURE_WAITLIST_PTR));
+                                          current_list_head, SATISFIED_FUTURE_WAITLIST_PTR));
 
     hclib_task_t *curr_task = current_list_head;
     hclib_task_t *next_task = NULL;
     int iter_count = 0;
-    while (curr_task != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
+    while (curr_task != SENTINEL_FUTURE_WAITLIST_PTR) {
 
         next_task = *_next_waiting_task(curr_task);
         if (register_on_all_promise_dependencies(curr_task)) {

@@ -73,7 +73,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CACHE_LINE_L1 8
 
 // Default value of a promise datum
-#define UNINITIALIZED_PROMISE_DATA_PTR ((void *)-1)
+#define UNINITIALIZED_PROMISE_DATA_PTR NULL
 
 typedef struct {
     volatile uint64_t flag;
