@@ -44,10 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Control debug statements
 #define DEBUG_PROMISE 0
 
-// For waiting frontier (last element of the list)
-#define SATISFIED_FUTURE_WAITLIST_PTR NULL
-#define SENTINEL_FUTURE_WAITLIST_PTR ((void*) -1)
-
 // Index value indicating that all dependencies are ready
 #define FUTURE_FRONTIER_EMPTY (-1)
 
@@ -104,9 +100,7 @@ hclib_promise_t **hclib_promise_create_n(size_t nb_promises,
  * Note: this is concurrent with the 'put' operation.
  */
 void *hclib_future_get(hclib_future_t *future) {
-    // FIXME - we should be able to support whatever data we want
-    // we just need to check the waitlist instead of the datum
-    HASSERT(future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR);
+    HASSERT(_hclib_promise_is_satisfied(future->owner));
     return future->owner->datum;
 }
 
@@ -199,8 +193,8 @@ int register_on_all_promise_dependencies(hclib_task_t *task) {
  */
 void hclib_promise_put(hclib_promise_t *promiseToBePut, void *datumToBePut) {
     HASSERT (promiseToBePut != NULL && "can not put into NULL promise");
-    HASSERT (promiseToBePut-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
-             promiseToBePut->wait_list_head != SATISFIED_FUTURE_WAITLIST_PTR &&
+    HASSERT (promiseToBePut->datum == UNINITIALIZED_PROMISE_DATA_PTR &&
+             !_hclib_promise_is_satisfied(promiseToBePut) &&
              "violated single assignment property for promises");
 
     hclib_task_t *current_list_head;
@@ -211,8 +205,8 @@ void hclib_promise_put(hclib_promise_t *promiseToBePut, void *datumToBePut) {
         current_list_head = promiseToBePut->wait_list_head;
     /*seems like I can not avoid a CAS here*/
     // FIXME - should be able ot use __atomic_exchange builtin here
-    } while (!__sync_bool_compare_and_swap( &(promiseToBePut->wait_list_head),
-                                          current_list_head, SATISFIED_FUTURE_WAITLIST_PTR));
+    } while (!__sync_bool_compare_and_swap(&(promiseToBePut->wait_list_head),
+                current_list_head, SATISFIED_FUTURE_WAITLIST_PTR));
 
     hclib_task_t *curr_task = current_list_head;
     hclib_task_t *next_task = NULL;

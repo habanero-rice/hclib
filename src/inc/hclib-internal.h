@@ -75,6 +75,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Default value of a promise datum
 #define UNINITIALIZED_PROMISE_DATA_PTR NULL
 
+// For waiting frontier (last element of the list)
+#define SATISFIED_FUTURE_WAITLIST_PTR NULL
+#define SENTINEL_FUTURE_WAITLIST_PTR ((void*) -1)
+
 typedef struct {
     volatile uint64_t flag;
     void * pad[CACHE_LINE_L1-1];
@@ -130,5 +134,9 @@ int get_current_worker();
 int register_on_all_promise_dependencies(hclib_task_t *task);
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
         hclib_worker_state *ws);
+
+int static inline _hclib_promise_is_satisfied(hclib_promise_t *p) {
+    return p->wait_list_head == SATISFIED_FUTURE_WAITLIST_PTR;
+}
 
 #endif /* HCLIB_INTERNAL_H_ */

@@ -354,7 +354,7 @@ static inline void check_out_finish(finish_t *finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
-            HASSERT(finish->finish_deps[0]->owner->datum == UNINITIALIZED_PROMISE_DATA_PTR);
+            HASSERT(!_hclib_promise_is_satisfied(finish->finish_deps[0]->owner));
             hclib_promise_put(finish->finish_deps[0]->owner, finish);
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
@@ -911,18 +911,16 @@ static void *worker_routine(void *args) {
 }
 #endif /* HCLIB_LITECTX_STRATEGY */
 
-void teardown() {
-
-}
-
 #if HCLIB_LITECTX_STRATEGY
 static void _finish_ctx_resume(void *arg) {
     LiteCtx *currentCtx = get_curr_lite_ctx();
     LiteCtx *finishCtx = arg;
     ctx_swap(currentCtx, finishCtx, __func__);
 
+#ifdef VERBOSE
     fprintf(stderr, "Should not have reached here, currentCtx=%p "
             "finishCtx=%p\n", currentCtx, finishCtx);
+#endif
     HASSERT(0);
 }
 
@@ -940,9 +938,10 @@ void _help_wait(LiteCtx *ctx) {
 }
 
 void *hclib_future_wait(hclib_future_t *future) {
-    if (future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
-        return (void *)future->owner->datum;
+    if (_hclib_promise_is_satisfied(future->owner)) {
+        return future->owner->datum;
     }
+
     hclib_future_t *continuation_deps[] = { future, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
@@ -951,8 +950,9 @@ void *hclib_future_wait(hclib_future_t *future) {
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
 
-    HASSERT(future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR);
-    return (void *)future->owner->datum;
+    HASSERT(_hclib_promise_is_satisfied(future->owner) &&
+            "promise must be satisfied before returning from wait");
+    return future->owner->datum;
 }
 
 static void _help_finish_ctx(LiteCtx *ctx) {
