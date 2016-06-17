@@ -153,9 +153,9 @@ inline void async_comm(T &&lambda) {
 }
 
 template <typename T>
-hclib::future_t *async_future(T &&lambda) {
+hclib::future_t<void> *async_future(T &&lambda) {
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t *event = new hclib::promise_t();
+    hclib::promise_t<void> *event = new hclib::promise_t<void>();
     /*
      * TODO creating this closure may be inefficient. While the capture list is
      * precise, if the user-provided lambda is large then copying it by value
@@ -163,17 +163,17 @@ hclib::future_t *async_future(T &&lambda) {
      */
     async([event, lambda]() {
         lambda();
-        // FIXME - why does this get satisfied with null?
+        // FIXME - why does this have to be a void-type promise?
         // we should be able to return a useful value from the lambda
-        event->put(nullptr);
+        event->put();
     });
     return event->get_future();
 }
 
 template <typename T, typename... future_list_t>
-hclib::future_t *async_future_await(T &&lambda, future_list_t... futures) {
+hclib::future_t<void> *async_future_await(T &&lambda, future_list_t... futures) {
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t *event = new hclib::promise_t();
+    hclib::promise_t<void> *event = new hclib::promise_t<void>();
     /*
      * TODO creating this closure may be inefficient. While the capture list is
      * precise, if the user-provided lambda is large then copying it by value
@@ -183,7 +183,7 @@ hclib::future_t *async_future_await(T &&lambda, future_list_t... futures) {
         lambda();
         // FIXME - why does this get satisfied with null?
         // we should be able to return a useful value from the lambda
-        event->put(nullptr);
+        event->put();
     }, futures...);
     return event->get_future();
 }
@@ -196,10 +196,10 @@ inline void finish(T &&lambda) {
 }
 
 template <typename T>
-inline hclib::future_t *nonblocking_finish(T &&lambda) {
+inline hclib::future_t<void> *nonblocking_finish(T &&lambda) {
     hclib_start_finish();
     lambda();
-    hclib::promise_t *event = new hclib::promise_t();
+    hclib::promise_t<void> *event = new hclib::promise_t<void>();
     hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }

@@ -51,7 +51,7 @@ void init_ran(int *ran, int size) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    int *ran=(int *)malloc(H1*sizeof(int));
+    int *ran= new int[H1];
     assert(ran);
 
     hclib::launch([=]() {
@@ -61,7 +61,7 @@ int main (int argc, char ** argv) {
 
             init_ran(ran, H1);
 
-            hclib::future_t *event = hclib::nonblocking_finish([=]() {
+            hclib::future_t<void> *event = hclib::nonblocking_finish([=]() {
                 loop_domain_t loop = {0, H1, 1, T1};
                 hclib::forasync1D(&loop, [=](int idx) {
                         usleep(100000);
@@ -81,7 +81,7 @@ int main (int argc, char ** argv) {
         assert(ran[i] == i);
         i++;
     }
-    free(ran);
+    delete[] ran;
     printf("OK\n");
     return 0;
 }
