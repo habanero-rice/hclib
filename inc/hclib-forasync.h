@@ -179,47 +179,47 @@ inline void forasync3D(loop_domain_t* loop, T &&lambda,
 
 
 template <typename T>
-inline hclib::future_t *forasync1D_future(loop_domain_t* loop, T &&lambda,
+inline hclib::future_t<void> *forasync1D_future(loop_domain_t* loop, T &&lambda,
         int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
         hclib_future_t **future_list = NULL) {
     hclib_start_finish();
     forasync1D(loop, std::forward<decltype(lambda)>(lambda),
             mode, place, future_list);
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t *event = new hclib::promise_t();
+    hclib::promise_t<void> *event = new hclib::promise_t<void>();
     hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
 template <typename T>
-inline hclib::future_t *forasync2D_future(loop_domain_t* loop, T &&lambda,
+inline hclib::future_t<void> *forasync2D_future(loop_domain_t* loop, T &&lambda,
         int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
         hclib_future_t **future_list = NULL) {
     hclib_start_finish();
     forasync2D(loop, std::forward<decltype(lambda)>(lambda),
             mode, place, future_list);
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t *event = new hclib::promise_t();
+    hclib::promise_t<void> *event = new hclib::promise_t<void>();
     hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
 template <typename T>
-inline hclib::future_t *forasync3D_future(loop_domain_t* loop, T &&lambda,
+inline hclib::future_t<void> *forasync3D_future(loop_domain_t* loop, T &&lambda,
         int mode = FORASYNC_MODE_RECURSIVE, place_t *place = NULL,
         hclib_future_t **future_list = NULL) {
     hclib_start_finish();
     forasync3D(loop, std::forward<decltype(lambda)>(lambda),
             mode, place, future_list);
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t *event = new hclib::promise_t();
+    hclib::promise_t<void> *event = new hclib::promise_t<void>();
     hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
 // TODO - Do we also need parameter-pack versions of the other forasyncs?
 template <typename T, typename... future_list_t>
-inline hclib::future_t *forasync1D_future(loop_domain_t* loop, T &&lambda,
+inline hclib::future_t<void> *forasync1D_future(loop_domain_t* loop, T &&lambda,
         int mode, place_t *place, future_list_t... futures) {
     // FIXME - memory leak
     hclib_future_t **future_list = construct_future_list(futures...);

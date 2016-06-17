@@ -1,20 +1,5 @@
 #include "hclib_cpp.h"
 
-hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
-        const int null_terminated) {
-    hclib::promise_t **promises = (hclib::promise_t **)malloc(
-                                      (null_terminated ? nb_promises + 1 : nb_promises) *
-                                      sizeof(hclib::promise_t *));
-    for (unsigned i = 0; i < nb_promises; i++) {
-        promises[i] = new promise_t();
-    }
-
-    if (null_terminated) {
-        promises[nb_promises] = NULL;
-    }
-    return promises;
-}
-
 hclib_worker_state *hclib::current_ws() {
     return CURRENT_WS_INTERNAL;
 }
