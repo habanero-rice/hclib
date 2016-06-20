@@ -55,71 +55,25 @@ namespace hclib {
  * TODO optimize that overhead.
  */
 
-/*
- * At the lowest layer in the call stack before entering user code, this method
- * invokes the user-provided lambda.
- */
-template <typename T>
-inline void call_lambda(T* lambda) {
-	const int wid = current_ws()->id;
-	MARK_BUSY(wid);
-	(*lambda)();
-    // FIXME - this whole call chain is kind of a mess
-    // leaving C malloc/free and memcpy calls for now (come back to fix it later)
-	free(lambda);
-	MARK_OVH(wid);
-}
-
-/*
- * Store a reference to the type-specific function for calling the user lambda,
- * as well as a pointer to the lambda's location on the heap (through which we
- * can invoke it). async_arguments is stored as the args field in the task_t
- * object for a task, and passed to lambda_wrapper.
- */
-template <typename Function, typename T1>
-struct async_arguments {
-    Function lambda_caller;
-    T1 lambda_on_heap;
-
-    async_arguments(Function k, T1 a) :
-        lambda_caller(k), lambda_on_heap(a) { }
-};
-
-/*
- * The method called directly from the HC runtime, passed a pointer to an
- * async_arguments object. It then uses these async_arguments to call
- * call_lambda, passing the user-provided lambda.
- */
-template<typename Function, typename T1>
-void lambda_wrapper(void *args) {
-    async_arguments<Function, T1> *a =
-        (async_arguments<Function, T1> *)args;
-
-    (*a->lambda_caller)(a->lambda_on_heap);
-}
-
-/*
- * Initialize a task_t for the C++ APIs, using a user-provided lambda.
- */
-template<typename Function, typename T1>
-inline void initialize_task(hclib_task_t *t, Function lambda_caller,
-        T1 *lambda_on_heap) {
-    async_arguments<Function, T1 *> *args =
-        new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
-    t->_fp = lambda_wrapper<Function, T1 *>;
-    t->args = args;
-    t->is_async_any_type = 0;
-    t->future_list = NULL;
-    t->place = NULL;
+template<typename T>
+void lambda_wrapper(void *arg) {
+    T* lambda = static_cast<T*>(arg);
+    MARK_BUSY(current_ws()->id);
+    (*lambda)(); // !!! May cause a worker-swap !!!
+    MARK_OVH(current_ws()->id);
+    delete lambda;
 }
 
 template <typename T>
 inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
+    typedef typename std::remove_reference<T>::type U;
     // FIXME - this whole call chain is kind of a mess
     // leaving C malloc/free and memcpy calls for now (come back to fix it later)
-	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
-    // create off-stack storage for this task
-	hclib_task_t* task = (hclib_task_t*)malloc(hclib_task_size);
+    const size_t task_size =
+        await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
+    hclib_task_t* task = static_cast<hclib_task_t*>(calloc(1, task_size));
+    task->_fp = lambda_wrapper<U>;
+
 	const size_t lambda_size = sizeof(T);
     /*
      * create off-stack storage for the lambda object (including its captured
@@ -127,11 +81,9 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
      */
 	T* lambda_on_heap = (T*)malloc(lambda_size);
 	memcpy(lambda_on_heap, &lambda, lambda_size);
+    task->args = lambda_on_heap;
 
-    hclib_task_t t;
-    initialize_task(&t, call_lambda<T>, lambda_on_heap);
-	memcpy(task, &t, sizeof(hclib_task_t));
-	return task;
+    return task;
 }
 
 #if defined(HUPCPP) && defined(DIST_WS)	// i.e. if we are supporting distributed work-stealing in HabaneroUPC++
