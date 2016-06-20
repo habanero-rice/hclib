@@ -127,9 +127,7 @@ void bind_thread(int worker_id, int *bind_map, int bind_map_size);
 int get_current_worker();
 
 // promise
-int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);
-hclib_triggered_task_t * rt_async_task_to_triggered_task(
-        hclib_task_t * async_task);
+int register_on_all_promise_dependencies(hclib_task_t *task);
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
         hclib_worker_state *ws);
 

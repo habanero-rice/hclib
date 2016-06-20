@@ -17,26 +17,29 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
 //   HASSERT(property == 0);
     HASSERT(phased_clause == NULL);
 
+    hclib_task_t *task = malloc(sizeof(*task));
+    HASSERT(task);
+    *task = (hclib_task_t){
+        ._fp = fp,
+        .args = arg,
+        .future_list = future_list,
+        .place = place,
+        // any field not explicitly initialized gets zeroed
+        // but not next_waiter since it's a flexible array,
+        // but that's OK since it isn't read until after written
+        // NOTE: .current_finish is set in "spawn_handler"
+    };
+
     if (future_list) {
-        hclib_dependent_task_t *task = malloc(sizeof(hclib_dependent_task_t));
-        task->async_task._fp = fp;
-        task->async_task.is_async_any_type = 0;
-        task->async_task.future_list = NULL;
-        task->async_task.args = arg;
-        task->async_task.place = NULL;
 
         if (place) {
-            spawn_await_at((hclib_task_t *)task, future_list, place);
+            spawn_await_at(task, future_list, place);
+        } else if (property & ESCAPING_ASYNC) {
+            spawn_escaping(task, future_list);
         } else {
-            spawn_await((hclib_task_t *)task, future_list);
+            spawn_await(task, future_list);
         }
     } else {
-        hclib_task_t *task = malloc(sizeof(hclib_task_t));
-        task->_fp = fp;
-        task->is_async_any_type = 0;
-        task->future_list = NULL;
-        task->args = arg;
-        task->place = NULL;
 
         if (place) {
             spawn_at_hpt(place, task);
@@ -50,7 +53,13 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
                  * to execute on a comm_async and not on a regular async. Regular async
              * would allow this finish_spmd to be executed by computation worker.
              */
-            else spawn_comm_task(task);
+            else {
+                // currently only using "awating" version of "escaping" async
+                HASSERT(!(property & ESCAPING_ASYNC));
+                // FIXME - add an HASSERT here to check that the property
+                // is the expected value (whatever HC/SHMEM sets it to)
+                spawn_comm_task(task);
+            }
         }
     }
 }

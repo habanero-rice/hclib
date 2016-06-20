@@ -354,6 +354,7 @@ static inline void check_out_finish(finish_t *finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
         if (hc_atomic_dec(&(finish->counter))) {
 #if HCLIB_LITECTX_STRATEGY
+            HASSERT(finish->finish_deps[0]->owner->datum == UNINITIALIZED_PROMISE_DATA_PTR);
             hclib_promise_put(finish->finish_deps[0]->owner, finish);
 #endif /* HCLIB_LITECTX_STRATEGY */
         }
@@ -361,7 +362,7 @@ static inline void check_out_finish(finish_t *finish) {
 }
 
 static inline void execute_task(hclib_task_t *task) {
-    finish_t *current_finish = get_current_finish(task);
+    finish_t *current_finish = task->current_finish;
     /*
      * Update the current finish of this worker to be inherited from the
      * currently executing task so that any asyncs spawned from the currently
@@ -438,9 +439,7 @@ static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
             async_task, async_task->future_list);
 #endif
     if (async_task->future_list != NULL) {
-        hclib_triggered_task_t *triggered_task = (hclib_triggered_task_t *)
-                rt_async_task_to_triggered_task(async_task);
-        return register_on_all_promise_dependencies(triggered_task);
+        return register_on_all_promise_dependencies(async_task);
     } else {
         return 1;
     }
@@ -459,7 +458,7 @@ void try_schedule_async(hclib_task_t *async_task, int comm_task, int gpu_task,
 }
 
 void spawn_handler(hclib_task_t *task, place_t *pl,
-                   hclib_future_t **future_list, int escaping, int comm, int gpu) {
+        int escaping, int comm, int gpu) {
 
     HASSERT(task);
 #ifndef HC_CUDA
@@ -473,28 +472,20 @@ void spawn_handler(hclib_task_t *task, place_t *pl,
      * HabaneroUPC++ for implementation.
      *
      * TODO not sure exactly what this does, just copy-pasted. Ask Kumar
+     * FIXME - shouldn't this have an #ifdef guard?
      */
-    if (future_list) {
-        check_if_hcupc_distributed_futures(future_list);
+    if (task->future_list) {
+        check_if_hcupc_distributed_futures(task->future_list);
     }
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     if (!escaping) {
         check_in_finish(ws->current_finish);
-        set_current_finish(task, ws->current_finish);
+        task->current_finish = ws->current_finish;
+        HASSERT(task->current_finish != NULL);
     } else {
         // If escaping task, don't register with current finish
-        set_current_finish(task, NULL);
-    }
-
-    if (pl) {
-        task->place = pl;
-    }
-
-    if (future_list) {
-        set_future_list(task, future_list);
-        hclib_dependent_task_t *t = (hclib_dependent_task_t *) task;
-        hclib_triggered_task_init(&(t->deps), future_list);
+        HASSERT(task->current_finish == NULL);
     }
 
 #ifdef VERBOSE
@@ -513,7 +504,7 @@ void spawn_at_hpt(place_t *pl, hclib_task_t *task) {
     // get current worker
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     check_in_finish(ws->current_finish);
-    set_current_finish(task, ws->current_finish);
+    task->current_finish = ws->current_finish;
     task->place = pl;
     try_schedule_async(task, 0, 0, ws);
 #ifdef HC_COMM_WORKER_STATS
@@ -523,21 +514,24 @@ void spawn_at_hpt(place_t *pl, hclib_task_t *task) {
 }
 
 void spawn(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0, 0, 0);
+    spawn_handler(task, NULL, 0, 0, 0);
 }
 
 void spawn_escaping(hclib_task_t *task, hclib_future_t **future_list) {
-    spawn_handler(task, NULL, future_list, 1, 0, 0);
+    spawn_handler(task, NULL, 1, 0, 0);
 }
 
 void spawn_escaping_at(place_t *pl, hclib_task_t *task,
                        hclib_future_t **future_list) {
-    spawn_handler(task, pl, future_list, 1, 0, 0);
+    spawn_handler(task, pl, 1, 0, 0);
 }
 
 void spawn_await_at(hclib_task_t *task, hclib_future_t **future_list,
                     place_t *pl) {
-    spawn_handler(task, pl, future_list, 0, 0, 0);
+    // FIXME - the future_list member may not have been properly
+    // initialized on this call path from C++ code (fix later)
+    task->future_list = future_list;
+    spawn_handler(task, pl, 0, 0, 0);
 }
 
 void spawn_await(hclib_task_t *task, hclib_future_t **future_list) {
@@ -545,11 +539,11 @@ void spawn_await(hclib_task_t *task, hclib_future_t **future_list) {
 }
 
 void spawn_comm_task(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0, 1, 0);
+    spawn_handler(task, NULL, 0, 1, 0);
 }
 
 void spawn_gpu_task(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, 0, 0, 1);
+    spawn_handler(task, NULL, 0, 0, 1);
 }
 
 #ifdef HC_CUDA
@@ -714,7 +708,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                 exit(1);
             }
 
-            check_out_finish(get_current_finish((hclib_task_t *)task));
+            check_out_finish(task->t.current_finish);
 
             if (op) {
 #ifdef VERBOSE
@@ -937,12 +931,9 @@ void _help_wait(LiteCtx *ctx) {
     hclib_future_t **continuation_deps = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = calloc(1, sizeof(*task));
-    HASSERT(task);
-    task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
-    task->async_task.args = wait_ctx;
-
-    spawn_escaping((hclib_task_t *)task, continuation_deps);
+    // reusing _finish_ctx_resume
+    hclib_async(_finish_ctx_resume, wait_ctx, continuation_deps,
+            NO_PHASER, ANY_PLACE, ESCAPING_ASYNC);
 
     core_work_loop();
     HASSERT(0);
@@ -976,23 +967,20 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = calloc(1, sizeof(*task));
-    HASSERT(task);
-    task->async_task._fp = _finish_ctx_resume;
-    task->async_task.args = hclib_finish_ctx;
-
     /*
      * Create an async to handle the continuation after the finish, whose state
      * is captured in hclib_finish_ctx and whose execution is pending on
      * finish->finish_deps.
      */
-    spawn_escaping((hclib_task_t *)task, finish->finish_deps);
+    hclib_async(_finish_ctx_resume, hclib_finish_ctx, finish->finish_deps,
+            NO_PHASER, ANY_PLACE, ESCAPING_ASYNC);
 
     /*
      * The main thread is now exiting the finish (albeit in a separate context),
      * so check it out.
      */
     check_out_finish(finish);
+
     // keep work-stealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
     HASSERT(0); // we should never return here

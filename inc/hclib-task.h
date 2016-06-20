@@ -22,7 +22,7 @@
  *      this task depends on to execute, and which it will wait on before
  *      running.
  */
-typedef struct _hclib_task_t {
+typedef struct hclib_task_t {
     void *args;
     struct finish_t *current_finish;
     generic_frame_ptr _fp;
@@ -32,23 +32,11 @@ typedef struct _hclib_task_t {
      * and locality flexible asyncAny
      */
     int is_async_any_type;
+    int future_frontier; // index of next awaited future in list
     hclib_future_t **future_list; // Null terminated list
     place_t *place;
+    struct hclib_task_t *next_waiter;
 } hclib_task_t;
-
-/*
- * A representation of a task whose execution is dependent on prior tasks
- * through a list of promise objects.
- */
-typedef struct hclib_dependent_task_t {
-	hclib_task_t async_task; // the actual task
-    /*
-     * meta-information, tasks that this task is blocked on for execution.
-     * deps.waiting_frontier is generally equal to async_task.future_list. TODO
-     * can we factor out this redundant storage of data?
-     */
-	hclib_triggered_task_t deps;
-} hclib_dependent_task_t;
 
 /** @struct loop_domain_t
  * @brief Describe loop domain when spawning a forasync.
@@ -100,18 +88,5 @@ typedef struct _forasync_3D_task_t {
     hclib_task_t forasync_task;
     forasync3D_t def;
 } forasync3D_task_t;
-
-inline struct finish_t* get_current_finish(hclib_task_t *t) {
-    return t->current_finish;
-}
-
-inline void set_current_finish(hclib_task_t *t,
-        struct finish_t* finish) {
-    t->current_finish = finish;
-}
-
-inline void set_future_list(hclib_task_t *t, hclib_future_t **futures) {
-    t->future_list = futures;
-}
 
 #endif
