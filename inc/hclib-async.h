@@ -74,14 +74,9 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
     hclib_task_t* task = static_cast<hclib_task_t*>(calloc(1, task_size));
     task->_fp = lambda_wrapper<U>;
 
-	const size_t lambda_size = sizeof(T);
-    /*
-     * create off-stack storage for the lambda object (including its captured
-     * variables), which will be pointed to from the task_t.
-     */
-	T* lambda_on_heap = (T*)malloc(lambda_size);
-	memcpy(lambda_on_heap, &lambda, lambda_size);
-    task->args = lambda_on_heap;
+    // make a copy of the user's function object using dynamic storage duration
+    // to ensure that it's still available later.
+    task->args = new U(lambda);
 
     return task;
 }
