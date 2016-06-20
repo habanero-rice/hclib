@@ -64,6 +64,9 @@ static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
 
+unsigned char *priority_vector = NULL;
+unsigned priority_vector_length = 0;
+
 #ifdef HC_COMM_WORKER
 semi_conc_deque_t *comm_worker_out_deque;
 #endif
@@ -271,6 +274,17 @@ static void hclib_entrypoint() {
 
     srand(0);
 
+    priority_vector = (unsigned char *)malloc(PRIORITY_DARTBOARD_SIZE);
+    priority_vector_length = PRIORITY_DARTBOARD_SIZE;
+    int i, index = 0;
+    for (i = 0; i < NUM_PRIORITY_LEVELS; i++) {
+        const int count = (int)exp2(NUM_PRIORITY_LEVELS - i - 1);
+        int j;
+        for (j = 0; j < count; j++) {
+            priority_vector[index++] = i;
+        }
+    }
+
     hc_context = (hclib_context *)malloc(sizeof(hclib_context));
     HASSERT(hc_context);
 
@@ -388,7 +402,6 @@ static inline void execute_task(hclib_task_t *task) {
 #endif
 
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
-    fprintf(stderr, "RUNNING TASK %p with priority = %d\n", task, task->priority);
     (task->_fp)(task->args);
     if (task->registered_on_finish) check_out_finish(current_finish);
     HC_FREE(task);
@@ -416,7 +429,8 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
                 "hc_context=%p hc_context->graph=%p\n", wid, hc_context, hc_context->graph);
 #endif
 
-        deque_t *deque = &(hc_context->graph->locales[0].priority_deques[wid][async_task->priority].deque);
+        deque_t *deque = &(hc_context->graph->locales[0].priority_deques[
+                wid * NUM_PRIORITY_LEVELS + async_task->priority].deque);
 
         if (!deque_push(deque, async_task)) {
             printf("WARNING: deque full, local execution\n");
@@ -481,7 +495,6 @@ static void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         task->registered_on_finish = 0;
     }
     task->priority = priority;
-    fprintf(stderr, "CREATING TASK %p with priority = %d\n", task, priority);
 
     /*
      * We always set the current finish for the created task so that any

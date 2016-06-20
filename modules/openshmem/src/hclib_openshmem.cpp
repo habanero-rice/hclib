@@ -100,7 +100,6 @@ void hclib::shmem_barrier_all() {
             ::shmem_barrier_all();
         });
     });
-    fprintf(stderr, "COMING out of barrier all");
 }
 
 void hclib::shmem_put64(void *dest, const void *source, size_t nelems, int pe) {
@@ -210,49 +209,15 @@ int hclib::shmem_test_lock(volatile long *lock) {
         // Successful lock
         lock_ctx->live = promise;
     } else {
-        hclib_promise_t *live = lock_ctx->live;
-        lock_ctx->live = NULL;
-        hclib_promise_put(live, NULL);
+        /*
+         * If we failed to get the lock, we will still get marked as the last
+         * lock by the helper routine. We fix that by satisfying our promise
+         * immediately.
+         */
+        hclib_promise_put(promise, NULL);
     }
 
     return result;
-}
-
-static void shmem_lock_helper(void (*body)(void *), void *arg,
-        volatile long *lock) {
-
-    int err = pthread_mutex_lock(&lock_info_mutex);
-    HASSERT(err == 0);
-
-    hclib_future_t *await = NULL;
-    lock_context_t *ctx = NULL;
-
-    hclib_promise_t *promise = hclib_promise_create();
-
-    std::map<long *, lock_context_t *>::iterator found = lock_info.find((long *)lock);
-    if (found != lock_info.end()) {
-        ctx = found->second;
-    } else {
-        /*
-         * Cannot assert that *lock == 0L here as another node may be locking
-         * it. Can only guarantee that no one else on the same node has locked
-         * it.
-         */
-        ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
-        memset(ctx, 0x00, sizeof(lock_context_t));
-
-        lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
-    }
-
-    await = hclib_async_future(shmem_set_lock_impl, (void *)lock, ctx->last_lock, nic);
-    ctx->last_lock = hclib_get_future_for_promise(promise);
-
-    err = pthread_mutex_unlock(&lock_info_mutex);
-    HASSERT(err == 0);
-
-    hclib_future_wait(await);
-    HASSERT(ctx->live == NULL);
-    ctx->live = promise;
 }
 
 void hclib::shmem_clear_lock(long *lock) {
@@ -397,7 +362,6 @@ std::string hclib::shmem_name() {
 }
 
 static void poll_on_waits() {
-    fprintf(stderr, "POLLING\n");
     int err = pthread_mutex_lock(&waiting_on_mutex);
     HASSERT(err == 0);
 

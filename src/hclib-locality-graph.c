@@ -16,6 +16,9 @@
 
 extern hclib_context *hc_context;
 
+extern unsigned char *priority_vector;
+extern unsigned priority_vector_length;
+
 // List of known locale types, e.g. "L1", "L2", "GPU"
 static char **known_locale_types = NULL;
 // Length of the known_locale_types list
@@ -340,19 +343,13 @@ static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
     locale->id = id;
     locale->lbl = lbl;
     locale->type = locale_type_id;
-    locale->priority_deques = (hclib_deque_t **)calloc(nworkers,
-            sizeof(hclib_deque_t *));
-    assert(locale->priority_deques);
-    for (i = 0; i < nworkers; i++) {
-        (locale->priority_deques)[i] = (hclib_deque_t *)calloc(
-                NUM_PRIORITY_LEVELS, sizeof(hclib_deque_t));
-        assert(locale->priority_deques[i]);
-
-        int j;
-        for (j = 0; j < NUM_PRIORITY_LEVELS; j++) {
-            init_hclib_deque_t((locale->priority_deques)[i] + j, locale);
-        }
+    locale->priority_deques = (hclib_deque_t *)calloc(
+            nworkers * NUM_PRIORITY_LEVELS, sizeof(hclib_deque_t));
+    for (i = 0; i < nworkers * NUM_PRIORITY_LEVELS; i++) {
+        init_hclib_deque_t(locale->priority_deques + i, locale);
     }
+    locale->priority_iters = (unsigned *)calloc(nworkers * nworkers,
+            sizeof(unsigned));
 
     if (hclib_has_func_for(metadata_size_registrations, locale_type_id)) {
         hclib_locale_metadata_size_func_type size_func = hclib_get_func_for(
@@ -717,7 +714,7 @@ static inline hclib_deque_t *get_deque_locale(hclib_worker_state *ws,
         hclib_locale_t *locale, hclib_priority_t priority) {
     HASSERT(locale);
     HASSERT(priority >= 0 && priority < NUM_PRIORITY_LEVELS);
-    return &(locale->priority_deques[ws->id][priority]);
+    return &locale->priority_deques[ws->id * NUM_PRIORITY_LEVELS + priority];
 }
 
 /*
@@ -741,8 +738,8 @@ size_t workers_backlog(hclib_worker_state *ws) {
 
         int j;
         for (j = 0; j < NUM_PRIORITY_LEVELS; j++) {
-            sum_work += (locale->priority_deques[wid][j].deque.tail -
-                    locale->priority_deques[wid][j].deque.head);
+            sum_work += (locale->priority_deques[wid * NUM_PRIORITY_LEVELS + j].deque.tail -
+                    locale->priority_deques[wid * NUM_PRIORITY_LEVELS + j].deque.head);
         }
     }
 
@@ -754,26 +751,63 @@ size_t workers_backlog(hclib_worker_state *ws) {
  * http://stackoverflow.com/questions/1640258/need-a-fast-random-generator-for-c
  * TODO should we care about data races here?
  */
-static unsigned long x=123456789, y=362436069, z=521288629;
-unsigned long xorshf96(void) {          //period 2^96-1
-    unsigned long t;
-    x ^= x << 16;
-    x ^= x >> 5;
-    x ^= x << 1;
+// static unsigned long x=123456789, y=362436069, z=521288629;
+// unsigned long xorshf96(void) {          //period 2^96-1
+//     unsigned long t;
+//     x ^= x << 16;
+//     x ^= x >> 5;
+//     x ^= x << 1;
+// 
+//     t = x;
+//     x = y;
+//     y = z;
+//     z = t ^ x ^ y;
+// 
+//     return z;
+// }
+// 
+// static inline int get_random_priority() {
+//     const unsigned long val = xorshf96();
+//     const int dart = val % PRIORITY_DARTBOARD_SIZE;
+//     return PRIORITY_DARTBOARD_LEVEL(dart + 1);
+// }
 
-    t = x;
-    x = y;
-    y = z;
-    z = t ^ x ^ y;
+/*
+ * To be used when you want to get a priority level weighted by the priorities
+ * themselves, i.e. get a priority level with the result being more likely to be
+ * high priority.
+ */
+static inline int get_random_priority(const int worker, const int target_worker,
+        const int num_workers, const hclib_locale_t *locale) {
+    const int iter_index = worker * num_workers + target_worker;
+    const unsigned pointer = locale->priority_iters[iter_index];
+    locale->priority_iters[iter_index] =
+        (pointer + 1) % priority_vector_length;
 
-    return z;
+    return priority_vector[pointer]; 
 }
 
-static int v = 0;
-static inline int get_random_priority() {
-    const unsigned long val = xorshf96();
-    const int dart = val % PRIORITY_DARTBOARD_SIZE;
-    return PRIORITY_DARTBOARD_LEVEL(dart + 1);
+/*
+ * Get the priority this worker's priority iterator at the target locale and
+ * worker is pointing to.
+ */
+static inline int get_curr_priority(const int worker, const int target_worker,
+        const int num_workers, const hclib_locale_t *locale) {
+    return priority_vector[locale->priority_iters[worker * num_workers + target_worker]];
+}
+
+static inline void jump_to_next_priority(const int worker,
+        const int target_worker, const int num_workers,
+        const hclib_locale_t *locale) {
+    const int iter_index = worker * num_workers + target_worker;
+    int iter = locale->priority_iters[iter_index];
+    const int curr_priority = priority_vector[iter];
+
+    while (priority_vector[iter] == curr_priority) {
+        iter = (iter + 1) % priority_vector_length;
+    }
+
+    locale->priority_iters[iter_index] = iter;
 }
 
 /*
@@ -793,16 +827,24 @@ hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
 
     for (i = 0; i < pop->path_length; i++) {
         hclib_locale_t *locale = pop->locales[i];
-        const int priority = get_random_priority();
-        hclib_task_t *task = deque_pop(&(locale->priority_deques[wid][priority].deque));
-        if (task) {
+
+        int p;
+        for (p = 0; p < NUM_PRIORITY_LEVELS; p++) {
+            const int priority = get_curr_priority(ws->id, ws->id, ws->nworkers,
+                    locale);
+
+            hclib_task_t *task = deque_pop(
+                    &(locale->priority_deques[wid * NUM_PRIORITY_LEVELS + priority].deque));
+            if (task) {
 #ifdef VERBOSE
-        fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
-                "locale->deques=%p locale->lbl=%s successfully popped task "
-                "%p\n", wid, i, locale, locale->deques, locale->lbl, task);
+            fprintf(stderr, "locale_pop_task: wid=%d i=%d locale=%p "
+                    "locale->deques=%p locale->lbl=%s successfully popped task "
+                    "%p\n", wid, i, locale, locale->deques, locale->lbl, task);
 #endif
 
-            return task;
+                return task;
+            }
+            jump_to_next_priority(ws->id, ws->id, ws->nworkers, locale);
         }
     }
 
@@ -833,9 +875,9 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
 
         for (j = 1; j < nworkers; j++) {
             const int victim = (wid + j) % nworkers;
-            const int priority = get_random_priority();
+            const int priority = get_random_priority(wid, victim, nworkers, locale);
             hclib_task_t *task = deque_steal(
-                    &(locale->priority_deques[victim][priority].deque));
+                    &(locale->priority_deques[victim * NUM_PRIORITY_LEVELS + priority].deque));
             if (task) {
 #ifdef VERBOSE
                 fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "

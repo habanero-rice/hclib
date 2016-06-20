@@ -69,7 +69,9 @@ typedef struct _hclib_locale_t {
     const char *lbl;
     void *metadata;
 
-    struct _hclib_deque_t **priority_deques;
+    struct _hclib_deque_t *priority_deques;
+
+    unsigned *priority_iters;
 } hclib_locale_t;
 
 typedef struct _hclib_locality_graph {
