@@ -64,7 +64,7 @@ int main (int argc, char ** argv) {
             hclib::future_t *event = hclib::nonblocking_finish([=]() {
                 loop_domain_t loop = {0, H1, 1, T1};
                 hclib::forasync1D(&loop, [=](int idx) {
-                        sleep(1);
+                        usleep(100000);
                         assert(ran[idx] == -1);
                         ran[idx] = idx;
                         printf("finished %d / %d\n", idx, H1);
