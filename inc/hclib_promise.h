@@ -20,9 +20,13 @@ class promise_t {
         }
 
         future_t *get_future() {
+            // FIXME - memory leak!
             return new future_t(&internal.future);
         }
 };
+
+HASSERT_STATIC(sizeof(promise_t) == sizeof(hclib_promise_t),
+        "promise_t is a trivial wrapper around hclib_promise_t");
 
 }
 
