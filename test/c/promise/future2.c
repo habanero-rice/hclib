@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void forasync_fct1(void *argv, int idx) {
     int *ran = (int *)argv;
 
-    sleep(1);
+    usleep(100000);
 
     assert(ran[idx] == -1);
     ran[idx] = idx;

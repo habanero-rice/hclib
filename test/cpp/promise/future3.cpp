@@ -65,7 +65,7 @@ int main (int argc, char ** argv) {
 
             hclib::future_t *event = hclib::forasync1D_future(&loop,
                     [=](int idx) {
-                        sleep(1);
+                        usleep(100000);
                         assert(ran[idx] == -1);
                         ran[idx] = idx;
                         printf("finished %d / %d\n", idx, H1);
