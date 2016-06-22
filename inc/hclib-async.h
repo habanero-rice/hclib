@@ -59,7 +59,7 @@ namespace hclib {
 /* raw function pointer for calling lambdas */
 template<typename T>
 void lambda_wrapper(void *arg) {
-    T* lambda = static_cast<T*>(arg);
+    T *lambda = static_cast<T*>(arg);
     MARK_BUSY(current_ws()->id);
     (*lambda)(); // !!! May cause a worker-swap !!!
     MARK_OVH(current_ws()->id);
@@ -76,13 +76,49 @@ struct lambda_await_args {
 template<typename T>
 void lambda_await_wrapper(void *raw_arg) {
     auto arg = static_cast<lambda_await_args<T>*>(raw_arg);
-    delete arg->future_list;
+    delete[] arg->future_list;
     MARK_BUSY(current_ws()->id);
     (*arg->lambda)(); // !!! May cause a worker-swap !!!
     MARK_OVH(current_ws()->id);
     delete arg->lambda;
     delete arg;
 }
+
+/* this version also puts the result of the lambda into a promise */
+template<typename T, typename R>
+struct LambdaFutureArgs {
+    T *lambda;
+    promise_t<R> *event;
+    hclib_future_t **future_list;
+};
+// NOTE: C++11 does not allow partial specialization of function templates,
+// so instead we have to do this awkward thing with static methods.
+template<typename T, typename R>
+struct LambdaFutureWrapper {
+    static void fn(void *raw_arg) {
+        auto arg = static_cast<LambdaFutureArgs<T,R>*>(raw_arg);
+        delete[] arg->future_list;
+        MARK_BUSY(current_ws()->id);
+        R res = (*arg->lambda)(); // !!! May cause a worker-swap !!!
+        MARK_OVH(current_ws()->id);
+        arg->event->put(res);
+        delete arg->lambda;
+        delete arg;
+    }
+};
+template<typename T>
+struct LambdaFutureWrapper<T, void> {
+    static void fn(void *raw_arg) {
+        auto arg = static_cast<LambdaFutureArgs<T, void>*>(raw_arg);
+        delete[] arg->future_list;
+        MARK_BUSY(current_ws()->id);
+        (*arg->lambda)(); // !!! May cause a worker-swap !!!
+        MARK_OVH(current_ws()->id);
+        arg->event->put();
+        delete arg->lambda;
+        delete arg;
+    }
+};
 
 /*
  * Yes, the name "async_at_hpt" sounds weird
@@ -153,38 +189,25 @@ inline void async_comm(T &&lambda) {
 }
 
 template <typename T>
-hclib::future_t<void> *async_future(T &&lambda) {
+auto async_future(T &&lambda) -> hclib::future_t<decltype(lambda())>* {
+    typedef decltype(lambda()) R;
+    typedef typename std::remove_reference<T>::type U;
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t<void> *event = new hclib::promise_t<void>();
-    /*
-     * TODO creating this closure may be inefficient. While the capture list is
-     * precise, if the user-provided lambda is large then copying it by value
-     * will also take extra time.
-     */
-    async([event, lambda]() {
-        lambda();
-        // FIXME - why does this have to be a void-type promise?
-        // we should be able to return a useful value from the lambda
-        event->put();
-    });
+    hclib::promise_t<R> *event = new hclib::promise_t<R>();
+    auto args = new LambdaFutureArgs<U,R> { new U(lambda), event, nullptr };
+    hclib_async(LambdaFutureWrapper<U,R>::fn, args, nullptr, nullptr, nullptr, 0);
     return event->get_future();
 }
 
 template <typename T, typename... future_list_t>
-hclib::future_t<void> *async_future_await(T &&lambda, future_list_t... futures) {
+auto async_future_await(T &&lambda, future_list_t... futures) -> hclib::future_t<decltype(lambda())>* {
+    typedef decltype(lambda()) R;
+    typedef typename std::remove_reference<T>::type U;
     // FIXME - memory leak? (no handle to destroy the promise)
-    hclib::promise_t<void> *event = new hclib::promise_t<void>();
-    /*
-     * TODO creating this closure may be inefficient. While the capture list is
-     * precise, if the user-provided lambda is large then copying it by value
-     * will also take extra time.
-     */
-    async_await([event, lambda]() {
-        lambda();
-        // FIXME - why does this get satisfied with null?
-        // we should be able to return a useful value from the lambda
-        event->put();
-    }, futures...);
+    hclib::promise_t<R> *event = new hclib::promise_t<R>();
+    hclib_future_t **fs = construct_future_list(futures...);
+    auto args = new LambdaFutureArgs<U,R> { new U(lambda), event, fs };
+    hclib_async(LambdaFutureWrapper<U,R>::fn, args, fs, nullptr, nullptr, 0);
     return event->get_future();
 }
 
