@@ -7,6 +7,7 @@ promise/asyncAwait?Shared
 promise/asyncAwait?Unique
 promise/future?
 promise/future?Float
+promise/future?Int
 finish?
 forasync?DCh
 forasync?DRec
