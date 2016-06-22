@@ -110,7 +110,7 @@ int main (int argc, char ** argv) {
     free(ran);
     printf("Counted %d copies, %d moves...\n",
             int(globalCopies), int(globalMoves));
-    //assert(globalCopies + globalMoves <= 2);
+    assert(globalCopies + globalMoves <= 2);
     printf("OK\n");
     return 0;
 }
