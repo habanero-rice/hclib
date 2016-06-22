@@ -56,6 +56,7 @@ namespace hclib {
  * TODO optimize that overhead.
  */
 
+/* raw function pointer for calling lambdas */
 template<typename T>
 void lambda_wrapper(void *arg) {
     T* lambda = static_cast<T*>(arg);
@@ -63,6 +64,24 @@ void lambda_wrapper(void *arg) {
     (*lambda)(); // !!! May cause a worker-swap !!!
     MARK_OVH(current_ws()->id);
     delete lambda;
+}
+
+
+/* this version also deletes a runtime-managed future list */
+template<typename T>
+struct lambda_await_args {
+    T* lambda;
+    hclib_future_t **future_list;
+};
+template<typename T>
+void lambda_await_wrapper(void *raw_arg) {
+    auto arg = static_cast<lambda_await_args<T>*>(raw_arg);
+    delete arg->future_list;
+    MARK_BUSY(current_ws()->id);
+    (*arg->lambda)(); // !!! May cause a worker-swap !!!
+    MARK_OVH(current_ws()->id);
+    delete arg->lambda;
+    delete arg;
 }
 
 /*
@@ -132,8 +151,10 @@ template <typename T, typename... future_list_t>
 inline void async_await(T &&lambda, future_list_t... futures) {
     MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-    hclib_async(lambda_wrapper<U>, new U(lambda),
-            construct_future_list(futures...), nullptr, nullptr, 0);
+    hclib_future_t **fs = construct_future_list(futures...);
+    lambda_await_args<U> *args = new lambda_await_args<U> { new U(lambda), fs };
+    hclib_async(lambda_await_wrapper<U>, args,
+            fs, nullptr, nullptr, 0);
 }
 
 template <typename T>
@@ -147,8 +168,10 @@ template <typename T, typename... future_list_t>
 inline void async_await_at(T &&lambda, place_t *pl, future_list_t... futures) {
     MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-    hclib_async(lambda_wrapper<U>, new U(lambda),
-            construct_future_list(futures...), nullptr, pl, 0);
+    hclib_future_t **fs = construct_future_list(futures...);
+    lambda_await_args<U> *args = new lambda_await_args<U> { new U(lambda), fs };
+    hclib_async(lambda_await_wrapper<U>, args,
+            fs, nullptr, pl, 0);
 }
 
 template <typename T>
