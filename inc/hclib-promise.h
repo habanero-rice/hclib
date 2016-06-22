@@ -78,10 +78,10 @@ struct hclib_task_t;
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
     hclib_future_t future;
-    promise_kind_t kind;
     void *volatile datum;
     // List of tasks that are awaiting the satisfaction of this promise
     struct hclib_task_t *volatile wait_list_head;
+    promise_kind_t kind;
 } hclib_promise_t;
 
 /**
