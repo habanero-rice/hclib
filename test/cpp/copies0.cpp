@@ -61,7 +61,7 @@ int main (int argc, char ** argv) {
                 printf("Counted %d copies, %d moves...\n", k.copies, k.moves);
                 // Copy 1: capturing "k" by-value into the lambda
                 // Copy 2: copying the lambda (and its closure) into the heap
-                //assert(k.copies + k.moves <= 2);
+                assert(k.copies + k.moves <= 2);
             });
         });
     });
