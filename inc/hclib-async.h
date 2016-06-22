@@ -111,40 +111,10 @@ inline void async_await(T &&lambda, hclib_future_t **fs) {
     hclib_async(lambda_wrapper<U>, new U(lambda), fs, nullptr, nullptr, 0);
 }
 
-inline int _count_futures() {
-    return 0;
-}
-template <typename... future_list_t>
-inline int _count_futures(hclib::future_t *future,
-        future_list_t... futures) {
-    return 1 + _count_futures(futures...);
-}
-template <typename... future_list_t>
-inline int count_futures(future_list_t... futures) {
-    return _count_futures(futures...);
-}
-
-inline void _construct_future_list(int index, hclib_future_t **future_list,
-        hclib::future_t *future) {
-    future_list[index] = future->internal;
-}
-template <typename... future_list_t>
-inline void _construct_future_list(int index, hclib_future_t **future_list,
-        hclib::future_t *future, future_list_t... remaining) {
-    future_list[index] = future->internal;
-    _construct_future_list(index + 1, future_list, remaining...);
-}
-
-template <typename... future_list_t>
-inline hclib_future_t **construct_future_list(future_list_t... futures) {
-    const int nfutures = count_futures(futures...);
-    // FIXME - memory leak! (and calling malloc from C++ code)
-    hclib_future_t **future_list = (hclib_future_t **)malloc(
-            (nfutures + 1) * sizeof(hclib_future_t *));
-    HASSERT(future_list);
-    _construct_future_list(0, future_list, futures...);
-    future_list[nfutures] = nullptr;
-    return future_list;
+template <typename... Ts>
+inline hclib_future_t **construct_future_list(Ts... futures) {
+    const size_t n = sizeof...(futures); // parameter pack count
+    return new hclib_future_t*[n+1] { futures..., nullptr };
 }
 
 template <typename T, typename... future_list_t>
