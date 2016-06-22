@@ -1161,6 +1161,7 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     HASSERT(current_finish->counter > 0);
 
     // Based on help_finish
+    // FIXME - memory leak!
     hclib_future_t **finish_deps = malloc(2 * sizeof(*finish_deps));
     HASSERT(finish_deps);
     finish_deps[0] = &event->future;

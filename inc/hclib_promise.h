@@ -6,25 +6,22 @@
 
 namespace hclib {
 
-class promise_t {
-    public:
-        hclib_promise_t internal;
+struct promise_t: public hclib_promise_t {
+    promise_t() {
+        hclib_promise_init(this);
+    }
+    ~promise_t() { }
 
-        promise_t() {
-            hclib_promise_init(&internal);
-        }
-        ~promise_t() { }
+    void put(void *datum) {
+        hclib_promise_put(this, datum);
+    }
 
-        void put(void *datum) {
-            hclib_promise_put(&internal, datum);
-        }
-
-        future_t *get_future() {
-            // FIXME - memory leak!
-            return new future_t(&internal.future);
-        }
+    future_t *get_future() {
+        return static_cast<future_t*>(&this->future);
+    }
 };
 
+// assert that we can safely cast back and forth between the C and C++ types
 HASSERT_STATIC(sizeof(promise_t) == sizeof(hclib_promise_t),
         "promise_t is a trivial wrapper around hclib_promise_t");
 

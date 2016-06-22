@@ -207,7 +207,7 @@ inline hclib::future_t *nonblocking_finish(T &&lambda) {
     hclib_start_finish();
     lambda();
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_end_finish_nonblocking_helper(&event->internal);
+    hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
