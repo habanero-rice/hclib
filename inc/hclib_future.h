@@ -5,26 +5,20 @@
 
 namespace hclib {
 
-class future_t {
-    public:
-        hclib_future_t *internal;
-        explicit future_t(hclib_future_t *set_internal) :
-            internal(set_internal) { }
-        ~future_t() { }
+struct future_t: public hclib_future_t {
+    void *get() {
+        return hclib_future_get(this);
+    }
 
-        void *get() {
-            return hclib_future_get(internal);
-        }
-
-        void *wait() {
-            return hclib_future_wait(internal);
-        }
+    void *wait() {
+        return hclib_future_wait(this);
+    }
 };
 
-// FIXME - we should be able to make future_t into a zero-overhead wrapper
-// around hclib_future_t, possibly via inheritance + static_cast
-//HASSERT_STATIC(std::is_pod<future_t>::value);
-//HASSERT_STATIC(sizeof(future_t) == sizeof(hclib_future_t));
+HASSERT_STATIC(std::is_pod<future_t>::value, "future_t is plain-old-datatype");
+// assert that we can safely cast back and forth between the C and C++ types
+HASSERT_STATIC(sizeof(future_t) == sizeof(hclib_future_t),
+        "future_t is a trivial wrapper around hclib_future_t");
 
 }
 

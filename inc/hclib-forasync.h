@@ -193,7 +193,7 @@ inline hclib::future_t *forasync1D_future(loop_domain_t* loop, T &&lambda,
             mode, place, future_list);
     // FIXME - memory leak? (no handle to destroy the promise)
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_end_finish_nonblocking_helper(&event->internal);
+    hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
@@ -206,7 +206,7 @@ inline hclib::future_t *forasync2D_future(loop_domain_t* loop, T &&lambda,
             mode, place, future_list);
     // FIXME - memory leak? (no handle to destroy the promise)
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_end_finish_nonblocking_helper(&event->internal);
+    hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
@@ -219,7 +219,7 @@ inline hclib::future_t *forasync3D_future(loop_domain_t* loop, T &&lambda,
             mode, place, future_list);
     // FIXME - memory leak? (no handle to destroy the promise)
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_end_finish_nonblocking_helper(&event->internal);
+    hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 
