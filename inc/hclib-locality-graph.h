@@ -56,8 +56,9 @@ extern "C" {
 #include <math.h>
 
 typedef unsigned hclib_priority_t;
-#define HIGHEST_PRIORITY 0
 #define NUM_PRIORITY_LEVELS 5
+#define HIGHEST_PRIORITY 0
+#define NORMAL_PRIORITY (NUM_PRIORITY_LEVELS / 2)
 #define LOWEST_PRIORITY ((NUM_PRIORITY_LEVELS) - 1)
 
 #define PRIORITY_DARTBOARD_SIZE (((int)exp2(NUM_PRIORITY_LEVELS)) - 1)

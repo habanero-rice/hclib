@@ -83,7 +83,7 @@ long * smem_global_lock_alloc() {
 }
 
 #define MAX_OMP_THREADS       32
-#define MAX_SHMEM_THREADS       64
+#define MAX_SHMEM_THREADS       128
 
 #define PUT_ALL(a,b)								\
 	do {						 			\
@@ -149,7 +149,8 @@ char debug_str[1000];
  * StealStack types                                        *
  ***********************************************************/
 
-#define MAXSTACKDEPTH 100000000
+// #define MAXSTACKDEPTH 100000000
+#define MAXSTACKDEPTH 10000000
 
 /* stack of nodes */
 struct stealStack_t
@@ -379,7 +380,6 @@ void ss_release_local(StealStack *s, int k) {
     s->local += k;
     s->workAvail += k;
     s->nRelease++;
-    // fprintf(stderr, "%d %d releasing %d local, top=%d local=%d sharedStart=%d workAvail=%d\n", shmem_my_pe(), omp_get_thread_num(), k, s->top, s->local, s->sharedStart, s->workAvail);
   }
   else
   {
@@ -407,7 +407,6 @@ void ss_release_remote(StealStack *local_ss, StealStack *remote_ss, int k) {
 
         local_ss->sharedStart += k;
         local_ss->workAvail -= k;
-    // fprintf(stderr, "%d %d releasing %d remote, remote_ss->top=%d remote_ss->local=%d remote_ss->sharedStart=%d remote_ss->workAvail=%d\n", shmem_my_pe(), omp_get_thread_num(), k, remote_ss->top, remote_ss->local, remote_ss->sharedStart, remote_ss->workAvail);
     }
 
     omp_unset_lock(local_ss->local_stackLock);
@@ -531,13 +530,21 @@ static int ss_steal(StealStack *this_ss, StealStack *victim_ss, int victim, int 
   
   /* if k elts reserved, move them to local portion of our stack */
   if (ok) {
-    Node * victimStackBase = victim_ss->stack_g;
-    Node * victimSharedStart = victimStackBase + victimShared;
+    Node * victimSharedStart = victim_ss->stack_g + victimShared;
 
     if (is_local) {
         memcpy(&(this_ss->stack[this_ss->top]), victimSharedStart,
                 k * sizeof(Node));
     } else {
+        void *local_dst = &(this_ss->stack[this_ss->top]);
+        void *remote_src = victimSharedStart;
+
+        assert(shmem_pe_accessible(victim));
+
+        // If you start getting errors from inside here or other shmem_getmem
+        // because of invalid parameters with a remote_address of NULL, it is
+        // likely because the passed variables are not symmetric (which may be
+        // because they are too large or the symmetric heap is too small.
         shmem_getmem(&(this_ss->stack[this_ss->top]), victimSharedStart,
                 k * sizeof(Node), victim);
     }
@@ -1116,7 +1123,8 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      */
     if (ss_acquire(local_ss, chunkSize)) {
 #ifdef VERBOSE
-        if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work locally\n", shmem_my_pe(), omp_get_thread_num());
+        if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work "
+                "locally\n", shmem_my_pe(), omp_get_thread_num());
         came_out_of_barrier = 0;
 #endif
         continue;
@@ -1126,7 +1134,10 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
     if (omp_get_thread_num() == 0) {
         if (ss_remote_acquire(remote_ss, local_ss, chunkSize)) {
 #ifdef VERBOSE
-            if (came_out_of_barrier) fprintf(stderr, "%d %d: acquired work remotely\n", shmem_my_pe(), omp_get_thread_num());
+            if (came_out_of_barrier) {
+                fprintf(stderr, "%d %d: acquired work remotely\n",
+                        shmem_my_pe(), omp_get_thread_num());
+            }
             came_out_of_barrier = 0;
 #endif
             continue;
@@ -1164,7 +1175,11 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
 
     if (goodSteal) {
 #ifdef VERBOSE
-        if (came_out_of_barrier) fprintf(stderr, "%d %d: stole from %s victim %d\n", shmem_my_pe(), omp_get_thread_num(), remote_victim ? "remote" : "local", victimId);
+        if (came_out_of_barrier) {
+            fprintf(stderr, "%d %d: stole from %s victim %d\n", shmem_my_pe(),
+                    omp_get_thread_num(), remote_victim ? "remote" : "local",
+                    victimId);
+        }
         came_out_of_barrier = 0;
 #endif
         continue;
@@ -1178,7 +1193,10 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
      */
     ss_setState(local_ss, SS_IDLE);
 #ifdef VERBOSE
-    if (came_out_of_barrier) fprintf(stderr, "%d %d: going straight back to barrier\n", shmem_my_pe(), omp_get_thread_num());
+    if (came_out_of_barrier) {
+        fprintf(stderr, "%d %d: going straight back to barrier\n",
+                shmem_my_pe(), omp_get_thread_num());
+    }
 #endif
     done = cbarrier_wait(local_ss);
 #ifdef VERBOSE
@@ -1329,7 +1347,7 @@ int main(int argc, char *argv[]) {
 #pragma omp single
   num_omp_threads = omp_get_num_threads();
 
-  assert(shmem_n_pes() < MAX_SHMEM_THREADS);
+  assert(shmem_n_pes() <= MAX_SHMEM_THREADS);
   assert(num_omp_threads < MAX_OMP_THREADS);
 
   if (shmem_my_pe() == 0) {
@@ -1345,6 +1363,14 @@ int main(int argc, char *argv[]) {
   ss_setup->remote_stackLock = smem_global_lock_alloc();
   ss_setup->local_stackLock = NULL;
   ss_init(ss_setup, MAXSTACKDEPTH);
+
+  if (shmem_my_pe() == 0) {
+      assert(shmem_addr_accessible(&chunkSize, 1));
+      assert(shmem_addr_accessible(ss_setup->stack_g, 1));
+  } else {
+      assert(shmem_addr_accessible(&chunkSize, 0));
+      assert(shmem_addr_accessible(ss_setup->stack_g, 0));
+  }
 
   int i, j;
   for (i = 1; i < shmem_n_pes(); i++) {

@@ -1071,7 +1071,6 @@ void genChildren(Node * parent, Node * child, StealStack * ss) {
       child->pp = parent;  // pointer to parent
 #endif
 
-    fprintf(stderr, "numChildren=%d\n", numChildren);
     for (i = 0; i < numChildren; i++) {
       for (j = 0; j < computeGranularity; j++) {
         // TBD:  add parent height to spawn

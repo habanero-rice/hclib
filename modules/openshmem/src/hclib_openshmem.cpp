@@ -55,9 +55,11 @@ static hclib::locale_t *get_locale_for_pe(int pe) {
 
     hclib::locale_t *new_locale = (hclib::locale_t *)malloc(
             sizeof(hclib::locale_t));
+    HASSERT(new_locale);
     new_locale->id = pe_to_locale_id(pe);
     new_locale->type = nic_locale_id;
     new_locale->lbl = (char *)malloc(strlen(name_buf) + 1);
+    HASSERT(new_locale->lbl);
     memcpy((void *)new_locale->lbl, name_buf, strlen(name_buf) + 1);
     new_locale->metadata = NULL;
     new_locale->priority_deques = NULL;
@@ -166,6 +168,7 @@ static lock_context_t *shmem_lock_helper(void *(*body)(void *), void *arg,
          * it.
          */
         ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
+        HASSERT(ctx);
         memset(ctx, 0x00, sizeof(lock_context_t));
 
         lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
@@ -178,7 +181,6 @@ static lock_context_t *shmem_lock_helper(void *(*body)(void *), void *arg,
     HASSERT(err == 0);
 
     hclib_future_wait(await);
-    HASSERT(ctx->live == NULL);
 
     return ctx;
 }
@@ -189,7 +191,8 @@ void hclib::shmem_set_lock(volatile long *lock) {
     lock_context_t *ctx = shmem_lock_helper(shmem_set_lock_impl, (void *)lock,
             lock, promise);
 
-    // Always successful
+    // Always successful in locking
+    HASSERT(ctx->live == NULL);
     ctx->live = promise;
 }
 
@@ -197,6 +200,7 @@ int hclib::shmem_test_lock(volatile long *lock) {
     hclib_promise_t *promise = hclib_promise_create();
 
     test_lock_ctx_t *ctx = (test_lock_ctx_t *)malloc(sizeof(test_lock_ctx_t));
+    HASSERT(ctx);
     ctx->lock = (long *)lock;
 
     lock_context_t *lock_ctx = shmem_lock_helper(shmem_test_lock_impl, ctx,
@@ -207,6 +211,7 @@ int hclib::shmem_test_lock(volatile long *lock) {
 
     if (result == 0) {
         // Successful lock
+        HASSERT(lock_ctx->live == NULL);
         lock_ctx->live = promise;
     } else {
         /*
@@ -276,6 +281,7 @@ void hclib::shmem_int_add(int *dest, int value, int pe) {
 long long hclib::shmem_longlong_fadd(long long *target, long long value,
         int pe) {
     long long *val_ptr = (long long *)malloc(sizeof(long long));
+    HASSERT(val_ptr);
     hclib::promise_t *promise = new hclib::promise_t();
 
     hclib::async_at(nic, [target, value, pe, promise, val_ptr] {
@@ -297,6 +303,7 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     hclib::async_at(nic, [dest, value, pe, promise] {
         const int fetched = ::shmem_int_fadd(dest, value, pe);
         int *heap_fetched = (int *)malloc(sizeof(int));
+        HASSERT(heap_fetched);
         *heap_fetched = fetched;
         promise->put((void *)heap_fetched);
     });
@@ -417,8 +424,10 @@ static void poll_on_waits() {
             waiting_on.erase(curr);
             if (wait_set->task) {
                 HASSERT(wait_set->signal == NULL);
+                // spawn_at(wait_set->task, hclib_get_closest_locale(),
+                //         FINISH_FREE, HIGHEST_PRIORITY);
                 spawn_at(wait_set->task, hclib_get_closest_locale(),
-                        FINISH_FREE, HIGHEST_PRIORITY);
+                        NONE, HIGHEST_PRIORITY);
             } else {
                 HASSERT(wait_set->task == NULL);
                 hclib_promise_put(wait_set->signal, NULL);

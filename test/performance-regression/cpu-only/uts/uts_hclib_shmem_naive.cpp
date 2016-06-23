@@ -46,14 +46,13 @@
 #define SHARED_INDEF
 #define VOLATILE         volatile
 #define MAX_OMP_THREADS       32
-#define MAX_SHMEM_THREADS     64
+#define MAX_SHMEM_THREADS     128
 #define LOCK_T           omp_lock_t
 #define GET_NUM_THREADS  hclib::num_workers()
 #define GET_THREAD_NUM   hclib::get_current_worker()
 #define SET_LOCK(zlk)    omp_set_lock(zlk)
 #define UNSET_LOCK(zlk)  omp_unset_lock(zlk)
 #define SMEMCPY          memcpy
-#define ALLOC            malloc
 #define BARRIER          
 
 #else
@@ -66,7 +65,7 @@
  ***********************************************************/
 
 int doSteal   = PARALLEL; // 1 => use work stealing
-int chunkSize = 20;       // number of nodes to move to/from shared area
+int chunkSize = 30;       // number of nodes to move to/from shared area
 int cbint     = 1;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
 
@@ -86,7 +85,7 @@ typedef struct _per_thread_info {
 } per_thread_info;
 per_thread_info thread_info[MAX_OMP_THREADS];
 
-#define N_BUFFERED_STEALS 16
+#define N_BUFFERED_STEALS 32
 Node steal_buffer[N_BUFFERED_STEALS];
 volatile int n_buffered_steals = 0;
 long steal_buffer_locks[MAX_SHMEM_THREADS];

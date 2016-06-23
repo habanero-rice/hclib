@@ -413,9 +413,13 @@ void load_locality_info(const char *filename, int *nworkers_out,
 
     const char *nworkers_str = getenv("HCLIB_WORKERS");
     if (nworkers_str) {
-        nworkers = atoi(nworkers_str);
-        fprintf(stderr, "WARNING: Overloading # workers set in locality file "
-                "from HCLIB_WORKERS environment variable\n");
+        const int from_env = atoi(nworkers_str);
+        if (from_env != nworkers) {
+            fprintf(stderr, "WARNING: Overloading # workers set in locality file "
+                    "(%d) from HCLIB_WORKERS environment variable (%d)\n", nworkers,
+                    from_env);
+            nworkers = from_env;
+        }
     }
 
     // Declarations field of top-level object
@@ -815,7 +819,7 @@ static inline void jump_to_next_priority(const int worker,
  * traversing its pop path and only looking at deques owned by this worker.
  */
 hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
-    int i;
+    int l, p;
     const int wid = ws->id;
     hclib_worker_paths *paths = ws->paths;
     hclib_locality_path *pop = paths->pop_path;

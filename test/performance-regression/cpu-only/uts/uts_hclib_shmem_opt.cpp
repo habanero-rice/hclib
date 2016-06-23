@@ -746,8 +746,10 @@ static int try_steal(int victim, int known_values_index) {
 int neighbor_checks = 0;
 int successful_neighbor_checks = 0;
 int done_signals = 0;
+double time_checking_neighbors = 0.0;
 
 void check_on_neighbors() {
+    const double start = uts_wctime();
     neighbor_checks++;
 
     // For now, assert at least one PE
@@ -798,6 +800,8 @@ void check_on_neighbors() {
 
 
     hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
+
+    time_checking_neighbors += (uts_wctime() - start);
 
     if (signal_on_done) {
         done_signals++;
@@ -896,11 +900,6 @@ int main(int argc, char *argv[]) {
         above = get_pe_above(above);
       }
 
-      hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE,
-              last_known_values, 2 * STEAL_RADIUS + 1, [] {
-                  check_on_neighbors();
-              });
-
       /* determine benchmark parameters (all PEs) */
       uts_parseParams(argc, argv);
 
@@ -911,7 +910,8 @@ int main(int argc, char *argv[]) {
 #endif  
 
       double t1, t2, et;
-      double time_in_remote_steal;
+      double time_in_remote_steal = 0.0;
+      double time_waiting_on_wait = 0.0;
 
       /* show parameter settings */
       if (pe == 0) {
@@ -929,6 +929,11 @@ int main(int argc, char *argv[]) {
       int n_omp_threads = hclib::num_workers();
       assert(n_omp_threads <= MAX_OMP_THREADS);
 
+              hclib::shmem_int_async_when_any(listen_to, SHMEM_CMP_NE,
+                      last_known_values, 2 * STEAL_RADIUS + 1, [] {
+                          check_on_neighbors();
+                      });
+
     /********** SPMD Parallel Region **********/
       int first = 1;
       int loops = 1;
@@ -940,6 +945,7 @@ retry:
       hclib::finish([&first, &root, &child] {
 
           if (first) {
+
               if (pe == 0) {
                   genChildren(&root, &child);
               }
@@ -959,9 +965,12 @@ retry:
       } else {
           hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
 
+
           HASSERT(signal_on_done == NULL);
           signal_on_done = new hclib::promise_t();
+          double start_wait = uts_wctime();
           signal_on_done->get_future()->wait();
+          time_waiting_on_wait += (uts_wctime() - start_wait);
           signal_on_done = NULL;
 
           hclib::shmem_set_lock(&steal_buffer_locks[pe]);
@@ -1031,9 +1040,9 @@ retry:
                   printf("PE %d, thread %d: %lu tasks\n", p, i, t_metadata[i].ntasks);
               }
               printf("PE %d: %d neighbor checks, %d were successful, %d done "
-                      "signals. %f s in remote steal, %f s in final barrier\n",
+                      "signals. %f s in remote steal, %f s in final barrier, %f s waiting on wait, %f s checking neighbors\n",
                       pe, neighbor_checks, successful_neighbor_checks, done_signals,
-                      time_in_remote_steal, time_in_final_barrier);
+                      time_in_remote_steal, time_in_final_barrier, time_waiting_on_wait, time_checking_neighbors);
           }
           hclib::shmem_barrier_all();
       }
