@@ -829,8 +829,8 @@ hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
             wid, pop, pop->path_length);
 #endif
 
-    for (i = 0; i < pop->path_length; i++) {
-        hclib_locale_t *locale = pop->locales[i];
+    for (l = 0; l < pop->path_length; l++) {
+        hclib_locale_t *locale = pop->locales[l];
 
         int p;
         for (p = 0; p < NUM_PRIORITY_LEVELS; p++) {
