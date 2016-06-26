@@ -103,9 +103,19 @@ inline void execute_hcupc_lambda(T* lambda) {
 			 * If a lambda is heap allocated then the pointer will not be valid at
 			 * remote place. Due to this we have to first copy the content of this
 			 * lambda into a stack allocated lambda.
+			 *
+			 * XXX - This description doesn't make any sense to me.
+			 * There's no way in C++ to differentiate a pointer to
+			 * an object with dynamic vs automatic storage duration,
+			 * so I don't see how this could be true. To further
+			 * complicate this, we're currently using heap-allocated
+			 * stacks for our fibers, so everything is in the heap
+			 * (i.e., even address-range-checking wouldn't work for
+			 * differentiating between stack and heap). This will
+			 * need to be refactored later, but I need to find out
+			 * what exactly it's supposed to be doing first.
 			 */
 
-			// FIXME - what the heck is this doing???
 			/*
 			 * 1. Copy into a char array.
 			 * This user lambda does not have a default constructor / copy constructor and hence we cannot
