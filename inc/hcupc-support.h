@@ -105,6 +105,7 @@ inline void execute_hcupc_lambda(T* lambda) {
 			 * lambda into a stack allocated lambda.
 			 */
 
+			// FIXME - what the heck is this doing???
 			/*
 			 * 1. Copy into a char array.
 			 * This user lambda does not have a default constructor / copy constructor and hence we cannot
@@ -121,15 +122,19 @@ inline void execute_hcupc_lambda(T* lambda) {
 			memcpy(commWorkerAsyncAny_infoStruct->ptr_to_outgoingAsyncAny, &tmp, sizeof(remoteAsyncAny_task));
 		}
 	}
-	HC_FREE((void*)lambda);
+	// FIXME - this whole call chain is kind of a mess
+	// leaving C malloc/free and memcpy calls for now (come back to fix it later)
+	free((void*)lambda);
 }
 
 template <typename T>
 inline hclib_task_t* _allocate_async_hcupc(T lambda, bool await) {
+	// FIXME - this whole call chain is kind of a mess
+	// leaving C malloc/free and memcpy calls for now (come back to fix it later)
 	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
-	hclib_task_t* task = (hclib_task_t*) HC_MALLOC(hclib_task_size);
+	hclib_task_t* task = (hclib_task_t*) malloc(hclib_task_size);
 	const size_t lambda_size = sizeof(T);
-	T* lambda_onHeap = (T*) HC_MALLOC(lambda_size);
+	T* lambda_onHeap = (T*) malloc(lambda_size);
 	memcpy(lambda_onHeap, &lambda, lambda_size);
 	hclib_task_t t = hclib_task_t(execute_hcupc_lambda<T>, lambda_onHeap);
 	memcpy(task, &t, sizeof(hclib_task_t));

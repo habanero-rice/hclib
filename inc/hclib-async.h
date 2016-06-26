@@ -64,7 +64,9 @@ inline void call_lambda(T* lambda) {
 	const int wid = current_ws()->id;
 	MARK_BUSY(wid);
 	(*lambda)();
-	HC_FREE((void*) lambda);
+    // FIXME - this whole call chain is kind of a mess
+    // leaving C malloc/free and memcpy calls for now (come back to fix it later)
+	free(lambda);
 	MARK_OVH(wid);
 }
 
@@ -113,15 +115,17 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
 
 template <typename T>
 inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
+    // FIXME - this whole call chain is kind of a mess
+    // leaving C malloc/free and memcpy calls for now (come back to fix it later)
 	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
     // create off-stack storage for this task
-	hclib_task_t* task = (hclib_task_t*)HC_MALLOC(hclib_task_size);
+	hclib_task_t* task = (hclib_task_t*)malloc(hclib_task_size);
 	const size_t lambda_size = sizeof(T);
     /*
      * create off-stack storage for the lambda object (including its captured
      * variables), which will be pointed to from the task_t.
      */
-	T* lambda_on_heap = (T*)HC_MALLOC(lambda_size);
+	T* lambda_on_heap = (T*)malloc(lambda_size);
 	memcpy(lambda_on_heap, &lambda, lambda_size);
 
     hclib_task_t t;

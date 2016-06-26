@@ -730,7 +730,7 @@ void *gpu_worker_routine(void *finish_ptr) {
                 hclib_promise_put(task->promise_to_put, task->arg_to_put);
             }
 
-            // HC_FREE(task);
+            // free(task);
         }
 
         /*
