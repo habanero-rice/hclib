@@ -5,9 +5,9 @@ DATASETS["rodinia/backprop/backprop,small"]="65536"
 DATASETS["rodinia/backprop/backprop,large"]="4194304"
 DATASETS["rodinia/bfs/bfs,small"]="4 $RODINIA_DATA_DIR/bfs/graph1MW_6.txt"
 DATASETS["rodinia/bfs/bfs,large"]="4 $RODINIA_DATA_DIR/bfs/graph16M.txt"
-DATASETS["rodinia/b+tree/b+tree.out,large"]="core 2 file rodinia/b+tree/mil.txt command rodinia/b+tree/command.txt"
+DATASETS["rodinia/b+tree/b+tree.out,large"]="core 2 file $RODINIA_DATA_DIR/b+tree/mil.txt command $RODINIA_DATA_DIR/b+tree/command.txt"
 DATASETS["rodinia/cfd/euler3d_cpu_double,large"]="rodinia/cfd/fvcorr.domn.193K"
-DATASETS["rodinia/heartwall/heartwall,large"]="rodinia/heartwall/test.avi 20 4"
+DATASETS["rodinia/heartwall/heartwall,large"]="$RODINIA_DATA_DIR/heartwall/test.avi 20 4"
 DATASETS["rodinia/hotspot/hotspot,small"]="1024 1024 2 4 $RODINIA_DATA_DIR/hotspot/temp_1024 $RODINIA_DATA_DIR/hotspot/power_1024 $RODINIA_DATA_DIR/hotspot/output.out"
 DATASETS["rodinia/hotspot/hotspot,large"]="8192 8192 2 4 $RODINIA_DATA_DIR/hotspot/temp_8192 $RODINIA_DATA_DIR/hotspot/power_8192 $RODINIA_DATA_DIR/hotspot/output.out"
 DATASETS["rodinia/hotspot3D/3D,small"]="64 8 100 $RODINIA_DATA_DIR/hotspot3D/power_64x8 $RODINIA_DATA_DIR/hotspot3D/temp_64x8 output.out"
@@ -51,8 +51,6 @@ DATASETS["bots/sparselu_single/sparselu.icc.single-omp-tasks,small"]="-n 50"
 DATASETS["bots/sparselu_single/sparselu.icc.single-omp-tasks,large"]="-n 100"
 DATASETS["bots/strassen/strassen.icc.omp-tasks,small"]="-n 1024"
 DATASETS["bots/strassen/strassen.icc.omp-tasks,large"]="-n 4096"
-DATASETS["bots/uts/uts.icc.omp-tasks,small"]="-f $BOTS_ROOT/inputs/uts/tiny.input"
-DATASETS["bots/uts/uts.icc.omp-tasks,large"]="-f $BOTS_ROOT/inputs/uts/small.input"
 DATASETS["kastors-1.1/jacobi/jacobi-task,small"]="-c -i 100"
 DATASETS["kastors-1.1/jacobi/jacobi-task,large"]="-c -i 200"
 DATASETS["kastors-1.1/jacobi/jacobi-block-task,small"]="-c -i 100"
@@ -61,3 +59,45 @@ DATASETS["kastors-1.1/jacobi/jacobi-block-for,small"]="-c -i 100"
 DATASETS["kastors-1.1/jacobi/jacobi-block-for,large"]="-c -i 200"
 
 STYLES='tied.recursive tied.flat untied.flat untied.recursive'
+
+function setup_data_directories() {
+    if [[ -z "$RODINIA_DATA_DIR" ]]; then
+        echo RODINIA_DATA_DIR must be set
+        exit 1
+    fi
+
+    rm -r -f $RODINIA_DATA_DIR
+    mkdir -p $(dirname $RODINIA_DATA_DIR)
+
+    OLD_DIR=$(pwd)
+    cd /tmp/
+    rm -f -r rodinia_3.1*
+    wget http://www.cs.virginia.edu/~kw5na/lava/Rodinia/Packages/Current/rodinia_3.1.tar.bz2
+    tar xf rodinia_3.1.tar.bz2
+    cd $OLD_DIR
+
+    cp -rf /tmp/rodinia_3.1/data $RODINIA_DATA_DIR
+
+    # BFS
+    echo Generating BFS datasets
+    cd $RODINIA_DATA_DIR/bfs/inputGen
+    cat graphgen.cpp | grep -v 'define LINEAR' | grep -v 'define UNIFORM' > tmp
+    echo '#define LINEAR_CONGRUENTIAL_ENGINE linear_congruential_engine' > graphgen.cpp
+    echo '#define UNIFORM_INT_DISTRIBUTION uniform_int_distribution' >> graphgen.cpp
+    cat tmp >> graphgen.cpp
+    make
+    ./graphgen 16777216 16M
+    mv graph16M.txt ../
+
+    # Hotspot
+    echo Generating Hotspot datasets
+    cd $RODINIA_DATA_DIR/hotspot/inputGen
+    cat hotspotex.cpp | grep -v 'include "' > tmp
+    echo '#include "1024_8192.h"' > hotspotex.cpp
+    cat tmp >> hotspotex.cpp
+    make
+    cd ../
+    ./inputGen/hotspotex
+
+    cd $OLD_DIR
+}

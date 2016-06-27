@@ -1,2 +1,14 @@
-pathfinder
-pathfinder.ref
+pathfinder.flat
+pathfinder.hpcstruct
+pathfinder.recursive
+pathfinder.ref.hpcstruct
+pathfinder.ref.tied
+pathfinder.ref.tied.flat
+pathfinder.ref.tied.recursive
+pathfinder.ref.untied
+pathfinder.ref.untied.flat
+pathfinder.ref.untied.recursive
+pathfinder.tied.flat
+pathfinder.tied.recursive
+pathfinder.untied.flat
+pathfinder.untied.recursive

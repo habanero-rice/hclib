@@ -1,3 +1,15 @@
 heartwall
 heartwall.ref
 *.o
+heartwall.flat
+heartwall.recursive
+heartwall.ref.tied
+heartwall.ref.tied.flat
+heartwall.ref.tied.recursive
+heartwall.ref.untied
+heartwall.ref.untied.flat
+heartwall.ref.untied.recursive
+heartwall.tied.flat
+heartwall.tied.recursive
+heartwall.untied.flat
+heartwall.untied.recursive

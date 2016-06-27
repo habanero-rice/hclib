@@ -1,3 +1,16 @@
 bfs
 bfs.ref
 result.txt
+bfs.flat
+bfs.recursive
+bfs.ref.hpcstruct
+bfs.ref.tied
+bfs.ref.tied.flat
+bfs.ref.tied.recursive
+bfs.ref.untied
+bfs.ref.untied.flat
+bfs.ref.untied.recursive
+bfs.tied.flat
+bfs.tied.recursive
+bfs.untied.flat
+bfs.untied.recursive

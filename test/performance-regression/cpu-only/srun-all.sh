@@ -18,6 +18,8 @@
 
 set -e
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 source datasets.sh
 
 MEDIAN_PY=../../../tools/median.py
@@ -29,13 +31,17 @@ if [[ -z "$RODINIA_DATA_DIR" ]]; then
     exit 1
 fi
 
+if [[ ! -d $RODINIA_DATA_DIR ]]; then
+    setup_data_directories
+fi
+
 if [[ -z "$BOTS_ROOT" ]]; then
     echo BOTS_ROOT must be set to the root directory of the BOTS benchmark suite
     exit 1
 fi
 
 if [[ -z "$NTRIALS" ]]; then
-    NTRIALS=10
+    NTRIALS=5
 fi
 
 if [[ $# -ge 1 ]]; then
@@ -65,22 +71,18 @@ set -e
 PATH=.:${PATH}
 
 mkdir -p regression-logs-$MACHINE
-if [[ $RUNNING_UNDER_SLURM == 1 ]]; then
-    LOG_FILE=regression-logs-$MACHINE/$TIMESTAMP.dat
-else
-    LOG_FILE=regression-logs-$MACHINE/$TIMESTAMP.ignore
-fi
+LOG_FILE=regression-logs-$MACHINE/$TIMESTAMP.dat
 REFERENCE_LOG_FILE=$(ls -lrt regression-logs-$MACHINE/ | grep dat | tail -n 1 | awk '{ print $9 }') 
 touch $LOG_FILE
 
 mkdir -p srun_test_logs
 
+module purge
+source ~/.bash_profile
+
 export LD_LIBRARY_PATH=/opt/apps/software/Core/icc/2015.2.164/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4:$LD_LIBRARY_PATH
 
-# for TEST in "srad,large" "floorplan.icc.omp-tasks,large" "particle_filter,small" "sparselu.icc.for-omp-tasks,small" "b+tree.out,large" "sparselu.icc.for-omp-tasks,large"; do
-for TEST in "rodinia/srad/srad,small" "bots/floorplan/floorplan.icc.omp-tasks,small"; do
-# for TEST in "${!DATASETS[@]}"; do
-# for TEST in "bots/alignment_for/alignment.icc.for-omp-tasks,small"; do
+for TEST in "${!DATASETS[@]}"; do
     # Run both flat and recursive versions of the HCLIB benchmarks. Run both
     # tied and untied versions of the OMP benchmarks.
     TEST_EXE=$(echo $TEST | awk -F ',' '{ print $1 }')
@@ -103,12 +105,12 @@ for TEST in "rodinia/srad/srad,small" "bots/floorplan/floorplan.icc.omp-tasks,sm
 
     echo "Running $TESTNAME ($TEST_SIZE) from $(pwd)"
 
-    srun -N 1 --cpus-per-task=12 --exclusive --mem=48000 -p interactive \
-                              --time=00:30:00 ./srun_one.sh $NTRIALS "$TEST_ARGS" \
-                              $TEST_EXE.flat $TEST_FLAT_LOG \
-                              $TEST_EXE.recursive $TEST_RECURSIVE_LOG \
-                              $REF_EXE.tied $REF_TIED_LOG \
-                              $REF_EXE.untied $REF_UNTIED_LOG &
+    srun -N 1 --cpus-per-task=12 --exclusive --mem=48000 -p commons -D /tmp \
+                              --time=01:00:00 $SCRIPT_DIR/srun_one.sh $NTRIALS "$TEST_ARGS" \
+                              $SCRIPT_DIR/$TEST_EXE.flat $SCRIPT_DIR/$TEST_FLAT_LOG \
+                              $SCRIPT_DIR/$TEST_EXE.recursive $SCRIPT_DIR/$TEST_RECURSIVE_LOG \
+                              $SCRIPT_DIR/$REF_EXE.tied $SCRIPT_DIR/$REF_TIED_LOG \
+                              $SCRIPT_DIR/$REF_EXE.untied $SCRIPT_DIR/$REF_UNTIED_LOG &
 done
 
 wait
@@ -153,19 +155,50 @@ for TEST in "${!DATASETS[@]}"; do
     echo $TESTNAME,$TEST_SIZE $FLAT_MEAN $FLAT_STD $RECURSIVE_MEAN $RECURSIVE_STD $TIED_MEAN $TIED_STD $UNTIED_MEAN $UNTIED_STD >> $LOG_FILE
 done
 
-# if [[ -z "$REFERENCE_LOG_FILE" || ! -f regression-logs-$MACHINE/$REFERENCE_LOG_FILE ]]; then
-#     echo No available reference peformance information
-#     exit 1
-# fi
-# 
-# while read LINE; do
-#     BENCHMARK=$(basename $(echo $LINE | awk '{ print $1 }'))
-#     NEW_T=$(echo $LINE | awk '{ print $2 }')
-#     OLD_T=$(cat regression-logs-$MACHINE/$REFERENCE_LOG_FILE | grep "^$BENCHMARK " | awk '{ print $2 }')
-#     if [[ -z "$OLD_T" ]]; then
-#         echo Unable to find an older run of \'$BENCHMARK\' to compare against
-#     else
-#         NEW_SPEEDUP=$(echo $OLD_T / $NEW_T | bc -l)
-#         echo $BENCHMARK $NEW_SPEEDUP
-#     fi
-# done < $LOG_FILE
+if [[ -z "$REFERENCE_LOG_FILE" || ! -f regression-logs-$MACHINE/$REFERENCE_LOG_FILE ]]; then
+    echo No available reference peformance information
+    exit 1
+fi
+
+while read LINE; do
+    BENCHMARK=$(basename $(echo $LINE | awk '{ print $1 }'))
+    NEW_FLAT_T=$(echo $LINE | awk '{ print $2 }')
+    NEW_RECURSIVE_T=$(echo $LINE | awk '{ print $4 }')
+    OLD_FLAT_T=$(cat regression-logs-$MACHINE/$REFERENCE_LOG_FILE | grep "^$BENCHMARK " | awk '{ print $2 }')
+    OLD_RECURSIVE_T=$(cat regression-logs-$MACHINE/$REFERENCE_LOG_FILE | grep "^$BENCHMARK " | awk '{ print $4 }')
+
+    if [[ -z "$OLD_FLAT_T" ]]; then
+        echo Unable to find an older run of \'$BENCHMARK\' to compare against
+    else
+        NEW_FLAT_SPEEDUP=$(echo $OLD_FLAT_T / $NEW_FLAT_T | bc -l)
+        NEW_RECURSIVE_SPEEDUP=$(echo $OLD_RECURSIVE_T / $NEW_RECURSIVE_T | bc -l)
+        echo $BENCHMARK : flat ${NEW_FLAT_SPEEDUP}x, recursive ${NEW_RECURSIVE_SPEEDUP}x
+    fi
+done < $LOG_FILE
+
+echo
+
+while read LINE; do
+    BENCHMARK=$(basename $(echo $LINE | awk '{ print $1 }'))
+    NEW_FLAT_T=$(echo $LINE | awk '{ print $2 }')
+    NEW_RECURSIVE_T=$(echo $LINE | awk '{ print $4 }')
+    OLD_FLAT_T=$(cat regression-logs-$MACHINE/$REFERENCE_LOG_FILE | grep "^$BENCHMARK " | awk '{ print $2 }')
+    OLD_RECURSIVE_T=$(cat regression-logs-$MACHINE/$REFERENCE_LOG_FILE | grep "^$BENCHMARK " | awk '{ print $4 }')
+
+    if [[ -z "$OLD_FLAT_T" ]]; then
+        echo Unable to find an older run of \'$BENCHMARK\' to compare against
+    else
+        NEW_FLAT_SPEEDUP=$(echo $OLD_FLAT_T / $NEW_FLAT_T - 1.0 | bc -l)
+        NEW_RECURSIVE_SPEEDUP=$(echo $OLD_RECURSIVE_T / $NEW_RECURSIVE_T - 1.0 | bc -l)
+        NORMALIZED_FLAT_SPEEDUP=${NEW_FLAT_SPEEDUP#-}
+        NORMALIZED_RECURSIVE_SPEEDUP=${NEW_RECURSIVE_SPEEDUP#-}
+
+        FLAT_ABOVE_THRESHOLD=$(echo $NORMALIZED_FLAT_SPEEDUP '>' 0.05 | bc -l)
+        RECURSIVE_ABOVE_THRESHOLD=$(echo $NORMALIZED_RECURSIVE_SPEEDUP '>' 0.05 | bc -l)
+
+        if [[ $FLAT_ABOVE_THRESHOLD -eq 1 || $RECURSIVE_ABOVE_THRESHOLD -eq 1 ]]; then
+            echo WARNING $BENCHMARK : flat ${NEW_FLAT_SPEEDUP}x, recursive ${NEW_RECURSIVE_SPEEDUP}x
+        fi
+
+    fi
+done < $LOG_FILE

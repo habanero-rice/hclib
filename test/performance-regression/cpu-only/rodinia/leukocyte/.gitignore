@@ -3,3 +3,15 @@
 leukocyte
 leukocyte.ref
 *.a
+OpenMP/leukocyte.flat
+OpenMP/leukocyte.recursive
+OpenMP/leukocyte.ref.tied
+OpenMP/leukocyte.ref.tied.flat
+OpenMP/leukocyte.ref.tied.recursive
+OpenMP/leukocyte.ref.untied
+OpenMP/leukocyte.ref.untied.flat
+OpenMP/leukocyte.ref.untied.recursive
+OpenMP/leukocyte.tied.flat
+OpenMP/leukocyte.tied.recursive
+OpenMP/leukocyte.untied.flat
+OpenMP/leukocyte.untied.recursive

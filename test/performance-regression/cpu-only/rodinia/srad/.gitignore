@@ -1,2 +1,15 @@
-srad
-srad.ref
+srad.balance
+srad.flat
+srad.recursive
+srad.recursive.hpcstruct
+srad.ref.tied
+srad.ref.tied.flat
+srad.ref.tied.hpcstruct
+srad.ref.tied.recursive
+srad.ref.untied
+srad.ref.untied.flat
+srad.ref.untied.recursive
+srad.tied.flat
+srad.tied.recursive
+srad.untied.flat
+srad.untied.recursive

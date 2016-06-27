@@ -1,3 +1,15 @@
 b+tree.out
 b+tree.out.ref
 *.o
+b+tree.out.flat
+b+tree.out.recursive
+b+tree.out.ref.tied
+b+tree.out.ref.tied.flat
+b+tree.out.ref.tied.recursive
+b+tree.out.ref.untied
+b+tree.out.ref.untied.flat
+b+tree.out.ref.untied.recursive
+b+tree.out.tied.flat
+b+tree.out.tied.recursive
+b+tree.out.untied.flat
+b+tree.out.untied.recursive

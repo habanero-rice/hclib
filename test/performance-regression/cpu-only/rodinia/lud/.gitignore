@@ -1,3 +1,15 @@
 *.o
 omp/lud_omp
 omp/lud_omp.ref
+omp/lud_omp.flat
+omp/lud_omp.recursive
+omp/lud_omp.ref.tied
+omp/lud_omp.ref.tied.flat
+omp/lud_omp.ref.tied.recursive
+omp/lud_omp.ref.untied
+omp/lud_omp.ref.untied.flat
+omp/lud_omp.ref.untied.recursive
+omp/lud_omp.tied.flat
+omp/lud_omp.tied.recursive
+omp/lud_omp.untied.flat
+omp/lud_omp.untied.recursive

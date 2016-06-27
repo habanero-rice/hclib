@@ -1,2 +1,12 @@
-sc_omp
-sc_omp.ref
+sc_omp.flat
+sc_omp.recursive
+sc_omp.ref.tied
+sc_omp.ref.tied.flat
+sc_omp.ref.tied.recursive
+sc_omp.ref.untied
+sc_omp.ref.untied.flat
+sc_omp.ref.untied.recursive
+sc_omp.tied.flat
+sc_omp.tied.recursive
+sc_omp.untied.flat
+sc_omp.untied.recursive

@@ -1,2 +1,14 @@
 hotspot
 hotspot.ref
+hotspot.flat
+hotspot.recursive
+hotspot.ref.tied
+hotspot.ref.tied.flat
+hotspot.ref.tied.recursive
+hotspot.ref.untied
+hotspot.ref.untied.flat
+hotspot.ref.untied.recursive
+hotspot.tied.flat
+hotspot.tied.recursive
+hotspot.untied.flat
+hotspot.untied.recursive

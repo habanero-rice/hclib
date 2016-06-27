@@ -5,8 +5,8 @@ export LIBXML2_INCLUDE=$HOME/libxml2/include/libxml2
 export LIBXML2_LIBS=$HOME/libxml2/lib
 export BASE=/home/jmg3/degas/hcpp
 # export HC_CUDA_FLAGS=--enable-cuda
-export CC=icc
-export CXX=icpc
+export CC=gcc
+export CXX=g++
 
 ################################################
 #

@@ -1,3 +1,15 @@
 backprop
 backprop.ref
 *.o
+backprop.flat
+backprop.recursive
+backprop.ref.tied
+backprop.ref.tied.flat
+backprop.ref.tied.recursive
+backprop.ref.untied
+backprop.ref.untied.flat
+backprop.ref.untied.recursive
+backprop.tied.flat
+backprop.tied.recursive
+backprop.untied.flat
+backprop.untied.recursive

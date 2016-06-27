@@ -1,3 +1,15 @@
 *.o
 lavaMD
 lavaMD.ref
+lavaMD.flat
+lavaMD.recursive
+lavaMD.ref.tied
+lavaMD.ref.tied.flat
+lavaMD.ref.tied.recursive
+lavaMD.ref.untied
+lavaMD.ref.untied.flat
+lavaMD.ref.untied.recursive
+lavaMD.tied.flat
+lavaMD.tied.recursive
+lavaMD.untied.flat
+lavaMD.untied.recursive

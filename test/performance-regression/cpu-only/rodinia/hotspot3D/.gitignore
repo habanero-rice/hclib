@@ -1,2 +1,16 @@
 3D
 3D.ref
+3D.flat
+3D.recursive
+3D.recursive.hpcstruct
+3D.ref.tied
+3D.ref.tied.flat
+3D.ref.tied.recursive
+3D.ref.untied
+3D.ref.untied.flat
+3D.ref.untied.hpcstruct
+3D.ref.untied.recursive
+3D.tied.flat
+3D.tied.recursive
+3D.untied.flat
+3D.untied.recursive
