@@ -18,12 +18,6 @@
  * Hash map.
  */
 
-/*
- * We have removed code for locking/unlocking a hashmap as we don't need concurrent
- * access to the hashmap in hclib. All objects that could get isolated_access
- * would be malloced and registered outside the finish block.
- */
-
 #ifndef __HASHMAP_H
 #define __HASHMAP_H
 
@@ -106,6 +100,20 @@ size_t hashmapSize(Hashmap* map);
 void hashmapForEach(Hashmap* map, 
         bool (*callback)(void* key, void* value, void* context),
         void* context);
+
+/**
+ * Concurrency support.
+ */
+
+/**
+ * Locks the hash map so only the current thread can access it.
+ */
+void hashmapLock(Hashmap* map);
+
+/**
+ * Unlocks the hash map so other threads can access it.
+ */
+void hashmapUnlock(Hashmap* map);
 
 /**
  * Key utilities.
