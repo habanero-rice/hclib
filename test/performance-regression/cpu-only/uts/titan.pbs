@@ -3,8 +3,8 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:20:00
-#PBS -l nodes=128
+#PBS -l walltime=00:10:00
+#PBS -l nodes=1024
 #PBS -V
 
 # export GASNET_MAX_SEGSIZE='512MB'
@@ -13,7 +13,7 @@ source sample_trees.sh
 
 export LD_LIBRARY_PATH=/opt/gcc/4.9.0/snos/lib64:$LD_LIBRARY_PATH
 
-for NODES in 64 128; do
+for NODES in 1024; do
     for THREADS in 16; do
         export OMP_NUM_THREADS=$THREADS
         export HCLIB_WORKERS=$THREADS

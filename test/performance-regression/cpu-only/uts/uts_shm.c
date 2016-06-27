@@ -122,7 +122,7 @@ omp_lock_t * omp_global_lock_alloc() {
 #define SHARED           
 #define SHARED_INDEF
 #define VOLATILE         volatile
-#define MAX_THREADS       64
+#define MAX_THREADS       1024
 #define LOCK_T           long
 #define GET_NUM_THREADS  shmem_n_pes()
 #define GET_THREAD_NUM   shmem_my_pe()

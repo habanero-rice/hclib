@@ -42,7 +42,7 @@
 #define SHARED_INDEF
 #define VOLATILE         volatile
 #define MAX_OMP_THREADS       32
-#define MAX_SHMEM_THREADS     128
+#define MAX_SHMEM_THREADS     1024
 #define LOCK_T           omp_lock_t
 #define GET_NUM_THREADS  omp_get_num_threads()
 #define GET_THREAD_NUM   omp_get_thread_num()

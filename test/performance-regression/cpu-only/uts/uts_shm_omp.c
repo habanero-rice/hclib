@@ -83,7 +83,7 @@ long * smem_global_lock_alloc() {
 }
 
 #define MAX_OMP_THREADS       32
-#define MAX_SHMEM_THREADS       128
+#define MAX_SHMEM_THREADS       1024
 
 #define PUT_ALL(a,b)								\
 	do {						 			\
