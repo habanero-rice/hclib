@@ -96,7 +96,7 @@ void enable_isolation_1d(const void * ptr, const int size) {
   hashmapLock(isolated_map);
   int i;
   for(i=0; i<size; i++) {
-    register_isolation_object(&(ptr[i]));
+    enable_isolation(&(ptr[i]));
   }
   hashmapUnlock(isolated_map);
 }
@@ -106,7 +106,7 @@ void enable_isolation_2d(const void ** ptr, const int rows, const int col) {
   hashmapLock(isolated_map);
   for(i=0; i<rows; i++) {
     for(j=0; j<col; j++) {
-      register_isolation_object(&(ptr[i][j]));
+      enable_isolation(&(ptr[i][j]));
     }
   }
   hashmapUnlock(isolated_map);
@@ -126,7 +126,7 @@ void disable_isolation_1d(const void * ptr, const int size) {
   int i;
   hashmapLock(isolated_map);
   for(i=0; i<size; i++) {
-    deregister_isolation_object(ptr+i);
+    disable_isolation(ptr+i);
   }
   hashmapUnlock(isolated_map);
 }
@@ -136,7 +136,7 @@ void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
   hashmapLock(isolated_map);
   for(i=0; i<rows; i++) {
     for(j=0; j<col; j++) {
-      deregister_isolation_object(&(ptr[i][j]));
+      disable_isolation(&(ptr[i][j]));
     }
   }
   hashmapUnlock(isolated_map);
