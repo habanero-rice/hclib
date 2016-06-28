@@ -65,7 +65,13 @@ void* hashmapPut(Hashmap* map, void* key, void* value);
  * Gets a value from the map. Returns NULL if no entry for the given key is
  * found or if the value itself is NULL.
  */
-void* hashmapGet(Hashmap* map, void* key);
+// Direct access not allowed
+// void* hashmapGet(Hashmap* map, void* key);
+
+/*
+ * Added to support indexing. See hashmap_extension.h for further details.
+ */
+void* hashmapGetIndexKey(Hashmap* map, void* key, uint64_t* index);
 
 /**
  * Returns true if the map contains an entry for the given key.

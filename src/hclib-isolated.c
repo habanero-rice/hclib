@@ -144,15 +144,19 @@ void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
 
 void apply_isolated(const void* ptr) {
   int rc=0;
-  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGet(isolated_map, ptr);
+  uint64_t index;
+  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, &index);
   assert(mutex && "Failed to retrive value from hashmap");
+  assert(index>=0 && "Object has negative index");
   CHECK_RC(rc=pthread_mutex_lock(mutex));
 }
 
 void release_isolated(const void* ptr) {
   int rc=0;
-  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGet(isolated_map, ptr);
+  uint64_t index;
+  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, &index);
   assert(mutex && "Failed to retrive value from hashmap");
+  assert(index>=0 && "Object has negative index");
   CHECK_RC(rc=pthread_mutex_unlock(mutex));
 }
 

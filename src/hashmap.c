@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "hashmap.h"
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
@@ -22,14 +21,21 @@
 #include <string.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include "hashmap.h"
 
 typedef struct Entry Entry;
 struct Entry {
     void* key;
     int hash;
     void* value;
+/*
+ * Added to support indexing. See hashmap_extension.h for further details.
+ */
+    uint64_t index;
     Entry* next;
 };
+
+#include "hashmap_extension.h"
 
 struct Hashmap {
     Entry** buckets;
@@ -206,6 +212,10 @@ void* hashmapPut(Hashmap* map, void* key, void* value) {
                 errno = ENOMEM;
                 return NULL;
             }
+/*
+ * Added to support indexing. See hashmap_extension.h for further details.
+ */         
+            assign_index(&p);
             map->size++;
             expandIfNecessary(map);
             return NULL;
@@ -223,7 +233,9 @@ void* hashmapPut(Hashmap* map, void* key, void* value) {
     }
 }
 
-void* hashmapGet(Hashmap* map, void* key) {
+/* Disabling direct access to support indexing
+
+inline void* hashmapGet(Hashmap* map, void* key) {
     int hash = hashKey(map, key);
     size_t index = calculateIndex(map->bucketCount, hash);
 
@@ -236,6 +248,35 @@ void* hashmapGet(Hashmap* map, void* key) {
     }
 
     return NULL;
+}
+*/
+
+/*
+ * Added to support indexing. See hashmap_extension.h for further details.
+ */
+inline Entry* hashmapGetEntry(Hashmap* map, void* key) {
+    int hash = hashKey(map, key);
+    size_t index = calculateIndex(map->bucketCount, hash);
+
+    Entry* entry = map->buckets[index];
+    while (entry != NULL) {
+        if (equalKeys(entry->key, entry->hash, key, hash, map->equals)) {
+            return entry;
+        }
+        entry = entry->next;
+    }
+
+    return NULL;
+}
+
+/*
+ * Added to support indexing. See hashmap_extension.h for further details.
+ */
+void* hashmapGetIndexKey(Hashmap* map, void* key, uint64_t* index) {
+  const Entry* e = hashmapGetEntry(map, key);
+  if(e == NULL) *index = -1;
+  else *index = e->index;
+  return e->value;
 }
 
 bool hashmapContainsKey(Hashmap* map, void* key) {
