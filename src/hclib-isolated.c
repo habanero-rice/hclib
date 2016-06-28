@@ -87,28 +87,36 @@ void enable_isolation(const void * ptr) {
   pthread_mutex_t* mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
   assert(mutex && "malloc failed");
   CHECK_RC(rc=pthread_mutex_init(mutex, NULL));
+  hashmapLock(isolated_map);
   hashmapPut(isolated_map, ptr, mutex);
+  hashmapUnlock(isolated_map);
 }
 
 void enable_isolation_1d(const void * ptr, const int size) {
+  hashmapLock(isolated_map);
   int i;
   for(i=0; i<size; i++) {
     register_isolation_object(&(ptr[i]));
   }
+  hashmapUnlock(isolated_map);
 }
 
 void enable_isolation_2d(const void ** ptr, const int rows, const int col) {
   int i, j;
+  hashmapLock(isolated_map);
   for(i=0; i<rows; i++) {
     for(j=0; j<col; j++) {
       register_isolation_object(&(ptr[i][j]));
     }
   }
+  hashmapUnlock(isolated_map);
 }
 
 void disable_isolation(const void * ptr) {
   int rc=0;
+  hashmapLock(isolated_map);
   pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapRemove(isolated_map, ptr);
+  hashmapUnlock(isolated_map);
   assert(mutex && "Failed to retrive value from hashmap");
   CHECK_RC(rc=pthread_mutex_destroy(mutex));
   free(mutex);
@@ -116,18 +124,22 @@ void disable_isolation(const void * ptr) {
 
 void disable_isolation_1d(const void * ptr, const int size) {
   int i;
+  hashmapLock(isolated_map);
   for(i=0; i<size; i++) {
     deregister_isolation_object(ptr+i);
   }
+  hashmapUnlock(isolated_map);
 }
 
 void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
   int i, j;
+  hashmapLock(isolated_map);
   for(i=0; i<rows; i++) {
     for(j=0; j<col; j++) {
       deregister_isolation_object(&(ptr[i][j]));
     }
   }
+  hashmapUnlock(isolated_map);
 }
 
 void apply_isolated(const void* ptr) {
