@@ -68,11 +68,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static uint64_t mutex_lock_index = 0;
 
-inline void assign_index(Entry** e) {
+static inline void assign_index(Entry** e) {
   (*e)->index = mutex_lock_index++;
 }
 
-inline void decrement_index() {
+static inline void decrement_index() {
   // This is not allowed
 }
 

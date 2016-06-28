@@ -9,7 +9,8 @@ int main (int argc, char ** argv) {
     hclib::enable_isolation(ptr);
 
     hclib::isolated(ptr, [=]() {
-      // Do something..
+      *ptr = 100.9;
+      printf("Isolated execution\n");
     });
 
     hclib::disable_isolation(ptr);

@@ -86,13 +86,22 @@ future_t *async_memset(place_t *pl, T *ptr, int val,
 }
 #endif
 
-// isolated construct
-template <typename T>
-inline void isolated(void* object, T lambda) {
-  apply_isolated(object);
-  lambda();
-  release_isolated(object);
+/****************************************************
+ ********** START SUPPORTING ISOLATION **************
+ ****************************************************/
+
+inline void execute_isolation_lambda(void * args) {
+  std::function<void()> *lambda = (std::function<void()> *)args;
+  (*lambda)();
 }
+
+inline void isolated(void* object, std::function<void()> &&lambda) {
+  isolated_execution(object, execute_isolation_lambda, (void*)&lambda);
+}
+
+/***************************************************
+ ********** END SUPPORTING ISOLATION ***************
+ ***************************************************/
 
 #ifdef HUPCPP
 int total_pending_local_asyncs();

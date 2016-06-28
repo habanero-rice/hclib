@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define INITIAL_HASHMAP_SIZE 1048576
 #define KNUTH_CONSTANT 2654435761
-#define CHECK_RC(ret) assert((rc) != -1 && "pthread API call failed")
+#define CHECK_RC(ret) HASSERT((rc) != -1 && "pthread API call failed")
 static Hashmap* isolated_map = NULL;
 
 
@@ -74,7 +74,7 @@ static bool equals(void* a, void* b) {
  */
 void init_isolation_datastructures() {
   isolated_map = hashmapCreate(INITIAL_HASHMAP_SIZE, hash, equals);
-  assert(isolated_map);
+  HASSERT(isolated_map);
 }
 
 
@@ -85,7 +85,7 @@ void init_isolation_datastructures() {
 void enable_isolation(const void * ptr) {
   int rc=0;
   pthread_mutex_t* mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
-  assert(mutex && "malloc failed");
+  HASSERT(mutex && "malloc failed");
   CHECK_RC(rc=pthread_mutex_init(mutex, NULL));
   hashmapLock(isolated_map);
   hashmapPut(isolated_map, ptr, mutex);
@@ -117,7 +117,7 @@ void disable_isolation(const void * ptr) {
   hashmapLock(isolated_map);
   pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapRemove(isolated_map, ptr);
   hashmapUnlock(isolated_map);
-  assert(mutex && "Failed to retrive value from hashmap");
+  HASSERT(mutex && "Failed to retrive value from hashmap");
   CHECK_RC(rc=pthread_mutex_destroy(mutex));
   free(mutex);
 }
@@ -142,24 +142,26 @@ void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
   hashmapUnlock(isolated_map);
 }
 
-void apply_isolated(const void* ptr) {
+inline pthread_mutex_t* apply_isolated(const void* ptr, uint64_t* index) {
   int rc=0;
-  uint64_t index;
-  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, &index);
-  assert(mutex && "Failed to retrive value from hashmap");
-  assert(index>=0 && "Object has negative index");
+  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, index);
+  HASSERT(mutex && "Failed to retrive value from hashmap");
+  HASSERT(*index>=0 && "Object has negative index");
   CHECK_RC(rc=pthread_mutex_lock(mutex));
+  return mutex;
 }
 
-void release_isolated(const void* ptr) {
+inline void release_isolated(const pthread_mutex_t* mutex, uint64_t index) {
   int rc=0;
-  uint64_t index;
-  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, &index);
-  assert(mutex && "Failed to retrive value from hashmap");
-  assert(index>=0 && "Object has negative index");
   CHECK_RC(rc=pthread_mutex_unlock(mutex));
 }
 
+void isolated_execution(void* object, generic_frame_ptr func, void *args) {
+  uint64_t index;
+  const pthread_mutex_t* mutex = apply_isolated(object, &index);
+  func(args);
+  release_isolated(mutex, index);
+}
 
 
 

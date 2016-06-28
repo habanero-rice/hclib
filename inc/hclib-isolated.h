@@ -49,9 +49,7 @@ void enable_isolation_2d(const void ** ptr, const int rows, const int col);
 void disable_isolation(const void * ptr);
 void disable_isolation_1d(const void * ptr, const int size);
 void disable_isolation_2d(const void ** ptr, const int rows, const int col);
-void apply_isolated(const void* ptr);
-void release_isolated(const void* ptr);
-
+void isolated_execution(void* object, generic_frame_ptr func, void *args);
 #ifdef __cplusplus
 }
 }
