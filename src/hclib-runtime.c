@@ -205,6 +205,9 @@ void hclib_global_init() {
     // Sets up the deques and worker contexts for the parsed HPT
     hc_hpt_init(hclib_context);
 
+    // isolation related datastructures
+    init_isolation_datastructures();
+
 }
 
 void hclib_display_runtime() {

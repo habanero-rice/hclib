@@ -133,4 +133,7 @@ hclib_triggered_task_t * rt_async_task_to_triggered_task(
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
         hclib_worker_state *ws);
 
+// isolated
+void init_isolation_datastructures();
+
 #endif /* HCLIB_INTERNAL_H_ */

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_common.h"
 #include "hclib-task.h"
 #include "hclib-promise.h"
+#include "hclib-isolated.h"
 
 #ifdef __cplusplus
 extern "C" {

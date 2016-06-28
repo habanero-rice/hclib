@@ -86,6 +86,14 @@ future_t *async_memset(place_t *pl, T *ptr, int val,
 }
 #endif
 
+// isolated construct
+template <typename T>
+inline void isolated(void* object, T lambda) {
+  apply_isolated(object);
+  lambda();
+  release_isolated(object);
+}
+
 #ifdef HUPCPP
 int total_pending_local_asyncs();
 volatile int *start_finish_special();

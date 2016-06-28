@@ -172,9 +172,7 @@ int hashmapHash(void* key, size_t keySize) {
 
 static Entry* createEntry(void* key, int hash, void* value) {
     Entry* entry = malloc(sizeof(Entry));
-    if (entry == NULL) {
-        return NULL;
-    }
+    assert(entry!=NULL && "malloc failed in hashmap::createEntry");
     entry->key = key;
     entry->hash = hash;
     entry->value = value;
