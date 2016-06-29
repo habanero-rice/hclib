@@ -146,7 +146,9 @@ void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
 
 inline pthread_mutex_t* apply_isolated(const void* ptr, uint64_t* index) {
   int rc=0;
-  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, index);
+  const Entry* e = hashmapGetEntry(isolated_map, ptr);
+  pthread_mutex_t* mutex = (pthread_mutex_t*) e->value;
+  *index = e->index;
   HASSERT(mutex && "Failed to retrive value from hashmap");
   HASSERT(*index>=0 && "Object has negative index");
   rc=pthread_mutex_lock(mutex);
@@ -174,7 +176,7 @@ void isolated_execution(void** object, int total, generic_frame_ptr func, void *
     release_isolated(mutex, index);
   }
   else {
-
+  
 
   }
 }

@@ -83,7 +83,7 @@ void* hashmapPut(Hashmap* map, void* key, void* value);
 /*
  * Added to support indexing. See hashmap_extension.h for further details.
  */
-void* hashmapGetIndexKey(Hashmap* map, void* key, uint64_t* index);
+Entry* hashmapGetEntry(Hashmap* map, void* key);
 
 /**
  * Returns true if the map contains an entry for the given key.

@@ -241,7 +241,7 @@ inline void* hashmapGet(Hashmap* map, void* key) {
 /*
  * Added to support indexing. See hashmap_extension.h for further details.
  */
-inline Entry* hashmapGetEntry(Hashmap* map, void* key) {
+Entry* hashmapGetEntry(Hashmap* map, void* key) {
     int hash = hashKey(map, key);
     size_t index = calculateIndex(map->bucketCount, hash);
 
@@ -254,16 +254,6 @@ inline Entry* hashmapGetEntry(Hashmap* map, void* key) {
     }
 
     return NULL;
-}
-
-/*
- * Added to support indexing. See hashmap_extension.h for further details.
- */
-void* hashmapGetIndexKey(Hashmap* map, void* key, uint64_t* index) {
-  const Entry* e = hashmapGetEntry(map, key);
-  if(e == NULL) *index = -1;
-  else *index = e->index;
-  return e->value;
 }
 
 bool hashmapContainsKey(Hashmap* map, void* key) {
