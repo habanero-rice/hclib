@@ -42,16 +42,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace hclib {
 extern "C" {
 #endif
-
-void enable_isolation(const void * ptr);
-void enable_isolation_1d(const void * ptr, const int size);
-void enable_isolation_2d(const void ** ptr, const int rows, const int col);
-void disable_isolation(const void * ptr);
-void disable_isolation_1d(const void * ptr, const int size);
-void disable_isolation_2d(const void ** ptr, const int rows, const int col);
+void apply_isolation(void** array, int n);
+void remove_isolation(void** array, int n);
+inline void enable_isolation_n(void ** array, int n) {
+  apply_isolation(array, n);
+}
+inline void disable_isolation_n(void** array, int n) {
+  remove_isolation(array, n);
+}
 void isolated_execution(void** object, int total, generic_frame_ptr func, void *args);
 #ifdef __cplusplus
 }
+}
+#else
+inline void enable_isolation(void ** array, int n) {
+  apply_isolation(array, n);
+}
+inline void disable_isolation(void** array, int n) {
+  remove_isolation(array, n);
 }
 #endif
 

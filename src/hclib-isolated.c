@@ -103,64 +103,30 @@ inline void mutex_unlock(const Entry* e) {
  **** USER INTERFACES *****
  ***************************************/
 
-void enable_isolation(const void * ptr) {
-  int rc=0;
-  pthread_mutex_t* mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
-  HASSERT(mutex && "malloc failed");
-  rc=pthread_mutex_init(mutex, NULL);
-  CHECK_RC(rc);
+void apply_isolation(void** array, int n) {
+  int rc=0,i;
   hashmapLock(isolated_map);
-  hashmapPut(isolated_map, ptr, mutex);
-  hashmapUnlock(isolated_map);
-}
-
-void enable_isolation_1d(const void * ptr, const int size) {
-  hashmapLock(isolated_map);
-  int i;
-  for(i=0; i<size; i++) {
-    enable_isolation(&(ptr[i]));
+  for(i=0; i<n; i++) {
+    const void* ptr = array[i];
+    pthread_mutex_t* mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+    HASSERT(mutex && "malloc failed");
+    rc=pthread_mutex_init(mutex, NULL);
+    CHECK_RC(rc);
+    hashmapPut(isolated_map, ptr, mutex);
   }
   hashmapUnlock(isolated_map);
 }
 
-void enable_isolation_2d(const void ** ptr, const int rows, const int col) {
-  int i, j;
+void remove_isolation(void** array, int n) {
+  int rc=0,i;
   hashmapLock(isolated_map);
-  for(i=0; i<rows; i++) {
-    for(j=0; j<col; j++) {
-      enable_isolation(&(ptr[i][j]));
-    }
-  }
-  hashmapUnlock(isolated_map);
-}
-
-void disable_isolation(const void * ptr) {
-  int rc=0;
-  hashmapLock(isolated_map);
-  pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapRemove(isolated_map, ptr);
-  hashmapUnlock(isolated_map);
-  HASSERT(mutex && "Failed to retrive value from hashmap");
-  rc=pthread_mutex_destroy(mutex);
-  CHECK_RC(rc);
-  free(mutex);
-}
-
-void disable_isolation_1d(const void * ptr, const int size) {
-  int i;
-  hashmapLock(isolated_map);
-  for(i=0; i<size; i++) {
-    disable_isolation(ptr+i);
-  }
-  hashmapUnlock(isolated_map);
-}
-
-void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
-  int i, j;
-  hashmapLock(isolated_map);
-  for(i=0; i<rows; i++) {
-    for(j=0; j<col; j++) {
-      disable_isolation(&(ptr[i][j]));
-    }
+  for(i=0; i<n; i++) {
+    const void* ptr = array[i];
+    pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapRemove(isolated_map, ptr);
+    HASSERT(mutex && "Failed to retrive value from hashmap");
+    rc=pthread_mutex_destroy(mutex);
+    CHECK_RC(rc);
+    free(mutex);
   }
   hashmapUnlock(isolated_map);
 }
@@ -202,8 +168,4 @@ void isolated_execution(void** object, int total, generic_frame_ptr func, void *
     }
   }
 }
-
-
-
-
 
