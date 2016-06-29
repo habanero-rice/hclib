@@ -47,20 +47,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TOTAL_TRANSACTIONS 1000
 class Account {
   private:
-    int bal;
+    uint64_t bal;
  
   public:
-    Account(int b) { bal = b; }
+    Account(uint64_t b) { bal = b; }
     Account() { bal = 0; }
-    int balance() { return bal; }
-    bool withdraw(int amount) {
+    uint64_t balance() { return bal; }
+    bool withdraw(uint64_t amount) {
       if (amount > 0 && amount < bal) {
         bal -= amount;
         return true;
       }
+      return false;
     }
 
-    bool deposit(int amount) {
+    bool deposit(uint64_t amount) {
       if (amount > 0) {
         bal += amount;
         return true;
@@ -90,7 +91,7 @@ int main(int argc, char ** argv) {
   hclib::finish([&]() {
     for (int i = 0; i < numTransactions; i++) {
       hclib::async([&]() {
-        const int amount = 200 * (i+1);
+        const uint64_t amount = 200 * (i+1);
         const int src = rand() % numAccounts;
         int dest = src; 
         while(dest == src) dest =  rand() % numAccounts;
@@ -109,7 +110,6 @@ int main(int argc, char ** argv) {
 
   uint64_t postSumOfBalances = 0;
   for (int i = 0; i < numAccounts; i++) {
-    int random = std::rand();
     postSumOfBalances += bankAccounts[i].balance();
   }
 
