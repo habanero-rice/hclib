@@ -22,19 +22,6 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include "hashmap.h"
-
-typedef struct Entry Entry;
-struct Entry {
-    void* key;
-    int hash;
-    void* value;
-/*
- * Added to support indexing. See hashmap_extension.h for further details.
- */
-    uint64_t index;
-    Entry* next;
-};
-
 #include "hashmap_extension.h"
 
 struct Hashmap {

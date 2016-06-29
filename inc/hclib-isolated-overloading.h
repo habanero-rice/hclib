@@ -29,30 +29,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#ifndef HCLIB_ISOLATED_OVERLOADED_H_
+#define HCLIB_ISOLATED_OVERLOADED_H_
+
 /*
  * hclib-isolated.h
- *  
+ *
  *      Authors: Vivek Kumar (vivekk@rice.edu)
  */
 
-#ifndef HCLIB_ISOLATED_H_
-#define HCLIB_ISOLATED_H_
-
-#ifdef __cplusplus
 namespace hclib {
-extern "C" {
-#endif
 
-void enable_isolation(const void * ptr);
-void enable_isolation_1d(const void * ptr, const int size);
-void enable_isolation_2d(const void ** ptr, const int rows, const int col);
-void disable_isolation(const void * ptr);
-void disable_isolation_1d(const void * ptr, const int size);
-void disable_isolation_2d(const void ** ptr, const int rows, const int col);
-void isolated_execution(void** object, int total, generic_frame_ptr func, void *args);
-#ifdef __cplusplus
+inline void execute_isolation_lambda(void * args) {
+  std::function<void()> *lambda = (std::function<void()> *)args;
+  (*lambda)();
 }
+
+template<typename T>
+inline void isolated(T** object, std::function<void()> &&lambda) {
+  const int n = 1;
+  isolated_execution((void**) object, n, execute_isolation_lambda, (void*)&lambda);
+}
+
 }
 #endif
-
-#endif /* HCLIB_ISOLATED_H_ */

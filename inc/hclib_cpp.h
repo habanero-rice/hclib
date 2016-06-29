@@ -7,6 +7,7 @@
 #include "hclib-forasync.h"
 #include "hclib_promise.h"
 #include "hclib.h"
+#include "hclib-isolated-overloading.h"
 
 namespace hclib {
 
@@ -85,23 +86,6 @@ future_t *async_memset(place_t *pl, T *ptr, int val,
     return promise->get_future();
 }
 #endif
-
-/****************************************************
- ********** START SUPPORTING ISOLATION **************
- ****************************************************/
-
-inline void execute_isolation_lambda(void * args) {
-  std::function<void()> *lambda = (std::function<void()> *)args;
-  (*lambda)();
-}
-
-inline void isolated(void* object, std::function<void()> &&lambda) {
-  isolated_execution(object, execute_isolation_lambda, (void*)&lambda);
-}
-
-/***************************************************
- ********** END SUPPORTING ISOLATION ***************
- ***************************************************/
 
 #ifdef HUPCPP
 int total_pending_local_asyncs();

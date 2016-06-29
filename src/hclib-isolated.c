@@ -160,13 +160,24 @@ inline void release_isolated(const pthread_mutex_t* mutex, uint64_t index) {
   CHECK_RC(rc);
 }
 
-void isolated_execution(void* object, generic_frame_ptr func, void *args) {
-  uint64_t index;
-  const pthread_mutex_t* mutex = apply_isolated(object, &index);
-  func(args);
-  release_isolated(mutex, index);
+int compare_index(const void* e1, const void* e2) {
+  const Entry* entry1 = (Entry*) e1;
+  const Entry* entry2 = (Entry*) e2;
+  return (entry1->index > entry2->index);
 }
 
+void isolated_execution(void** object, int total, generic_frame_ptr func, void *args) {
+  if(total == 1) {
+    uint64_t index;
+    const pthread_mutex_t* mutex = apply_isolated(*object, &index);
+    func(args);
+    release_isolated(mutex, index);
+  }
+  else {
+
+
+  }
+}
 
 
 

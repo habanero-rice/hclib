@@ -12,8 +12,8 @@ int main (int argc, char ** argv) {
 
     _loop_domain_t loop = {0, LIMIT, 1, 1};
     hclib::finish([&]() {
-      hclib::forasync1D(&loop, [=](int i) {
-        hclib::isolated(ptr, [=]() {
+      hclib::forasync1D(&loop, [&](int i) {
+        hclib::isolated(&ptr, [=]() {
           *ptr += 1;
         });
       });

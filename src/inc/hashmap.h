@@ -30,6 +30,18 @@ extern "C" {
 
 /** A hash map. */
 typedef struct Hashmap Hashmap;
+/* A key/value entry in hasmap */
+typedef struct Entry Entry;
+struct Entry {
+    void* key;
+    int hash;
+    void* value;
+/*
+ * Added to support indexing. See hashmap_extension.h for further details.
+ */
+    uint64_t index;
+    Entry* next;
+};
 
 /**
  * Creates a new hash map. Returns NULL if memory allocation fails.
