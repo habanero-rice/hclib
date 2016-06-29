@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include "hclib-internal.h"
 #include <stdbool.h>
+#include <stdlib.h>
 #include "hashmap.h"
 
 #define INITIAL_HASHMAP_SIZE 1048576
@@ -77,6 +78,26 @@ void init_isolation_datastructures() {
   HASSERT(isolated_map);
 }
 
+int compare_index(const void* e1, const void* e2) {
+  const Entry* entry1 = (Entry*) e1;
+  const Entry* entry2 = (Entry*) e2;
+  return (entry1->index > entry2->index);
+}
+
+inline void mutex_lock(const Entry* e) {
+  int rc;
+  HASSERT(e != NULL && "Failed to retrive value from hashmap"); 
+  HASSERT(e->index >= 0 && "Failed to retrive correct value from hashmap");
+  HASSERT(e->value != NULL && "Failed to retrive correct value from hashmap");    
+  rc=pthread_mutex_lock((pthread_mutex_t*)(e->value));
+  CHECK_RC(rc);
+}
+
+inline void mutex_unlock(const Entry* e) {
+  int rc;
+  rc=pthread_mutex_unlock((pthread_mutex_t*)(e->value));
+  CHECK_RC(rc);
+}
 
 /****************************************
  **** USER INTERFACES *****
@@ -144,40 +165,41 @@ void disable_isolation_2d(const void ** ptr, const int rows, const int col) {
   hashmapUnlock(isolated_map);
 }
 
-inline pthread_mutex_t* apply_isolated(const void* ptr, uint64_t* index) {
-  int rc=0;
-  const Entry* e = hashmapGetEntry(isolated_map, ptr);
-  pthread_mutex_t* mutex = (pthread_mutex_t*) e->value;
-  *index = e->index;
-  HASSERT(mutex && "Failed to retrive value from hashmap");
-  HASSERT(*index>=0 && "Object has negative index");
-  rc=pthread_mutex_lock(mutex);
-  CHECK_RC(rc);
-  return mutex;
-}
-
-inline void release_isolated(const pthread_mutex_t* mutex, uint64_t index) {
-  int rc=0;
-  rc=pthread_mutex_unlock(mutex);
-  CHECK_RC(rc);
-}
-
-int compare_index(const void* e1, const void* e2) {
-  const Entry* entry1 = (Entry*) e1;
-  const Entry* entry2 = (Entry*) e2;
-  return (entry1->index > entry2->index);
-}
-
 void isolated_execution(void** object, int total, generic_frame_ptr func, void *args) {
+  int i, rc;
   if(total == 1) {
-    uint64_t index;
-    const pthread_mutex_t* mutex = apply_isolated(*object, &index);
+    // find Entry and acquire lock first
+    const Entry* e = hashmapGetEntry(isolated_map, *object);
+    mutex_lock(e);
+    // Now launch the lambda function
     func(args);
-    release_isolated(mutex, index);
+    // Release locks acquired
+    mutex_unlock(e);
   }
   else {
-  
-
+    Entry array[total];
+    // retreive key/value pair from hashmap first
+    for(i=0; i<total; i++) {
+      const Entry* e = hashmapGetEntry(isolated_map, object[i]);
+      HASSERT(e != NULL && "Failed to retrive value from hashmap"); 
+      HASSERT(e->index >= 0 && "Failed to retrive correct value from hashmap");
+      array[i].value = e->value;
+      array[i].index = e->index;
+    }
+    // sort the array based on index value
+    // For explanation, see header file hashmap_extension.h
+    qsort(array, total, sizeof(Entry), compare_index);
+    // Acquire lock in the order they are stored in this array
+    for(i=0; i<total; i++) {
+      mutex_lock(array[i].value);
+    }
+    // Now launch the lambda function
+    func(args);
+    // Atomic section is executed and hence release all locks
+    // Release locks in the order they were acquired
+    for(i=0; i<total; i++) {
+      mutex_unlock(array[i].value);
+    }
   }
 }
 
