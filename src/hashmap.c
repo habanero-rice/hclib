@@ -202,7 +202,7 @@ void* hashmapPut(Hashmap* map, void* key, void* value) {
 /*
  * Added to support indexing. See hashmap_extension.h for further details.
  */         
-            assign_index(&p);
+            assign_index(p);
             map->size++;
             expandIfNecessary(map);
             return NULL;

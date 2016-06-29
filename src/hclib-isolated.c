@@ -191,14 +191,14 @@ void isolated_execution(void** object, int total, generic_frame_ptr func, void *
     qsort(array, total, sizeof(Entry), compare_index);
     // Acquire lock in the order they are stored in this array
     for(i=0; i<total; i++) {
-      mutex_lock(array[i].value);
+      mutex_lock(&(array[i]));
     }
     // Now launch the lambda function
     func(args);
     // Atomic section is executed and hence release all locks
     // Release locks in the order they were acquired
     for(i=0; i<total; i++) {
-      mutex_unlock(array[i].value);
+      mutex_unlock(&(array[i]));
     }
   }
 }
