@@ -1,7 +1,7 @@
 #include "hclib_cpp.h"
 
 using namespace std;
-#define LIMIT 1000
+#define LIMIT 100000
 
 int main (int argc, char ** argv) {
   hclib::launch([&]() {
@@ -10,14 +10,13 @@ int main (int argc, char ** argv) {
 
     hclib::enable_isolation(ptr);
 
-    hclib::finish([=]() {
-      for(int i=0; i<LIMIT; i++) {
-        hclib::async([=]() {
-          hclib::isolated(ptr, [=]() {
-            *ptr += 1;
-          });
+    _loop_domain_t loop = {0, LIMIT, 1, 1};
+    hclib::finish([&]() {
+      hclib::forasync1D(&loop, [=](int i) {
+        hclib::isolated(ptr, [=]() {
+          *ptr += 1;
         });
-      }
+      });
     });
 
     printf("Result=%d\n",*ptr);

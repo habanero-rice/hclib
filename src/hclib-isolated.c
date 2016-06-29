@@ -86,7 +86,8 @@ void enable_isolation(const void * ptr) {
   int rc=0;
   pthread_mutex_t* mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
   HASSERT(mutex && "malloc failed");
-  CHECK_RC(rc=pthread_mutex_init(mutex, NULL));
+  rc=pthread_mutex_init(mutex, NULL);
+  CHECK_RC(rc);
   hashmapLock(isolated_map);
   hashmapPut(isolated_map, ptr, mutex);
   hashmapUnlock(isolated_map);
@@ -118,7 +119,8 @@ void disable_isolation(const void * ptr) {
   pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapRemove(isolated_map, ptr);
   hashmapUnlock(isolated_map);
   HASSERT(mutex && "Failed to retrive value from hashmap");
-  CHECK_RC(rc=pthread_mutex_destroy(mutex));
+  rc=pthread_mutex_destroy(mutex);
+  CHECK_RC(rc);
   free(mutex);
 }
 
@@ -147,13 +149,15 @@ inline pthread_mutex_t* apply_isolated(const void* ptr, uint64_t* index) {
   pthread_mutex_t* mutex = (pthread_mutex_t*) hashmapGetIndexKey(isolated_map, ptr, index);
   HASSERT(mutex && "Failed to retrive value from hashmap");
   HASSERT(*index>=0 && "Object has negative index");
-  CHECK_RC(rc=pthread_mutex_lock(mutex));
+  rc=pthread_mutex_lock(mutex);
+  CHECK_RC(rc);
   return mutex;
 }
 
 inline void release_isolated(const pthread_mutex_t* mutex, uint64_t index) {
   int rc=0;
-  CHECK_RC(rc=pthread_mutex_unlock(mutex));
+  rc=pthread_mutex_unlock(mutex);
+  CHECK_RC(rc);
 }
 
 void isolated_execution(void* object, generic_frame_ptr func, void *args) {
