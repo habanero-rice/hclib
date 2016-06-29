@@ -42,7 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <time.h>
 
-#define TOTAL_ACCOUNTS 10
+// Lesser accounts mean more contention
+#define TOTAL_ACCOUNTS 5
 #define TOTAL_TRANSACTIONS 1000
 class Account {
   private:
@@ -92,7 +93,7 @@ int main(int argc, char ** argv) {
         const int amount = 200 * (i+1);
         const int src = rand() % numAccounts;
         int dest = src; 
-        while(dest != src) dest =  rand() % numAccounts;
+        while(dest == src) dest =  rand() % numAccounts;
         assert(src<TOTAL_ACCOUNTS && dest<TOTAL_ACCOUNTS);
         hclib::isolated(&(bankAccounts[src]), &(bankAccounts[dest]), [&]() {
           bool success = bankAccounts[src].withdraw(amount);
