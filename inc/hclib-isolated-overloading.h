@@ -45,10 +45,9 @@ inline void execute_isolation_lambda(void * args) {
   (*lambda)();
 }
 
-template<typename T>
-inline void isolated(T** object, std::function<void()> &&lambda) {
+inline void isolated(void* object1, std::function<void()> &&lambda) {
   const int n = 1;
-  isolated_execution((void**) object, n, execute_isolation_lambda, (void*)&lambda);
+  isolated_execution((void**) &object1, n, execute_isolation_lambda, (void*)&lambda);
 }
 
 }
