@@ -1297,6 +1297,7 @@ static void hclib_finalize() {
     hclib_signal_join(hclib_context->nworkers);
 #endif /* HCLIB_LITECTX_STRATEGY */
 
+    finalize_isolation_datastructure();
     if (hclib_stats) {
         showStatsFooter();
     }

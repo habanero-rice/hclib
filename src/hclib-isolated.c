@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include "hashmap.h"
 
+#define DISPLAY_COLLISIONS
 #define INITIAL_HASHMAP_SIZE 1048576
 #define KNUTH_CONSTANT 2654435761
 #define CHECK_RC(ret) HASSERT((rc) != -1 && "pthread API call failed")
@@ -78,12 +79,30 @@ void init_isolation_datastructures() {
   HASSERT(isolated_map);
 }
 
+/*
+ * Finalize the datastructures used in isolation implementation
+ */
+void finalize_isolation_datastructure() {
+#ifdef DISPLAY_COLLISIONS
+  printf("HCLIB_DEBUG_MESSAGE: total collisions in isolation hashmap was %zu\n",hashmapCountCollisions(isolated_map));
+  printf("HCLIB_DEBUG_MESSAGE: turn off this report with DISPLAY_COLLISIONS macro\n");
+#endif
+  hashmapFree(isolated_map); 
+  isolated_map = NULL;
+}
+
+/*
+ * Used in sorting the hashmap entries based on index value
+ */
 int compare_index(const void* e1, const void* e2) {
   const Entry* entry1 = (Entry*) e1;
   const Entry* entry2 = (Entry*) e2;
   return (entry1->index > entry2->index);
 }
 
+/*
+ * Lock mutex associated an object
+ */
 inline void mutex_lock(const Entry* e) {
   int rc;
   HASSERT(e != NULL && "Failed to retrive value from hashmap"); 
@@ -93,6 +112,9 @@ inline void mutex_lock(const Entry* e) {
   CHECK_RC(rc);
 }
 
+/*
+ * Unlock mutex associated an object
+ */
 inline void mutex_unlock(const Entry* e) {
   int rc;
   rc=pthread_mutex_unlock((pthread_mutex_t*)(e->value));
@@ -103,6 +125,12 @@ inline void mutex_unlock(const Entry* e) {
  **** USER INTERFACES *****
  ***************************************/
 
+/*
+ * User registers the objects that would
+ * require isolation
+ * 
+ * Note: This method is to be called on single thread
+ */
 void apply_isolation(void** array, int n) {
   int rc=0,i;
   hashmapLock(isolated_map);
@@ -117,6 +145,12 @@ void apply_isolation(void** array, int n) {
   hashmapUnlock(isolated_map);
 }
 
+/*
+ * User de-registers the objects that would
+ * require isolation.
+ * 
+ * Note: This method is to be called on single thread
+ */
 void remove_isolation(void** array, int n) {
   int rc=0,i;
   hashmapLock(isolated_map);
@@ -131,6 +165,9 @@ void remove_isolation(void** array, int n) {
   hashmapUnlock(isolated_map);
 }
 
+/*
+ * User calls this method to request isolation on set of objects
+ */
 void isolated_execution(void** object, int total, generic_frame_ptr func, void *args) {
   int i, rc;
   if(total == 1) {

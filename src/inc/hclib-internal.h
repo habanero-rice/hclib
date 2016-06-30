@@ -135,5 +135,6 @@ void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
 
 // isolated
 void init_isolation_datastructures();
+void finalize_isolation_datastructure();
 
 #endif /* HCLIB_INTERNAL_H_ */
