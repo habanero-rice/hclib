@@ -26,22 +26,22 @@ PRODUCTION_SETTINGS_FLAGS = -DHC_ASSERTION_CHECK -DHC_COMM_WORKER_STATS
 endif
 
 
-# build the hcpp library
-lib_LTLIBRARIES = libhcpp.la
+# build the hclib library
+lib_LTLIBRARIES = libhclib.la
 
 # These are populated in sub-folder's Makefile.inc
 noinst_LTLIBRARIES =
-libhcpp_la_LIBADD =
+libhclib_la_LIBADD =
 
 if WITH_OCR
 AM_CXXFLAGS = -DWITH_OCR -I$(HCLIB_ROOT)/include
-libhcpp_la_SOURCES = ocr-runtime.cpp
+libhclib_la_SOURCES = ocr-runtime.cpp
 else
 AM_CXXFLAGS = $(HUPCPP_FLAGS_1) $(HUPCPP_FLAGS_2) $(PRODUCTION_SETTINGS_FLAGS) -I$(LIBXML2_INCLUDE)
-libhcpp_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-mm.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp
+libhclib_la_SOURCES = hcpp-runtime.cpp hcpp-deque.cpp hcpp-mm.cpp hcpp-hpt.cpp hcpp-thread-bind.cpp hcpp-ddf.cpp hcpp-timer.cpp hcupc-support.cpp
 endif
 
 # build hcpp
-libhcpp_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
+libhclib_la_CXXFLAGS= $(CXXFLAGS) $(INCLUDES_DIR) $(AM_CXXFLAGS)
 
 MAINTAINERCLEANFILES = Makefile.in

@@ -1,4 +1,4 @@
-include $(HCPP_ROOT)/include/hcpp.mak
+include $(HCLIB_ROOT)/include/hcpp.mak
 
 EXE=FFT fib nqueens qsort fib-ddt asyncAwait0 Cilksort
 

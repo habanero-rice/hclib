@@ -5,7 +5,7 @@
 # Defining some variables
 #
 
-PROJECT_NAME=hcpp
+PROJECT_NAME=hclib
 
 
 check_error()
