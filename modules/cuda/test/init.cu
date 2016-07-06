@@ -5,7 +5,8 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
+    const char *deps[] = { "system", "cuda" };
+    hclib::launch(deps, 2, [] {
         std::cout << "Hello world" << std::endl;
     });
     return 0;

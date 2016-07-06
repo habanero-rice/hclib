@@ -5,7 +5,8 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
+    const char *deps[] = { "system", "cuda" };
+    hclib::launch(deps, 2, [] {
         const int N = 1024;
         int gpu_id = hclib::get_gpu_locale_id();
         int num_gpus = hclib::get_num_gpu_locales();
