@@ -1539,7 +1539,8 @@ new_ctx->A = A;
 new_ctx->B = B;
 new_ctx->C = C;
 new_ctx->n = n;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
 static void pragma829_omp_task_hclib_async(void *____arg) {

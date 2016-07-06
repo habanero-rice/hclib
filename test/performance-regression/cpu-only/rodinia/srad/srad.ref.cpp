@@ -105,11 +105,6 @@ int main(int argc, char* argv[])
     for (k = 0;  k < size_I; k++ ) {
      	J[k] = (float)exp(I[k]) ;
     }
-
-#pragma omp parallel
-#pragma omp single
-    printf("Initialized\n");
-
    
 	printf("Start the SRAD main loop\n");
 

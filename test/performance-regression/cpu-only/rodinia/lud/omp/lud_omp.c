@@ -130,7 +130,8 @@ void lud_omp(float *a, int size)
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->a = a;
 new_ctx->size = size;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
 static void pragma58_omp_parallel_hclib_async(void *____arg, const int ___iter0) {

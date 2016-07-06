@@ -272,7 +272,8 @@ new_ctx->rodinia_data_dir = rodinia_data_dir;
 new_ctx->z = z;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 //End while loop
 
 	fprintf(stderr, "The %d nearest neighbors are:\n", k);

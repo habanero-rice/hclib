@@ -297,10 +297,6 @@ void floorplan_init (char *filename)
 
 void compute_floorplan (void)
 {
-#pragma omp parallel
-#pragma omp single
-    printf("Initialized\n");
-
     unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
         coor footprint;
         /* footprint of initial board is zero */

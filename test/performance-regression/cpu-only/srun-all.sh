@@ -77,8 +77,17 @@ touch $LOG_FILE
 
 mkdir -p srun_test_logs
 
-module purge
-source ~/.bash_profile
+set +e
+command -v module >/dev/null
+NO_MODULE_COMMAND=$?
+command -v srun >/dev/null
+NO_SRUN_COMMAND=$?
+set -e
+
+if [[ $NO_MODULE_COMMAND -eq 0 ]]; then
+    module purge
+    source ~/.bash_profile
+fi
 
 export LD_LIBRARY_PATH=/opt/apps/software/Core/icc/2015.2.164/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4:$LD_LIBRARY_PATH
 
@@ -105,12 +114,22 @@ for TEST in "${!DATASETS[@]}"; do
 
     echo "Running $TESTNAME ($TEST_SIZE) from $(pwd)"
 
-    srun -N 1 --cpus-per-task=12 --exclusive --mem=48000 -p commons -D /tmp \
-                              --time=01:00:00 $SCRIPT_DIR/srun_one.sh $NTRIALS "$TEST_ARGS" \
+    EXEC_CMD=""
+
+    if [[ $NO_SRUN_COMMAND -eq 1 ]]; then
+        $SCRIPT_DIR/srun_one.sh $NTRIALS "$TEST_ARGS" \
                               $SCRIPT_DIR/$TEST_EXE.flat $SCRIPT_DIR/$TEST_FLAT_LOG \
                               $SCRIPT_DIR/$TEST_EXE.recursive $SCRIPT_DIR/$TEST_RECURSIVE_LOG \
                               $SCRIPT_DIR/$REF_EXE.tied $SCRIPT_DIR/$REF_TIED_LOG \
-                              $SCRIPT_DIR/$REF_EXE.untied $SCRIPT_DIR/$REF_UNTIED_LOG &
+                              $SCRIPT_DIR/$REF_EXE.untied $SCRIPT_DIR/$REF_UNTIED_LOG
+    else
+        srun -N 1 --cpus-per-task=12 --exclusive --mem=48000 -p commons -D /tmp \
+                                  --time=01:00:00 $SCRIPT_DIR/srun_one.sh $NTRIALS "$TEST_ARGS" \
+                                  $SCRIPT_DIR/$TEST_EXE.flat $SCRIPT_DIR/$TEST_FLAT_LOG \
+                                  $SCRIPT_DIR/$TEST_EXE.recursive $SCRIPT_DIR/$TEST_RECURSIVE_LOG \
+                                  $SCRIPT_DIR/$REF_EXE.tied $SCRIPT_DIR/$REF_TIED_LOG \
+                                  $SCRIPT_DIR/$REF_EXE.untied $SCRIPT_DIR/$REF_UNTIED_LOG &
+    fi
 done
 
 wait

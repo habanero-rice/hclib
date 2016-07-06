@@ -542,7 +542,8 @@ new_ctx->gg = gg;
 new_ctx->mm_score = mm_score;
 new_ctx->mat_xref = mat_xref;
 new_ctx->matptr = matptr;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 
    return 0;

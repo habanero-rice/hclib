@@ -627,7 +627,8 @@ main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypo
 new_ctx->data_file_name = data_file_name;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 
 	std::cout << "Done..." << std::endl;

@@ -45,6 +45,7 @@ void sweep (int nx, int ny, double dx, double dy, double *f_,
                                      nx, ny, block_size);
                 }
             }
+
 #pragma omp taskwait
         }
     }

@@ -237,7 +237,8 @@ new_ctx->num_threads = num_threads;
 new_ctx->params = params;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 
     return 0;

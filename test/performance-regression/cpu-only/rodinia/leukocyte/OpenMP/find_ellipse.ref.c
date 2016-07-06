@@ -108,6 +108,7 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	// Allocate memory for the result matrix
 	int height = grad_x->m, width = grad_x->n;
 	MAT * gicov = m_get(height, width);
+	
 	// Split the work among multiple threads, if OPEN is defined
 	#pragma omp parallel for
 	// Scan from left to right, top to bottom, computing GICOV values

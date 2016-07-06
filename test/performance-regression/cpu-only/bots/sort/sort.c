@@ -789,7 +789,8 @@ void sort_par ( void )
 {
 	bots_message("Computing multisort algorithm (n=%d) ", bots_arg_size);
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 	bots_message(" completed!\n");
 }  

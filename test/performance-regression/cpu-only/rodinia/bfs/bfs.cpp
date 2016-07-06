@@ -298,7 +298,8 @@ new_ctx->h_graph_edges = h_graph_edges;
 new_ctx->h_cost = h_cost;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 
 	//Store the result into a file

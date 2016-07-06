@@ -55,18 +55,18 @@ function compile_all() {
         fi
     done
 
-    for FIX in 'bots/alignment_single/alignment.ref.icc.omp-tasks bots/alignment_single/alignment.icc.single-omp-tasks.ref' \
-            'bots/alignment_for/alignment.icc.for.ref-omp-tasks bots/alignment_for/alignment.icc.for-omp-tasks.ref' \
-            'bots/fft/fft.ref.icc.omp-tasks bots/fft/fft.icc.omp-tasks.ref' \
-            'bots/fib/fib.ref.icc.omp-tasks bots/fib/fib.icc.omp-tasks.ref' \
-            'bots/floorplan/floorplan.ref.icc.omp-tasks bots/floorplan/floorplan.icc.omp-tasks.ref' \
-            'bots/health/health.ref.icc.omp-tasks bots/health/health.icc.omp-tasks.ref' \
-            'bots/nqueens/nqueens.ref.icc.omp-tasks bots/nqueens/nqueens.icc.omp-tasks.ref' \
-            'bots/sort/sort.ref.icc.omp-tasks bots/sort/sort.icc.omp-tasks.ref' \
-            'bots/sparselu_for/sparselu.ref.icc.omp-tasks bots/sparselu_for/sparselu.icc.for-omp-tasks.ref' \
-            'bots/sparselu_single/sparselu.ref.icc.omp-tasks bots/sparselu_single/sparselu.icc.single-omp-tasks.ref' \
-            'bots/strassen/strassen.ref.icc.omp-tasks bots/strassen/strassen.icc.omp-tasks.ref' \
-            'bots/uts/uts.ref.icc.omp-tasks bots/uts/uts.icc.omp-tasks.ref'; do
+    for FIX in "bots/alignment_single/alignment.ref.$HCLIB_PERF_CC.omp-tasks bots/alignment_single/alignment.$HCLIB_PERF_CC.single-omp-tasks.ref" \
+            "bots/alignment_for/alignment.$HCLIB_PERF_CC.for.ref-omp-tasks bots/alignment_for/alignment.$HCLIB_PERF_CC.for-omp-tasks.ref" \
+            "bots/fft/fft.ref.$HCLIB_PERF_CC.omp-tasks bots/fft/fft.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/fib/fib.ref.$HCLIB_PERF_CC.omp-tasks bots/fib/fib.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/floorplan/floorplan.ref.$HCLIB_PERF_CC.omp-tasks bots/floorplan/floorplan.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/health/health.ref.$HCLIB_PERF_CC.omp-tasks bots/health/health.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/nqueens/nqueens.ref.$HCLIB_PERF_CC.omp-tasks bots/nqueens/nqueens.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/sort/sort.ref.$HCLIB_PERF_CC.omp-tasks bots/sort/sort.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/sparselu_for/sparselu.ref.$HCLIB_PERF_CC.omp-tasks bots/sparselu_for/sparselu.$HCLIB_PERF_CC.for-omp-tasks.ref" \
+            "bots/sparselu_single/sparselu.ref.$HCLIB_PERF_CC.omp-tasks bots/sparselu_single/sparselu.$HCLIB_PERF_CC.single-omp-tasks.ref" \
+            "bots/strassen/strassen.ref.$HCLIB_PERF_CC.omp-tasks bots/strassen/strassen.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/uts/uts.ref.$HCLIB_PERF_CC.omp-tasks bots/uts/uts.$HCLIB_PERF_CC.omp-tasks.ref"; do
         SRC=$(echo $FIX | awk '{ print $1 }')
         DST=$(echo $FIX | awk '{ print $2 }')
 

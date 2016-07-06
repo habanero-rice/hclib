@@ -1018,7 +1018,8 @@ new_ctx->kmin = kmin;
 new_ctx->kmax = kmax;
 new_ctx->kfinal = kfinal;
 new_ctx->pid = pid;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 
   //clean up...

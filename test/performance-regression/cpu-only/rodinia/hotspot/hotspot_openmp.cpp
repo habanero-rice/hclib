@@ -403,7 +403,8 @@ new_ctx->ofile = ofile;
 new_ctx->start_time = start_time;
 new_ctx->argc = argc;
 new_ctx->argv = argv;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 ;
 
     long long end_time = get_time();

@@ -369,7 +369,8 @@ hclib_start_finish(); bots_number_of_tasks = add_cell(1, footprint, board, gcell
 void compute_floorplan (void)
 {
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 } 
 

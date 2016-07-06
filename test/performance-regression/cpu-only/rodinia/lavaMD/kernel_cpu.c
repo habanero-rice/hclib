@@ -299,7 +299,8 @@ new_ctx->box = box;
 new_ctx->rv = rv;
 new_ctx->qv = qv;
 new_ctx->fv = fv;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 
 	time4 = get_time();

@@ -121,7 +121,8 @@ void fib0 (int n)
 {
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->n = n;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
     bots_message("Fibonacci result for %d is %lld\n",n,par_res);
 } 

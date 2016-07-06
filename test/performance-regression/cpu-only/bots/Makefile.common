@@ -92,7 +92,7 @@ main.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.common
 	$(CC) $(CC_ALL_FLAGS) -I. -o $@ $< $(INFO_FLAGS) -DCFLAGS="\"$(CC_ALL_FLAGS) -I.\""
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(VERSION): main.o $(PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(CLINK) $(CLINK_ALL_FLAGS) -o $@ main.o $(PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(CLINK) -o $@ main.o $(PROGRAM_OBJS) $(COMMON_OBJS) $(LIBS) $(CLINK_ALL_FLAGS)
 
 endif
 
@@ -191,30 +191,30 @@ main-final-tied.o: ../bots_main.cpp app-desc.h Makefile $(COMMON_DIR)/Makefile.c
 	$(OMPC) $(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(FINAL_FLAGS) -I. -o $@ $< $(INFO_FLAGS_OMP) -DCFLAGS="\"$(OMPC_ALL_FLAGS) $(TIED_FLAGS) $(FINAL_FLAGS) -I.\""
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION): main.o $(PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main.o $(PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main.o $(PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-manual: main-manual.o $(MANUAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-manual.o $(MANUAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-manual.o $(MANUAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-if_clause: main-if.o $(IF_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS) 
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-if.o $(IF_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-if.o $(IF_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-tied: main-tied.o $(TIED_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-tied.o $(TIED_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-tied.o $(TIED_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-manual-tied: main-manual-tied.o $(TIED_MANUAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-manual-tied.o $(TIED_MANUAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-manual-tied.o $(TIED_MANUAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-if_clause-tied: main-if-tied.o $(TIED_IF_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-if-tied.o $(TIED_IF_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-if-tied.o $(TIED_IF_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 ifdef USE_FINAL_CLAUSE
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-final: main-final.o $(FINAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS) 
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-final.o $(FINAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-final.o $(FINAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 $(BIN_DIR)/$(PROGRAM).$(LABEL).$(SUB)$(VERSION)-final-tied: main-final-tied.o $(TIED_FINAL_PROGRAM_OBJS) Makefile $(COMMON_DIR)/Makefile.common $(COMMON_OBJS)
-	$(OMPLINK) $(OMPLINK_ALL_FLAGS) -o $@ main-if-tied.o $(TIED_FINAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS)
+	$(OMPLINK) -o $@ main-if-tied.o $(TIED_FINAL_PROGRAM_OBJS) $(LIBS) $(COMMON_OBJS) $(OMPLINK_ALL_FLAGS)
 
 else
 

@@ -604,7 +604,8 @@ void sim_village_main_par(struct Village *top)
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->i = i;
 new_ctx->top = top;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
 static void pragma563_omp_task_hclib_async(void *____arg) {

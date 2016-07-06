@@ -83,7 +83,7 @@
 
 extern double wtime(void);
 
-int num_omp_threads = 12;
+int num_omp_threads = 24;
 
 /*---< usage() >------------------------------------------------------------*/
 void usage(char *argv0) {

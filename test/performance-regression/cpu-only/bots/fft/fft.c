@@ -6359,7 +6359,8 @@ new_ctx->W = W;
 new_ctx->n = n;
 new_ctx->in = in;
 new_ctx->out = out;
-hclib_launch(main_entrypoint, new_ctx);
+const char *deps[] = { "system" };
+hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
      bots_message(" completed!\n");
 
