@@ -51,7 +51,8 @@ void init_ran(int *ran, int size) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib::launch([]() {
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, []() {
         // This is ok to have these on stack because this
         // code is alive until the end of the program.
         hclib::finish([]() {

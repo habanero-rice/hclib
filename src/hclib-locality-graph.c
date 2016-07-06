@@ -47,8 +47,6 @@ void hclib_add_locale_metadata_functions(int locale_id,
         hclib_locale_metadata_populate_func_type populate_func) {
     assert(size_func); assert(populate_func);
 
-    fprintf(stderr, "registering metadata for local_id=%d\n", locale_id);
-
     hclib_register_func(&metadata_size_registrations, locale_id, size_func,
             MAY_USE);
     hclib_register_func(&metadata_populate_registrations, locale_id,

@@ -4,7 +4,7 @@ export TBB_MALLOC=/home/kumar/tbb
 #export HCLIB_FLAGS="--enable-production"
 export LIBXML2_INCLUDE=/usr/include/libxml2
 export LIBXML2_LIBS=/usr/lib/x86_64-linux-gnu
-export BASE=/home/mg1/hcpp
+export BASE=/home/mg1/hclib
 # export HC_CUDA_FLAGS=--enable-cuda
 
 ################################################
@@ -18,11 +18,11 @@ export hclib=${BASE}
 export HCLIB_ROOT=${hclib}/hclib-install
 export LD_LIBRARY_PATH=${HCLIB_ROOT}/lib:${LIBXML2_LIBS}:$LD_LIBRARY_PATH
 export HCLIB_MODULE_DIR=${HCLIB_ROOT}/../modules
-for DIR in $(ls $HCLIB_MODULE_DIR); do
-    if [[ -d $HCLIB_MODULE_DIR/$DIR ]]; then
-        export LD_LIBRARY_PATH=$HCLIB_MODULE_DIR/$DIR/lib:$LD_LIBRARY_PATH
-    fi
-done
+# for DIR in $(ls $HCLIB_MODULE_DIR); do
+#     if [[ -d $HCLIB_MODULE_DIR/$DIR ]]; then
+#         export LD_LIBRARY_PATH=$HCLIB_MODULE_DIR/$DIR/lib:$LD_LIBRARY_PATH
+#     fi
+# done
 
 if [ ! -z "${TBB_MALLOC}" ]; then
    export LD_LIBRARY_PATH=${TBB_MALLOC}:$LD_LIBRARY_PATH

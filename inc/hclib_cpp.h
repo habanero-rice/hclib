@@ -15,9 +15,9 @@ typedef hclib_triggered_task_t triggered_task_t;
 typedef hclib_locale_t locale_t;
 
 template <typename T>
-void launch(T lambda) {
+void launch(const char **deps, int ndeps, T lambda) {
     hclib_task_t *user_task = _allocate_async(lambda, false);
-    hclib_launch((generic_frame_ptr)spawn, user_task);
+    hclib_launch((generic_frame_ptr)spawn, user_task, deps, ndeps);
 }
 
 promise_t **promise_create_n(size_t nb_promises, int null_terminated);

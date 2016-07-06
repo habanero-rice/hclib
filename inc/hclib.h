@@ -60,7 +60,8 @@ typedef void *(*future_fct_t)(void *arg);
 
 size_t hclib_current_worker_backlog();
 
-void hclib_launch(async_fct_t fct_ptr, void * arg);
+void hclib_launch(async_fct_t fct_ptr, void * arg, const char **deps,
+        int ndeps);
 
 unsigned long long hclib_current_time_ns();
 

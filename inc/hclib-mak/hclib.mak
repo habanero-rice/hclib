@@ -9,9 +9,8 @@ endif
 
 UNAME_S := $(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
-	HCLIB_LDLIBS+=-lrt
 	IS_MAC_OS = 0
-	HCLIB_LDLIBS=-lhclib -lxml2 $(JSMN_HOME)/libjsmn.a -lrt
+	HCLIB_LDLIBS=-lhclib -lxml2 $(JSMN_HOME)/libjsmn.a -lrt -ldl
 else
 	IS_MAC_OS = 1
 	HCLIB_LDLIBS=-lhclib -lxml2 $(call GET_LINK_FLAG,-force_load) \

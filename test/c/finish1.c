@@ -93,7 +93,8 @@ void entrypoint(void *arg) {
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    hclib_launch(entrypoint, NULL);
+    char const *deps[] = { "system" };
+    hclib_launch(entrypoint, NULL, deps, 1);
     printf("Check results: ");
     assert_done(0, NB_ASYNC);
     printf("OK\n");

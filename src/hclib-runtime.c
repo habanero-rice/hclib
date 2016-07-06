@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <dlfcn.h>
 
 #include <hclib.h>
 #include <hclib-internal.h>
@@ -266,7 +267,34 @@ void hclib_global_init() {
     }
 }
 
-static void hclib_entrypoint() {
+static void load_dependencies(const char **module_dependencies,
+        int n_module_dependencies) {
+    int i;
+    char *hclib_home = getenv("HCLIB_HOME");
+    if (hclib_home == NULL) {
+        fprintf(stderr, "Expected environment variable HCLIB_HOME to be set to "
+                "the root directory of the checked out HClib repo\n");
+        exit(1);
+    }
+
+    char module_path_buf[1024];
+    for (i = 0; i < n_module_dependencies; i++) {
+        const char *module_name = module_dependencies[i];
+        sprintf(module_path_buf, "%s/modules/%s/lib/libhclib_%s.so", hclib_home,
+                module_name, module_name);
+        void *handle = dlopen(module_path_buf, RTLD_LAZY);
+        if (handle == NULL) {
+            fprintf(stderr, "Failed dynamically loading %s for \"%s\" "
+                    "dependency\n", module_path_buf, module_name);
+            exit(1);
+        }
+    }
+}
+
+static void hclib_entrypoint(const char **module_dependencies,
+        int n_module_dependencies) {
+    load_dependencies(module_dependencies, n_module_dependencies);
+
     hclib_call_module_pre_init_functions();
 
     srand(0);
@@ -1106,12 +1134,13 @@ void hclib_user_harness_timer(double dur) {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-static void hclib_init() {
+static void hclib_init(const char **module_dependencies,
+        int n_module_dependencies) {
     if (getenv("HCLIB_PROFILE_LAUNCH_BODY")) {
         profile_launch_body = 1;
     }
 
-    hclib_entrypoint();
+    hclib_entrypoint(module_dependencies, n_module_dependencies);
 }
 
 
@@ -1206,10 +1235,13 @@ static void hclib_finalize() {
  * need to do extra work to persist it.
  */
 
-void hclib_launch(generic_frame_ptr fct_ptr, void *arg) {
+void hclib_launch(generic_frame_ptr fct_ptr, void *arg, const char **deps,
+        int ndeps) {
     unsigned long long start_time = 0;
     unsigned long long end_time;
-    hclib_init();
+
+    hclib_init(deps, ndeps);
+
     if (profile_launch_body) {
         start_time = current_time_ns();
     }

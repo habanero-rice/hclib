@@ -37,7 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_cpp.h"
 
 int main (int argc, char ** argv) {
-    hclib_launch([=] {
+    const char *deps[] = { "system" };
+    hclib_launch(deps, 1, [=] {
         printf("hello\n");
     });
     return 0;

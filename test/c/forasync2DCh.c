@@ -81,7 +81,8 @@ int main (int argc, char ** argv) {
     int *ran=(int *)malloc(H1*H2*sizeof(int));
 
     printf("Call Init\n");
-    hclib_launch(entrypoint, ran);
+    char const *deps[] = { "system" };
+    hclib_launch(entrypoint, ran, deps, 1);
     printf("Check results: ");
     int i = 0;
     while(i < H1*H2) {

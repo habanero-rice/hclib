@@ -7,6 +7,8 @@ OBJS=obj/hclib_cuda.o
 
 TARGETS=lib/libhclib_cuda.so lib/libhclib_cuda.a
 
+all: $(TARGETS)
+
 lib/libhclib_cuda.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 

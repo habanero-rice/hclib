@@ -102,8 +102,6 @@ int  hclib_num_workers();
 void hclib_start_finish();
 void hclib_end_finish();
 void hclib_user_harness_timer(double dur);
-void hclib_launch(generic_frame_ptr fct_ptr,
-        void * arg);
 
 #ifdef __cplusplus
 }

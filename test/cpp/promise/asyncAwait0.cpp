@@ -19,7 +19,8 @@ int main(int argc, char ** argv) {
     int n = 5;
     hclib::promise_t **promise_list = (hclib::promise_t **)malloc(sizeof(hclib::promise_t *) * (n + 1));
 
-    hclib::launch([=]() {
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [=]() {
         hclib::finish([=]() {
             int index = 0;
 

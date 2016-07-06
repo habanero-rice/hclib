@@ -5,7 +5,8 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-    hclib::launch([] {
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [] {
         hclib::finish([] {
 
             int numWorkers = hclib::num_workers();

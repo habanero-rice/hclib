@@ -34,6 +34,7 @@ void entrypoint(void *arg) {
 int main(int argc, char **argv) {
     memset(arr, 0x00, 10 * sizeof(int));
 
-    hclib_launch(entrypoint, NULL);
+    char const *deps[] = { "system" };
+    hclib_launch(entrypoint, NULL, deps, 1);
     return 0;
 }

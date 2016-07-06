@@ -55,7 +55,8 @@ int main (int argc, char ** argv) {
     int *ran=(int *)malloc(H1*sizeof(int));
     assert(ran);
 
-    hclib::launch([=]() {
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [=]() {
             int i = 0;
             // This is ok to have these on stack because this
             // code is alive until the end of the program.

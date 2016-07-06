@@ -1,7 +1,8 @@
 #include <hclib_cpp.h>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [] {
         for (int iter = 0; iter < 100; iter++) {
             hclib::async([] {
                 hclib::finish([] {

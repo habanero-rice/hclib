@@ -12,7 +12,8 @@
 #include "hclib_cpp.h"
 
 int main(int argc, char ** argv) {
-    hclib::launch([]() {
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, []() {
         int n_asyncs = 5;
         int *count = (int *)malloc(sizeof(int));
         assert(count);

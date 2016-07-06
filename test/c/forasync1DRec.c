@@ -73,7 +73,8 @@ void entrypoint(void *arg) {
 int main (int argc, char ** argv) {
     printf("Call Init\n");
     int *ran=(int *)malloc(H1*sizeof(int));
-    hclib_launch(entrypoint, ran);
+    char const *deps[] = { "system" };
+    hclib_launch(entrypoint, ran, deps, 1);
     printf("Check results: ");
     int i = 0;
     while(i < H1) {
