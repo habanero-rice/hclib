@@ -34,16 +34,18 @@ typedef struct {
 
 /*** User-level functions ***/
 
-void bpnn_initialize();
+void bpnn_initialize(int seed);
 
-BPNN *bpnn_create();
-void bpnn_free();
+BPNN *bpnn_create(int n_in, int n_hidden, int n_out);
+void bpnn_free(BPNN *net);
 
-void bpnn_train();
-void bpnn_feedforward();
+void bpnn_train(BPNN *net, float *eo, float *eh);
+void bpnn_feedforward(BPNN *net);
 
-void bpnn_save();
-BPNN *bpnn_read();
+void bpnn_save(BPNN *net, char *filename);
+BPNN *bpnn_read(char *filename);
+void bpnn_train_kernel(BPNN *net, float *eo, float *eh);
 
+void load(BPNN *net);
 
 #endif

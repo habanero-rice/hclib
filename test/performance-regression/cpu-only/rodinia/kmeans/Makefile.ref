@@ -5,7 +5,7 @@ include ../../custom.mak
 # C compiler
 HCLIB_PERF_CC?=icc
 CC = $(HCLIB_PERF_CC)
-CC_FLAGS = -g -fopenmp -O0
+CC_FLAGS = -g -O0
 
 kmeans.ref: cluster.o getopt.o kmeans.ref.o kmeans_clustering.ref.o 
 	$(HCLIB_PERF_CC) $(CC_FLAGS) cluster.o getopt.o kmeans.ref.o kmeans_clustering.ref.o  -o kmeans.ref $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)

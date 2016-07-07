@@ -21,6 +21,7 @@
 /***********************************************************************
  * main function & common behaviour of the benchmark.
  **********************************************************************/
+#include "app-desc.h"
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
@@ -32,7 +33,6 @@
 #include "bots_common.h"
 #include "bots_main.h"
 #include "bots.h"
-#include "app-desc.h"
 
 /***********************************************************************
  * DEFAULT VALUES 

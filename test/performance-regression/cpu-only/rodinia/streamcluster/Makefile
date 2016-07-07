@@ -17,7 +17,8 @@ HCLIB_PERF_CXX?=icpc
 all: omp
 
 omp:
-	$(HCLIB_PERF_CXX) -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(HCLIB_PERF_CXX) -O3 -c -o streamcluster_omp.o streamcluster_omp.cpp $(HCLIB_CXXFLAGS)
+	$(HCLIB_PERF_CXX) -O3 -o $(TARGET_O) streamcluster_omp.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

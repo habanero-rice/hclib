@@ -7,7 +7,7 @@
 #include <cmath>
 #include <omp.h>
 
-struct double3 { double x, y, z; };
+struct cfd_double3 { double x, y, z; };
 
 #define block_length 8
 
@@ -92,10 +92,10 @@ void dump(double* variables, int nel, int nelr)
  * Element-based Cell-centered FVM solver functions
  */
 double ff_variable[NVAR];
-double3 ff_flux_contribution_momentum_x;
-double3 ff_flux_contribution_momentum_y;
-double3 ff_flux_contribution_momentum_z;
-double3 ff_flux_contribution_density_energy;
+cfd_double3 ff_flux_contribution_momentum_x;
+cfd_double3 ff_flux_contribution_momentum_y;
+cfd_double3 ff_flux_contribution_momentum_z;
+cfd_double3 ff_flux_contribution_density_energy;
 
 
 void initialize_variables(int nelr, double* variables)
@@ -107,7 +107,7 @@ void initialize_variables(int nelr, double* variables)
 	}
 }
 
-inline void compute_flux_contribution(double& density, double3& momentum, double& density_energy, double& pressure, double3& velocity, double3& fc_momentum_x, double3& fc_momentum_y, double3& fc_momentum_z, double3& fc_density_energy)
+inline void compute_flux_contribution(double& density, cfd_double3& momentum, double& density_energy, double& pressure, cfd_double3& velocity, cfd_double3& fc_momentum_x, cfd_double3& fc_momentum_y, cfd_double3& fc_momentum_z, cfd_double3& fc_density_energy)
 {
 	fc_momentum_x.x = velocity.x*momentum.x + pressure;
 	fc_momentum_x.y = velocity.x*momentum.y;
@@ -127,14 +127,14 @@ inline void compute_flux_contribution(double& density, double3& momentum, double
 	fc_density_energy.z = velocity.z*de_p;
 }
 
-inline void compute_velocity(double& density, double3& momentum, double3& velocity)
+inline void compute_velocity(double& density, cfd_double3& momentum, cfd_double3& velocity)
 {
 	velocity.x = momentum.x / density;
 	velocity.y = momentum.y / density;
 	velocity.z = momentum.z / density;
 }
 
-inline double compute_speed_sqd(double3& velocity)
+inline double compute_speed_sqd(cfd_double3& velocity)
 {
 	return velocity.x*velocity.x + velocity.y*velocity.y + velocity.z*velocity.z;
 }
@@ -158,13 +158,13 @@ void compute_step_factor(int nelr, double* variables, double* areas, double* ste
 	{
 		double density = variables[NVAR*i + VAR_DENSITY];
 
-		double3 momentum;
+		cfd_double3 momentum;
 		momentum.x = variables[NVAR*i + (VAR_MOMENTUM+0)];
 		momentum.y = variables[NVAR*i + (VAR_MOMENTUM+1)];
 		momentum.z = variables[NVAR*i + (VAR_MOMENTUM+2)];
 
 		double density_energy = variables[NVAR*i + VAR_DENSITY_ENERGY];
-		double3 velocity;	   compute_velocity(density, momentum, velocity);
+		cfd_double3 velocity;	   compute_velocity(density, momentum, velocity);
 		double speed_sqd      = compute_speed_sqd(velocity);
 		double pressure       = compute_pressure(density, density_energy, speed_sqd);
 		double speed_of_sound = compute_speed_of_sound(density, pressure);
@@ -188,38 +188,38 @@ void compute_flux(int nelr, int* elements_surrounding_elements, double* normals,
 	for(int i = 0; i < nelr; i++)
 	{
 		int j, nb;
-		double3 normal; double normal_len;
+		cfd_double3 normal; double normal_len;
 		double factor;
 
 		double density_i = variables[NVAR*i + VAR_DENSITY];
-		double3 momentum_i;
+		cfd_double3 momentum_i;
 		momentum_i.x = variables[NVAR*i + (VAR_MOMENTUM+0)];
 		momentum_i.y = variables[NVAR*i + (VAR_MOMENTUM+1)];
 		momentum_i.z = variables[NVAR*i + (VAR_MOMENTUM+2)];
 
 		double density_energy_i = variables[NVAR*i + VAR_DENSITY_ENERGY];
 
-		double3 velocity_i;             				 compute_velocity(density_i, momentum_i, velocity_i);
+		cfd_double3 velocity_i;             				 compute_velocity(density_i, momentum_i, velocity_i);
 		double speed_sqd_i                          = compute_speed_sqd(velocity_i);
 		double speed_i                              = std::sqrt(speed_sqd_i);
 		double pressure_i                           = compute_pressure(density_i, density_energy_i, speed_sqd_i);
 		double speed_of_sound_i                     = compute_speed_of_sound(density_i, pressure_i);
-		double3 flux_contribution_i_momentum_x, flux_contribution_i_momentum_y, flux_contribution_i_momentum_z;
-		double3 flux_contribution_i_density_energy;
+		cfd_double3 flux_contribution_i_momentum_x, flux_contribution_i_momentum_y, flux_contribution_i_momentum_z;
+		cfd_double3 flux_contribution_i_density_energy;
 		compute_flux_contribution(density_i, momentum_i, density_energy_i, pressure_i, velocity_i, flux_contribution_i_momentum_x, flux_contribution_i_momentum_y, flux_contribution_i_momentum_z, flux_contribution_i_density_energy);
 
 		double flux_i_density = double(0.0);
-		double3 flux_i_momentum;
+		cfd_double3 flux_i_momentum;
 		flux_i_momentum.x = double(0.0);
 		flux_i_momentum.y = double(0.0);
 		flux_i_momentum.z = double(0.0);
 		double flux_i_density_energy = double(0.0);
 
-		double3 velocity_nb;
+		cfd_double3 velocity_nb;
 		double density_nb, density_energy_nb;
-		double3 momentum_nb;
-		double3 flux_contribution_nb_momentum_x, flux_contribution_nb_momentum_y, flux_contribution_nb_momentum_z;
-		double3 flux_contribution_nb_density_energy;
+		cfd_double3 momentum_nb;
+		cfd_double3 flux_contribution_nb_momentum_x, flux_contribution_nb_momentum_y, flux_contribution_nb_momentum_z;
+		cfd_double3 flux_contribution_nb_density_energy;
 		double speed_sqd_nb, speed_of_sound_nb, pressure_nb;
 
 		for(j = 0; j < NNB; j++)
@@ -350,7 +350,7 @@ int main(int argc, char** argv)
 		double ff_speed_of_sound = sqrt(GAMMA*ff_pressure / ff_variable[VAR_DENSITY]);
 		double ff_speed = double(ff_mach)*ff_speed_of_sound;
 
-		double3 ff_velocity;
+		cfd_double3 ff_velocity;
 		ff_velocity.x = ff_speed*double(cos((double)angle_of_attack));
 		ff_velocity.y = ff_speed*double(sin((double)angle_of_attack));
 		ff_velocity.z = 0.0;
@@ -361,7 +361,7 @@ int main(int argc, char** argv)
 
 		ff_variable[VAR_DENSITY_ENERGY] = ff_variable[VAR_DENSITY]*(double(0.5)*(ff_speed*ff_speed)) + (ff_pressure / double(GAMMA-1.0));
 
-		double3 ff_momentum;
+		cfd_double3 ff_momentum;
 		ff_momentum.x = *(ff_variable+VAR_MOMENTUM+0);
 		ff_momentum.y = *(ff_variable+VAR_MOMENTUM+1);
 		ff_momentum.z = *(ff_variable+VAR_MOMENTUM+2);

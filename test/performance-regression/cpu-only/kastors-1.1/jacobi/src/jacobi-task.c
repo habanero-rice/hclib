@@ -2,11 +2,14 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 # include "poisson.h"
 
 /* #pragma omp task/taskwait version of SWEEP. */
-typedef struct _pragma28_omp_task {
+typedef struct _pragma31_omp_task {
     int i;
     int (*it_ptr);
     int j;
@@ -20,9 +23,9 @@ typedef struct _pragma28_omp_task {
     double (*(*u_ptr));
     double (*(*unew_ptr));
     int (*block_size_ptr);
- } pragma28_omp_task;
+ } pragma31_omp_task;
 
-typedef struct _pragma36_omp_task {
+typedef struct _pragma39_omp_task {
     int i;
     int (*it_ptr);
     int j;
@@ -36,10 +39,10 @@ typedef struct _pragma36_omp_task {
     double (*(*u_ptr));
     double (*(*unew_ptr));
     int (*block_size_ptr);
- } pragma36_omp_task;
+ } pragma39_omp_task;
 
-static void pragma28_omp_task_hclib_async(void *____arg);
-static void pragma36_omp_task_hclib_async(void *____arg);
+static void pragma31_omp_task_hclib_async(void *____arg);
+static void pragma39_omp_task_hclib_async(void *____arg);
 void sweep (int nx, int ny, double dx, double dy, double *f,
         int itold, int itnew, double *u, double *unew, int block_size)
 {
@@ -55,7 +58,7 @@ hclib_start_finish(); {
             // Save the current estimate.
             for (i = 0; i < nx; i++) {
  { 
-pragma28_omp_task *new_ctx = (pragma28_omp_task *)malloc(sizeof(pragma28_omp_task));
+pragma31_omp_task *new_ctx = (pragma31_omp_task *)malloc(sizeof(pragma31_omp_task));
 new_ctx->i = i;
 new_ctx->it_ptr = &(it);
 new_ctx->j = j;
@@ -69,14 +72,14 @@ new_ctx->itnew_ptr = &(itnew);
 new_ctx->u_ptr = &(u);
 new_ctx->unew_ptr = &(unew);
 new_ctx->block_size_ptr = &(block_size);
-hclib_async(pragma28_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma31_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             }
  hclib_end_finish(); hclib_start_finish(); ;
             // Compute a new estimate.
             for (i = 0; i < nx; i++) {
  { 
-pragma36_omp_task *new_ctx = (pragma36_omp_task *)malloc(sizeof(pragma36_omp_task));
+pragma39_omp_task *new_ctx = (pragma39_omp_task *)malloc(sizeof(pragma39_omp_task));
 new_ctx->i = i;
 new_ctx->it_ptr = &(it);
 new_ctx->j = j;
@@ -90,15 +93,15 @@ new_ctx->itnew_ptr = &(itnew);
 new_ctx->u_ptr = &(u);
 new_ctx->unew_ptr = &(unew);
 new_ctx->block_size_ptr = &(block_size);
-hclib_async(pragma36_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma39_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             }
  hclib_end_finish(); hclib_start_finish(); ;
         }
     } ; hclib_end_finish(); 
 } 
-static void pragma28_omp_task_hclib_async(void *____arg) {
-    pragma28_omp_task *ctx = (pragma28_omp_task *)____arg;
+static void pragma31_omp_task_hclib_async(void *____arg) {
+    pragma31_omp_task *ctx = (pragma31_omp_task *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int ny; ny = ctx->ny;
@@ -108,8 +111,8 @@ for (j = 0; j < ny; j++) {
 }
 
 
-static void pragma36_omp_task_hclib_async(void *____arg) {
-    pragma36_omp_task *ctx = (pragma36_omp_task *)____arg;
+static void pragma39_omp_task_hclib_async(void *____arg) {
+    pragma39_omp_task *ctx = (pragma39_omp_task *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nx; nx = ctx->nx;

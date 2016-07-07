@@ -14,6 +14,7 @@
 #include <omp.h>									// (in directory known to compiler)			needed by openmp
 #include <stdlib.h>									// (in directory known to compiler)			needed by malloc
 #include <stdio.h>									// (in directory known to compiler)			needed by printf, stderr
+#include <assert.h>
 
 //======================================================================================================================================================150
 //	COMMON

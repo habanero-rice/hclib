@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
@@ -435,7 +438,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pragma468_omp_task {
+typedef struct _pragma471_omp_task {
     int i;
     int n;
     int m;
@@ -448,10 +451,10 @@ typedef struct _pragma468_omp_task {
     double mm_score;
     int (*(*mat_xref_ptr));
     int (*(*matptr_ptr));
- } pragma468_omp_task;
+ } pragma471_omp_task;
 
-static void pragma468_omp_task_hclib_async(void *____arg);
-typedef struct _pragma471_omp_parallel {
+static void pragma471_omp_task_hclib_async(void *____arg);
+typedef struct _pragma474_omp_parallel {
     int i;
     int n;
     int m;
@@ -464,9 +467,22 @@ typedef struct _pragma471_omp_parallel {
     double (*mm_score_ptr);
     int (*(*mat_xref_ptr));
     int (*(*matptr_ptr));
- } pragma471_omp_parallel;
+ } pragma474_omp_parallel;
 
-static void pragma471_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+
+class pragma474_omp_parallel_hclib_async {
+    private:
+
+    public:
+        __host__ __device__ void operator()(int idx) {
+        }
+};
+
+#else
+static void pragma474_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+#endif
 typedef struct _main_entrypoint_ctx {
     int i;
     int n;
@@ -500,7 +516,7 @@ static void main_entrypoint(void *____arg) {
 {
 
  { 
-pragma471_omp_parallel *new_ctx = (pragma471_omp_parallel *)malloc(sizeof(pragma471_omp_parallel));
+pragma474_omp_parallel *new_ctx = (pragma474_omp_parallel *)malloc(sizeof(pragma474_omp_parallel));
 new_ctx->i = i;
 new_ctx->n = n;
 new_ctx->m = m;
@@ -518,8 +534,13 @@ domain[0].low = 0;
 domain[0].high = nseqs;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma471_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+hclib::future_t *fut = hclib::forasync_cuda((nseqs) - (0), pragma474_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
+fut->wait();
+#else
+hclib_future_t *fut = hclib_forasync_future((void *)pragma474_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
+#endif
 free(new_ctx);
  }  // end parallel for (i)
    } ;     free(____arg);
@@ -555,8 +576,11 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
    return 0;
 }  
-static void pragma471_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma471_omp_parallel *ctx = (pragma471_omp_parallel *)____arg;
+
+#ifndef OMP_TO_HCLIB_ENABLE_GPU
+
+static void pragma474_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma474_omp_parallel *ctx = (pragma474_omp_parallel *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;
@@ -579,7 +603,7 @@ static void pragma471_omp_parallel_hclib_async(void *____arg, const int ___iter0
            bench_output[si*nseqs+sj] = (int) 1.0;
         } else {
  { 
-pragma468_omp_task *new_ctx = (pragma468_omp_task *)malloc(sizeof(pragma468_omp_task));
+pragma471_omp_task *new_ctx = (pragma471_omp_task *)malloc(sizeof(pragma471_omp_task));
 new_ctx->i = i;
 new_ctx->n = n;
 new_ctx->m = m;
@@ -592,7 +616,7 @@ new_ctx->gg = *(ctx->gg_ptr);
 new_ctx->mm_score = *(ctx->mm_score_ptr);
 new_ctx->mat_xref_ptr = ctx->mat_xref_ptr;
 new_ctx->matptr_ptr = ctx->matptr_ptr;
-hclib_async(pragma468_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma471_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  }  // end task
         } // end if (n == 0 || m == 0)
      } // for (j)
@@ -601,9 +625,10 @@ hclib_async(pragma468_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 
 }
 
+#endif
  
-static void pragma468_omp_task_hclib_async(void *____arg) {
-    pragma468_omp_task *ctx = (pragma468_omp_task *)____arg;
+static void pragma471_omp_task_hclib_async(void *____arg) {
+    pragma471_omp_task *ctx = (pragma471_omp_task *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;

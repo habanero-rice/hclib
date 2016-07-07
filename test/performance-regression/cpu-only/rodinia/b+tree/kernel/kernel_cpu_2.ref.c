@@ -13,6 +13,8 @@
 
 #include <omp.h>									// (in directory known to compiler)
 #include <stdlib.h>									// (in directory known to compiler)
+#include <assert.h>
+#include <stdio.h>
 
 //======================================================================================================================================================150
 //	COMMON

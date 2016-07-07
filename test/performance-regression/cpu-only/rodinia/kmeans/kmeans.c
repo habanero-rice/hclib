@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 /*****************************************************************************/
 /*IMPORTANT:  READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.         */
@@ -82,6 +85,7 @@
 #include <fcntl.h>
 #include <omp.h>
 #include "getopt.h"
+#include <unistd.h>
 
 #include "kmeans.h"
 

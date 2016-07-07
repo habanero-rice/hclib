@@ -27,6 +27,7 @@
 #define IR 2836
 #define MASK 123459876
 
+#include <stdint.h>
 #include <pthread.h>
 
 struct Results {

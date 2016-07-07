@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
@@ -298,7 +301,7 @@ ELM *binsplit(ELM val, ELM *low, ELM *high)
 }
 
 
-typedef struct _pragma355_omp_task {
+typedef struct _pragma358_omp_task {
     long (*(*split1_ptr));
     long (*(*split2_ptr));
     long (*lowsize_ptr);
@@ -307,9 +310,9 @@ typedef struct _pragma355_omp_task {
     long (*(*low2_ptr));
     long (*(*high2_ptr));
     long (*(*lowdest_ptr));
- } pragma355_omp_task;
+ } pragma358_omp_task;
 
-typedef struct _pragma357_omp_task {
+typedef struct _pragma360_omp_task {
     long (*(*split1_ptr));
     long (*(*split2_ptr));
     long (*lowsize_ptr);
@@ -318,10 +321,10 @@ typedef struct _pragma357_omp_task {
     long (*(*low2_ptr));
     long (*(*high2_ptr));
     long (*(*lowdest_ptr));
- } pragma357_omp_task;
+ } pragma360_omp_task;
 
-static void pragma355_omp_task_hclib_async(void *____arg);
-static void pragma357_omp_task_hclib_async(void *____arg);
+static void pragma358_omp_task_hclib_async(void *____arg);
+static void pragma360_omp_task_hclib_async(void *____arg);
 void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
 {
      /*
@@ -375,7 +378,7 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
       */
      *(lowdest + lowsize + 1) = *split1;
  { 
-pragma355_omp_task *new_ctx = (pragma355_omp_task *)malloc(sizeof(pragma355_omp_task));
+pragma358_omp_task *new_ctx = (pragma358_omp_task *)malloc(sizeof(pragma358_omp_task));
 new_ctx->split1_ptr = &(split1);
 new_ctx->split2_ptr = &(split2);
 new_ctx->lowsize_ptr = &(lowsize);
@@ -384,10 +387,10 @@ new_ctx->high1_ptr = &(high1);
 new_ctx->low2_ptr = &(low2);
 new_ctx->high2_ptr = &(high2);
 new_ctx->lowdest_ptr = &(lowdest);
-hclib_async(pragma355_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma358_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma357_omp_task *new_ctx = (pragma357_omp_task *)malloc(sizeof(pragma357_omp_task));
+pragma360_omp_task *new_ctx = (pragma360_omp_task *)malloc(sizeof(pragma360_omp_task));
 new_ctx->split1_ptr = &(split1);
 new_ctx->split2_ptr = &(split2);
 new_ctx->lowsize_ptr = &(lowsize);
@@ -396,14 +399,14 @@ new_ctx->high1_ptr = &(high1);
 new_ctx->low2_ptr = &(low2);
 new_ctx->high2_ptr = &(high2);
 new_ctx->lowdest_ptr = &(lowdest);
-hclib_async(pragma357_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma360_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
 
      return;
 } 
-static void pragma355_omp_task_hclib_async(void *____arg) {
-    pragma355_omp_task *ctx = (pragma355_omp_task *)____arg;
+static void pragma358_omp_task_hclib_async(void *____arg) {
+    pragma358_omp_task *ctx = (pragma358_omp_task *)____arg;
     hclib_start_finish();
 cilkmerge_par((*(ctx->low1_ptr)), (*(ctx->split1_ptr)) - 1, (*(ctx->low2_ptr)), (*(ctx->split2_ptr)), (*(ctx->lowdest_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -411,8 +414,8 @@ cilkmerge_par((*(ctx->low1_ptr)), (*(ctx->split1_ptr)) - 1, (*(ctx->low2_ptr)), 
 }
 
 
-static void pragma357_omp_task_hclib_async(void *____arg) {
-    pragma357_omp_task *ctx = (pragma357_omp_task *)____arg;
+static void pragma360_omp_task_hclib_async(void *____arg) {
+    pragma360_omp_task *ctx = (pragma360_omp_task *)____arg;
     hclib_start_finish();
 cilkmerge_par((*(ctx->split1_ptr)) + 1, (*(ctx->high1_ptr)), (*(ctx->split2_ptr)) + 1, (*(ctx->high2_ptr)),
 		     (*(ctx->lowdest_ptr)) + (*(ctx->lowsize_ptr)) + 2) ;     ; hclib_end_finish_nonblocking();
@@ -422,7 +425,7 @@ cilkmerge_par((*(ctx->split1_ptr)) + 1, (*(ctx->high1_ptr)), (*(ctx->split2_ptr)
 
 
 
-typedef struct _pragma391_omp_task {
+typedef struct _pragma394_omp_task {
     long (*quarter_ptr);
     long (*(*A_ptr));
     long (*(*B_ptr));
@@ -435,9 +438,9 @@ typedef struct _pragma391_omp_task {
     long (*(*low_ptr));
     long (*(*tmp_ptr));
     long (*size_ptr);
- } pragma391_omp_task;
+ } pragma394_omp_task;
 
-typedef struct _pragma393_omp_task {
+typedef struct _pragma396_omp_task {
     long (*quarter_ptr);
     long (*(*A_ptr));
     long (*(*B_ptr));
@@ -450,9 +453,9 @@ typedef struct _pragma393_omp_task {
     long (*(*low_ptr));
     long (*(*tmp_ptr));
     long (*size_ptr);
- } pragma393_omp_task;
+ } pragma396_omp_task;
 
-typedef struct _pragma395_omp_task {
+typedef struct _pragma398_omp_task {
     long (*quarter_ptr);
     long (*(*A_ptr));
     long (*(*B_ptr));
@@ -465,9 +468,9 @@ typedef struct _pragma395_omp_task {
     long (*(*low_ptr));
     long (*(*tmp_ptr));
     long (*size_ptr);
- } pragma395_omp_task;
+ } pragma398_omp_task;
 
-typedef struct _pragma397_omp_task {
+typedef struct _pragma400_omp_task {
     long (*quarter_ptr);
     long (*(*A_ptr));
     long (*(*B_ptr));
@@ -480,9 +483,9 @@ typedef struct _pragma397_omp_task {
     long (*(*low_ptr));
     long (*(*tmp_ptr));
     long (*size_ptr);
- } pragma397_omp_task;
+ } pragma400_omp_task;
 
-typedef struct _pragma401_omp_task {
+typedef struct _pragma404_omp_task {
     long (*quarter_ptr);
     long (*(*A_ptr));
     long (*(*B_ptr));
@@ -495,9 +498,9 @@ typedef struct _pragma401_omp_task {
     long (*(*low_ptr));
     long (*(*tmp_ptr));
     long (*size_ptr);
- } pragma401_omp_task;
+ } pragma404_omp_task;
 
-typedef struct _pragma403_omp_task {
+typedef struct _pragma406_omp_task {
     long (*quarter_ptr);
     long (*(*A_ptr));
     long (*(*B_ptr));
@@ -510,14 +513,14 @@ typedef struct _pragma403_omp_task {
     long (*(*low_ptr));
     long (*(*tmp_ptr));
     long (*size_ptr);
- } pragma403_omp_task;
+ } pragma406_omp_task;
 
-static void pragma391_omp_task_hclib_async(void *____arg);
-static void pragma393_omp_task_hclib_async(void *____arg);
-static void pragma395_omp_task_hclib_async(void *____arg);
-static void pragma397_omp_task_hclib_async(void *____arg);
-static void pragma401_omp_task_hclib_async(void *____arg);
-static void pragma403_omp_task_hclib_async(void *____arg);
+static void pragma394_omp_task_hclib_async(void *____arg);
+static void pragma396_omp_task_hclib_async(void *____arg);
+static void pragma398_omp_task_hclib_async(void *____arg);
+static void pragma400_omp_task_hclib_async(void *____arg);
+static void pragma404_omp_task_hclib_async(void *____arg);
+static void pragma406_omp_task_hclib_async(void *____arg);
 void cilksort_par(ELM *low, ELM *tmp, long size)
 {
      /*
@@ -545,7 +548,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
      tmpD = tmpC + quarter;
 
  { 
-pragma391_omp_task *new_ctx = (pragma391_omp_task *)malloc(sizeof(pragma391_omp_task));
+pragma394_omp_task *new_ctx = (pragma394_omp_task *)malloc(sizeof(pragma394_omp_task));
 new_ctx->quarter_ptr = &(quarter);
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
@@ -558,10 +561,10 @@ new_ctx->tmpD_ptr = &(tmpD);
 new_ctx->low_ptr = &(low);
 new_ctx->tmp_ptr = &(tmp);
 new_ctx->size_ptr = &(size);
-hclib_async(pragma391_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma394_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma393_omp_task *new_ctx = (pragma393_omp_task *)malloc(sizeof(pragma393_omp_task));
+pragma396_omp_task *new_ctx = (pragma396_omp_task *)malloc(sizeof(pragma396_omp_task));
 new_ctx->quarter_ptr = &(quarter);
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
@@ -574,10 +577,10 @@ new_ctx->tmpD_ptr = &(tmpD);
 new_ctx->low_ptr = &(low);
 new_ctx->tmp_ptr = &(tmp);
 new_ctx->size_ptr = &(size);
-hclib_async(pragma393_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma396_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma395_omp_task *new_ctx = (pragma395_omp_task *)malloc(sizeof(pragma395_omp_task));
+pragma398_omp_task *new_ctx = (pragma398_omp_task *)malloc(sizeof(pragma398_omp_task));
 new_ctx->quarter_ptr = &(quarter);
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
@@ -590,10 +593,10 @@ new_ctx->tmpD_ptr = &(tmpD);
 new_ctx->low_ptr = &(low);
 new_ctx->tmp_ptr = &(tmp);
 new_ctx->size_ptr = &(size);
-hclib_async(pragma395_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma398_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma397_omp_task *new_ctx = (pragma397_omp_task *)malloc(sizeof(pragma397_omp_task));
+pragma400_omp_task *new_ctx = (pragma400_omp_task *)malloc(sizeof(pragma400_omp_task));
 new_ctx->quarter_ptr = &(quarter);
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
@@ -606,12 +609,12 @@ new_ctx->tmpD_ptr = &(tmpD);
 new_ctx->low_ptr = &(low);
 new_ctx->tmp_ptr = &(tmp);
 new_ctx->size_ptr = &(size);
-hclib_async(pragma397_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma400_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
 
  { 
-pragma401_omp_task *new_ctx = (pragma401_omp_task *)malloc(sizeof(pragma401_omp_task));
+pragma404_omp_task *new_ctx = (pragma404_omp_task *)malloc(sizeof(pragma404_omp_task));
 new_ctx->quarter_ptr = &(quarter);
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
@@ -624,10 +627,10 @@ new_ctx->tmpD_ptr = &(tmpD);
 new_ctx->low_ptr = &(low);
 new_ctx->tmp_ptr = &(tmp);
 new_ctx->size_ptr = &(size);
-hclib_async(pragma401_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma404_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma403_omp_task *new_ctx = (pragma403_omp_task *)malloc(sizeof(pragma403_omp_task));
+pragma406_omp_task *new_ctx = (pragma406_omp_task *)malloc(sizeof(pragma406_omp_task));
 new_ctx->quarter_ptr = &(quarter);
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
@@ -640,14 +643,14 @@ new_ctx->tmpD_ptr = &(tmpD);
 new_ctx->low_ptr = &(low);
 new_ctx->tmp_ptr = &(tmp);
 new_ctx->size_ptr = &(size);
-hclib_async(pragma403_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma406_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
 
      cilkmerge_par(tmpA, tmpC - 1, tmpC, tmpA + size - 1, A);
 } 
-static void pragma391_omp_task_hclib_async(void *____arg) {
-    pragma391_omp_task *ctx = (pragma391_omp_task *)____arg;
+static void pragma394_omp_task_hclib_async(void *____arg) {
+    pragma394_omp_task *ctx = (pragma394_omp_task *)____arg;
     hclib_start_finish();
 cilksort_par((*(ctx->A_ptr)), (*(ctx->tmpA_ptr)), (*(ctx->quarter_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -655,8 +658,8 @@ cilksort_par((*(ctx->A_ptr)), (*(ctx->tmpA_ptr)), (*(ctx->quarter_ptr))) ;     ;
 }
 
 
-static void pragma393_omp_task_hclib_async(void *____arg) {
-    pragma393_omp_task *ctx = (pragma393_omp_task *)____arg;
+static void pragma396_omp_task_hclib_async(void *____arg) {
+    pragma396_omp_task *ctx = (pragma396_omp_task *)____arg;
     hclib_start_finish();
 cilksort_par((*(ctx->B_ptr)), (*(ctx->tmpB_ptr)), (*(ctx->quarter_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -664,8 +667,8 @@ cilksort_par((*(ctx->B_ptr)), (*(ctx->tmpB_ptr)), (*(ctx->quarter_ptr))) ;     ;
 }
 
 
-static void pragma395_omp_task_hclib_async(void *____arg) {
-    pragma395_omp_task *ctx = (pragma395_omp_task *)____arg;
+static void pragma398_omp_task_hclib_async(void *____arg) {
+    pragma398_omp_task *ctx = (pragma398_omp_task *)____arg;
     hclib_start_finish();
 cilksort_par((*(ctx->C_ptr)), (*(ctx->tmpC_ptr)), (*(ctx->quarter_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -673,8 +676,8 @@ cilksort_par((*(ctx->C_ptr)), (*(ctx->tmpC_ptr)), (*(ctx->quarter_ptr))) ;     ;
 }
 
 
-static void pragma397_omp_task_hclib_async(void *____arg) {
-    pragma397_omp_task *ctx = (pragma397_omp_task *)____arg;
+static void pragma400_omp_task_hclib_async(void *____arg) {
+    pragma400_omp_task *ctx = (pragma400_omp_task *)____arg;
     hclib_start_finish();
 cilksort_par((*(ctx->D_ptr)), (*(ctx->tmpD_ptr)), (*(ctx->size_ptr)) - 3 * (*(ctx->quarter_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -682,8 +685,8 @@ cilksort_par((*(ctx->D_ptr)), (*(ctx->tmpD_ptr)), (*(ctx->size_ptr)) - 3 * (*(ct
 }
 
 
-static void pragma401_omp_task_hclib_async(void *____arg) {
-    pragma401_omp_task *ctx = (pragma401_omp_task *)____arg;
+static void pragma404_omp_task_hclib_async(void *____arg) {
+    pragma404_omp_task *ctx = (pragma404_omp_task *)____arg;
     hclib_start_finish();
 cilkmerge_par((*(ctx->A_ptr)), (*(ctx->A_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(ctx->B_ptr)), (*(ctx->B_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(ctx->tmpA_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -691,8 +694,8 @@ cilkmerge_par((*(ctx->A_ptr)), (*(ctx->A_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(c
 }
 
 
-static void pragma403_omp_task_hclib_async(void *____arg) {
-    pragma403_omp_task *ctx = (pragma403_omp_task *)____arg;
+static void pragma406_omp_task_hclib_async(void *____arg) {
+    pragma406_omp_task *ctx = (pragma406_omp_task *)____arg;
     hclib_start_finish();
 cilkmerge_par((*(ctx->C_ptr)), (*(ctx->C_ptr)) + (*(ctx->quarter_ptr)) - 1, (*(ctx->D_ptr)), (*(ctx->low_ptr)) + (*(ctx->size_ptr)) - 1, (*(ctx->tmpC_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -765,10 +768,10 @@ void sort_init ( void )
      scramble_array(array);
 }
 
-typedef struct _pragma483_omp_task {
- } pragma483_omp_task;
+typedef struct _pragma486_omp_task {
+ } pragma486_omp_task;
 
-static void pragma483_omp_task_hclib_async(void *____arg);
+static void pragma486_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
  } main_entrypoint_ctx;
 
@@ -778,8 +781,8 @@ static void main_entrypoint(void *____arg) {
 {
 hclib_start_finish(); {
  { 
-pragma483_omp_task *new_ctx = (pragma483_omp_task *)malloc(sizeof(pragma483_omp_task));
-hclib_async(pragma483_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+pragma486_omp_task *new_ctx = (pragma486_omp_task *)malloc(sizeof(pragma486_omp_task));
+hclib_async(pragma486_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             } ; hclib_end_finish(); 
     } ;     free(____arg);
@@ -794,8 +797,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 	bots_message(" completed!\n");
 }  
-static void pragma483_omp_task_hclib_async(void *____arg) {
-    pragma483_omp_task *ctx = (pragma483_omp_task *)____arg;
+static void pragma486_omp_task_hclib_async(void *____arg) {
+    pragma486_omp_task *ctx = (pragma486_omp_task *)____arg;
     hclib_start_finish();
 {
                     cilksort_par(array, tmp, bots_arg_size);

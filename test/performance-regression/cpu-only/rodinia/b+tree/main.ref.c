@@ -63,6 +63,7 @@
 // #include <sys/time.h>							// (in directory known to compiler)			needed by ???
 #include <math.h>									// (in directory known to compiler)			needed by log, pow
 #include <string.h>									// (in directory known to compiler)			needed by memset
+#include <sys/time.h>
 
 //======================================================================================================================================================150
 //	COMMON
@@ -1925,12 +1926,13 @@ main(	int argc,
      rewind (commandFile);
 
      // allocate memory to contain the whole file:
-     commandBuffer = (char*) malloc (sizeof(char)*lSize);
+     commandBuffer = (char*) malloc (sizeof(char)*(lSize + 1));
      if (commandBuffer == NULL) {fputs ("Command Buffer memory error",stderr); exit (2);}
      
      // copy the file into the buffer:
      result = fread (commandBuffer,1,lSize,commandFile);
      if (result != lSize) {fputs ("Command file reading error",stderr); exit (3);}
+     commandBuffer[lSize] = '\0';
 
      /* the whole file is now loaded in the memory buffer. */
 
@@ -1945,8 +1947,9 @@ main(	int argc,
 
 
      pFile = fopen (output,"w+");
-     if (pFile==NULL) 
-       fputs ("Fail to open %s !\n",output);
+     if (pFile==NULL)  {
+       fprintf(stderr, "Fail to open %s !\n",output);
+     }
      fprintf(pFile,"******starting******\n");
      fclose(pFile);
 
@@ -2138,9 +2141,11 @@ main(	int argc,
 
 				// get # of queries from user
 				int count;
+				commandPointer++; // Increment past space
 				sscanf(commandPointer, "%d", &count);
-				while(*commandPointer!=32 && commandPointer!='\n')
+				while(*commandPointer!=32 && *commandPointer!='\n') {
 				  commandPointer++;
+                }
 
 				printf("\n ******command: k count=%d \n",count);
 
@@ -2218,7 +2223,7 @@ main(	int argc,
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
 				  {
-				    fputs ("Fail to open %s !\n",output);
+				    fprintf (stderr, "Fail to open %s !\n",output);
 				  }
 				
 				fprintf(pFile,"\n ******command: k count=%d \n",count);
@@ -2271,14 +2276,18 @@ main(	int argc,
 
 				// get # of queries from user
 				int count;
+				commandPointer++; // Increment past space
 				sscanf(commandPointer, "%d", &count);
-				while(*commandPointer!=32 && commandPointer!='\n')
+				while(*commandPointer!=32 && *commandPointer!='\n') {
 				  commandPointer++;
+                }
 
 				int rSize;
+				commandPointer++; // Increment past space
 				sscanf(commandPointer, "%d", &rSize);
-				while(*commandPointer!=32 && commandPointer!='\n')
+				while(*commandPointer!=32 && *commandPointer!='\n') {
 				  commandPointer++;
+                }
 
 				printf("\n******command: j count=%d, rSize=%d \n",count, rSize);
 
@@ -2374,7 +2383,7 @@ main(	int argc,
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
 				  {
-				    fputs ("Fail to open %s !\n",output);
+				    fprintf (stderr, "Fail to open %s !\n",output);
 				  }
 
 				fprintf(pFile,"\n******command: j count=%d, rSize=%d \n",count, rSize);				
@@ -2414,7 +2423,7 @@ main(	int argc,
 		}
 		printf("> ");
 
-	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time); ;
 	printf("\n");
 
 	// ------------------------------------------------------------60

@@ -5,12 +5,13 @@ include ../../custom.mak
 # C compiler
 HCLIB_PERF_CXX?=icpc
 CC = $(HCLIB_PERF_CXX)
-CC_FLAGS = -g -O3 -fopenmp $(HCLIB_CXXFLAGS)
+CC_FLAGS = -g -O3 $(HCLIB_CXXFLAGS)
 
 all: needle
 
 needle: needle.cpp
-	$(CC) $(CC_FLAGS) needle.cpp -o needle  $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(CC) $(CC_FLAGS) -c needle.cpp -o needle.o
+	$(CC) -g -O3 needle.o -o needle  $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 clean:
-	rm -f needle
+	rm -f needle *.o

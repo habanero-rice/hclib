@@ -16,7 +16,7 @@ endif
 all: omp
 
 omp:
-	$(HCLIB_PERF_CXX) -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.ref.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(HCLIB_PERF_CXX) -O3 -o $(TARGET_O) streamcluster_omp.ref.cpp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

@@ -11,7 +11,7 @@ HCLIB_PERF_CC?=icc
 
 # C compiler
 CC = $(HCLIB_PERF_CC)
-CC_FLAGS = -g -O3 -Wall -fopenmp -I$(MATRIX_DIR) $(HCLIB_CXXFLAGS)
+CC_FLAGS = -g -O3 -Wall -I$(MATRIX_DIR) $(HCLIB_CXXFLAGS)
 
 # Matrix library path
 MATRIX_DIR = ../meschach_lib

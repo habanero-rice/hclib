@@ -13,8 +13,7 @@
 // The number of different sample ellipses to try
 #define NCIRCLES 7
 
-
-extern MAT * m_inverse(MAT * A, MAT * out);
+#include "matrix2.h"
 
 
 // Returns the current system time in microseconds
@@ -222,10 +221,10 @@ MAT * TMatrix(unsigned int N, unsigned int M)
 	int * aindex, * bindex, * cindex, * dindex;
 	int i, j;
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;
@@ -371,10 +370,10 @@ VEC * getsampling(MAT * m, int ns)
 	int i, j;
 	VEC * retval = v_get(N*M);
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;
@@ -423,10 +422,10 @@ VEC * getfdriv(MAT * m, int ns)
 	int i, j;
 	VEC * retval = v_get(N*M);
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;
@@ -555,10 +554,10 @@ void splineenergyform01(MAT * Cx, MAT * Cy, MAT * Ix, MAT * Iy, int ns, double d
 
 	//VEC * retval = v_get(N*ns);
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;

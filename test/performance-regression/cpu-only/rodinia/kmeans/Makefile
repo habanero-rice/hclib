@@ -6,10 +6,10 @@ include ../../custom.mak
 
 HCLIB_PERF_CC?=icc
 CC = $(HCLIB_PERF_CC)
-CC_FLAGS = -g -fopenmp -O0
+CC_FLAGS = -g -O0
 
 kmeans: cluster.o getopt.o kmeans.o kmeans_clustering.o 
-	$(CC) $(CC_FLAGS) cluster.o getopt.o kmeans.o kmeans_clustering.o  -o kmeans $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(CC) $(CC_FLAGS) cluster.o getopt.o kmeans.o kmeans_clustering.o  -o kmeans $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 %.o: %.[ch]
 	$(CC) $(CC_FLAGS) $< -c $(HCLIB_CXXFLAGS)

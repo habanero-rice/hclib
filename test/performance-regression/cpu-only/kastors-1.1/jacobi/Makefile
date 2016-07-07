@@ -9,16 +9,31 @@ HCLIB_PERF_CXX?=icpc
 all: $(TARGETS)
 
 SHARED_SRC=main.c src/jacobi-seq.c src/poisson.c
-FLAGS=-Iinclude -I../common -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+FLAGS=-Iinclude -I../common $(HCLIB_CXXFLAGS)
 
 jacobi-task: src/jacobi-task.c $(SHARED_SRC)
-	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@
+	rm -f *.o
+	$(HCLIB_PERF_CXX) -c src/jacobi-task.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c main.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/jacobi-seq.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/poisson.c $(FLAGS)
+	$(HCLIB_PERF_CXX) jacobi-task.o main.o jacobi-seq.o poisson.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@
 
 jacobi-block-for: src/jacobi-block-for.c $(SHARED_SRC)
-	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@
+	rm -f *.o
+	$(HCLIB_PERF_CXX) -c src/jacobi-block-for.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c main.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/jacobi-seq.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/poisson.c $(FLAGS)
+	$(HCLIB_PERF_CXX) jacobi-block-for.o main.o jacobi-seq.o poisson.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@
 
 jacobi-block-task: src/jacobi-block-task.c $(SHARED_SRC)
-	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@
+	rm -f *.o
+	$(HCLIB_PERF_CXX) -c src/jacobi-block-task.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c main.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/jacobi-seq.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/poisson.c $(FLAGS)
+	$(HCLIB_PERF_CXX) jacobi-block-task.o main.o jacobi-seq.o poisson.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@
 
 clean:
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) *.o

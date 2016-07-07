@@ -31,8 +31,8 @@ include $(BASE_DIR)/config/make.config
 
 HCLIB_PERF_CXX?=icpc
 
-OMPC=$(HCLIB_PERF_CXX) -fopenmp
-OMPLINK=$(HCLIB_PERF_CXX) -fopenmp
+OMPC=$(HCLIB_PERF_CXX)
+OMPLINK=$(HCLIB_PERF_CXX)
 
 # Don't change below this line
 ##############################
@@ -46,8 +46,8 @@ TODAY := $(shell date "+%Y/%m/%d;%H:%M")
 
 # Compile commands
 
-OMPC_ALL_FLAGS=-std=c++11 -c -I../ -I$(COMMON_DIR) $(OPT_FLAGS) $(OMPC_FLAGS) $(APP_FLAGS) $(HCLIB_CFLAGS) -g -O0
-CC_ALL_FLAGS=-std=c++11 -c -I../ -I$(COMMON_DIR) $(OPT_FLAGS) $(CC_FLAGS) $(APP_FLAGS) $(HCLIB_CFLAGS) -g -O0
+OMPC_ALL_FLAGS=-std=c++11 -c -I../ -I$(COMMON_DIR) $(OPT_FLAGS) $(OMPC_FLAGS) $(APP_FLAGS) $(HCLIB_CFLAGS) -g
+CC_ALL_FLAGS=-std=c++11 -c -I../ -I$(COMMON_DIR) $(OPT_FLAGS) $(CC_FLAGS) $(APP_FLAGS) $(HCLIB_CFLAGS) -g
 
 # Link commands
 

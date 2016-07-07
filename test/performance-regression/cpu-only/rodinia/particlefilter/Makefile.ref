@@ -6,7 +6,7 @@ include ../../custom.mak
 HCLIB_PERF_CXX?=icpc
 
 particle_filter.ref: ex_particle_OPENMP_seq.ref.c
-	$(HCLIB_PERF_CXX) -O3 -ffast-math -fopenmp ex_particle_OPENMP_seq.ref.c -o particle_filter.ref -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(HCLIB_PERF_CXX) -O3 -ffast-math ex_particle_OPENMP_seq.ref.c -o particle_filter.ref -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:

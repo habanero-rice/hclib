@@ -6,7 +6,7 @@ include ../../custom.mak
 # C compiler
 HCLIB_PERF_CC?=icc
 CC = $(HCLIB_PERF_CC)
-CC_FLAGS=-g -fopenmp -O2 $(HCLIB_CXXFLAGS)
+CC_FLAGS=-g -O2 $(HCLIB_CXXFLAGS)
 
 
 backprop.ref: backprop.ref.o facetrain.ref.o imagenet.o backprop_kernel.o 

@@ -9,7 +9,7 @@ HCLIB_PERF_CXX?=icpc
 all: $(TARGETS)
 
 SHARED_SRC=main.ref.c src/jacobi-seq.c src/poisson.ref.c
-FLAGS=-Iinclude -I../common -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+FLAGS=-Iinclude -I../common $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 jacobi-task.ref: src/jacobi-task.ref.c $(SHARED_SRC)
 	$(HCLIB_PERF_CXX) $^ $(FLAGS) -o $@

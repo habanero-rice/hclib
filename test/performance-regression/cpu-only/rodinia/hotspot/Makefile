@@ -5,12 +5,15 @@ include ../../custom.mak
 # C compiler
 HCLIB_PERF_CXX?=icpc
 CC = $(HCLIB_PERF_CXX)
-CC_FLAGS = -g -fopenmp -O2
+CC_FLAGS = -g -O2
 
 all: hotspot
 
-hotspot: hotspot_openmp.cpp Makefile 
-	$(CC) $(CC_FLAGS) hotspot_openmp.cpp -o hotspot $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+hotspot: hotspot_openmp.o Makefile 
+	$(CC) $(CC_FLAGS) hotspot.o -o hotspot $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+hotspot_openmp.o: hotspot_openmp.cpp Makefile
+	$(CC) -c $(CC_FLAGS) hotspot_openmp.cpp -o hotspot.o $(HCLIB_CXXFLAGS)
 
 clean:
-	rm -f hotspot
+	rm -f hotspot *.o

@@ -17,7 +17,7 @@ endif
 HCLIB_PERF_CC?=icc
 C_C = $(HCLIB_PERF_CC)
 
-OMP_FLAG = -fopenmp
+OMP_FLAG =
 
 # link objects (binaries) together
 a.out:		main.o \
@@ -30,7 +30,7 @@ a.out:		main.o \
 			timer.o \
 			-lm \
 			$(OMP_FLAG) \
-			-o lavaMD $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+			-o lavaMD $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 # compile function files into objects (binaries)
 main.o:		main.h \
 			main.c \

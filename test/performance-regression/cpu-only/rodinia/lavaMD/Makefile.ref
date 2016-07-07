@@ -16,7 +16,7 @@ endif
 HCLIB_PERF_CC?=icc
 
 C_C = $(HCLIB_PERF_CC)
-OMP_FLAG = -fopenmp
+OMP_FLAG = 
 
 # link objects (binaries) together
 a.out:		main.o \

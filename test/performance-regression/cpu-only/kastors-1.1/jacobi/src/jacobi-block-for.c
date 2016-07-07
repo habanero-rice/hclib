@@ -2,11 +2,14 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 # include "poisson.h"
 
 /* #pragma omp task/taskwait version of SWEEP. */
-typedef struct _pragma26_omp_parallel {
+typedef struct _pragma29_omp_parallel {
     int it;
     int block_x;
     int block_y;
@@ -22,9 +25,9 @@ typedef struct _pragma26_omp_parallel {
     double (*(*u__ptr));
     double (*(*unew__ptr));
     int (*block_size_ptr);
- } pragma26_omp_parallel;
+ } pragma29_omp_parallel;
 
-typedef struct _pragma31_omp_parallel {
+typedef struct _pragma34_omp_parallel {
     int it;
     int block_x;
     int block_y;
@@ -40,10 +43,10 @@ typedef struct _pragma31_omp_parallel {
     double (*(*u__ptr));
     double (*(*unew__ptr));
     int (*block_size_ptr);
- } pragma31_omp_parallel;
+ } pragma34_omp_parallel;
 
-static void pragma26_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1);
-static void pragma31_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1);
+static void pragma29_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1);
+static void pragma34_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1);
 void sweep (int nx, int ny, double dx, double dy, double *f_,
         int itold, int itnew, double *u_, double *unew_, int block_size)
 {
@@ -60,7 +63,7 @@ void sweep (int nx, int ny, double dx, double dy, double *f_,
     {
         // Save the current estimate.
  { 
-pragma26_omp_parallel *new_ctx = (pragma26_omp_parallel *)malloc(sizeof(pragma26_omp_parallel));
+pragma29_omp_parallel *new_ctx = (pragma29_omp_parallel *)malloc(sizeof(pragma29_omp_parallel));
 new_ctx->it = it;
 new_ctx->block_x = block_x;
 new_ctx->block_y = block_y;
@@ -85,13 +88,13 @@ domain[1].low = 0;
 domain[1].high = max_blocks_y;
 domain[1].stride = 1;
 domain[1].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma26_omp_parallel_hclib_async, new_ctx, 2, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma29_omp_parallel_hclib_async, new_ctx, 2, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } ;
 
  { 
-pragma31_omp_parallel *new_ctx = (pragma31_omp_parallel *)malloc(sizeof(pragma31_omp_parallel));
+pragma34_omp_parallel *new_ctx = (pragma34_omp_parallel *)malloc(sizeof(pragma34_omp_parallel));
 new_ctx->it = it;
 new_ctx->block_x = block_x;
 new_ctx->block_y = block_y;
@@ -116,14 +119,14 @@ domain[1].low = 0;
 domain[1].high = max_blocks_y;
 domain[1].stride = 1;
 domain[1].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma31_omp_parallel_hclib_async, new_ctx, 2, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma34_omp_parallel_hclib_async, new_ctx, 2, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } ;
     }
 } 
-static void pragma26_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1) {
-    pragma26_omp_parallel *ctx = (pragma26_omp_parallel *)____arg;
+static void pragma29_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1) {
+    pragma29_omp_parallel *ctx = (pragma29_omp_parallel *)____arg;
     int it; it = ctx->it;
     int block_x; block_x = ctx->block_x;
     int block_y; block_y = ctx->block_y;
@@ -137,8 +140,8 @@ copy_block((*(ctx->nx_ptr)), (*(ctx->ny_ptr)), block_x, block_y, (*(ctx->u__ptr)
 }
 
 
-static void pragma31_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1) {
-    pragma31_omp_parallel *ctx = (pragma31_omp_parallel *)____arg;
+static void pragma34_omp_parallel_hclib_async(void *____arg, const int ___iter0, const int ___iter1) {
+    pragma34_omp_parallel *ctx = (pragma34_omp_parallel *)____arg;
     int it; it = ctx->it;
     int block_x; block_x = ctx->block_x;
     int block_y; block_y = ctx->block_y;

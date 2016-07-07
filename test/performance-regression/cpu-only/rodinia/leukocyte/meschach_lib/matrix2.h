@@ -34,6 +34,10 @@
 
 #include "matrix.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Unless otherwise specified, factorisation routines overwrite the
    matrix that is being factorised */
 
@@ -232,5 +236,8 @@ void ifft(VEC *,VEC *);
 
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

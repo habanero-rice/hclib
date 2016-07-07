@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 #include "find_ellipse.h"
 #include <sys/time.h>
@@ -17,8 +20,7 @@
 // The number of different sample ellipses to try
 #define NCIRCLES 7
 
-
-extern MAT * m_inverse(MAT * A, MAT * out);
+#include "matrix2.h"
 
 
 // Returns the current system time in microseconds
@@ -86,7 +88,7 @@ MAT * chop_flip_image(unsigned char *image, int height, int width, int top, int 
 
 // Given x- and y-gradients of a video frame, computes the GICOV
 //  score for each sample ellipse at every pixel in the frame
-typedef struct _pragma119_omp_parallel {
+typedef struct _pragma121_omp_parallel {
     int i;
     int (*n_ptr);
     int (*k_ptr);
@@ -101,9 +103,22 @@ typedef struct _pragma119_omp_parallel {
     MAT (*(*gicov_ptr));
     MAT (*(*grad_x_ptr));
     MAT (*(*grad_y_ptr));
- } pragma119_omp_parallel;
+ } pragma121_omp_parallel;
 
-static void pragma119_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+
+class pragma121_omp_parallel_hclib_async {
+    private:
+
+    public:
+        __host__ __device__ void operator()(int idx) {
+        }
+};
+
+#else
+static void pragma121_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+#endif
 MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	int i, n, k;
 	// Compute the sine and cosine of the angle to each point in each sample circle
@@ -133,7 +148,7 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	
 	// Split the work among multiple threads, if OPEN is defined
  { 
-pragma119_omp_parallel *new_ctx = (pragma119_omp_parallel *)malloc(sizeof(pragma119_omp_parallel));
+pragma121_omp_parallel *new_ctx = (pragma121_omp_parallel *)malloc(sizeof(pragma121_omp_parallel));
 new_ctx->i = i;
 new_ctx->n_ptr = &(n);
 new_ctx->k_ptr = &(k);
@@ -153,15 +168,23 @@ domain[0].low = MaxR;
 domain[0].high = width - MaxR;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma119_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+hclib::future_t *fut = hclib::forasync_cuda((width - MaxR) - (MaxR), pragma121_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
+fut->wait();
+#else
+hclib_future_t *fut = hclib_forasync_future((void *)pragma121_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
+#endif
 free(new_ctx);
  } 
 	
 	return gicov;
 } 
-static void pragma119_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma119_omp_parallel *ctx = (pragma119_omp_parallel *)____arg;
+
+#ifndef OMP_TO_HCLIB_ENABLE_GPU
+
+static void pragma121_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma121_omp_parallel *ctx = (pragma121_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {
@@ -211,6 +234,7 @@ static void pragma119_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 }
 
+#endif
 
 
 
@@ -234,16 +258,29 @@ MAT * structuring_element(int radius) {
 
 // Performs an image dilation on the specified matrix
 //  using the specified structuring element
-typedef struct _pragma194_omp_parallel {
+typedef struct _pragma196_omp_parallel {
     MAT (*(*dilated_ptr));
     int (*el_center_i_ptr);
     int (*el_center_j_ptr);
     int i;
     MAT (*(*img_in_ptr));
     MAT (*(*strel_ptr));
- } pragma194_omp_parallel;
+ } pragma196_omp_parallel;
 
-static void pragma194_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+
+class pragma196_omp_parallel_hclib_async {
+    private:
+
+    public:
+        __host__ __device__ void operator()(int idx) {
+        }
+};
+
+#else
+static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+#endif
 MAT * dilate_f(MAT * img_in, MAT * strel) {
 	MAT * dilated = m_get(img_in->m, img_in->n);
 	
@@ -252,7 +289,7 @@ MAT * dilate_f(MAT * img_in, MAT * strel) {
 	
 	// Split the work among multiple threads, if OPEN is defined
  { 
-pragma194_omp_parallel *new_ctx = (pragma194_omp_parallel *)malloc(sizeof(pragma194_omp_parallel));
+pragma196_omp_parallel *new_ctx = (pragma196_omp_parallel *)malloc(sizeof(pragma196_omp_parallel));
 new_ctx->dilated_ptr = &(dilated);
 new_ctx->el_center_i_ptr = &(el_center_i);
 new_ctx->el_center_j_ptr = &(el_center_j);
@@ -264,15 +301,23 @@ domain[0].low = 0;
 domain[0].high = img_in->m;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma194_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+hclib::future_t *fut = hclib::forasync_cuda((img_in->m) - (0), pragma196_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
+fut->wait();
+#else
+hclib_future_t *fut = hclib_forasync_future((void *)pragma196_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
+#endif
 free(new_ctx);
  } 
 
 	return dilated;
 } 
-static void pragma194_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma194_omp_parallel *ctx = (pragma194_omp_parallel *)____arg;
+
+#ifndef OMP_TO_HCLIB_ENABLE_GPU
+
+static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma196_omp_parallel *ctx = (pragma196_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {
@@ -302,6 +347,7 @@ static void pragma194_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 }
 
+#endif
 
 
 
@@ -314,10 +360,10 @@ MAT * TMatrix(unsigned int N, unsigned int M)
 	int * aindex, * bindex, * cindex, * dindex;
 	int i, j;
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;
@@ -463,10 +509,10 @@ VEC * getsampling(MAT * m, int ns)
 	int i, j;
 	VEC * retval = v_get(N*M);
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;
@@ -515,10 +561,10 @@ VEC * getfdriv(MAT * m, int ns)
 	int i, j;
 	VEC * retval = v_get(N*M);
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;
@@ -647,10 +693,10 @@ void splineenergyform01(MAT * Cx, MAT * Cy, MAT * Ix, MAT * Iy, int ns, double d
 
 	//VEC * retval = v_get(N*ns);
 
-	aindex = malloc(N*sizeof(int));
-	bindex = malloc(N*sizeof(int));
-	cindex = malloc(N*sizeof(int));
-	dindex = malloc(N*sizeof(int));
+	aindex = (int *)malloc(N*sizeof(int));
+	bindex = (int *)malloc(N*sizeof(int));
+	cindex = (int *)malloc(N*sizeof(int));
+	dindex = (int *)malloc(N*sizeof(int));
 
 	for(i = 1; i < N; i++)
 		aindex[i] = i-1;

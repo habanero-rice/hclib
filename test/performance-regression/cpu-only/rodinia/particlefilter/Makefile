@@ -8,8 +8,9 @@ HCLIB_PERF_CXX?=icpc
 CC = $(HCLIB_PERF_CXX)
 
 particle_filter: ex_particle_OPENMP_seq.c
-	$(CC) -O3 -ffast-math -fopenmp ex_particle_OPENMP_seq.c -o particle_filter -lm  $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+	$(CC) -c -O3 ex_particle_OPENMP_seq.c -o particle_filter.o $(HCLIB_CXXFLAGS)
+	$(CC) -O3 particle_filter.o -o particle_filter -lm  $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 
 clean:
-	rm -f particle_filter
+	rm -f particle_filter *.o

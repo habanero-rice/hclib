@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
@@ -217,38 +220,38 @@ void sparselu_init (float ***pBENCH, char *pass)
    print_structure(pass, *pBENCH);
 }
 
-typedef struct _pragma241_omp_task {
+typedef struct _pragma244_omp_task {
     int (*ii_ptr);
     int jj;
     int kk;
     float (*(*(*BENCH_ptr)));
- } pragma241_omp_task;
+ } pragma244_omp_task;
 
-typedef struct _pragma249_omp_task {
+typedef struct _pragma252_omp_task {
     int ii;
     int (*jj_ptr);
     int kk;
     float (*(*(*BENCH_ptr)));
- } pragma249_omp_task;
+ } pragma252_omp_task;
 
-typedef struct _pragma262_omp_task {
+typedef struct _pragma265_omp_task {
     int ii;
     int jj;
     int kk;
     float (*(*(*BENCH_ptr)));
- } pragma262_omp_task;
+ } pragma265_omp_task;
 
-static void pragma241_omp_task_hclib_async(void *____arg);
-static void pragma249_omp_task_hclib_async(void *____arg);
-static void pragma262_omp_task_hclib_async(void *____arg);
-typedef struct _pragma258_omp_task {
+static void pragma244_omp_task_hclib_async(void *____arg);
+static void pragma252_omp_task_hclib_async(void *____arg);
+static void pragma265_omp_task_hclib_async(void *____arg);
+typedef struct _pragma261_omp_task {
     int (*ii_ptr);
     int (*jj_ptr);
     int (*kk_ptr);
     float (*(*(*BENCH_ptr)));
- } pragma258_omp_task;
+ } pragma261_omp_task;
 
-static void pragma258_omp_task_hclib_async(void *____arg);
+static void pragma261_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     int ii;
     int jj;
@@ -266,12 +269,12 @@ static void main_entrypoint(void *____arg) {
 {
 hclib_start_finish(); {
  { 
-pragma258_omp_task *new_ctx = (pragma258_omp_task *)malloc(sizeof(pragma258_omp_task));
+pragma261_omp_task *new_ctx = (pragma261_omp_task *)malloc(sizeof(pragma261_omp_task));
 new_ctx->ii_ptr = &(ii);
 new_ctx->jj_ptr = &(jj);
 new_ctx->kk_ptr = &(kk);
 new_ctx->BENCH_ptr = &(BENCH);
-hclib_async(pragma258_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma261_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
 
            } ; hclib_end_finish(); 
@@ -294,8 +297,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
    bots_message(" completed!\n");
 }  
-static void pragma258_omp_task_hclib_async(void *____arg) {
-    pragma258_omp_task *ctx = (pragma258_omp_task *)____arg;
+static void pragma261_omp_task_hclib_async(void *____arg) {
+    pragma261_omp_task *ctx = (pragma261_omp_task *)____arg;
     hclib_start_finish();
 for ((*(ctx->kk_ptr))=0; (*(ctx->kk_ptr))<bots_arg_size; (*(ctx->kk_ptr))++) 
                {
@@ -304,24 +307,24 @@ for ((*(ctx->kk_ptr))=0; (*(ctx->kk_ptr))<bots_arg_size; (*(ctx->kk_ptr))++)
                        if ((*(ctx->BENCH_ptr))[(*(ctx->kk_ptr))*bots_arg_size+(*(ctx->jj_ptr))] != NULL)
                        {
  { 
-pragma241_omp_task *new_ctx = (pragma241_omp_task *)malloc(sizeof(pragma241_omp_task));
+pragma244_omp_task *new_ctx = (pragma244_omp_task *)malloc(sizeof(pragma244_omp_task));
 new_ctx->ii_ptr = ctx->ii_ptr;
 new_ctx->jj = *(ctx->jj_ptr);
 new_ctx->kk = *(ctx->kk_ptr);
 new_ctx->BENCH_ptr = ctx->BENCH_ptr;
-hclib_async(pragma241_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma244_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
                        }
                    for ((*(ctx->ii_ptr))=(*(ctx->kk_ptr))+1; (*(ctx->ii_ptr))<bots_arg_size; (*(ctx->ii_ptr))++) 
                        if ((*(ctx->BENCH_ptr))[(*(ctx->ii_ptr))*bots_arg_size+(*(ctx->kk_ptr))] != NULL)
                        {
  { 
-pragma249_omp_task *new_ctx = (pragma249_omp_task *)malloc(sizeof(pragma249_omp_task));
+pragma252_omp_task *new_ctx = (pragma252_omp_task *)malloc(sizeof(pragma252_omp_task));
 new_ctx->ii = *(ctx->ii_ptr);
 new_ctx->jj_ptr = ctx->jj_ptr;
 new_ctx->kk = *(ctx->kk_ptr);
 new_ctx->BENCH_ptr = ctx->BENCH_ptr;
-hclib_async(pragma249_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma252_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
                        }
 
@@ -333,12 +336,12 @@ hclib_async(pragma249_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
                                if ((*(ctx->BENCH_ptr))[(*(ctx->kk_ptr))*bots_arg_size+(*(ctx->jj_ptr))] != NULL)
                                {
  { 
-pragma262_omp_task *new_ctx = (pragma262_omp_task *)malloc(sizeof(pragma262_omp_task));
+pragma265_omp_task *new_ctx = (pragma265_omp_task *)malloc(sizeof(pragma265_omp_task));
 new_ctx->ii = *(ctx->ii_ptr);
 new_ctx->jj = *(ctx->jj_ptr);
 new_ctx->kk = *(ctx->kk_ptr);
 new_ctx->BENCH_ptr = ctx->BENCH_ptr;
-hclib_async(pragma262_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma265_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
                                }
 
@@ -349,8 +352,8 @@ hclib_async(pragma262_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 }
 
  
-static void pragma241_omp_task_hclib_async(void *____arg) {
-    pragma241_omp_task *ctx = (pragma241_omp_task *)____arg;
+static void pragma244_omp_task_hclib_async(void *____arg) {
+    pragma244_omp_task *ctx = (pragma244_omp_task *)____arg;
     int jj; jj = ctx->jj;
     int kk; kk = ctx->kk;
     hclib_start_finish();
@@ -362,8 +365,8 @@ static void pragma241_omp_task_hclib_async(void *____arg) {
 }
 
 
-static void pragma249_omp_task_hclib_async(void *____arg) {
-    pragma249_omp_task *ctx = (pragma249_omp_task *)____arg;
+static void pragma252_omp_task_hclib_async(void *____arg) {
+    pragma252_omp_task *ctx = (pragma252_omp_task *)____arg;
     int ii; ii = ctx->ii;
     int kk; kk = ctx->kk;
     hclib_start_finish();
@@ -375,8 +378,8 @@ static void pragma249_omp_task_hclib_async(void *____arg) {
 }
 
 
-static void pragma262_omp_task_hclib_async(void *____arg) {
-    pragma262_omp_task *ctx = (pragma262_omp_task *)____arg;
+static void pragma265_omp_task_hclib_async(void *____arg) {
+    pragma265_omp_task *ctx = (pragma265_omp_task *)____arg;
     int ii; ii = ctx->ii;
     int jj; jj = ctx->jj;
     int kk; kk = ctx->kk;

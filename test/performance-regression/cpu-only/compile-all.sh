@@ -29,10 +29,7 @@ function compile_all() {
         MAKE_FILE=Makefile.ref
     fi
 
-    if [[ -f custom.mak ]]; then
-        unlink custom.mak
-    fi
-    ln -s custom.$STYLE.mak custom.mak
+    cp custom.$STYLE.mak custom.mak
 
     for FOLDER in $(ls rodinia/); do
         if [[ -d rodinia/$FOLDER ]]; then
@@ -99,6 +96,7 @@ function compile_all() {
     echo Compilation for $STYLE completed!
 }
 
+compile_all gpu 0
 compile_all tied 1
 compile_all untied 1
 compile_all flat 0

@@ -38,6 +38,10 @@
 #include        "err.h"
 #include 	"meminfo.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* unsigned integer type */
 /************************************************************
 #ifndef U_INT_DEF
@@ -78,15 +82,15 @@ typedef struct	{
 	        } IVEC;
 
 
-#ifndef MALLOCDECL
-#ifndef ANSI_C
-extern	char	*malloc(), *calloc(), *realloc();
-#else
-extern	void	*malloc(size_t),
-		*calloc(size_t,size_t),
-		*realloc(void *,size_t);
-#endif
-#endif /* MALLOCDECL */
+// #ifndef MALLOCDECL
+// #ifndef ANSI_C
+// extern	char	*malloc(), *calloc(), *realloc();
+// #else
+// extern	void	*malloc(size_t),
+// 		*calloc(size_t,size_t),
+// 		*realloc(void *,size_t);
+// #endif
+// #endif /* MALLOCDECL */
 
 /* For creating MEX files (for use with Matlab) using Meschach
    See also: mexmesch.h */
@@ -683,6 +687,9 @@ int m_free_vars();
 
 #endif /* ANSI_C */
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MATRIXH */
 

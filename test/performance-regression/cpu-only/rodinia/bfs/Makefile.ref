@@ -5,7 +5,7 @@ include ../../custom.mak
 
 # C compiler
 HCLIB_PERF_CXX?=icpc
-CC_FLAGS = -g -fopenmp -O2 $(HCLIB_CXXFLAGS)
+CC_FLAGS = -g -O2 $(HCLIB_CXXFLAGS)
 
 all: bfs.ref
 

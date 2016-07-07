@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 #define LIMIT -999
 //#define TRACE
@@ -97,7 +100,7 @@ void usage(int argc, char **argv)
 	exit(1);
 }
 
-typedef struct _pragma107_omp_parallel {
+typedef struct _pragma110_omp_parallel {
     int blk;
     int (*(*input_itemsets_ptr));
     int (*(*output_itemsets_ptr));
@@ -105,9 +108,9 @@ typedef struct _pragma107_omp_parallel {
     int max_rows;
     int max_cols;
     int penalty;
- } pragma107_omp_parallel;
+ } pragma110_omp_parallel;
 
-typedef struct _pragma159_omp_parallel {
+typedef struct _pragma162_omp_parallel {
     int blk;
     int (*(*input_itemsets_ptr));
     int (*(*output_itemsets_ptr));
@@ -115,17 +118,43 @@ typedef struct _pragma159_omp_parallel {
     int max_rows;
     int max_cols;
     int penalty;
- } pragma159_omp_parallel;
+ } pragma162_omp_parallel;
 
-static void pragma107_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-static void pragma159_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+
+class pragma110_omp_parallel_hclib_async {
+    private:
+
+    public:
+        __host__ __device__ void operator()(int idx) {
+        }
+};
+
+#else
+static void pragma110_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+#endif
+
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+
+class pragma162_omp_parallel_hclib_async {
+    private:
+
+    public:
+        __host__ __device__ void operator()(int idx) {
+        }
+};
+
+#else
+static void pragma162_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+#endif
 void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
         int max_rows, int max_cols, int penalty)
 {
     for( int blk = 1; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
  { 
-pragma107_omp_parallel *new_ctx = (pragma107_omp_parallel *)malloc(sizeof(pragma107_omp_parallel));
+pragma110_omp_parallel *new_ctx = (pragma110_omp_parallel *)malloc(sizeof(pragma110_omp_parallel));
 new_ctx->blk = blk;
 new_ctx->input_itemsets_ptr = &(input_itemsets);
 new_ctx->output_itemsets_ptr = &(output_itemsets);
@@ -138,8 +167,13 @@ domain[0].low = 0;
 domain[0].high = blk;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma107_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+hclib::future_t *fut = hclib::forasync_cuda((blk) - (0), pragma110_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
+fut->wait();
+#else
+hclib_future_t *fut = hclib_forasync_future((void *)pragma110_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
+#endif
 free(new_ctx);
  } 
     }    
@@ -149,7 +183,7 @@ free(new_ctx);
     for ( int blk = 2; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
  { 
-pragma159_omp_parallel *new_ctx = (pragma159_omp_parallel *)malloc(sizeof(pragma159_omp_parallel));
+pragma162_omp_parallel *new_ctx = (pragma162_omp_parallel *)malloc(sizeof(pragma162_omp_parallel));
 new_ctx->blk = blk;
 new_ctx->input_itemsets_ptr = &(input_itemsets);
 new_ctx->output_itemsets_ptr = &(output_itemsets);
@@ -162,15 +196,23 @@ domain[0].low = blk - 1;
 domain[0].high = (max_cols - 1) / 16;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma159_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+#ifdef OMP_TO_HCLIB_ENABLE_GPU
+hclib::future_t *fut = hclib::forasync_cuda(((max_cols - 1) / 16) - (blk - 1), pragma162_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
+fut->wait();
+#else
+hclib_future_t *fut = hclib_forasync_future((void *)pragma162_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
+#endif
 free(new_ctx);
  } 
     }
 
 } 
-static void pragma107_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma107_omp_parallel *ctx = (pragma107_omp_parallel *)____arg;
+
+#ifndef OMP_TO_HCLIB_ENABLE_GPU
+
+static void pragma110_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma110_omp_parallel *ctx = (pragma110_omp_parallel *)____arg;
     int blk; blk = ctx->blk;
     int max_rows; max_rows = ctx->max_rows;
     int max_cols; max_cols = ctx->max_cols;
@@ -226,9 +268,13 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
 
 }
 
+#endif
 
-static void pragma159_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma159_omp_parallel *ctx = (pragma159_omp_parallel *)____arg;
+
+#ifndef OMP_TO_HCLIB_ENABLE_GPU
+
+static void pragma162_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma162_omp_parallel *ctx = (pragma162_omp_parallel *)____arg;
     int blk; blk = ctx->blk;
     int max_rows; max_rows = ctx->max_rows;
     int max_cols; max_cols = ctx->max_cols;
@@ -284,6 +330,7 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
 
 }
 
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////

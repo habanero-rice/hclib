@@ -7,15 +7,13 @@ HCLIB_PERF_CXX?=icpc
 CC = $(HCLIB_PERF_CXX)
 SRC = pathfinder.cpp
 EXE = pathfinder
-FLAGS = -fopenmp $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -g
+FLAGS = $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -g
 
 release:
-	$(CC) $(SRC) $(FLAGS) -o $(EXE)
-
-debug:
-	$(CC) $(SRC) -g -Wall -o $(EXE)
+	$(CC) -c $(SRC) -o $(SRC).o -g $(HCLIB_CXXFLAGS)
+	$(CC) $(SRC).o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -g -o $(EXE)
 
 clean:
-	rm -f pathfinder
+	rm -f pathfinder *.o
 
 

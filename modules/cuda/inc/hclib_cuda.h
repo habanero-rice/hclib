@@ -15,10 +15,10 @@ inline __global__ void driver_kernel(functor_type functor, unsigned niters) {
 
 template<class functor_type, typename... future_list_t>
 inline hclib::future_t *forasync_cuda(int niters, functor_type functor,
-        hclib::locale_t *locale, future_list_t... futures) {
+        hclib::locale_t *locale, hclib::future_t *future) {
     HASSERT(locale->type == get_gpu_locale_id());
 
-    return hclib::async_future_await_at([locale, functor, niters] {
+    auto lambda = [locale, functor, niters] {
         CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
         const int threads_per_block = 256;
@@ -27,7 +27,13 @@ inline hclib::future_t *forasync_cuda(int niters, functor_type functor,
 
         driver_kernel<<<blocks_per_grid, threads_per_block>>>(functor, niters);
         CHECK_CUDA(cudaDeviceSynchronize());
-    }, locale, futures...);
+    };
+
+    if (future) {
+        return hclib::async_future_await_at(lambda, locale, future);
+    } else {
+        return hclib::async_future_at(lambda, locale);
+    }
 }
 
 }

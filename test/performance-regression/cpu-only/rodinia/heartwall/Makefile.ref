@@ -9,12 +9,15 @@ endif
 HCLIB_PERF_CC?=icc
 
 # link objects(binaries) together
-heartwall.ref: main.ref.o ./AVI/avilib.o ./AVI/avimod.o
-	$(HCLIB_PERF_CC) main.ref.o ./AVI/avilib.o ./AVI/avimod.o -lm -fopenmp -o heartwall.ref $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+heartwall.ref: main.ref.o kernel.ref.o ./AVI/avilib.o ./AVI/avimod.o
+	$(HCLIB_PERF_CC) main.ref.o kernel.ref.o ./AVI/avilib.o ./AVI/avimod.o -lm -o heartwall.ref $(HCLIB_CXXFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 # compile main function file into object (binary)
-main.ref.o: main.ref.c define.ref.c kernel.ref.c
-	$(HCLIB_PERF_CC) $(OUTPUT) main.ref.c -I./AVI -c -O3 -fopenmp $(HCLIB_CXXFLAGS)
+main.ref.o: main.ref.c
+	$(HCLIB_PERF_CC) $(OUTPUT) main.ref.c -I./AVI -c -O3 $(HCLIB_CXXFLAGS)
+
+kernel.ref.o: kernel.ref.c
+	$(HCLIB_PERF_CC) $(OUTPUT) kernel.ref.c -I./AVI -c -O3 $(HCLIB_CXXFLAGS)
 
 ./AVI/avilib.o ./AVI/avimod.o:
 	cd AVI; make;

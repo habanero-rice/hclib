@@ -25,9 +25,9 @@ CC              := $(HCLIB_PERF_CXX)
 CXX             := $(HCLIB_PERF_CXX)
 
 # ------------  compiler flags  ------------------------------------------------
-DEBUG_CFLAGS    := -Wall -O0 -g
-RELEASE_CFLAGS  := -Wall -O3 
-COMMON_CFLAGS   := -fopenmp $(HCLIB_CXXFLAGS)
+DEBUG_CFLAGS    := -O0 -g
+RELEASE_CFLAGS  := -O3 
+COMMON_CFLAGS   := $(HCLIB_CXXFLAGS)
 
 # ------------  compiler defs  ------------------------------------------------
 DEBUG_CDEFS    := 
@@ -37,7 +37,7 @@ COMMON_CDEFS   :=
 # ------------  linker flags  --------------------------------------------------
 DEBUG_LDFLAGS    := -g
 RELEASE_LDFLAGS  := 
-COMMON_LDFLAGS   := -fopenmp $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+COMMON_LDFLAGS   := $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 ifeq (YES, ${DEBUG})
   CFLAGS       := ${DEBUG_CFLAGS} ${DEBUG_CDEFS}

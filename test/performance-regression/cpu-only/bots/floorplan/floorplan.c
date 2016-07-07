@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 #include "hclib_cpp.h"
 #include "hclib_system.h"
+#ifdef __CUDACC__
+#include "hclib_cuda.h"
+#endif
 #endif
 pthread_mutex_t critical_0_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 /**********************************************************************************************/
@@ -206,7 +209,7 @@ static void write_outputs() {
     }  
 }
 
-typedef struct _pragma226_omp_task {
+typedef struct _pragma229_omp_task {
     int i;
     int j;
     int nn;
@@ -221,9 +224,9 @@ typedef struct _pragma226_omp_task {
     char (*(*BOARD_ptr));
     struct cell (*(*CELLS_ptr));
     int (*dummy_level_ptr);
- } pragma226_omp_task;
+ } pragma229_omp_task;
 
-static void pragma226_omp_task_hclib_async(void *____arg);
+static void pragma229_omp_task_hclib_async(void *____arg);
 static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int dummy_level) {
   int  i, j, nn, area, nnc,nnl;
 
@@ -240,7 +243,7 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
  { 
-pragma226_omp_task *new_ctx = (pragma226_omp_task *)malloc(sizeof(pragma226_omp_task));
+pragma229_omp_task *new_ctx = (pragma229_omp_task *)malloc(sizeof(pragma229_omp_task));
 new_ctx->i = i;
 new_ctx->j = j;
 new_ctx->nn = nn;
@@ -255,15 +258,15 @@ new_ctx->FOOTPRINT_ptr = &(FOOTPRINT);
 new_ctx->BOARD_ptr = &(BOARD);
 new_ctx->CELLS_ptr = &(CELLS);
 new_ctx->dummy_level_ptr = &(dummy_level);
-hclib_async(pragma226_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma229_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
       }
 }
  hclib_end_finish(); hclib_start_finish(); ;
 return nnc+nnl;
 } 
-static void pragma226_omp_task_hclib_async(void *____arg) {
-    pragma226_omp_task *ctx = (pragma226_omp_task *)____arg;
+static void pragma229_omp_task_hclib_async(void *____arg) {
+    pragma229_omp_task *ctx = (pragma229_omp_task *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int nn; nn = ctx->nn;

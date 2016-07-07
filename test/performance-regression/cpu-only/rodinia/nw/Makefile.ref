@@ -4,7 +4,7 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 include ../../custom.mak
 # C compiler
 HCLIB_PERF_CXX?=icpc
-CC_FLAGS = -g -O3 -fopenmp $(HCLIB_CXXFLAGS)
+CC_FLAGS = -g -O3 $(HCLIB_CXXFLAGS)
 
 all: needle.ref
 
