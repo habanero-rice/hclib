@@ -127,7 +127,7 @@ class pragma110_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int b_index_x) {
         }
 };
 
@@ -141,7 +141,7 @@ class pragma162_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int b_index_x) {
         }
 };
 

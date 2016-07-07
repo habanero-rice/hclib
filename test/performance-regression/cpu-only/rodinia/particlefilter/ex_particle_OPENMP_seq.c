@@ -733,7 +733,7 @@ class pragma383_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -747,7 +747,7 @@ class pragma398_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -761,7 +761,7 @@ class pragma412_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -775,7 +775,7 @@ class pragma420_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -789,7 +789,7 @@ class pragma443_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -803,7 +803,7 @@ class pragma450_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -817,7 +817,7 @@ class pragma456_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -831,7 +831,7 @@ class pragma465_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -845,7 +845,7 @@ class pragma490_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int x) {
         }
 };
 
@@ -859,7 +859,7 @@ class pragma498_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int j) {
         }
 };
 

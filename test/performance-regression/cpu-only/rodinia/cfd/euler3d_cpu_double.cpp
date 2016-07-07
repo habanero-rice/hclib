@@ -69,7 +69,7 @@ class pragma63_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int i) {
         }
 };
 
@@ -165,7 +165,7 @@ class pragma112_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int i) {
         }
 };
 
@@ -266,7 +266,7 @@ class pragma165_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int i) {
         }
 };
 
@@ -350,7 +350,7 @@ class pragma196_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int i) {
         }
 };
 
@@ -540,7 +540,7 @@ class pragma327_omp_parallel_hclib_async {
     private:
 
     public:
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()(int i) {
         }
 };
 
