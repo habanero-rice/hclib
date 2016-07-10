@@ -22,11 +22,11 @@ source datasets.sh
 
 function compile_all() {
     STYLE=$1
-    REF=$2
+    BUILD_TYPE=$2
 
     MAKE_FILE=Makefile
-    if [[ $REF -eq 1 ]]; then
-        MAKE_FILE=Makefile.ref
+    if [[ ! -z "$BUILD_TYPE" ]]; then
+        MAKE_FILE=Makefile.$BUILD_TYPE
     fi
 
     cp custom.$STYLE.mak custom.mak
@@ -63,7 +63,19 @@ function compile_all() {
             "bots/sparselu_for/sparselu.ref.$HCLIB_PERF_CC.omp-tasks bots/sparselu_for/sparselu.$HCLIB_PERF_CC.for-omp-tasks.ref" \
             "bots/sparselu_single/sparselu.ref.$HCLIB_PERF_CC.omp-tasks bots/sparselu_single/sparselu.$HCLIB_PERF_CC.single-omp-tasks.ref" \
             "bots/strassen/strassen.ref.$HCLIB_PERF_CC.omp-tasks bots/strassen/strassen.$HCLIB_PERF_CC.omp-tasks.ref" \
-            "bots/uts/uts.ref.$HCLIB_PERF_CC.omp-tasks bots/uts/uts.$HCLIB_PERF_CC.omp-tasks.ref"; do
+            "bots/uts/uts.ref.$HCLIB_PERF_CC.omp-tasks bots/uts/uts.$HCLIB_PERF_CC.omp-tasks.ref" \
+            "bots/alignment_single/alignment.cuda.$HCLIB_PERF_CC.omp-tasks bots/alignment_single/alignment.$HCLIB_PERF_CC.single-omp-tasks.cuda" \
+            "bots/alignment_for/alignment.$HCLIB_PERF_CC.for.cuda-omp-tasks bots/alignment_for/alignment.$HCLIB_PERF_CC.for-omp-tasks.cuda" \
+            "bots/fft/fft.cuda.$HCLIB_PERF_CC.omp-tasks bots/fft/fft.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/fib/fib.cuda.$HCLIB_PERF_CC.omp-tasks bots/fib/fib.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/floorplan/floorplan.cuda.$HCLIB_PERF_CC.omp-tasks bots/floorplan/floorplan.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/health/health.cuda.$HCLIB_PERF_CC.omp-tasks bots/health/health.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/nqueens/nqueens.cuda.$HCLIB_PERF_CC.omp-tasks bots/nqueens/nqueens.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/sort/sort.cuda.$HCLIB_PERF_CC.omp-tasks bots/sort/sort.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/sparselu_for/sparselu.cuda.$HCLIB_PERF_CC.omp-tasks bots/sparselu_for/sparselu.$HCLIB_PERF_CC.for-omp-tasks.cuda" \
+            "bots/sparselu_single/sparselu.cuda.$HCLIB_PERF_CC.omp-tasks bots/sparselu_single/sparselu.$HCLIB_PERF_CC.single-omp-tasks.cuda" \
+            "bots/strassen/strassen.cuda.$HCLIB_PERF_CC.omp-tasks bots/strassen/strassen.$HCLIB_PERF_CC.omp-tasks.cuda" \
+            "bots/uts/uts.cuda.$HCLIB_PERF_CC.omp-tasks bots/uts/uts.$HCLIB_PERF_CC.omp-tasks.cuda"; do
         SRC=$(echo $FIX | awk '{ print $1 }')
         DST=$(echo $FIX | awk '{ print $2 }')
 
@@ -75,15 +87,13 @@ function compile_all() {
     for TEST in "${!DATASETS[@]}"; do
         TEST_EXE=$(echo $TEST | awk -F ',' '{ print $1 }')
         TEST_SIZE=$(echo $TEST | awk -F ',' '{ print $2 }')
-        REF_EXE=$TEST_EXE.ref
 
         SRC_EXE=$TEST_EXE
         DST_EXE=$TEST_EXE.$STYLE
-        if [[ $REF -eq 1 ]]; then
-            SRC_EXE=$REF_EXE
-            DST_EXE=$REF_EXE.$STYLE
+        if [[ ! -z "$BUILD_TYPE" ]]; then
+            SRC_EXE=$TEST_EXE.$BUILD_TYPE
+            DST_EXE=$TEST_EXE.$BUILD_TYPE.$STYLE
         fi
-
 
         # Every test must have a 'large' dataset. If we just do this move on
         # every member of DATASETS, we'll run in to problems with duplicate
@@ -96,11 +106,11 @@ function compile_all() {
     echo Compilation for $STYLE completed!
 }
 
-compile_all gpu 0
-compile_all tied 1
-compile_all untied 1
-compile_all flat 0
-compile_all recursive 0
+compile_all gpu cuda
+compile_all tied ref
+compile_all untied ref
+compile_all flat
+compile_all recursive
 
 for TEST in "${!DATASETS[@]}"; do
     TEST_EXE=$(echo $TEST | awk -F ',' '{ print $1 }')

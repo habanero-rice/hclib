@@ -78,7 +78,7 @@ extern int num_omp_threads;
 
 int find_nearest_point(float  *pt,          /* [nfeatures] */
                        int     nfeatures,
-                       float **pts,         /* [npts][nfeatures] */
+                       float *pts,         /* [npts][nfeatures] */
                        int     npts)
 {
     int index, i;
@@ -87,7 +87,7 @@ int find_nearest_point(float  *pt,          /* [nfeatures] */
     /* find the cluster center id with min distance to pt */
     for (i=0; i<npts; i++) {
         float dist;
-        dist = euclid_dist_2(pt, pts[i], nfeatures);  /* no need square root */
+        dist = euclid_dist_2(pt, pts + (i * nfeatures), nfeatures);  /* no need square root */
         if (dist < min_dist) {
             min_dist = dist;
             index    = i;
@@ -114,7 +114,7 @@ float euclid_dist_2(float *pt1,
 
 
 /*----< kmeans_clustering() >---------------------------------------------*/
-float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
+float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
                           int     nfeatures,
                           int     npoints,
                           int     nclusters,
@@ -125,28 +125,25 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
     int      i, j, k, n=0, index, loop=0;
     int     *new_centers_len;			/* [nclusters]: no. of points in each cluster */
 	float  **new_centers;				/* [nclusters][nfeatures] */
-	float  **clusters;					/* out: [nclusters][nfeatures] */
+	float  *clusters;					/* out: [nclusters][nfeatures] */
     float    delta;
         
     double   timing;
 
 	int      nthreads;
-    int    **partial_new_centers_len;
-    float ***partial_new_centers;
+    int    *partial_new_centers_len;
+    float *partial_new_centers;
 
     nthreads = num_omp_threads; 
 
     /* allocate space for returning variable clusters[] */
-    clusters    = (float**) malloc(nclusters *             sizeof(float*));
-    clusters[0] = (float*)  malloc(nclusters * nfeatures * sizeof(float));
-    for (i=1; i<nclusters; i++)
-        clusters[i] = clusters[i-1] + nfeatures;
+    clusters = (float *)malloc(nclusters * nfeatures * sizeof(float));
 
     /* randomly pick cluster centers */
     for (i=0; i<nclusters; i++) {
         //n = (int)rand() % npoints;
         for (j=0; j<nfeatures; j++)
-            clusters[i][j] = feature[n][j];
+            clusters[i * nfeatures + j] = feature[n * nfeatures + j];
 		n++;
     }
 
@@ -162,30 +159,19 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
         new_centers[i] = new_centers[i-1] + nfeatures;
 
 
-    partial_new_centers_len    = (int**) malloc(nthreads * sizeof(int*));
-    partial_new_centers_len[0] = (int*)  calloc(nthreads*nclusters, sizeof(int));
-    for (i=1; i<nthreads; i++)
-		partial_new_centers_len[i] = partial_new_centers_len[i-1]+nclusters;
+    partial_new_centers_len = (int *)calloc(nthreads * nclusters, sizeof(int));
 
-	partial_new_centers    =(float***)malloc(nthreads * sizeof(float**));
-    partial_new_centers[0] =(float**) malloc(nthreads*nclusters * sizeof(float*));
-    for (i=1; i<nthreads; i++)
-        partial_new_centers[i] = partial_new_centers[i-1] + nclusters;
+    partial_new_centers = (float *)calloc(nthreads * nclusters * nfeatures, sizeof(float));
 
-	for (i=0; i<nthreads; i++)
-	{
-        for (j=0; j<nclusters; j++)
-            partial_new_centers[i][j] = (float*)calloc(nfeatures, sizeof(float));
-	}
-	printf("num of threads = %d\n", num_omp_threads);
+    printf("num of threads = %d\n", num_omp_threads);
     do {
         delta = 0.0;
         {
             #pragma omp parallel for shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len)                          private(i,j,index)                          firstprivate(npoints,nclusters,nfeatures)                          schedule(static)                          reduction(+:delta)
             for (i=0; i<npoints; i++) {
 	        /* find the index of nestest cluster centers */					
-            int tid = hclib_get_current_worker();				
-	        index = find_nearest_point(feature[i],
+            int tid = omp_get_thread_num();				
+	        index = find_nearest_point(feature + (i * nfeatures),
 		             nfeatures,
 		             clusters,
 		             nclusters);				
@@ -197,20 +183,20 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 				
 	        /* update new cluster centers : sum of all objects located
 		       within */
-	        partial_new_centers_len[tid][index]++;				
+	        partial_new_centers_len[tid * nclusters + index]++;				
 	        for (j=0; j<nfeatures; j++)
-		       partial_new_centers[tid][index][j] += feature[i][j];
+		       partial_new_centers[tid * nclusters * nfeatures + index * nfeatures + j] += feature[i * nfeatures + j];
             }
         } /* end of #pragma omp parallel */
 
         /* let the main thread perform the array reduction */
         for (i=0; i<nclusters; i++) {
             for (j=0; j<nthreads; j++) {
-                new_centers_len[i] += partial_new_centers_len[j][i];
-                partial_new_centers_len[j][i] = 0.0;
+                new_centers_len[i] += partial_new_centers_len[j * nclusters + i];
+                partial_new_centers_len[j * nclusters + i] = 0.0;
                 for (k=0; k<nfeatures; k++) {
-                    new_centers[i][k] += partial_new_centers[j][i][k];
-                    partial_new_centers[j][i][k] = 0.0;
+                    new_centers[i][k] += partial_new_centers[j * nclusters * nfeatures + i * nfeatures + k];
+                    partial_new_centers[j * nclusters * nfeatures + i * nfeatures + k] = 0.0;
                 }
             }
         }    
@@ -219,7 +205,7 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 		for (i=0; i<nclusters; i++) {
             for (j=0; j<nfeatures; j++) {
                 if (new_centers_len[i] > 0)
-					clusters[i][j] = new_centers[i][j] / new_centers_len[i];
+					clusters[i * nfeatures + j] = new_centers[i][j] / new_centers_len[i];
 				new_centers[i][j] = 0.0;   /* set back to 0 */
 			}
 			new_centers_len[i] = 0;   /* set back to 0 */

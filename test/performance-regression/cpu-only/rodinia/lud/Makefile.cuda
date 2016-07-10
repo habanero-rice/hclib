@@ -1,0 +1,7 @@
+all: lud_omp.cuda
+
+lud_omp.cuda:
+	cd omp; make -f Makefile.cuda
+
+clean:
+	cd omp; make -f Makefile.cuda clean

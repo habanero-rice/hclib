@@ -6,3 +6,4 @@ fib-ddt
 qsort
 test_logs
 custom.mak
+*.o

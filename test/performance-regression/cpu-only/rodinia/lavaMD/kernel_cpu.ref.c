@@ -1,7 +1,7 @@
 #include "hclib.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
 
 //========================================================================================================================================================================================================200
 //	DEFINE/INCLUDE
@@ -211,6 +211,6 @@ void  kernel_cpu(	par_str par,
 
 } // main
 
-#ifdef __cplusplus
-}
-#endif
+// #ifdef __cplusplus
+// }
+// #endif

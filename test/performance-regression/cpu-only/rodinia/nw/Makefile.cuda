@@ -1,0 +1,17 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+# C compiler
+HCLIB_PERF_CXX?=icpc
+CC = $(HCLIB_PERF_CXX)
+CC_FLAGS = -g -O3 $(HCLIB_CXXFLAGS)
+
+all: needle.cuda
+
+needle.cuda: needle.cuda.cpp
+	$(CC) $(CC_FLAGS) -c needle.cuda.cpp -o needle.cuda.o
+	$(CC) -g -O3 needle.cuda.o -o needle.cuda  $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+clean:
+	rm -f needle.cuda

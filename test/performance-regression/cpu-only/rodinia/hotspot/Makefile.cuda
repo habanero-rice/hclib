@@ -1,0 +1,19 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+# C compiler
+HCLIB_PERF_CXX?=icpc
+CC = $(HCLIB_PERF_CXX)
+CC_FLAGS = -g -O2
+
+all: hotspot.cuda
+
+hotspot.cuda: hotspot_openmp.cuda.o Makefile.cuda
+	$(CC) $(CC_FLAGS) hotspot.cuda.o -o hotspot.cuda $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+hotspot_openmp.cuda.o: hotspot_openmp.cuda.cpp Makefile.cuda
+	$(CC) -c $(CC_FLAGS) hotspot_openmp.cuda.cpp -o hotspot.cuda.o $(HCLIB_CXXFLAGS)
+
+clean:
+	rm -f hotspot *.o

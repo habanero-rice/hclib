@@ -361,34 +361,8 @@ typedef struct _pragma475_omp_parallel {
     int (*pid_ptr);
  } pragma475_omp_parallel;
 
-
-#ifdef OMP_TO_HCLIB_ENABLE_GPU
-
-class pragma399_omp_parallel_hclib_async {
-    private:
-
-    public:
-        __host__ __device__ void operator()(int i) {
-        }
-};
-
-#else
 static void pragma399_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-#endif
-
-#ifdef OMP_TO_HCLIB_ENABLE_GPU
-
-class pragma475_omp_parallel_hclib_async {
-    private:
-
-    public:
-        __host__ __device__ void operator()(int i) {
-        }
-};
-
-#else
 static void pragma475_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-#endif
 double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 {
   //  printf("pgain pthread %d begin\n",pid);
@@ -506,13 +480,8 @@ domain[0].low = k1;
 domain[0].high = k2;
 domain[0].stride = 1;
 domain[0].tile = -1;
-#ifdef OMP_TO_HCLIB_ENABLE_GPU
-hclib::future_t *fut = hclib::forasync_cuda((k2) - (k1), pragma399_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
-fut->wait();
-#else
 hclib_future_t *fut = hclib_forasync_future((void *)pragma399_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
-#endif
 free(new_ctx);
 cost_of_opening_x = new_ctx->cost_of_opening_x;
  } 
@@ -596,13 +565,8 @@ domain[0].low = k1;
 domain[0].high = k2;
 domain[0].stride = 1;
 domain[0].tile = -1;
-#ifdef OMP_TO_HCLIB_ENABLE_GPU
-hclib::future_t *fut = hclib::forasync_cuda((k2) - (k1), pragma475_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
-fut->wait();
-#else
 hclib_future_t *fut = hclib_forasync_future((void *)pragma475_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
-#endif
 free(new_ctx);
  } 
 		
@@ -639,9 +603,6 @@ free(new_ctx);
 	//printf("cost=%f\n", -gl_cost_of_opening_x);
   return -gl_cost_of_opening_x;
 } 
-
-#ifndef OMP_TO_HCLIB_ENABLE_GPU
-
 static void pragma399_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
     pragma399_omp_parallel *ctx = (pragma399_omp_parallel *)____arg;
     int i; i = ctx->i;
@@ -683,10 +644,6 @@ static void pragma399_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 }
 
-#endif
-
-
-#ifndef OMP_TO_HCLIB_ENABLE_GPU
 
 static void pragma475_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
     pragma475_omp_parallel *ctx = (pragma475_omp_parallel *)____arg;
@@ -708,7 +665,6 @@ static void pragma475_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 }
 
-#endif
 
 
 

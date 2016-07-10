@@ -77,15 +77,15 @@
 /*---< cluster() >-----------------------------------------------------------*/
 int cluster(int      numObjects,      /* number of input objects */
             int      numAttributes,   /* size of attribute of each object */
-            float  **attributes,      /* [numObjects][numAttributes] */            
+            float  *attributes,      /* [numObjects][numAttributes] */            
             int      nclusters,
             float    threshold,       /* in:   */
-            float ***cluster_centres /* out: [best_nclusters][numAttributes] */
+            float **cluster_centres /* out: [best_nclusters][numAttributes] */
     
             )
 {
     int    *membership;
-    float **tmp_cluster_centres;
+    float *tmp_cluster_centres;
 
     membership = (int*) malloc(numObjects * sizeof(int));
    
@@ -99,7 +99,6 @@ int cluster(int      numObjects,      /* number of input objects */
                                             membership);      
 	
     if (*cluster_centres) {
-		free((*cluster_centres)[0]);
         free(*cluster_centres);
     }
     *cluster_centres = tmp_cluster_centres;

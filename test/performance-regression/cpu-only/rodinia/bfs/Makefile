@@ -6,7 +6,7 @@ include ../../custom.mak
 HCLIB_PERF_CXX?=icpc
 CC=$(HCLIB_PERF_CXX)
 
-CC_FLAGS = -g -O2 $(HCLIB_CXXFLAGS)
+CC_FLAGS=-g -O2 $(HCLIB_CXXFLAGS)
 
 all: bfs
 

@@ -1,0 +1,39 @@
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include ../../custom.mak
+
+TARGETS=jacobi-task.cuda jacobi-block-for.cuda jacobi-block-task.cuda
+HCLIB_PERF_CXX?=icpc
+
+all: $(TARGETS)
+
+SHARED_SRC=main.cuda.c src/jacobi-seq.c src/poisson.cuda.c
+FLAGS=-Iinclude -I../common $(HCLIB_CXXFLAGS)
+
+jacobi-task.cuda: src/jacobi-task.cuda.c $(SHARED_SRC)
+	rm -f *.o
+	$(HCLIB_PERF_CXX) -c src/jacobi-task.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c main.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/jacobi-seq.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/poisson.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) jacobi-task.cuda.o main.cuda.o jacobi-seq.o poisson.cuda.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@
+
+jacobi-block-for.cuda: src/jacobi-block-for.cuda.c $(SHARED_SRC)
+	rm -f *.o
+	$(HCLIB_PERF_CXX) -c src/jacobi-block-for.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c main.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/jacobi-seq.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/poisson.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) jacobi-block-for.cuda.o main.cuda.o jacobi-seq.o poisson.cuda.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@
+
+jacobi-block-task.cuda: src/jacobi-block-task.cuda.c $(SHARED_SRC)
+	rm -f *.o
+	$(HCLIB_PERF_CXX) -c src/jacobi-block-task.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c main.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/jacobi-seq.c $(FLAGS)
+	$(HCLIB_PERF_CXX) -c src/poisson.cuda.c $(FLAGS)
+	$(HCLIB_PERF_CXX) jacobi-block-task.cuda.o main.cuda.o jacobi-seq.o poisson.cuda.o $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@
+
+clean:
+	rm -f $(TARGETS) *.o

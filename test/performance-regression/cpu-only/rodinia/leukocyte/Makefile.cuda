@@ -1,0 +1,6 @@
+OpenMP/leukocyte.cuda:
+	cd OpenMP; make -f Makefile.cuda
+
+clean:
+	cd OpenMP; make -f Makefile.cuda clean
+	rm -f meschach_lib/meschach.a

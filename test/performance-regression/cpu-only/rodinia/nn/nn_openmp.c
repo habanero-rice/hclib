@@ -60,20 +60,7 @@ typedef struct _pragma127_omp_parallel {
     char (*(*(*argv_ptr)));
  } pragma127_omp_parallel;
 
-
-#ifdef OMP_TO_HCLIB_ENABLE_GPU
-
-class pragma127_omp_parallel_hclib_async {
-    private:
-
-    public:
-        __host__ __device__ void operator()(int i) {
-        }
-};
-
-#else
 static void pragma127_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-#endif
 typedef struct _main_entrypoint_ctx {
     long long time0;
     FILE (*flist);
@@ -183,13 +170,8 @@ domain[0].low = 0;
 domain[0].high = rec_count;
 domain[0].stride = 1;
 domain[0].tile = -1;
-#ifdef OMP_TO_HCLIB_ENABLE_GPU
-hclib::future_t *fut = hclib::forasync_cuda((rec_count) - (0), pragma127_omp_parallel_hclib_async(), hclib::get_closest_gpu_locale(), NULL);
-fut->wait();
-#else
 hclib_future_t *fut = hclib_forasync_future((void *)pragma127_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
-#endif
 free(new_ctx);
  } 
 
@@ -310,9 +292,6 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
     printf("total time : %15.12f s\n", (float) (time1 - time0) / 1000000);
     return 0;
 }  
-
-#ifndef OMP_TO_HCLIB_ENABLE_GPU
-
 static void pragma127_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
     pragma127_omp_parallel *ctx = (pragma127_omp_parallel *)____arg;
     int i; i = ctx->i;
@@ -330,6 +309,5 @@ static void pragma127_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 }
 
-#endif
 
 
