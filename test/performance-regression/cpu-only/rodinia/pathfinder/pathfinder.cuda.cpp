@@ -14,12 +14,17 @@ template<class functor_type>
 static void kernel_launcher(unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
+    functor.transfer_to_device();
+    const unsigned long long start = capp_current_time_ns();
     wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
-    const cudaError_t err = cudaDeviceSynchronize();
+    cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
-        fprintf(stderr, "CUDA Launch Error - %s\n", cudaGetErrorString(err));
+        fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
         exit(2);
     }
+    const unsigned long long end = capp_current_time_ns();
+    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    functor.transfer_from_device();
 }
 #ifdef __cplusplus
 #ifdef __CUDACC__
@@ -113,9 +118,12 @@ class pragma114_omp_parallel_hclib_async {
     private:
     int min;
     int* volatile src;
+    int* volatile h_src;
     volatile int cols;
     int* volatile dst;
+    int* volatile h_dst;
     int* volatile data;
+    int* volatile h_data;
     volatile int t;
 
     public:
@@ -126,13 +134,81 @@ class pragma114_omp_parallel_hclib_async {
                 int* set_data,
                 int set_t) {
             min = set_min;
-            src = set_src;
+            h_src = set_src;
             cols = set_cols;
-            dst = set_dst;
-            data = set_data;
+            h_dst = set_dst;
+            h_data = set_data;
             t = set_t;
 
         }
+
+    void transfer_to_device() {
+        cudaError_t err;
+        err = cudaMalloc((void **)&src, get_size_from_allocation(h_src));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)src, (void *)h_src, get_size_from_allocation(h_src), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&dst, get_size_from_allocation(h_dst));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)dst, (void *)h_dst, get_size_from_allocation(h_dst), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&data, get_size_from_allocation(h_data));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)data, (void *)h_data, get_size_from_allocation(h_data), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+    }
+
+    void transfer_from_device() {
+        cudaError_t err;
+        err = cudaMemcpy((void *)h_src, (void *)src, get_size_from_allocation(h_src), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(src);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_dst, (void *)dst, get_size_from_allocation(h_dst), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(dst);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_data, (void *)data, get_size_from_allocation(h_data), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(data);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+    }
 
         __device__ void operator()(int n) {
             for (int __dummy_iter = 0; __dummy_iter < 1; __dummy_iter++) {

@@ -14,12 +14,17 @@ template<class functor_type>
 static void kernel_launcher(unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
+    functor.transfer_to_device();
+    const unsigned long long start = capp_current_time_ns();
     wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
-    const cudaError_t err = cudaDeviceSynchronize();
+    cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
-        fprintf(stderr, "CUDA Launch Error - %s\n", cudaGetErrorString(err));
+        fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
         exit(2);
     }
+    const unsigned long long end = capp_current_time_ns();
+    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    functor.transfer_from_device();
 }
 #ifdef __cplusplus
 #ifdef __CUDACC__
@@ -66,11 +71,17 @@ int main( int argc, char** argv)
 class pragma136_omp_parallel_hclib_async {
     private:
     bool* h_graph_mask;
+    bool* h_h_graph_mask;
     struct Node* h_graph_nodes;
+    struct Node* h_h_graph_nodes;
     int* h_graph_edges;
+    int* h_h_graph_edges;
     bool* h_graph_visited;
+    bool* h_h_graph_visited;
     int* h_cost;
+    int* h_h_cost;
     bool* h_updating_graph_mask;
+    bool* h_h_updating_graph_mask;
 
     public:
         pragma136_omp_parallel_hclib_async(bool* set_h_graph_mask,
@@ -79,14 +90,142 @@ class pragma136_omp_parallel_hclib_async {
                 bool* set_h_graph_visited,
                 int* set_h_cost,
                 bool* set_h_updating_graph_mask) {
-            h_graph_mask = set_h_graph_mask;
-            h_graph_nodes = set_h_graph_nodes;
-            h_graph_edges = set_h_graph_edges;
-            h_graph_visited = set_h_graph_visited;
-            h_cost = set_h_cost;
-            h_updating_graph_mask = set_h_updating_graph_mask;
+            h_h_graph_mask = set_h_graph_mask;
+            h_h_graph_nodes = set_h_graph_nodes;
+            h_h_graph_edges = set_h_graph_edges;
+            h_h_graph_visited = set_h_graph_visited;
+            h_h_cost = set_h_cost;
+            h_h_updating_graph_mask = set_h_updating_graph_mask;
 
         }
+
+    void transfer_to_device() {
+        cudaError_t err;
+        err = cudaMalloc((void **)&h_graph_mask, get_size_from_allocation(h_h_graph_mask));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_graph_mask, (void *)h_h_graph_mask, get_size_from_allocation(h_h_graph_mask), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_graph_nodes, get_size_from_allocation(h_h_graph_nodes));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_graph_nodes, (void *)h_h_graph_nodes, get_size_from_allocation(h_h_graph_nodes), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_graph_edges, get_size_from_allocation(h_h_graph_edges));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_graph_edges, (void *)h_h_graph_edges, get_size_from_allocation(h_h_graph_edges), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_graph_visited, get_size_from_allocation(h_h_graph_visited));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_graph_visited, (void *)h_h_graph_visited, get_size_from_allocation(h_h_graph_visited), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_cost, get_size_from_allocation(h_h_cost));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_cost, (void *)h_h_cost, get_size_from_allocation(h_h_cost), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_updating_graph_mask, get_size_from_allocation(h_h_updating_graph_mask));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_updating_graph_mask, (void *)h_h_updating_graph_mask, get_size_from_allocation(h_h_updating_graph_mask), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+    }
+
+    void transfer_from_device() {
+        cudaError_t err;
+        err = cudaMemcpy((void *)h_h_graph_mask, (void *)h_graph_mask, get_size_from_allocation(h_h_graph_mask), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_graph_mask);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_graph_nodes, (void *)h_graph_nodes, get_size_from_allocation(h_h_graph_nodes), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_graph_nodes);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_graph_edges, (void *)h_graph_edges, get_size_from_allocation(h_h_graph_edges), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_graph_edges);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_graph_visited, (void *)h_graph_visited, get_size_from_allocation(h_h_graph_visited), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_graph_visited);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_cost, (void *)h_cost, get_size_from_allocation(h_h_cost), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_cost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_updating_graph_mask, (void *)h_updating_graph_mask, get_size_from_allocation(h_h_updating_graph_mask), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_updating_graph_mask);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+    }
 
         __device__ void operator()(int tid) {
             for (int __dummy_iter = 0; __dummy_iter < 1; __dummy_iter++) {
@@ -111,8 +250,11 @@ class pragma136_omp_parallel_hclib_async {
 class pragma153_omp_parallel_hclib_async {
     private:
     bool* h_updating_graph_mask;
+    bool* h_h_updating_graph_mask;
     bool* h_graph_mask;
+    bool* h_h_graph_mask;
     bool* h_graph_visited;
+    bool* h_h_graph_visited;
     volatile bool stop;
 
     public:
@@ -120,12 +262,80 @@ class pragma153_omp_parallel_hclib_async {
                 bool* set_h_graph_mask,
                 bool* set_h_graph_visited,
                 bool set_stop) {
-            h_updating_graph_mask = set_h_updating_graph_mask;
-            h_graph_mask = set_h_graph_mask;
-            h_graph_visited = set_h_graph_visited;
+            h_h_updating_graph_mask = set_h_updating_graph_mask;
+            h_h_graph_mask = set_h_graph_mask;
+            h_h_graph_visited = set_h_graph_visited;
             stop = set_stop;
 
         }
+
+    void transfer_to_device() {
+        cudaError_t err;
+        err = cudaMalloc((void **)&h_updating_graph_mask, get_size_from_allocation(h_h_updating_graph_mask));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_updating_graph_mask, (void *)h_h_updating_graph_mask, get_size_from_allocation(h_h_updating_graph_mask), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_graph_mask, get_size_from_allocation(h_h_graph_mask));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_graph_mask, (void *)h_h_graph_mask, get_size_from_allocation(h_h_graph_mask), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMalloc((void **)&h_graph_visited, get_size_from_allocation(h_h_graph_visited));
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_graph_visited, (void *)h_h_graph_visited, get_size_from_allocation(h_h_graph_visited), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+    }
+
+    void transfer_from_device() {
+        cudaError_t err;
+        err = cudaMemcpy((void *)h_h_updating_graph_mask, (void *)h_updating_graph_mask, get_size_from_allocation(h_h_updating_graph_mask), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_updating_graph_mask);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_graph_mask, (void *)h_graph_mask, get_size_from_allocation(h_h_graph_mask), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_graph_mask);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaMemcpy((void *)h_h_graph_visited, (void *)h_graph_visited, get_size_from_allocation(h_h_graph_visited), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+        err = cudaFree(h_graph_visited);
+        if (err != cudaSuccess) {
+            fprintf(stderr, "CUDA Error @ %s:%d - %s\n", __FILE__, __LINE__, cudaGetErrorString(err));
+            exit(3);
+        }
+    }
 
         __device__ void operator()(int tid) {
             for (int __dummy_iter = 0; __dummy_iter < 1; __dummy_iter++) {
