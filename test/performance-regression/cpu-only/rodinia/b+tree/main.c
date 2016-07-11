@@ -2434,7 +2434,7 @@ main(	int argc,
 
 	if (input_file != NULL) {
 
-		printf("Getting input from file %s...\n", argv[1]);
+		printf("Getting input from file %s...\n", input_file);
 
 		// open input file
 		file_pointer = fopen(input_file, "r");
@@ -2447,10 +2447,15 @@ main(	int argc,
 		fscanf(file_pointer, "%d\n", &input);
 		size = input;
 
+        size_t count_records = 0;
 		// save all numbers
 		while (!feof(file_pointer)) {
 			fscanf(file_pointer, "%d\n", &input);
 			root = insert(root, input, input);
+            count_records++;
+            if (count_records % 10000 == 0) {
+                printf("Read %lu records\n", count_records);
+            }
 		}
 
 		// close file

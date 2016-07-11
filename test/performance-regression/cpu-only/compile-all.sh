@@ -107,10 +107,10 @@ function compile_all() {
 }
 
 compile_all gpu cuda
-compile_all tied ref
-compile_all untied ref
-compile_all flat
-compile_all recursive
+# compile_all tied ref
+# compile_all untied ref
+# compile_all flat
+# compile_all recursive
 
 for TEST in "${!DATASETS[@]}"; do
     TEST_EXE=$(echo $TEST | awk -F ',' '{ print $1 }')
