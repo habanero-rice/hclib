@@ -181,9 +181,9 @@ class pragma114_omp_parallel_hclib_async {
             }
         }
 
-        assert(src);
-        assert(dst);
-        assert(data);
+        assert(src || h_src == NULL);
+        assert(dst || h_dst == NULL);
+        assert(data || h_data == NULL);
 
     }
 

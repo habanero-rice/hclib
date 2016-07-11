@@ -420,7 +420,7 @@ class pragma383_omp_parallel_hclib_async {
             }
         }
 
-        assert(weights);
+        assert(weights || h_weights == NULL);
 
     }
 
@@ -508,8 +508,8 @@ class pragma398_omp_parallel_hclib_async {
             }
         }
 
-        assert(arrayX);
-        assert(arrayY);
+        assert(arrayX || h_arrayX == NULL);
+        assert(arrayY || h_arrayY == NULL);
 
     }
 
@@ -627,9 +627,9 @@ class pragma412_omp_parallel_hclib_async {
             }
         }
 
-        assert(arrayX);
-        assert(seed);
-        assert(arrayY);
+        assert(arrayX || h_arrayX == NULL);
+        assert(seed || h_seed == NULL);
+        assert(arrayY || h_arrayY == NULL);
 
     }
 
@@ -781,12 +781,12 @@ class pragma420_omp_parallel_hclib_async {
             }
         }
 
-        assert(arrayX);
-        assert(objxy);
-        assert(arrayY);
-        assert(ind);
-        assert(likelihood);
-        assert(I);
+        assert(arrayX || h_arrayX == NULL);
+        assert(objxy || h_objxy == NULL);
+        assert(arrayY || h_arrayY == NULL);
+        assert(ind || h_ind == NULL);
+        assert(likelihood || h_likelihood == NULL);
+        assert(I || h_I == NULL);
 
     }
 
@@ -883,8 +883,8 @@ class pragma443_omp_parallel_hclib_async {
             }
         }
 
-        assert(weights);
-        assert(likelihood);
+        assert(weights || h_weights == NULL);
+        assert(likelihood || h_likelihood == NULL);
 
     }
 
@@ -960,7 +960,7 @@ class pragma450_omp_parallel_hclib_async {
             }
         }
 
-        assert(weights);
+        assert(weights || h_weights == NULL);
 
     }
 
@@ -1036,7 +1036,7 @@ class pragma456_omp_parallel_hclib_async {
             }
         }
 
-        assert(weights);
+        assert(weights || h_weights == NULL);
 
     }
 
@@ -1133,9 +1133,9 @@ class pragma465_omp_parallel_hclib_async {
             }
         }
 
-        assert(arrayX);
-        assert(weights);
-        assert(arrayY);
+        assert(arrayX || h_arrayX == NULL);
+        assert(weights || h_weights == NULL);
+        assert(arrayY || h_arrayY == NULL);
 
     }
 
@@ -1215,7 +1215,7 @@ class pragma490_omp_parallel_hclib_async {
             }
         }
 
-        assert(u);
+        assert(u || h_u == NULL);
 
     }
 
@@ -1355,12 +1355,12 @@ class pragma498_omp_parallel_hclib_async {
             }
         }
 
-        assert(CDF);
-        assert(u);
-        assert(xj);
-        assert(arrayX);
-        assert(yj);
-        assert(arrayY);
+        assert(CDF || h_CDF == NULL);
+        assert(u || h_u == NULL);
+        assert(xj || h_xj == NULL);
+        assert(arrayX || h_arrayX == NULL);
+        assert(yj || h_yj == NULL);
+        assert(arrayY || h_arrayY == NULL);
 
     }
 

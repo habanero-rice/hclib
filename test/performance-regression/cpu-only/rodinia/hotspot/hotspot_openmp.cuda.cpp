@@ -176,9 +176,9 @@ class pragma72_omp_parallel_hclib_async {
             }
         }
 
-        assert(power);
-        assert(temp);
-        assert(result);
+        assert(power || h_power == NULL);
+        assert(temp || h_temp == NULL);
+        assert(result || h_result == NULL);
 
     }
 

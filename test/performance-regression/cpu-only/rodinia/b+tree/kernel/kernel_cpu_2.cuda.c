@@ -199,15 +199,15 @@ class pragma103_omp_parallel_hclib_async {
             }
         }
 
-        assert(knodes);
-        assert(currKnode);
-        assert(start);
-        assert(offset);
-        assert(lastKnode);
-        assert(end);
-        assert(offset_2);
-        assert(recstart);
-        assert(reclength);
+        assert(knodes || h_knodes == NULL);
+        assert(currKnode || h_currKnode == NULL);
+        assert(start || h_start == NULL);
+        assert(offset || h_offset == NULL);
+        assert(lastKnode || h_lastKnode == NULL);
+        assert(end || h_end == NULL);
+        assert(offset_2 || h_offset_2 == NULL);
+        assert(recstart || h_recstart == NULL);
+        assert(reclength || h_reclength == NULL);
 
     }
 

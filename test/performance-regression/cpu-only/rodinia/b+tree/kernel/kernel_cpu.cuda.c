@@ -166,12 +166,12 @@ class pragma93_omp_parallel_hclib_async {
             }
         }
 
-        assert(knodes);
-        assert(currKnode);
-        assert(keys);
-        assert(offset);
-        assert(ans);
-        assert(records);
+        assert(knodes || h_knodes == NULL);
+        assert(currKnode || h_currKnode == NULL);
+        assert(keys || h_keys == NULL);
+        assert(offset || h_offset == NULL);
+        assert(ans || h_ans == NULL);
+        assert(records || h_records == NULL);
 
     }
 

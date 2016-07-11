@@ -112,7 +112,7 @@ class pragma61_omp_parallel_hclib_async {
             }
         }
 
-        assert(a);
+        assert(a || h_a == NULL);
 
     }
 
@@ -236,7 +236,7 @@ class pragma113_omp_parallel_hclib_async {
             }
         }
 
-        assert(a);
+        assert(a || h_a == NULL);
 
     }
 

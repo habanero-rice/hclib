@@ -273,11 +273,11 @@ float euclid_dist_2(float *pt1,
             }
         }
 
-        assert(feature);
-        assert(clusters);
-        assert(membership);
-        assert(partial_new_centers_len);
-        assert(partial_new_centers);
+        assert(feature || h_feature == NULL);
+        assert(clusters || h_clusters == NULL);
+        assert(membership || h_membership == NULL);
+        assert(partial_new_centers_len || h_partial_new_centers_len == NULL);
+        assert(partial_new_centers || h_partial_new_centers == NULL);
 
     }
 

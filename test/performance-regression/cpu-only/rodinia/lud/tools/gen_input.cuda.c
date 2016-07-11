@@ -117,9 +117,9 @@ class pragma87_omp_parallel_hclib_async {
             }
         }
 
-        assert(L);
-        assert(U);
-        assert(A);
+        assert(L || h_L == NULL);
+        assert(U || h_U == NULL);
+        assert(A || h_A == NULL);
 
     }
 

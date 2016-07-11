@@ -153,12 +153,12 @@ class pragma136_omp_parallel_hclib_async {
             }
         }
 
-        assert(h_graph_mask);
-        assert(h_graph_nodes);
-        assert(h_graph_edges);
-        assert(h_graph_visited);
-        assert(h_cost);
-        assert(h_updating_graph_mask);
+        assert(h_graph_mask || h_h_graph_mask == NULL);
+        assert(h_graph_nodes || h_h_graph_nodes == NULL);
+        assert(h_graph_edges || h_h_graph_edges == NULL);
+        assert(h_graph_visited || h_h_graph_visited == NULL);
+        assert(h_cost || h_h_cost == NULL);
+        assert(h_updating_graph_mask || h_h_updating_graph_mask == NULL);
 
     }
 
@@ -260,9 +260,9 @@ class pragma153_omp_parallel_hclib_async {
             }
         }
 
-        assert(h_updating_graph_mask);
-        assert(h_graph_mask);
-        assert(h_graph_visited);
+        assert(h_updating_graph_mask || h_h_updating_graph_mask == NULL);
+        assert(h_graph_mask || h_h_graph_mask == NULL);
+        assert(h_graph_visited || h_h_graph_visited == NULL);
 
     }
 

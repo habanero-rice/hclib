@@ -129,8 +129,8 @@ class pragma63_omp_parallel_hclib_async {
             }
         }
 
-        assert(dst);
-        assert(src);
+        assert(dst || h_dst == NULL);
+        assert(src || h_src == NULL);
 
     }
 
@@ -250,7 +250,7 @@ class pragma112_omp_parallel_hclib_async {
             }
         }
 
-        assert(variables);
+        assert(variables || h_variables == NULL);
 
     }
 
@@ -411,9 +411,9 @@ class pragma165_omp_parallel_hclib_async {
             }
         }
 
-        assert(variables);
-        assert(step_factors);
-        assert(areas);
+        assert(variables || h_variables == NULL);
+        assert(step_factors || h_step_factors == NULL);
+        assert(areas || h_areas == NULL);
 
     }
 
@@ -597,10 +597,10 @@ class pragma196_omp_parallel_hclib_async {
             }
         }
 
-        assert(variables);
-        assert(elements_surrounding_elements);
-        assert(normals);
-        assert(fluxes);
+        assert(variables || h_variables == NULL);
+        assert(elements_surrounding_elements || h_elements_surrounding_elements == NULL);
+        assert(normals || h_normals == NULL);
+        assert(fluxes || h_fluxes == NULL);
 
     }
 
@@ -831,10 +831,10 @@ class pragma327_omp_parallel_hclib_async {
             }
         }
 
-        assert(step_factors);
-        assert(variables);
-        assert(old_variables);
-        assert(fluxes);
+        assert(step_factors || h_step_factors == NULL);
+        assert(variables || h_variables == NULL);
+        assert(old_variables || h_old_variables == NULL);
+        assert(fluxes || h_fluxes == NULL);
 
     }
 

@@ -263,9 +263,9 @@ class pragma167_omp_parallel_hclib_async {
             }
         }
 
-        assert(tOut_t);
-        assert(tIn_t);
-        assert(pIn);
+        assert(tOut_t || h_tOut_t == NULL);
+        assert(tIn_t || h_tIn_t == NULL);
+        assert(pIn || h_pIn == NULL);
 
     }
 

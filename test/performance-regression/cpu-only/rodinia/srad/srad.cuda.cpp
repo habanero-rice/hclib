@@ -210,16 +210,16 @@ class pragma135_omp_parallel_hclib_async {
             }
         }
 
-        assert(J);
-        assert(dN);
-        assert(iN);
-        assert(dS);
-        assert(iS);
-        assert(dW);
-        assert(jW);
-        assert(dE);
-        assert(jE);
-        assert(c);
+        assert(J || h_J == NULL);
+        assert(dN || h_dN == NULL);
+        assert(iN || h_iN == NULL);
+        assert(dS || h_dS == NULL);
+        assert(iS || h_iS == NULL);
+        assert(dW || h_dW == NULL);
+        assert(jW || h_jW == NULL);
+        assert(dE || h_dE == NULL);
+        assert(jE || h_jE == NULL);
+        assert(c || h_c == NULL);
 
     }
 
@@ -405,14 +405,14 @@ class pragma168_omp_parallel_hclib_async {
             }
         }
 
-        assert(c);
-        assert(iS);
-        assert(jE);
-        assert(dN);
-        assert(dS);
-        assert(dW);
-        assert(dE);
-        assert(J);
+        assert(c || h_c == NULL);
+        assert(iS || h_iS == NULL);
+        assert(jE || h_jE == NULL);
+        assert(dN || h_dN == NULL);
+        assert(dS || h_dS == NULL);
+        assert(dW || h_dW == NULL);
+        assert(dE || h_dE == NULL);
+        assert(J || h_J == NULL);
 
     }
 

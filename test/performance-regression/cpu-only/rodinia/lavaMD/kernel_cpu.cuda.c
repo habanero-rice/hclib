@@ -220,14 +220,14 @@ class pragma123_omp_parallel_hclib_async {
             }
         }
 
-        assert(box);
-        assert(rA);
-        assert(rv);
-        assert(fA);
-        assert(fv);
-        assert(rB);
-        assert(qB);
-        assert(qv);
+        assert(box || h_box == NULL);
+        assert(rA || h_rA == NULL);
+        assert(rv || h_rv == NULL);
+        assert(fA || h_fA == NULL);
+        assert(fv || h_fv == NULL);
+        assert(rB || h_rB == NULL);
+        assert(qB || h_qB == NULL);
+        assert(qv || h_qv == NULL);
 
     }
 

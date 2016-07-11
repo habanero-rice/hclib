@@ -199,8 +199,8 @@ class pragma110_omp_parallel_hclib_async {
             }
         }
 
-        assert(referrence);
-        assert(input_itemsets);
+        assert(referrence || h_referrence == NULL);
+        assert(input_itemsets || h_input_itemsets == NULL);
 
     }
 
@@ -346,8 +346,8 @@ class pragma162_omp_parallel_hclib_async {
             }
         }
 
-        assert(referrence);
-        assert(input_itemsets);
+        assert(referrence || h_referrence == NULL);
+        assert(input_itemsets || h_input_itemsets == NULL);
 
     }
 
