@@ -11,7 +11,7 @@ __global__ void wrapper_kernel(unsigned niters, functor_type functor) {
     }
 }
 template<class functor_type>
-static void kernel_launcher(unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
@@ -23,7 +23,7 @@ static void kernel_launcher(unsigned niters, functor_type functor) {
         exit(2);
     }
     const unsigned long long end = capp_current_time_ns();
-    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    fprintf(stderr, "%s %llu ns\n", kernel_lbl, end - start);
     functor.transfer_from_device();
 }
 #ifdef __cplusplus
@@ -407,7 +407,7 @@ void  kernel_cpu(	par_str par,
 	//======================================================================================================================================================150
 
  { const int niters = (dim.number_boxes) - (0);
-kernel_launcher(niters, pragma123_omp_parallel_hclib_async(first_i, box, l, rA, rv, fA, fv, k, pointer, first_j, rB, qB, qv, i, j, r2, u2, a2, vij, fs, d, fxij, fyij, fzij));
+kernel_launcher("pragma123_omp_parallel", niters, pragma123_omp_parallel_hclib_async(first_i, box, l, rA, rv, fA, fv, k, pointer, first_j, rB, qB, qv, i, j, r2, u2, a2, vij, fs, d, fxij, fyij, fzij));
  }  // for l
     }
 

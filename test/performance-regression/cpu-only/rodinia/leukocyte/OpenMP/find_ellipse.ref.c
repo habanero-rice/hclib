@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 #include "find_ellipse.h"
 #include <sys/time.h>
 
@@ -109,9 +127,9 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	MAT * gicov = m_get(height, width);
 	
 	// Split the work among multiple threads, if OPEN is defined
-	#pragma omp parallel for
-	// Scan from left to right, top to bottom, computing GICOV values
-	for (i = MaxR; i < width - MaxR; i++) {
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for
+for (i = MaxR; i < width - MaxR; i++) {
 		double Grad[NPOINTS];
 		int j, k, n, x, y;
 		
@@ -151,7 +169,10 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 				}
 			}
 		}
-	}
+	} ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma112_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 	
 	return gicov;
 }
@@ -184,9 +205,9 @@ MAT * dilate_f(MAT * img_in, MAT * strel) {
 	int el_center_i = strel->m / 2, el_center_j = strel->n / 2, i;
 	
 	// Split the work among multiple threads, if OPEN is defined
-	#pragma omp parallel for
-	// Iterate across the input matrix
-	for (i = 0; i < img_in->m; i++) {
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for
+for (i = 0; i < img_in->m; i++) {
 		int j, el_i, el_j, x, y;
 		for (j = 0; j < img_in->n; j++) {
 			double max = 0.0, temp;
@@ -206,7 +227,10 @@ MAT * dilate_f(MAT * img_in, MAT * strel) {
 			// Store the maximum value found
 			m_set_val(dilated, i, j, max);
 		}
-	}
+	} ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma187_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 
 	return dilated;
 }

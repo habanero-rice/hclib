@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /***********************************************
 	streamcluster_omp.cpp
 	: parallelized code of streamcluster using OpenMP
@@ -387,8 +405,9 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 	
 	// OpenMP parallelization
 //	#pragma omp parallel for 
-	#pragma omp parallel for reduction(+: cost_of_opening_x)
-  for ( i = k1; i < k2; i++ ) {
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for reduction(+: cost_of_opening_x)
+for ( i = k1; i < k2; i++ ) {
     float x_cost = dist(points->p[i], points->p[x], points->dim) 
       * points->p[i].weight;
     float current_cost = points->p[i].cost;
@@ -412,7 +431,10 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid)
       int assign = points->p[i].assign;
       lower[center_table[assign]] += current_cost - x_cost;			
     }
-  }
+  } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma390_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 
 #ifdef PROFILE
   double t2 = gettime();
@@ -463,8 +485,9 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 
   if ( gl_cost_of_opening_x < 0 ) {
     //  we'd save money by opening x; we'll do it
-		#pragma omp parallel for
-    for ( int i = k1; i < k2; i++ ) {
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for
+for ( int i = k1; i < k2; i++ ) {
       bool close_center = gl_lower[center_table[points->p[i].assign]] > 0 ;
       if ( switch_membership[i] || close_center ) {
 				// Either i's median (which may be i itself) is closing,
@@ -473,7 +496,10 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid)
 					dist(points->p[i], points->p[x], points->dim);
 				points->p[i].assign = x;
       }
-    }
+    } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma466_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 		
     for( int i = k1; i < k2; i++ ) {
       if( is_center[i] && gl_lower[center_table[i]] > 0 ) {
@@ -740,7 +766,8 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
     }
 
 
-  unsigned long long ____hclib_start_time = hclib_current_time_ns(); while(1) {
+const unsigned long long full_program_start = current_time_ns();
+while(1) {
 		d++;
 #ifdef PRINTINFO
     if( pid==0 )
@@ -790,7 +817,10 @@ float pkmedian(Points *points, long kmin, long kmax, long* kfinal,
       { 
 	break;
       }
-  } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+  } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 
   //clean up...
   if( pid==0 ) {

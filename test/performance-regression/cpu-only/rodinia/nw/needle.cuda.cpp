@@ -11,7 +11,7 @@ __global__ void wrapper_kernel(unsigned niters, functor_type functor) {
     }
 }
 template<class functor_type>
-static void kernel_launcher(unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
@@ -23,7 +23,7 @@ static void kernel_launcher(unsigned niters, functor_type functor) {
         exit(2);
     }
     const unsigned long long end = capp_current_time_ns();
-    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    fprintf(stderr, "%s %llu ns\n", kernel_lbl, end - start);
     functor.transfer_from_device();
 }
 #ifdef __cplusplus
@@ -424,7 +424,7 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
     for( int blk = 1; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
  { const int niters = (blk) - (0);
-kernel_launcher(niters, pragma110_omp_parallel_hclib_async(blk, referrence, max_cols, input_itemsets, penalty));
+kernel_launcher("pragma110_omp_parallel", niters, pragma110_omp_parallel_hclib_async(blk, referrence, max_cols, input_itemsets, penalty));
  } 
     }    
         
@@ -433,7 +433,7 @@ kernel_launcher(niters, pragma110_omp_parallel_hclib_async(blk, referrence, max_
     for ( int blk = 2; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
  { const int niters = ((max_cols - 1) / 16) - (blk - 1);
-kernel_launcher(niters, pragma162_omp_parallel_hclib_async(max_cols, blk, referrence, input_itemsets, penalty));
+kernel_launcher("pragma162_omp_parallel", niters, pragma162_omp_parallel_hclib_async(max_cols, blk, referrence, input_itemsets, penalty));
  } 
     }
 

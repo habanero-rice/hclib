@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -59,8 +77,9 @@ int main (int argc, char **argv){
         return 1;
     }
 
-#pragma omp parallel for default(none)     private(i,j) shared(L,U,MatrixDim)
-    for (i=0; i < MatrixDim; i ++){
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for default(none) private(i,j) shared(L,U,MatrixDim)
+for (i=0; i < MatrixDim; i ++){
         for (j=0; j < MatrixDim; j++){
             if ( i == j) {
                 L[i * MatrixDim + j] = 1.0;
@@ -73,17 +92,24 @@ int main (int argc, char **argv){
                 U[i * MatrixDim + j] = 0;
             }
         }
-    }
+    } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma62_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
 
-#pragma omp parallel for default(none)      private(i,j,k,sum) shared(L,U,A,MatrixDim)
-    for (i=0; i < MatrixDim; i++ ) {
+
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for default(none) private(i,j,k,sum) shared(L,U,A,MatrixDim)
+for (i=0; i < MatrixDim; i++ ) {
         for (j=0; j < MatrixDim; j++){
             sum = 0;
             for(k=0; k < MatrixDim; k++)
                 sum += L[i * MatrixDim + k]*U[k * MatrixDim + j];
             A[i * MatrixDim + j] = sum;
         }
-    }
+    } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma78_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 
     for (i=0; i < MatrixDim; i ++) {
         for (j=0; j < MatrixDim; j++)

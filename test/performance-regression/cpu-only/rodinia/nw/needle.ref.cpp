@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 #define LIMIT -999
 //#define TRACE
 #include <stdlib.h>
@@ -98,8 +116,9 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
 {
     for( int blk = 1; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
+ { const unsigned long long parallel_for_start = current_time_ns();
 #pragma omp parallel for schedule(static) shared(input_itemsets, referrence) firstprivate(blk, max_rows, max_cols, penalty)
-        for( int b_index_x = 0; b_index_x < blk; ++b_index_x)
+for( int b_index_x = 0; b_index_x < blk; ++b_index_x)
         {
             int b_index_y = blk - 1 - b_index_x;
             int input_itemsets_l[(BLOCK_SIZE + 1) *(BLOCK_SIZE+1)] __attribute__ ((aligned (64)));
@@ -108,8 +127,8 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
             // Copy referrence to local memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-#pragma omp simd
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+#pragma omp simd 
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     reference_l[i*BLOCK_SIZE + j] = referrence[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1];
                 }
@@ -118,8 +137,8 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
             // Copy input_itemsets to local memory
             for ( int i = 0; i < BLOCK_SIZE + 1; ++i )
             {
-#pragma omp simd
-                for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
+#pragma omp simd 
+for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
                 {
                     input_itemsets_l[i*(BLOCK_SIZE + 1) + j] = input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i) + b_index_x*BLOCK_SIZE +  j];
                 }
@@ -139,22 +158,26 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
             // Copy results to global memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-#pragma omp simd
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+#pragma omp simd 
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1] = input_itemsets_l[(i + 1)*(BLOCK_SIZE+1) + j + 1];
                 }
             }
             
-        }
+        } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma101_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
     }    
         
     printf("Processing bottom-right matrix\n");
 
     for ( int blk = 2; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
+ { const unsigned long long parallel_for_start = current_time_ns();
 #pragma omp parallel for schedule(static) shared(input_itemsets, referrence) firstprivate(blk, max_rows, max_cols, penalty)
-        for( int b_index_x = blk - 1; b_index_x < (max_cols-1)/BLOCK_SIZE; ++b_index_x)
+for( int b_index_x = blk - 1; b_index_x < (max_cols-1)/BLOCK_SIZE; ++b_index_x)
         {
             int b_index_y = (max_cols-1)/BLOCK_SIZE + blk - 2 - b_index_x;
 
@@ -164,8 +187,8 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
             // Copy referrence to local memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-#pragma omp simd
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+#pragma omp simd 
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     reference_l[i*BLOCK_SIZE + j] = referrence[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1];
                 }
@@ -174,8 +197,8 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
             // Copy input_itemsets to local memory
             for ( int i = 0; i < BLOCK_SIZE + 1; ++i )
             {
-#pragma omp simd
-                for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
+#pragma omp simd 
+for ( int j = 0; j < BLOCK_SIZE + 1; ++j)
                 {
                     input_itemsets_l[i*(BLOCK_SIZE + 1) + j] = input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i) + b_index_x*BLOCK_SIZE +  j];
                 }
@@ -195,13 +218,16 @@ void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
             // Copy results to global memory
             for ( int i = 0; i < BLOCK_SIZE; ++i )
             {
-#pragma omp simd
-                for ( int j = 0; j < BLOCK_SIZE; ++j)
+#pragma omp simd 
+for ( int j = 0; j < BLOCK_SIZE; ++j)
                 {
                     input_itemsets[max_cols*(b_index_y*BLOCK_SIZE + i + 1) + b_index_x*BLOCK_SIZE +  j + 1] = input_itemsets_l[(i + 1)*(BLOCK_SIZE+1) + j +1];
                 }
             }
-        }
+        } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma156_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
     }
 
 }
@@ -277,8 +303,12 @@ runTest( int argc, char** argv)
    
     long long start_time = get_time();
 
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); nw_optimized( input_itemsets, output_itemsets, referrence,
-        max_rows, max_cols, penalty ) ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);;
+const unsigned long long full_program_start = current_time_ns();
+nw_optimized( input_itemsets, output_itemsets, referrence,
+        max_rows, max_cols, penalty ) ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+;
 
     long long end_time = get_time();
 

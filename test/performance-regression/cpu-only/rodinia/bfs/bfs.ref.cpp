@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -114,7 +132,8 @@ void BFSGraph( int argc, char** argv)
 	
 	printf("Start traversing the tree\n");
 
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+const unsigned long long full_program_start = current_time_ns();
+{
 	int k=0;
 	bool stop;
 	do
@@ -123,8 +142,9 @@ void BFSGraph( int argc, char** argv)
             stop=false;
 
             //omp_set_num_threads(num_omp_threads);
-    #pragma omp parallel for firstprivate(h_graph_mask, h_graph_nodes, h_graph_edges, h_graph_visited, h_cost, h_updating_graph_mask)
-            for(int tid = 0; tid < no_of_nodes; tid++ )
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for firstprivate(h_graph_mask, h_graph_nodes, h_graph_edges, h_graph_visited, h_cost, h_updating_graph_mask)
+for(int tid = 0; tid < no_of_nodes; tid++ )
             {
                 if (h_graph_mask[tid] == true){ 
                     h_graph_mask[tid]=false;
@@ -138,10 +158,14 @@ void BFSGraph( int argc, char** argv)
                         }
                     }
                 }
-            }
+            } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma127_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
 
-    #pragma omp parallel for firstprivate(h_updating_graph_mask, h_graph_mask, h_graph_visited)
-            for(int tid=0; tid< no_of_nodes ; tid++ )
+
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for firstprivate(h_updating_graph_mask, h_graph_mask, h_graph_visited)
+for(int tid=0; tid< no_of_nodes ; tid++ )
             {
                 if (h_updating_graph_mask[tid] == true){
                     h_graph_mask[tid]=true;
@@ -149,11 +173,17 @@ void BFSGraph( int argc, char** argv)
                     stop=true;
                     h_updating_graph_mask[tid]=false;
                 }
-            }
+            } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma144_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
             k++;
         }
 	while(stop);
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 
 	//Store the result into a file
 	FILE *fpo = fopen("result.txt","w");

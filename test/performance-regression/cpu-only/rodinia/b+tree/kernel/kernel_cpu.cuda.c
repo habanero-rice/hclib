@@ -11,7 +11,7 @@ __global__ void wrapper_kernel(unsigned niters, functor_type functor) {
     }
 }
 template<class functor_type>
-static void kernel_launcher(unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
@@ -23,7 +23,7 @@ static void kernel_launcher(unsigned niters, functor_type functor) {
         exit(2);
     }
     const unsigned long long end = capp_current_time_ns();
-    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    fprintf(stderr, "%s %llu ns\n", kernel_lbl, end - start);
     functor.transfer_from_device();
 }
 #ifdef __cplusplus
@@ -285,7 +285,7 @@ kernel_cpu(	int cores_arg,
 
 	// process number of querries
  { const int niters = (count) - (0);
-kernel_launcher(niters, pragma93_omp_parallel_hclib_async(i, maxheight, thid, threadsPerBlock, knodes, currKnode, bid, keys, offset, knodes_elem, ans, records));
+kernel_launcher("pragma93_omp_parallel", niters, pragma93_omp_parallel_hclib_async(i, maxheight, thid, threadsPerBlock, knodes, currKnode, bid, keys, offset, knodes_elem, ans, records));
  } 
 
 	time2 = get_time();

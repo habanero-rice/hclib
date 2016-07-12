@@ -11,7 +11,7 @@ __global__ void wrapper_kernel(unsigned niters, functor_type functor) {
     }
 }
 template<class functor_type>
-static void kernel_launcher(unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
@@ -23,7 +23,7 @@ static void kernel_launcher(unsigned niters, functor_type functor) {
         exit(2);
     }
     const unsigned long long end = capp_current_time_ns();
-    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    fprintf(stderr, "%s %llu ns\n", kernel_lbl, end - start);
     functor.transfer_from_device();
 }
 #ifdef __cplusplus
@@ -556,10 +556,10 @@ for (iter=0; iter< niter; iter++){
 		
 
  { const int niters = (rows) - (0);
-kernel_launcher(niters, pragma135_omp_parallel_hclib_async(cols, k, Jc, J, dN, iN, dS, iS, dW, jW, dE, jE, G2, L, num, den, qsqr, q0sqr, c));
+kernel_launcher("pragma135_omp_parallel", niters, pragma135_omp_parallel_hclib_async(cols, k, Jc, J, dN, iN, dS, iS, dW, jW, dE, jE, G2, L, num, den, qsqr, q0sqr, c));
  } 
  { const int niters = (rows) - (0);
-kernel_launcher(niters, pragma168_omp_parallel_hclib_async(cols, k, cN, c, cS, iS, cW, cE, jE, D, dN, dS, dW, dE, J, lambda));
+kernel_launcher("pragma168_omp_parallel", niters, pragma168_omp_parallel_hclib_async(cols, k, cN, c, cS, iS, cW, cE, jE, D, dN, dS, dW, dE, J, lambda));
  } 
 
 	}

@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -675,65 +693,38 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   } /* end column loop */
 
   /* M2 = A11 x B11 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(M2, A, B, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(M2, A, B, QuadrantSize, QuadrantSize, RowWidthA, RowWidthB, Depth+1);
 
   /* M5 = S1 * S5 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(M5, S1, S5, QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of T1 = S2 x S6 + M2 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(T1sMULT, S2, S6,  QuadrantSize, QuadrantSize, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of T2 = T1 + S3 x S7 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(C22, S3, S7, QuadrantSize, RowWidthC /*FIXME*/, QuadrantSize, QuadrantSize, Depth+1);
 
   /* Step 1 of C11 = M2 + A12 * B21 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(C, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(C, A12, B21, QuadrantSize, RowWidthC, RowWidthA, RowWidthB, Depth+1);
   
   /* Step 1 of C12 = S4 x B22 + T1 + M5 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(C12, S4, B22, QuadrantSize, RowWidthC, QuadrantSize, RowWidthB, Depth+1);
 
   /* Step 1 of C21 = T2 - A22 * S8 */
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-  OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1);
+#pragma omp task untied
+OptimizedStrassenMultiply_par(C21, A22, S8, QuadrantSize, RowWidthC, RowWidthA, QuadrantSize, Depth+1);
 
   /**********************************************
   ** Synchronization Point
   **********************************************/
-  #pragma omp taskwait
+#pragma omp taskwait 
+;
   /***************************************************************************
   ** Step through all columns row by row (vertically)
   ** (jumps in memory by RowWidth => bad locality)
@@ -842,21 +833,21 @@ REAL *alloc_matrix(int n)
 void strassen_main_par(REAL *A, REAL *B, REAL *C, int n)
 {
 	bots_message("Computing parallel Strassen algorithm (n=%d) ", n);
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
-	#pragma omp parallel
-        {
-	#pragma omp single
-            {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-		OptimizedStrassenMultiply_par(C, A, B, n, n, n, n, 1);
+const unsigned long long full_program_start = current_time_ns();
+{
+#pragma omp parallel 
+{
+#pragma omp single 
+{
+#pragma omp task untied
+OptimizedStrassenMultiply_par(C, A, B, n, n, n, n, 1);
             }
         }
 	bots_message(" completed!\n");
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 }
 
 void strassen_main_seq(REAL *A, REAL *B, REAL *C, int n)

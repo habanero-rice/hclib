@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 # include <stdlib.h>
 # include <stdio.h>
 # include <math.h>
@@ -111,18 +129,13 @@ double run(struct user_parameters* params)
        Set the initial solution estimate UNEW.
        We are "allowed" to pick up the boundary conditions exactly.
        */
-#pragma omp parallel
-    {
-#pragma omp single
-        //for collapse(2)
-        for (j = 0; j < ny; j+= block_size) {
+#pragma omp parallel 
+{
+#pragma omp single 
+for (j = 0; j < ny; j+= block_size) {
             for (i = 0; i < nx; i+= block_size) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task firstprivate(i,j) private(ii,jj) untied
-#else
 #pragma omp task firstprivate(i,j) private(ii,jj)
-#endif
-                for (jj=j; jj<j+block_size; ++jj) {
+for (jj=j; jj<j+block_size; ++jj) {
                     for (ii=i; ii<i+block_size; ++ii)
                     {
                         if (ii == 0 || ii == nx - 1 || jj == 0 || jj == ny - 1) {
@@ -224,18 +237,13 @@ void rhs(int nx, int ny, double *f, int block_size)
     // The "boundary" entries of F store the boundary values of the solution.
     // The "interior" entries of F store the right hand sides of the Poisson equation.
 
-#pragma omp parallel
-    {
-#pragma omp single
-    //for collapse(2)
-    for (j = 0; j < ny; j+=block_size) {
+#pragma omp parallel 
+{
+#pragma omp single 
+for (j = 0; j < ny; j+=block_size) {
         for (i = 0; i < nx; i+=block_size) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task firstprivate(block_size,i,j,nx,ny) private(ii,jj,x,y) untied
-#else
 #pragma omp task firstprivate(block_size,i,j,nx,ny) private(ii,jj,x,y)
-#endif
-            for (jj=j; jj<j+block_size; ++jj)
+for (jj=j; jj<j+block_size; ++jj)
             {
                 y = (double) (jj) / (double) (ny - 1);
                 for (ii=i; ii<i+block_size; ++ii)

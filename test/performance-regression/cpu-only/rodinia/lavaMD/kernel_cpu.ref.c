@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 // #ifdef __cplusplus
 // extern "C" {
 // #endif
@@ -104,14 +122,16 @@ void  kernel_cpu(	par_str par,
 
 	time3 = get_time();
 
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+const unsigned long long full_program_start = current_time_ns();
+{
 
 	//======================================================================================================================================================150
 	//	PROCESS INTERACTIONS
 	//======================================================================================================================================================150
 
-	#pragma omp	parallel for  				private(i, j, k)  				private(first_i, rA, fA)  				private(pointer, first_j, rB, qB)  				private(r2, u2, fs, vij, fxij, fyij, fzij, d)
-	for(l=0; l<dim.number_boxes; l=l+1){
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for private(i, j, k) private(first_i, rA, fA) private(pointer, first_j, rB, qB) private(r2, u2, fs, vij, fxij, fyij, fzij, d)
+for(l=0; l<dim.number_boxes; l=l+1){
 
 		//------------------------------------------------------------------------------------------100
 		//	home box - box parameters
@@ -190,8 +210,14 @@ void  kernel_cpu(	par_str par,
 
 		} // for k
 
-	} // for l
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+	} ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma114_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+ // for l
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 
 	time4 = get_time();
 

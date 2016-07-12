@@ -106,8 +106,8 @@ function compile_all() {
     echo Compilation for $STYLE completed!
 }
 
-compile_all gpu cuda
-# compile_all tied ref
+# compile_all gpu cuda
+compile_all tied ref
 # compile_all untied ref
 # compile_all flat
 # compile_all recursive

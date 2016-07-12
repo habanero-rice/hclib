@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 // srad.cpp : Defines the entry point for the console application.
 //
 
@@ -108,7 +126,8 @@ int main(int argc, char* argv[])
    
 	printf("Start the SRAD main loop\n");
 
-	unsigned long long ____hclib_start_time = hclib_current_time_ns(); for (iter=0; iter< niter; iter++){
+const unsigned long long full_program_start = current_time_ns();
+for (iter=0; iter< niter; iter++){
 		sum=0; sum2=0;     
 		for (i=r1; i<=r2; i++) {
             for (j=c1; j<=c2; j++) {
@@ -122,8 +141,9 @@ int main(int argc, char* argv[])
         q0sqr   = varROI / (meanROI*meanROI);
 		
 
-		#pragma omp parallel for shared(J, dN, dS, dW, dE, c, rows, cols, iN, iS, jW, jE) private(i, j, k, Jc, G2, L, num, den, qsqr)
-		for (int i = 0 ; i < rows ; i++) {
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for shared(J, dN, dS, dW, dE, c, rows, cols, iN, iS, jW, jE) private(i, j, k, Jc, G2, L, num, den, qsqr)
+for (int i = 0 ; i < rows ; i++) {
             for (int j = 0; j < cols; j++) { 
 		
 				k = i * cols + j;
@@ -154,9 +174,13 @@ int main(int argc, char* argv[])
    
 		}
   
-    }
-		#pragma omp parallel for shared(J, c, rows, cols, lambda) private(i, j, k, D, cS, cN, cW, cE)
-		for (int i = 0; i < rows; i++) {
+    } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma126_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for shared(J, c, rows, cols, lambda) private(i, j, k, D, cS, cN, cW, cE)
+for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {        
 
                 // current index
@@ -180,9 +204,15 @@ int main(int argc, char* argv[])
 	            #ifdef OUTPUT
                 //printf("\n"); 
                 #endif //output
-	     }
+	     } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma159_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
 
-	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+
+	} ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 
 
 #ifdef OUTPUT

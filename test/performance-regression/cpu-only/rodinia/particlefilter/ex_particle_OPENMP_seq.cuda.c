@@ -11,7 +11,7 @@ __global__ void wrapper_kernel(unsigned niters, functor_type functor) {
     }
 }
 template<class functor_type>
-static void kernel_launcher(unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
@@ -23,7 +23,7 @@ static void kernel_launcher(unsigned niters, functor_type functor) {
         exit(2);
     }
     const unsigned long long end = capp_current_time_ns();
-    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    fprintf(stderr, "%s %llu ns\n", kernel_lbl, end - start);
     functor.transfer_from_device();
 }
 #ifdef __cplusplus
@@ -1424,7 +1424,7 @@ void particleFilter(int * I, int IszX, int IszY, int Nfr, int * seed, int Nparti
 	//initial weights are all equal (1/Nparticles)
 	double * weights = (double *)malloc(sizeof(double)*Nparticles);
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma383_omp_parallel_hclib_async(weights, x, Nparticles));
+kernel_launcher("pragma383_omp_parallel", niters, pragma383_omp_parallel_hclib_async(weights, x, Nparticles));
  } 
 	long long get_weights = get_time();
 	printf("TIME TO GET WEIGHTSTOOK: %f\n", elapsed_time(get_neighbors, get_weights));
@@ -1438,7 +1438,7 @@ kernel_launcher(niters, pragma383_omp_parallel_hclib_async(weights, x, Nparticle
 	double * u = (double *)malloc(sizeof(double)*Nparticles);
 	int * ind = (int*)malloc(sizeof(int)*countOnes*Nparticles);
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma398_omp_parallel_hclib_async(arrayX, x, xe, arrayY, ye));
+kernel_launcher("pragma398_omp_parallel", niters, pragma398_omp_parallel_hclib_async(arrayX, x, xe, arrayY, ye));
  } 
 	int k;
 	
@@ -1450,31 +1450,31 @@ kernel_launcher(niters, pragma398_omp_parallel_hclib_async(arrayX, x, xe, arrayY
 		//draws sample from motion model (random walk). The only prior information
 		//is that the object moves 2x as fast as in the y direction
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma412_omp_parallel_hclib_async(arrayX, x, A, C, M, seed, arrayY));
+kernel_launcher("pragma412_omp_parallel", niters, pragma412_omp_parallel_hclib_async(arrayX, x, A, C, M, seed, arrayY));
  } 
 		long long error = get_time();
 		printf("TIME TO SET ERROR TOOK: %f\n", elapsed_time(set_arrays, error));
 		//particle filter likelihood
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma420_omp_parallel_hclib_async(y, countOnes, indX, arrayX, x, objxy, indY, arrayY, ind, IszY, Nfr, k, max_size, likelihood, I));
+kernel_launcher("pragma420_omp_parallel", niters, pragma420_omp_parallel_hclib_async(y, countOnes, indX, arrayX, x, objxy, indY, arrayY, ind, IszY, Nfr, k, max_size, likelihood, I));
  } 
 		long long likelihood_time = get_time();
 		printf("TIME TO GET LIKELIHOODS TOOK: %f\n", elapsed_time(error, likelihood_time));
 		// update & normalize weights
 		// using equation (63) of Arulampalam Tutorial
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma443_omp_parallel_hclib_async(weights, x, likelihood));
+kernel_launcher("pragma443_omp_parallel", niters, pragma443_omp_parallel_hclib_async(weights, x, likelihood));
  } 
 		long long exponential = get_time();
 		printf("TIME TO GET EXP TOOK: %f\n", elapsed_time(likelihood_time, exponential));
 		double sumWeights = 0;
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma450_omp_parallel_hclib_async(sumWeights, weights, x));
+kernel_launcher("pragma450_omp_parallel", niters, pragma450_omp_parallel_hclib_async(sumWeights, weights, x));
  } 
 		long long sum_time = get_time();
 		printf("TIME TO SUM WEIGHTS TOOK: %f\n", elapsed_time(exponential, sum_time));
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma456_omp_parallel_hclib_async(weights, x, sumWeights));
+kernel_launcher("pragma456_omp_parallel", niters, pragma456_omp_parallel_hclib_async(weights, x, sumWeights));
  } 
 		long long normalize = get_time();
 		printf("TIME TO NORMALIZE WEIGHTS TOOK: %f\n", elapsed_time(sum_time, normalize));
@@ -1482,7 +1482,7 @@ kernel_launcher(niters, pragma456_omp_parallel_hclib_async(weights, x, sumWeight
 		ye = 0;
 		// estimate the object location by expected values
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma465_omp_parallel_hclib_async(xe, arrayX, x, weights, ye, arrayY));
+kernel_launcher("pragma465_omp_parallel", niters, pragma465_omp_parallel_hclib_async(xe, arrayX, x, weights, ye, arrayY));
  } 
 		long long move_time = get_time();
 		printf("TIME TO MOVE OBJECT TOOK: %f\n", elapsed_time(normalize, move_time));
@@ -1505,14 +1505,14 @@ kernel_launcher(niters, pragma465_omp_parallel_hclib_async(xe, arrayX, x, weight
 		printf("TIME TO CALC CUM SUM TOOK: %f\n", elapsed_time(move_time, cum_sum));
 		double u1 = (1/((double)(Nparticles)))*randu(seed, 0);
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma490_omp_parallel_hclib_async(u, x, u1, Nparticles));
+kernel_launcher("pragma490_omp_parallel", niters, pragma490_omp_parallel_hclib_async(u, x, u1, Nparticles));
  } 
 		long long u_time = get_time();
 		printf("TIME TO CALC U TOOK: %f\n", elapsed_time(cum_sum, u_time));
 		int j, i;
 		
  { const int niters = (Nparticles) - (0);
-kernel_launcher(niters, pragma498_omp_parallel_hclib_async(i, CDF, Nparticles, u, j, xj, arrayX, yj, arrayY));
+kernel_launcher("pragma498_omp_parallel", niters, pragma498_omp_parallel_hclib_async(i, CDF, Nparticles, u, j, xj, arrayX, yj, arrayY));
  } 
 		long long xyj_time = get_time();
 		printf("TIME TO CALC NEW ARRAY X AND Y TOOK: %f\n", elapsed_time(u_time, xyj_time));

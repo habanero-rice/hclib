@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 #include <stdio.h>
 #include <omp.h>
 
@@ -34,7 +52,8 @@ void lud_diagonal_omp (float* a, int size, int offset)
 // implements block LU factorization 
 void lud_omp(float *a, int size)
 {
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+const unsigned long long full_program_start = current_time_ns();
+{
     int offset, chunk_idx, size_inter, chunks_in_inter_row, chunks_per_inter;
 
     for (offset = 0; offset < size - BS ; offset += BS)
@@ -48,16 +67,17 @@ void lud_omp(float *a, int size)
         
         // calculate perimeter block matrices
         // 
-        #pragma omp parallel for default(none)            private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset) 
-        for ( chunk_idx = 0; chunk_idx < chunks_in_inter_row; chunk_idx++)
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for default(none) private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset)
+for ( chunk_idx = 0; chunk_idx < chunks_in_inter_row; chunk_idx++)
         {
             int i, j, k, i_global, j_global, i_here, j_here;
             float sum;           
             float temp[BS*BS] __attribute__ ((aligned (64)));
 
             for (i = 0; i < BS; i++) {
-                #pragma omp simd
-                for (j =0; j < BS; j++){
+#pragma omp simd 
+for (j =0; j < BS; j++){
                     temp[i*BS + j] = a[size*(i + offset) + offset + j ];
                 }
             }
@@ -95,14 +115,18 @@ void lud_omp(float *a, int size)
                 }
             }
 
-        }
+        } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma52_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
         
         // update interior block matrices
         //
         chunks_per_inter = chunks_in_inter_row*chunks_in_inter_row;
 
-#pragma omp parallel for schedule(auto) default(none)           private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset) 
-        for  (chunk_idx =0; chunk_idx < chunks_per_inter; chunk_idx++)
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for schedule(auto) default(none) private(chunk_idx) firstprivate(size, a) shared(chunks_per_inter, chunks_in_inter_row, offset)
+for  (chunk_idx =0; chunk_idx < chunks_per_inter; chunk_idx++)
         {
             int i, j, k, i_global, j_global;
             float temp_top[BS*BS] __attribute__ ((aligned (64)));
@@ -113,8 +137,8 @@ void lud_omp(float *a, int size)
             j_global = offset + BS * (1 + chunk_idx%chunks_in_inter_row);
 
             for (i = 0; i < BS; i++) {
-#pragma omp simd
-                for (j =0; j < BS; j++){
+#pragma omp simd 
+for (j =0; j < BS; j++){
                     temp_top[i*BS + j]  = a[size*(i + offset) + j + j_global ];
                     temp_left[i*BS + j] = a[size*(i + i_global) + offset + j];
                 }
@@ -124,19 +148,25 @@ void lud_omp(float *a, int size)
             {
                 for (k=0; k < BS; k++) {
 #pragma omp simd 
-                    for (j = 0; j < BS; j++) {
+for (j = 0; j < BS; j++) {
                         sum[j] += temp_left[BS*i + k] * temp_top[BS*k + j];
                     }
                 }
 #pragma omp simd 
-                for (j = 0; j < BS; j++) {
+for (j = 0; j < BS; j++) {
                     BB((i+i_global),(j+j_global)) -= sum[j];
                     sum[j] = 0.f;
                 }
             }
-        }
+        } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma105_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
     }
 
     lud_diagonal_omp(a, size, offset);
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 }

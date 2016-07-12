@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -56,19 +74,12 @@ void compute_w_coefficients(int n, int a, int b, COMPLEX * W)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  compute_w_coefficients(n, a, ab, W);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  compute_w_coefficients(n, ab + 1, b, W);
-          #pragma omp taskwait
+#pragma omp task untied
+compute_w_coefficients(n, a, ab, W);
+#pragma omp task untied
+compute_w_coefficients(n, ab + 1, b, W);
+#pragma omp taskwait 
+;
      }
 }
 void compute_w_coefficients_seq(int n, int a, int b, COMPLEX * W)
@@ -141,19 +152,12 @@ void unshuffle(int a, int b, COMPLEX * in, COMPLEX * out, int r, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  unshuffle(a, ab, in, out, r, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  unshuffle(ab, b, in, out, r, m);
-          #pragma omp taskwait
+#pragma omp task untied
+unshuffle(a, ab, in, out, r, m);
+#pragma omp task untied
+unshuffle(ab, b, in, out, r, m);
+#pragma omp taskwait 
+;
      }
 }
 void unshuffle_seq(int a, int b, COMPLEX * in, COMPLEX * out, int r, int m)
@@ -219,31 +223,20 @@ void fft_twiddle_gen1(COMPLEX * in, COMPLEX * out,
 void fft_twiddle_gen(int i, int i1, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int r, int m)
 {
      if (i == i1 - 1) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_gen1(in + i, out + i, W,
+#pragma omp task untied
+fft_twiddle_gen1(in + i, out + i, W,
 				 r, m, nW, nWdn * i, nWdn * m);
      } else {
 	  int i2 = (i + i1) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_gen(i, i2, in, out, W, nW,
+#pragma omp task untied
+fft_twiddle_gen(i, i2, in, out, W, nW,
 				nWdn, r, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_gen(i2, i1, in, out, W, nW,
+#pragma omp task untied
+fft_twiddle_gen(i2, i1, in, out, W, nW,
 				nWdn, r, m);
      }
-     #pragma omp taskwait
+#pragma omp taskwait 
+;
 }
 void fft_twiddle_gen_seq(int i, int i1, COMPLEX * in, COMPLEX * out, COMPLEX * W,
                          int nW, int nWdn, int r, int m)
@@ -301,19 +294,12 @@ void fft_twiddle_2(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int n
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_2(a, ab, in, out, W, nW, nWdn, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_2(ab, b, in, out, W, nW, nWdn, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_twiddle_2(a, ab, in, out, W, nW, nWdn, m);
+#pragma omp task untied
+fft_twiddle_2(ab, b, in, out, W, nW, nWdn, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_twiddle_2_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
@@ -363,19 +349,12 @@ void fft_unshuffle_2(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_2(a, ab, in, out, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_2(ab, b, in, out, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_unshuffle_2(a, ab, in, out, m);
+#pragma omp task untied
+fft_unshuffle_2(ab, b, in, out, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_unshuffle_2_seq(int a, int b, COMPLEX * in, COMPLEX * out, int m)
@@ -498,19 +477,12 @@ void fft_twiddle_4(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int n
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_4(a, ab, in, out, W, nW, nWdn, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_4(ab, b, in, out, W, nW, nWdn, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_twiddle_4(a, ab, in, out, W, nW, nWdn, m);
+#pragma omp task untied
+fft_twiddle_4(ab, b, in, out, W, nW, nWdn, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_twiddle_4_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
@@ -598,19 +570,12 @@ void fft_unshuffle_4(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_4(a, ab, in, out, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_4(ab, b, in, out, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_unshuffle_4(a, ab, in, out, m);
+#pragma omp task untied
+fft_unshuffle_4(ab, b, in, out, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_unshuffle_4_seq(int a, int b, COMPLEX * in, COMPLEX * out, int m)
@@ -892,19 +857,12 @@ void fft_twiddle_8(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int n
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_8(a, ab, in, out, W, nW, nWdn, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_8(ab, b, in, out, W, nW, nWdn, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_twiddle_8(a, ab, in, out, W, nW, nWdn, m);
+#pragma omp task untied
+fft_twiddle_8(ab, b, in, out, W, nW, nWdn, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_twiddle_8_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
@@ -1084,19 +1042,12 @@ void fft_unshuffle_8(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_8(a, ab, in, out, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_8(ab, b, in, out, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_unshuffle_8(a, ab, in, out, m);
+#pragma omp task untied
+fft_unshuffle_8(ab, b, in, out, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_unshuffle_8_seq(int a, int b, COMPLEX * in, COMPLEX * out, int m)
@@ -1754,19 +1705,12 @@ void fft_twiddle_16(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int 
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_16(a, ab, in, out, W, nW, nWdn, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_16(ab, b, in, out, W, nW, nWdn, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_twiddle_16(a, ab, in, out, W, nW, nWdn, m);
+#pragma omp task untied
+fft_twiddle_16(ab, b, in, out, W, nW, nWdn, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_twiddle_16_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
@@ -2162,19 +2106,12 @@ void fft_unshuffle_16(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_16(a, ab, in, out, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_16(ab, b, in, out, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_unshuffle_16(a, ab, in, out, m);
+#pragma omp task untied
+fft_unshuffle_16(ab, b, in, out, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_unshuffle_16_seq(int a, int b, COMPLEX * in, COMPLEX * out, int m)
@@ -3712,19 +3649,12 @@ void fft_twiddle_32(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int 
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_32(a, ab, in, out, W, nW, nWdn, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_32(ab, b, in, out, W, nW, nWdn, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_twiddle_32(a, ab, in, out, W, nW, nWdn, m);
+#pragma omp task untied
+fft_twiddle_32(ab, b, in, out, W, nW, nWdn, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_twiddle_32_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
@@ -4616,19 +4546,12 @@ void fft_unshuffle_32(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 	  }
      } else {
 	  int ab = (a + b) / 2;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_32(a, ab, in, out, m);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_unshuffle_32(ab, b, in, out, m);
-          #pragma omp taskwait
+#pragma omp task untied
+fft_unshuffle_32(a, ab, in, out, m);
+#pragma omp task untied
+fft_unshuffle_32(ab, b, in, out, m);
+#pragma omp taskwait 
+;
      }
 }
 void fft_unshuffle_32_seq(int a, int b, COMPLEX * in, COMPLEX * out, int m)
@@ -4766,104 +4689,59 @@ void fft_aux(int n, COMPLEX * in, COMPLEX * out, int *factors, COMPLEX * W, int 
 	   * recurse 
 	   */
 	  if (r == 32) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	       fft_unshuffle_32(0, m, in, out, m);
+#pragma omp task untied
+fft_unshuffle_32(0, m, in, out, m);
 	  } else if (r == 16) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	       fft_unshuffle_16(0, m, in, out, m);
+#pragma omp task untied
+fft_unshuffle_16(0, m, in, out, m);
 	  } else if (r == 8) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	       fft_unshuffle_8(0, m, in, out, m);
+#pragma omp task untied
+fft_unshuffle_8(0, m, in, out, m);
 	  } else if (r == 4) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	       fft_unshuffle_4(0, m, in, out, m);
+#pragma omp task untied
+fft_unshuffle_4(0, m, in, out, m);
 	  } else if (r == 2) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	       fft_unshuffle_2(0, m, in, out, m);
+#pragma omp task untied
+fft_unshuffle_2(0, m, in, out, m);
 	  } else
 	       unshuffle(0, m, in, out, r, m);
 
-          #pragma omp taskwait
+#pragma omp taskwait 
+;
 
 	  for (k = 0; k < n; k += m) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  firstprivate(k) untied
-#else
-#pragma omp task  firstprivate(k)
-#endif
-	       fft_aux(m, out + k, in + k, factors + 1, W, nW);
+#pragma omp task untied firstprivate(k)
+fft_aux(m, out + k, in + k, factors + 1, W, nW);
 	  }
-          #pragma omp taskwait
+#pragma omp taskwait 
+;
      }
      /* 
       * now multiply by the twiddle factors, and perform m FFTs
       * of length r
       */
      if (r == 2) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_2(0, m, in, out, W, nW, nW / n, m);
+#pragma omp task untied
+fft_twiddle_2(0, m, in, out, W, nW, nW / n, m);
      } else if (r == 4) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_4(0, m, in, out, W, nW, nW / n, m);
+#pragma omp task untied
+fft_twiddle_4(0, m, in, out, W, nW, nW / n, m);
      } else if (r == 8) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_8(0, m, in, out, W, nW, nW / n, m);
+#pragma omp task untied
+fft_twiddle_8(0, m, in, out, W, nW, nW / n, m);
      } else if (r == 16) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_16(0, m, in, out, W, nW, nW / n, m);
+#pragma omp task untied
+fft_twiddle_16(0, m, in, out, W, nW, nW / n, m);
      } else if (r == 32) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_32(0, m, in, out, W, nW, nW / n, m);
+#pragma omp task untied
+fft_twiddle_32(0, m, in, out, W, nW, nW / n, m);
      } else {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-	  fft_twiddle_gen(0, m, in, out, W, nW, nW / n, r, m);
+#pragma omp task untied
+fft_twiddle_gen(0, m, in, out, W, nW, nW / n, r, m);
      }
 
-     #pragma omp taskwait
+#pragma omp taskwait 
+;
 
      return;
 }
@@ -4944,18 +4822,15 @@ void fft(int n, COMPLEX * in, COMPLEX * out)
 
 
      bots_message("Computing coefficients ");
-     unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+const unsigned long long full_program_start = current_time_ns();
+{
      W = (COMPLEX *) malloc((n + 1) * sizeof(COMPLEX));
-     #pragma omp parallel
-     {
-     #pragma omp single
-         {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-             {
+#pragma omp parallel 
+{
+#pragma omp single 
+{
+#pragma omp task untied
+{
                  compute_w_coefficients(n, 0, n / 2, W);
              }
          }
@@ -4973,23 +4848,22 @@ void fft(int n, COMPLEX * in, COMPLEX * out)
      } while (l > 1);
 
      bots_message("Computing FFT ");
-     #pragma omp parallel
-     {
-     #pragma omp single
-         {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-             {
+#pragma omp parallel 
+{
+#pragma omp single 
+{
+#pragma omp task untied
+{
                  fft_aux(n, in, out, factors, W, n);
              }
          }
      }
 
      free(W);
-     } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+     } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
      bots_message(" completed!\n");
 
      return;

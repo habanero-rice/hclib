@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -142,7 +160,11 @@ static int lay_down(int id, ibrd board, struct cell *cells) {
 }
 
 
-#define read_integer(file,var)    if ( fscanf(file, "%d", &var) == EOF ) { 	bots_message(" Bogus input file\n"); 	exit(-1);   }
+#define read_integer(file,var) \
+  if ( fscanf(file, "%d", &var) == EOF ) {\
+	bots_message(" Bogus input file\n");\
+	exit(-1);\
+  }
 
 static void read_inputs() {
   int i, j, n;
@@ -212,11 +234,7 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
       nnl += nn;
 /* for all possible locations */
       for (j = 0; j < nn; j++) {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  private(board, footprint,area) firstprivate(NWS,i,j,id,nn) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode) untied
-#else
-#pragma omp task  private(board, footprint,area) firstprivate(NWS,i,j,id,nn) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode)
-#endif
+#pragma omp task untied private(board, footprint,area) firstprivate(NWS,i,j,id,nn) shared(FOOTPRINT,BOARD,CELLS,MIN_AREA,MIN_FOOTPRINT,N,BEST_BOARD,nnc,bots_verbose_mode)
 {
 	  struct cell cells[N+1];
 	  memcpy(cells,CELLS,sizeof(struct cell)*(N+1));
@@ -244,8 +262,8 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 
 /* if area is minimum, update global values */
 		  if (area < MIN_AREA) {
-#pragma omp critical
-			  if (area < MIN_AREA) {
+#pragma omp critical 
+if (area < MIN_AREA) {
 				  MIN_AREA         = area;
 				  MIN_FOOTPRINT[0] = footprint[0];
 				  MIN_FOOTPRINT[1] = footprint[1];
@@ -256,8 +274,8 @@ static int add_cell(int id, coor FOOTPRINT, ibrd BOARD, struct cell *CELLS, int 
 
 /* if area is less than best area */
           } else if (area < MIN_AREA) {
- 	    #pragma omp atomic
- 	      nnc += add_cell(cells[id].next, footprint, board,cells, 0);
+#pragma omp atomic 
+nnc += add_cell(cells[id].next, footprint, board,cells, 0);
 /* if area is greater than or equal to best area, prune search */
           } else {
 
@@ -268,7 +286,8 @@ _end:;
 }
       }
 }
-#pragma omp taskwait
+#pragma omp taskwait 
+;
 return nnc+nnl;
 }
 
@@ -297,19 +316,23 @@ void floorplan_init (char *filename)
 
 void compute_floorplan (void)
 {
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+const unsigned long long full_program_start = current_time_ns();
+{
         coor footprint;
         /* footprint of initial board is zero */
         footprint[0] = 0;
         footprint[1] = 0;
         bots_message("Computing floorplan ");
-#pragma omp parallel
-        {
-#pragma omp single
-            bots_number_of_tasks = add_cell(1, footprint, board, gcells, 0);
+#pragma omp parallel 
+{
+#pragma omp single 
+bots_number_of_tasks = add_cell(1, footprint, board, gcells, 0);
         }
         bots_message(" completed!\n");
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 }
 
 void floorplan_end (void)

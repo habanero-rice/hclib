@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 // #ifdef __cplusplus
 // extern "C" {
 // #endif
@@ -81,8 +99,9 @@ kernel_cpu(	int cores_arg,
 	int i;
 
 	// process number of querries
-	#pragma omp parallel for private (i, thid)
-	for(bid = 0; bid < count; bid++){
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for private (i, thid)
+for(bid = 0; bid < count; bid++){
 
 		// process levels of the tree
 		for(i = 0; i < maxheight; i++){
@@ -118,7 +137,10 @@ kernel_cpu(	int cores_arg,
 
 		}
 
-	}
+	} ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma84_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 
 	time2 = get_time();
     }

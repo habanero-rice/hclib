@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -84,7 +102,8 @@ int main(int argc, char* argv[]) {
 	float *z;
 	z  = (float *) malloc(REC_WINDOW * sizeof(float));
 
-	unsigned long long ____hclib_start_time = hclib_current_time_ns(); while(!done) {
+const unsigned long long full_program_start = current_time_ns();
+while(!done) {
 		//Read in REC_WINDOW number of records
 		rec_count = fread(sandbox, REC_LENGTH, REC_WINDOW, fp);
 		if( rec_count != REC_WINDOW ) {
@@ -114,13 +133,17 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-        #pragma omp parallel for shared (z, target_lat, target_long) private(i,rec_iter)
-        for (i = 0; i < rec_count; i++){
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for shared (z, target_lat, target_long) private(i,rec_iter)
+for (i = 0; i < rec_count; i++){
 			rec_iter = sandbox+(i * REC_LENGTH + LATITUDE_POS - 1);
             float tmp_lat = atof(rec_iter);
             float tmp_long = atof(rec_iter+5);
 			z[i] = sqrt(( (tmp_lat-target_lat) * (tmp_lat-target_lat) )+( (tmp_long-target_long) * (tmp_long-target_long) ));
-        }
+        } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma118_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
 
 		
         for( i = 0 ; i < rec_count ; i++ ) {
@@ -140,7 +163,10 @@ int main(int argc, char* argv[]) {
 			  	neighbors[max_idx].dist = z[i];
 			}
 		}
-	} ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);//End while loop
+	} ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+//End while loop
 
 	fprintf(stderr, "The %d nearest neighbors are:\n", k);
 	for( j = 0 ; j < k ; j++ ) {

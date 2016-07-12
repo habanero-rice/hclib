@@ -11,7 +11,7 @@ __global__ void wrapper_kernel(unsigned niters, functor_type functor) {
     }
 }
 template<class functor_type>
-static void kernel_launcher(unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
@@ -23,7 +23,7 @@ static void kernel_launcher(unsigned niters, functor_type functor) {
         exit(2);
     }
     const unsigned long long end = capp_current_time_ns();
-    fprintf(stderr, "CAPP %llu ns\n", end - start);
+    fprintf(stderr, "%s %llu ns\n", kernel_lbl, end - start);
     functor.transfer_from_device();
 }
 #ifdef __cplusplus
@@ -163,7 +163,7 @@ class pragma63_omp_parallel_hclib_async {
 void copy(double *dst, double *src, int N)
 {
  { const int niters = (N) - (0);
-kernel_launcher(niters, pragma63_omp_parallel_hclib_async(dst, src));
+kernel_launcher("pragma63_omp_parallel", niters, pragma63_omp_parallel_hclib_async(dst, src));
  } 
 } 
 
@@ -283,7 +283,7 @@ class pragma112_omp_parallel_hclib_async {
 void initialize_variables(int nelr, double* variables)
 {
  { const int niters = (nelr) - (0);
-kernel_launcher(niters, pragma112_omp_parallel_hclib_async(variables, ff_variable));
+kernel_launcher("pragma112_omp_parallel", niters, pragma112_omp_parallel_hclib_async(variables, ff_variable));
  } 
 } 
 
@@ -460,7 +460,7 @@ class pragma165_omp_parallel_hclib_async {
 void compute_step_factor(int nelr, double* variables, double* areas, double* step_factors)
 {
  { const int niters = (nelr) - (0);
-kernel_launcher(niters, pragma165_omp_parallel_hclib_async(variables, step_factors, areas));
+kernel_launcher("pragma165_omp_parallel", niters, pragma165_omp_parallel_hclib_async(variables, step_factors, areas));
  } 
 } 
 
@@ -757,7 +757,7 @@ void compute_flux(int nelr, int* elements_surrounding_elements, double* normals,
 	double smoothing_coefficient = double(0.2f);
 
  { const int niters = (nelr) - (0);
-kernel_launcher(niters, pragma196_omp_parallel_hclib_async(variables, elements_surrounding_elements, normals, smoothing_coefficient, ff_variable, &ff_flux_contribution_density_energy, &ff_flux_contribution_momentum_x, &ff_flux_contribution_momentum_y, &ff_flux_contribution_momentum_z, fluxes));
+kernel_launcher("pragma196_omp_parallel", niters, pragma196_omp_parallel_hclib_async(variables, elements_surrounding_elements, normals, smoothing_coefficient, ff_variable, &ff_flux_contribution_density_energy, &ff_flux_contribution_momentum_x, &ff_flux_contribution_momentum_y, &ff_flux_contribution_momentum_z, fluxes));
  } 
 } 
 
@@ -873,7 +873,7 @@ class pragma327_omp_parallel_hclib_async {
 void time_step(int j, int nelr, double* old_variables, double* variables, double* step_factors, double* fluxes)
 {
  { const int niters = (nelr) - (0);
-kernel_launcher(niters, pragma327_omp_parallel_hclib_async(step_factors, j, variables, old_variables, fluxes));
+kernel_launcher("pragma327_omp_parallel", niters, pragma327_omp_parallel_hclib_async(step_factors, j, variables, old_variables, fluxes));
  } 
 } 
 /*

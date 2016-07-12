@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -124,12 +142,8 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
      	/* try each possible position for queen <j> */
 	for (i = 0; i < n; i++) {
 
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  firstprivate(n, csols, i, j, a, depth, solutions) untied
-#else
-#pragma omp task  firstprivate(n, csols, i, j, a, depth, solutions)
-#endif
-		{
+#pragma omp task untied firstprivate(n, csols, i, j, a, depth, solutions)
+{
 	  		/* allocate a temporary array and copy <a> into it */
 	  		char * b = (char *)malloc(n * sizeof(char));
 	  		memcpy(b, a, j * sizeof(char));
@@ -139,21 +153,23 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
 		}
 	}
 
-	#pragma omp taskwait
+#pragma omp taskwait 
+;
 	for ( i = 0; i < n; i++) *solutions += csols[i];
     free(csols);
 }
 
 void find_queens (int size)
 {
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
+const unsigned long long full_program_start = current_time_ns();
+{
 	total_count=0;
 
         bots_message("Computing N-Queens algorithm (n=%d) ", size);
-	#pragma omp parallel
-	{
-		#pragma omp single
-		{
+#pragma omp parallel 
+{
+#pragma omp single 
+{
 			char *a;
 
 			a = (char *)malloc(size * sizeof(char));
@@ -161,7 +177,10 @@ void find_queens (int size)
 		}
 	}
 	bots_message(" completed!\n");
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 }
 
 

@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /**********************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
@@ -152,7 +170,13 @@ static ELM *seqpart(ELM *low, ELM *high)
 	  return curr_high - 1;
 }
 
-#define swap(a, b)  {    ELM tmp;   tmp = a;   a = b;   b = tmp; }
+#define swap(a, b) \
+{ \
+  ELM tmp;\
+  tmp = a;\
+  a = b;\
+  b = tmp;\
+}
 
 static void insertion_sort(ELM *low, ELM *high)
 {
@@ -257,7 +281,13 @@ void seqmerge(ELM *low1, ELM *high1, ELM *low2, ELM *high2,
      }
 }
 
-#define swap_indices(a, b)  {    ELM *tmp;   tmp = a;   a = b;   b = tmp; }
+#define swap_indices(a, b) \
+{ \
+  ELM *tmp;\
+  tmp = a;\
+  a = b;\
+  b = tmp;\
+}
 
 ELM *binsplit(ELM val, ELM *low, ELM *high)
 {
@@ -334,20 +364,13 @@ void cilkmerge_par(ELM *low1, ELM *high1, ELM *low2, ELM *high2, ELM *lowdest)
       * the appropriate location
       */
      *(lowdest + lowsize + 1) = *split1;
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilkmerge_par(low1, split1 - 1, low2, split2, lowdest);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilkmerge_par(split1 + 1, high1, split2 + 1, high2,
+#pragma omp task untied
+cilkmerge_par(low1, split1 - 1, low2, split2, lowdest);
+#pragma omp task untied
+cilkmerge_par(split1 + 1, high1, split2 + 1, high2,
 		     lowdest + lowsize + 2);
-#pragma omp taskwait
+#pragma omp taskwait 
+;
 
      return;
 }
@@ -378,45 +401,23 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
      D = C + quarter;
      tmpD = tmpC + quarter;
 
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilksort_par(A, tmpA, quarter);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilksort_par(B, tmpB, quarter);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilksort_par(C, tmpC, quarter);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilksort_par(D, tmpD, size - 3 * quarter);
-#pragma omp taskwait
+#pragma omp task untied
+cilksort_par(A, tmpA, quarter);
+#pragma omp task untied
+cilksort_par(B, tmpB, quarter);
+#pragma omp task untied
+cilksort_par(C, tmpC, quarter);
+#pragma omp task untied
+cilksort_par(D, tmpD, size - 3 * quarter);
+#pragma omp taskwait 
+;
 
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilkmerge_par(A, A + quarter - 1, B, B + quarter - 1, tmpA);
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-     cilkmerge_par(C, C + quarter - 1, D, low + size - 1, tmpC);
-#pragma omp taskwait
+#pragma omp task untied
+cilkmerge_par(A, A + quarter - 1, B, B + quarter - 1, tmpA);
+#pragma omp task untied
+cilkmerge_par(C, C + quarter - 1, D, low + size - 1, tmpC);
+#pragma omp taskwait 
+;
 
      cilkmerge_par(tmpA, tmpC - 1, tmpC, tmpA + size - 1, A);
 }
@@ -488,22 +489,22 @@ void sort_init ( void )
 void sort_par ( void )
 {
 	bots_message("Computing multisort algorithm (n=%d) ", bots_arg_size);
-    unsigned long long ____hclib_start_time = hclib_current_time_ns(); {
-	#pragma omp parallel
-        {
+const unsigned long long full_program_start = current_time_ns();
+{
+#pragma omp parallel 
+{
 #pragma omp single nowait
-            {
-#ifdef HCLIB_TASK_UNTIED
-#pragma omp task  untied
-#else
-#pragma omp task 
-#endif
-                {
+{
+#pragma omp task untied
+{
                     cilksort_par(array, tmp, bots_arg_size);
                 }
             }
         }
-    } ; unsigned long long ____hclib_end_time = hclib_current_time_ns(); printf("\nHCLIB TIME %llu ns\n", ____hclib_end_time - ____hclib_start_time);
+    } ; 
+const unsigned long long full_program_end = current_time_ns();
+printf("full_program %llu ns", full_program_end - full_program_start);
+
 	bots_message(" completed!\n");
 }
 

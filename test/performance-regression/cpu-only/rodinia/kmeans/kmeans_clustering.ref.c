@@ -1,4 +1,22 @@
-#include "hclib.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 /*****************************************************************************/
 /*IMPORTANT:  READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.         */
 /*By downloading, copying, installing or using the software you agree        */
@@ -167,10 +185,11 @@ float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
     do {
         delta = 0.0;
         {
-            #pragma omp parallel for shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len)                          private(i,j,index)                          firstprivate(npoints,nclusters,nfeatures)                          schedule(static)                          reduction(+:delta)
-            for (i=0; i<npoints; i++) {
+ { const unsigned long long parallel_for_start = current_time_ns();
+#pragma omp parallel for shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len) private(i,j,index) firstprivate(npoints,nclusters,nfeatures) schedule(static) reduction(+:delta)
+for (i=0; i<npoints; i++) {
 	        /* find the index of nestest cluster centers */					
-            int tid = omp_get_thread_num();				
+            int tid = hclib_get_current_worker();				
 	        index = find_nearest_point(feature + (i * nfeatures),
 		             nfeatures,
 		             clusters,
@@ -186,7 +205,10 @@ float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
 	        partial_new_centers_len[tid * nclusters + index]++;				
 	        for (j=0; j<nfeatures; j++)
 		       partial_new_centers[tid * nclusters * nfeatures + index * nfeatures + j] += feature[i * nfeatures + j];
-            }
+            } ; 
+const unsigned long long parallel_for_end = current_time_ns();
+printf("pragma170_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+
         } /* end of #pragma omp parallel */
 
         /* let the main thread perform the array reduction */
