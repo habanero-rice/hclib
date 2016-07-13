@@ -4,19 +4,19 @@ __device__ inline int hclib_get_current_worker() {
 }
 
 template<class functor_type>
-__global__ void wrapper_kernel(unsigned niters, functor_type functor) {
+__global__ void wrapper_kernel(unsigned iter_offset, unsigned niters, functor_type functor) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor(tid);
+        functor(iter_offset + tid);
     }
 }
 template<class functor_type>
-static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned iter_offset, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
     const unsigned long long start = capp_current_time_ns();
-    wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
+    wrapper_kernel<<<nblocks, threads_per_block>>>(iter_offset, niters, functor);
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
-class pragma114_omp_parallel_hclib_async {
+class pragma104_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -131,7 +131,7 @@ class pragma114_omp_parallel_hclib_async {
     volatile int t;
 
     public:
-        pragma114_omp_parallel_hclib_async(int set_min,
+        pragma104_omp_parallel_hclib_async(int set_min,
                 int* set_src,
                 int set_cols,
                 int* set_dst,
@@ -239,7 +239,8 @@ for (int t = 0; t < rows-1; t++) {
         src = dst;
         dst = temp;
  { const int niters = (cols) - (0);
-kernel_launcher("pragma114_omp_parallel", niters, pragma114_omp_parallel_hclib_async(min, src, cols, dst, data, t));
+const int iters_offset = (0);
+kernel_launcher("pragma104_omp_parallel", iters_offset, niters, pragma104_omp_parallel_hclib_async(min, src, cols, dst, data, t));
  } 
     }
 

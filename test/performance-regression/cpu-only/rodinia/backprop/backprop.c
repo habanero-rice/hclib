@@ -230,7 +230,7 @@ BPNN *bpnn_create(int n_in, int n_hidden, int n_out)
 }
 
 
-typedef struct _pragma242_omp_parallel {
+typedef struct _pragma232_omp_parallel {
     float sum;
     int j;
     int k;
@@ -240,9 +240,9 @@ typedef struct _pragma242_omp_parallel {
     int (*n1_ptr);
     int (*n2_ptr);
     pthread_mutex_t reduction_mutex;
- } pragma242_omp_parallel;
+ } pragma232_omp_parallel;
 
-static void pragma242_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma232_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void bpnn_layerforward(float *l1, float *l2, float **conn, int n1, int n2)
 {
   float sum;
@@ -251,7 +251,7 @@ void bpnn_layerforward(float *l1, float *l2, float **conn, int n1, int n2)
   /*** Set up thresholding unit ***/
   l1[0] = 1.0;
  { 
-pragma242_omp_parallel *new_ctx = (pragma242_omp_parallel *)malloc(sizeof(pragma242_omp_parallel));
+pragma232_omp_parallel *new_ctx = (pragma232_omp_parallel *)malloc(sizeof(pragma232_omp_parallel));
 new_ctx->sum = sum;
 new_ctx->j = j;
 new_ctx->k = k;
@@ -268,14 +268,14 @@ domain[0].low = 1;
 domain[0].high = (n2) + 1;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma242_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma232_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
 sum = new_ctx->sum;
  } 
 } 
-static void pragma242_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma242_omp_parallel *ctx = (pragma242_omp_parallel *)____arg;
+static void pragma232_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma232_omp_parallel *ctx = (pragma232_omp_parallel *)____arg;
     float sum; sum = ctx->sum;
     int j; j = ctx->j;
     int k; k = ctx->k;
@@ -343,7 +343,7 @@ void bpnn_hidden_error(float *delta_h,
 }
 
 
-typedef struct _pragma304_omp_parallel {
+typedef struct _pragma297_omp_parallel {
     float new_dw;
     int k;
     int j;
@@ -353,9 +353,9 @@ typedef struct _pragma304_omp_parallel {
     int nly;
     float (*(*(*w_ptr)));
     float (*(*(*oldw_ptr)));
- } pragma304_omp_parallel;
+ } pragma297_omp_parallel;
 
-static void pragma304_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma297_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void bpnn_adjust_weights(float *delta, int ndelta, float *ly, int nly, float **w, float **oldw)
 {
   float new_dw;
@@ -365,7 +365,7 @@ void bpnn_adjust_weights(float *delta, int ndelta, float *ly, int nly, float **w
   //momentum = 0.3;
 
  { 
-pragma304_omp_parallel *new_ctx = (pragma304_omp_parallel *)malloc(sizeof(pragma304_omp_parallel));
+pragma297_omp_parallel *new_ctx = (pragma297_omp_parallel *)malloc(sizeof(pragma297_omp_parallel));
 new_ctx->new_dw = new_dw;
 new_ctx->k = k;
 new_ctx->j = j;
@@ -380,13 +380,13 @@ domain[0].low = 1;
 domain[0].high = (ndelta) + 1;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma304_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma297_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma304_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma304_omp_parallel *ctx = (pragma304_omp_parallel *)____arg;
+static void pragma297_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma297_omp_parallel *ctx = (pragma297_omp_parallel *)____arg;
     float new_dw; new_dw = ctx->new_dw;
     int k; k = ctx->k;
     int j; j = ctx->j;

@@ -4,19 +4,19 @@ __device__ inline int hclib_get_current_worker() {
 }
 
 template<class functor_type>
-__global__ void wrapper_kernel(unsigned niters, functor_type functor) {
+__global__ void wrapper_kernel(unsigned iter_offset, unsigned niters, functor_type functor) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor(tid);
+        functor(iter_offset + tid);
     }
 }
 template<class functor_type>
-static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned iter_offset, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
     const unsigned long long start = capp_current_time_ns();
-    wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
+    wrapper_kernel<<<nblocks, threads_per_block>>>(iter_offset, niters, functor);
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
@@ -163,7 +163,7 @@ float accuracy(float *arr1, float *arr2, int len)
 
 
 }
-class pragma167_omp_parallel_hclib_async {
+class pragma157_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -191,7 +191,7 @@ class pragma167_omp_parallel_hclib_async {
     volatile float amb_temp;
 
     public:
-        pragma167_omp_parallel_hclib_async(int set_ny,
+        pragma157_omp_parallel_hclib_async(int set_ny,
                 int set_nx,
                 int set_z,
                 int set_nz,
@@ -334,7 +334,8 @@ void computeTempOMP(float *pIn, float* tIn, float *tOut,
         do {
             int z; 
  { const int niters = (nz) - (0);
-kernel_launcher("pragma167_omp_parallel", niters, pragma167_omp_parallel_hclib_async(ny, nx, z, nz, tOut_t, cc, tIn_t, cw, ce, cs, cn, cb, ct, dt, Cap, pIn, amb_temp));
+const int iters_offset = (0);
+kernel_launcher("pragma157_omp_parallel", iters_offset, niters, pragma157_omp_parallel_hclib_async(ny, nx, z, nz, tOut_t, cc, tIn_t, cw, ce, cs, cn, cb, ct, dt, Cap, pIn, amb_temp));
  } 
             float *t = tIn_t;
             tIn_t = tOut_t;

@@ -111,7 +111,7 @@ void nqueens_ser (int n, int j, char *a, int *solutions)
 	}
 }
 
-typedef struct _pragma136_omp_task {
+typedef struct _pragma126_omp_task {
     int (*csols);
     int i;
     int n;
@@ -119,9 +119,9 @@ typedef struct _pragma136_omp_task {
     char (*a);
     int (*solutions);
     int depth;
- } pragma136_omp_task;
+ } pragma126_omp_task;
 
-static void pragma136_omp_task_hclib_async(void *____arg);
+static void pragma126_omp_task_hclib_async(void *____arg);
 void nqueens(int n, int j, char *a, int *solutions, int depth)
 {
 	int *csols;
@@ -143,7 +143,7 @@ void nqueens(int n, int j, char *a, int *solutions, int depth)
 	for (i = 0; i < n; i++) {
 
  { 
-pragma136_omp_task *new_ctx = (pragma136_omp_task *)malloc(sizeof(pragma136_omp_task));
+pragma126_omp_task *new_ctx = (pragma126_omp_task *)malloc(sizeof(pragma126_omp_task));
 new_ctx->csols = csols;
 new_ctx->i = i;
 new_ctx->n = n;
@@ -151,7 +151,7 @@ new_ctx->j = j;
 new_ctx->a = a;
 new_ctx->solutions = solutions;
 new_ctx->depth = depth;
-hclib_async(pragma136_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma126_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
 	}
 
@@ -159,8 +159,8 @@ hclib_async(pragma136_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 	for ( i = 0; i < n; i++) *solutions += csols[i];
     free(csols);
 } 
-static void pragma136_omp_task_hclib_async(void *____arg) {
-    pragma136_omp_task *ctx = (pragma136_omp_task *)____arg;
+static void pragma126_omp_task_hclib_async(void *____arg) {
+    pragma126_omp_task *ctx = (pragma126_omp_task *)____arg;
     int (*csols); csols = ctx->csols;
     int i; i = ctx->i;
     int n; n = ctx->n;

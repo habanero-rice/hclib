@@ -94,7 +94,7 @@ for (i=0; i < MatrixDim; i ++){
         }
     } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma62_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma62_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 
  { const unsigned long long parallel_for_start = current_time_ns();
@@ -108,7 +108,7 @@ for (i=0; i < MatrixDim; i++ ) {
         }
     } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma78_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma79_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 
     for (i=0; i < MatrixDim; i ++) {

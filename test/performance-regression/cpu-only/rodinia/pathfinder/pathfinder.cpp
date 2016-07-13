@@ -90,7 +90,7 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
-typedef struct _pragma114_omp_parallel {
+typedef struct _pragma104_omp_parallel {
     int (*t_ptr);
     unsigned long long (*cycles_ptr);
     int (*(*src_ptr));
@@ -99,9 +99,9 @@ typedef struct _pragma114_omp_parallel {
     int min;
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma114_omp_parallel;
+ } pragma104_omp_parallel;
 
-static void pragma114_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma104_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     unsigned long long cycles;
     int (*src);
@@ -127,7 +127,7 @@ for (int t = 0; t < rows-1; t++) {
         src = dst;
         dst = temp;
  { 
-pragma114_omp_parallel *new_ctx = (pragma114_omp_parallel *)malloc(sizeof(pragma114_omp_parallel));
+pragma104_omp_parallel *new_ctx = (pragma104_omp_parallel *)malloc(sizeof(pragma104_omp_parallel));
 new_ctx->t_ptr = &(t);
 new_ctx->cycles_ptr = &(cycles);
 new_ctx->src_ptr = &(src);
@@ -141,7 +141,7 @@ domain[0].low = 0;
 domain[0].high = cols;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma114_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma104_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -191,8 +191,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
     delete [] dst;
     delete [] src;
 }  
-static void pragma114_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma114_omp_parallel *ctx = (pragma114_omp_parallel *)____arg;
+static void pragma104_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma104_omp_parallel *ctx = (pragma104_omp_parallel *)____arg;
     int min; min = ctx->min;
     do {
     int n;     n = ___iter0;

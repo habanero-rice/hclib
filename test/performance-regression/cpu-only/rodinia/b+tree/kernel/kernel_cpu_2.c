@@ -45,7 +45,7 @@
 //	PLASMAKERNEL_GPU
 //========================================================================================================================================================================================================200
 
-typedef struct _pragma103_omp_parallel {
+typedef struct _pragma93_omp_parallel {
     int thid;
     int bid;
     long long (*time0_ptr);
@@ -67,9 +67,9 @@ typedef struct _pragma103_omp_parallel {
     int (*(*end_ptr));
     int (*(*recstart_ptr));
     int (*(*reclength_ptr));
- } pragma103_omp_parallel;
+ } pragma93_omp_parallel;
 
-static void pragma103_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma93_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void 
 kernel_cpu_2(	int cores_arg,
 
@@ -124,7 +124,7 @@ kernel_cpu_2(	int cores_arg,
 
 	// process number of querries
  { 
-pragma103_omp_parallel *new_ctx = (pragma103_omp_parallel *)malloc(sizeof(pragma103_omp_parallel));
+pragma93_omp_parallel *new_ctx = (pragma93_omp_parallel *)malloc(sizeof(pragma93_omp_parallel));
 new_ctx->thid = thid;
 new_ctx->bid = bid;
 new_ctx->time0_ptr = &(time0);
@@ -151,7 +151,7 @@ domain[0].low = 0;
 domain[0].high = count;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma103_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma93_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -172,8 +172,8 @@ free(new_ctx);
 	printf("%.12f s\n", 												(float) (time2-time0) / 1000000);
 
 } 
-static void pragma103_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma103_omp_parallel *ctx = (pragma103_omp_parallel *)____arg;
+static void pragma93_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma93_omp_parallel *ctx = (pragma93_omp_parallel *)____arg;
     int thid; thid = ctx->thid;
     int bid; bid = ctx->bid;
     int i; i = ctx->i;

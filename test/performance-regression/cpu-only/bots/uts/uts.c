@@ -178,12 +178,12 @@ int uts_numChildren(Node *parent)
  * Recursive depth-first implementation                    *
  ***********************************************************/
 
-typedef struct _pragma196_omp_task {
+typedef struct _pragma186_omp_task {
     unsigned long long (*num_nodes_ptr);
     Node (*(*root_ptr));
- } pragma196_omp_task;
+ } pragma186_omp_task;
 
-static void pragma196_omp_task_hclib_async(void *____arg);
+static void pragma186_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     unsigned long long num_nodes;
     Node (*root);
@@ -197,10 +197,10 @@ static void main_entrypoint(void *____arg) {
 {
 hclib_start_finish(); {
  { 
-pragma196_omp_task *new_ctx = (pragma196_omp_task *)malloc(sizeof(pragma196_omp_task));
+pragma186_omp_task *new_ctx = (pragma186_omp_task *)malloc(sizeof(pragma186_omp_task));
 new_ctx->num_nodes_ptr = &(num_nodes);
 new_ctx->root_ptr = &(root);
-hclib_async(pragma196_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma186_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
            } ; hclib_end_finish(); 
    } ;     free(____arg);
@@ -224,8 +224,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
    return num_nodes;
 }  
-static void pragma196_omp_task_hclib_async(void *____arg) {
-    pragma196_omp_task *ctx = (pragma196_omp_task *)____arg;
+static void pragma186_omp_task_hclib_async(void *____arg) {
+    pragma186_omp_task *ctx = (pragma186_omp_task *)____arg;
     hclib_start_finish();
 (*(ctx->num_nodes_ptr)) = parTreeSearch( 0, (*(ctx->root_ptr)), (*(ctx->root_ptr))->numChildren ) ;     ; hclib_end_finish_nonblocking();
 
@@ -234,7 +234,7 @@ static void pragma196_omp_task_hclib_async(void *____arg) {
 
 
 
-typedef struct _pragma228_omp_task {
+typedef struct _pragma218_omp_task {
     Node (*(*n_ptr));
     Node (*nodePtr);
     int i;
@@ -244,9 +244,9 @@ typedef struct _pragma228_omp_task {
     int (*depth_ptr);
     Node (*(*parent_ptr));
     int (*numChildren_ptr);
- } pragma228_omp_task;
+ } pragma218_omp_task;
 
-static void pragma228_omp_task_hclib_async(void *____arg);
+static void pragma218_omp_task_hclib_async(void *____arg);
 unsigned long long parTreeSearch(int depth, Node *parent, int numChildren) 
 {
   Node *n = (Node *)malloc(numChildren * sizeof(Node));
@@ -269,7 +269,7 @@ unsigned long long parTreeSearch(int depth, Node *parent, int numChildren)
      nodePtr->numChildren = uts_numChildren(nodePtr);
 
  { 
-pragma228_omp_task *new_ctx = (pragma228_omp_task *)malloc(sizeof(pragma228_omp_task));
+pragma218_omp_task *new_ctx = (pragma218_omp_task *)malloc(sizeof(pragma218_omp_task));
 new_ctx->n_ptr = &(n);
 new_ctx->nodePtr = nodePtr;
 new_ctx->i = i;
@@ -279,7 +279,7 @@ new_ctx->partialCount_ptr = &(partialCount);
 new_ctx->depth_ptr = &(depth);
 new_ctx->parent_ptr = &(parent);
 new_ctx->numChildren_ptr = &(numChildren);
-hclib_async(pragma228_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma218_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
   }
 
@@ -293,8 +293,8 @@ hclib_async(pragma228_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
   
   return subtreesize;
 } 
-static void pragma228_omp_task_hclib_async(void *____arg) {
-    pragma228_omp_task *ctx = (pragma228_omp_task *)____arg;
+static void pragma218_omp_task_hclib_async(void *____arg) {
+    pragma218_omp_task *ctx = (pragma218_omp_task *)____arg;
     Node (*nodePtr); nodePtr = ctx->nodePtr;
     int i; i = ctx->i;
     hclib_start_finish();

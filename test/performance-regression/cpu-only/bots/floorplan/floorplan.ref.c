@@ -331,7 +331,7 @@ bots_number_of_tasks = add_cell(1, footprint, board, gcells, 0);
         bots_message(" completed!\n");
     } ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 
 }
 

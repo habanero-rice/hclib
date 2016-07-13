@@ -38,7 +38,7 @@ void usage(int argc, char **argv)
 	exit(1);
 }
 
-typedef struct _pragma135_omp_parallel {
+typedef struct _pragma125_omp_parallel {
     int (*rows_ptr);
     int (*cols_ptr);
     int (*size_I_ptr);
@@ -84,9 +84,9 @@ typedef struct _pragma135_omp_parallel {
     int (*nthreads_ptr);
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma135_omp_parallel;
+ } pragma125_omp_parallel;
 
-typedef struct _pragma168_omp_parallel {
+typedef struct _pragma158_omp_parallel {
     int (*rows_ptr);
     int (*cols_ptr);
     int (*size_I_ptr);
@@ -132,10 +132,10 @@ typedef struct _pragma168_omp_parallel {
     int (*nthreads_ptr);
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma168_omp_parallel;
+ } pragma158_omp_parallel;
 
-static void pragma135_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-static void pragma168_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma125_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma158_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     int rows;
     int cols;
@@ -247,7 +247,7 @@ for (iter=0; iter< niter; iter++){
 		
 
  { 
-pragma135_omp_parallel *new_ctx = (pragma135_omp_parallel *)malloc(sizeof(pragma135_omp_parallel));
+pragma125_omp_parallel *new_ctx = (pragma125_omp_parallel *)malloc(sizeof(pragma125_omp_parallel));
 new_ctx->rows_ptr = &(rows);
 new_ctx->cols_ptr = &(cols);
 new_ctx->size_I_ptr = &(size_I);
@@ -298,12 +298,12 @@ domain[0].low = 0;
 domain[0].high = rows;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma135_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma125_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
  { 
-pragma168_omp_parallel *new_ctx = (pragma168_omp_parallel *)malloc(sizeof(pragma168_omp_parallel));
+pragma158_omp_parallel *new_ctx = (pragma158_omp_parallel *)malloc(sizeof(pragma158_omp_parallel));
 new_ctx->rows_ptr = &(rows);
 new_ctx->cols_ptr = &(cols);
 new_ctx->size_I_ptr = &(size_I);
@@ -354,7 +354,7 @@ domain[0].low = 0;
 domain[0].high = rows;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma168_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma158_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -511,8 +511,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 	free(c);
 	return 0;
 }  
-static void pragma135_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma135_omp_parallel *ctx = (pragma135_omp_parallel *)____arg;
+static void pragma125_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma125_omp_parallel *ctx = (pragma125_omp_parallel *)____arg;
     int k; k = ctx->k;
     float Jc; Jc = ctx->Jc;
     float G2; G2 = ctx->G2;
@@ -559,8 +559,8 @@ static void pragma135_omp_parallel_hclib_async(void *____arg, const int ___iter0
 }
 
 
-static void pragma168_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma168_omp_parallel *ctx = (pragma168_omp_parallel *)____arg;
+static void pragma158_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma158_omp_parallel *ctx = (pragma158_omp_parallel *)____arg;
     int k; k = ctx->k;
     float cN; cN = ctx->cN;
     float cS; cS = ctx->cS;

@@ -395,7 +395,7 @@ for(x = 0; x < Nparticles; x++){
 		weights[x] = 1/((double)(Nparticles));
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma374_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma373_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 	long long get_weights = get_time();
 	printf("TIME TO GET WEIGHTSTOOK: %f\n", elapsed_time(get_neighbors, get_weights));
@@ -415,7 +415,7 @@ for(x = 0; x < Nparticles; x++){
 		arrayY[x] = ye;
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma389_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma388_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 	int k;
 	
@@ -433,7 +433,7 @@ for(x = 0; x < Nparticles; x++){
 			arrayY[x] += -2 + 2*randn(seed, x);
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma403_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma402_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long error = get_time();
 		printf("TIME TO SET ERROR TOOK: %f\n", elapsed_time(set_arrays, error));
@@ -459,7 +459,7 @@ for(x = 0; x < Nparticles; x++){
 			likelihood[x] = likelihood[x]/((double) countOnes);
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma411_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma410_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long likelihood_time = get_time();
 		printf("TIME TO GET LIKELIHOODS TOOK: %f\n", elapsed_time(error, likelihood_time));
@@ -471,7 +471,7 @@ for(x = 0; x < Nparticles; x++){
 			weights[x] = weights[x] * exp(likelihood[x]);
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma434_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma433_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long exponential = get_time();
 		printf("TIME TO GET EXP TOOK: %f\n", elapsed_time(likelihood_time, exponential));
@@ -482,7 +482,7 @@ for(x = 0; x < Nparticles; x++){
 			sumWeights += weights[x];
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma441_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma440_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long sum_time = get_time();
 		printf("TIME TO SUM WEIGHTS TOOK: %f\n", elapsed_time(exponential, sum_time));
@@ -492,7 +492,7 @@ for(x = 0; x < Nparticles; x++){
 			weights[x] = weights[x]/sumWeights;
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma447_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma446_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long normalize = get_time();
 		printf("TIME TO NORMALIZE WEIGHTS TOOK: %f\n", elapsed_time(sum_time, normalize));
@@ -506,7 +506,7 @@ for(x = 0; x < Nparticles; x++){
 			ye += arrayY[x] * weights[x];
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma456_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma455_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long move_time = get_time();
 		printf("TIME TO MOVE OBJECT TOOK: %f\n", elapsed_time(normalize, move_time));
@@ -534,7 +534,7 @@ for(x = 0; x < Nparticles; x++){
 			u[x] = u1 + x/((double)(Nparticles));
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma481_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma480_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long u_time = get_time();
 		printf("TIME TO CALC U TOOK: %f\n", elapsed_time(cum_sum, u_time));
@@ -551,7 +551,7 @@ for(j = 0; j < Nparticles; j++){
 			
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma489_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma488_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 		long long xyj_time = get_time();
 		printf("TIME TO CALC NEW ARRAY X AND Y TOOK: %f\n", elapsed_time(u_time, xyj_time));
@@ -654,7 +654,7 @@ int main(int argc, char * argv[]){
 const unsigned long long full_program_start = current_time_ns();
 particleFilter(I, IszX, IszY, Nfr, seed, Nparticles) ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 ;
 
 	long long endParticleFilter = get_time();

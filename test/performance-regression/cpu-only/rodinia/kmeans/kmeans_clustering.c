@@ -121,7 +121,7 @@ float euclid_dist_2(float *pt1,
 
 
 /*----< kmeans_clustering() >---------------------------------------------*/
-typedef struct _pragma179_omp_parallel {
+typedef struct _pragma173_omp_parallel {
     int i;
     int j;
     int (*k_ptr);
@@ -143,9 +143,9 @@ typedef struct _pragma179_omp_parallel {
     float (*threshold_ptr);
     int (*(*membership_ptr));
     pthread_mutex_t reduction_mutex;
- } pragma179_omp_parallel;
+ } pragma173_omp_parallel;
 
-static void pragma179_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma173_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
                           int     nfeatures,
                           int     npoints,
@@ -200,7 +200,7 @@ float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
         delta = 0.0;
         {
  { 
-pragma179_omp_parallel *new_ctx = (pragma179_omp_parallel *)malloc(sizeof(pragma179_omp_parallel));
+pragma173_omp_parallel *new_ctx = (pragma173_omp_parallel *)malloc(sizeof(pragma173_omp_parallel));
 new_ctx->i = i;
 new_ctx->j = j;
 new_ctx->k_ptr = &(k);
@@ -229,7 +229,7 @@ domain[0].low = 0;
 domain[0].high = npoints;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma179_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma173_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
 delta = new_ctx->delta;
@@ -267,8 +267,8 @@ delta = new_ctx->delta;
 
     return clusters;
 } 
-static void pragma179_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma179_omp_parallel *ctx = (pragma179_omp_parallel *)____arg;
+static void pragma173_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma173_omp_parallel *ctx = (pragma173_omp_parallel *)____arg;
     int i; i = ctx->i;
     int j; j = ctx->j;
     int index; index = ctx->index;

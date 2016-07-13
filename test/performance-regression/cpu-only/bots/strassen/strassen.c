@@ -566,7 +566,7 @@ void OptimizedStrassenMultiply_seq(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
   }
   free(StartHeap);
 }
-typedef struct _pragma687_omp_task {
+typedef struct _pragma677_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -608,9 +608,9 @@ typedef struct _pragma687_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma687_omp_task;
+ } pragma677_omp_task;
 
-typedef struct _pragma691_omp_task {
+typedef struct _pragma681_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -652,9 +652,9 @@ typedef struct _pragma691_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma691_omp_task;
+ } pragma681_omp_task;
 
-typedef struct _pragma695_omp_task {
+typedef struct _pragma685_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -696,9 +696,9 @@ typedef struct _pragma695_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma695_omp_task;
+ } pragma685_omp_task;
 
-typedef struct _pragma699_omp_task {
+typedef struct _pragma689_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -740,9 +740,9 @@ typedef struct _pragma699_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma699_omp_task;
+ } pragma689_omp_task;
 
-typedef struct _pragma703_omp_task {
+typedef struct _pragma693_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -784,9 +784,9 @@ typedef struct _pragma703_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma703_omp_task;
+ } pragma693_omp_task;
 
-typedef struct _pragma707_omp_task {
+typedef struct _pragma697_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -828,9 +828,9 @@ typedef struct _pragma707_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma707_omp_task;
+ } pragma697_omp_task;
 
-typedef struct _pragma711_omp_task {
+typedef struct _pragma701_omp_task {
     unsigned int (*QuadrantSize_ptr);
     unsigned int (*QuadrantSizeInBytes_ptr);
     unsigned int (*Column_ptr);
@@ -872,15 +872,15 @@ typedef struct _pragma711_omp_task {
     unsigned int (*RowWidthA_ptr);
     unsigned int (*RowWidthB_ptr);
     int (*Depth_ptr);
- } pragma711_omp_task;
+ } pragma701_omp_task;
 
-static void pragma687_omp_task_hclib_async(void *____arg);
-static void pragma691_omp_task_hclib_async(void *____arg);
-static void pragma695_omp_task_hclib_async(void *____arg);
-static void pragma699_omp_task_hclib_async(void *____arg);
-static void pragma703_omp_task_hclib_async(void *____arg);
-static void pragma707_omp_task_hclib_async(void *____arg);
-static void pragma711_omp_task_hclib_async(void *____arg);
+static void pragma677_omp_task_hclib_async(void *____arg);
+static void pragma681_omp_task_hclib_async(void *____arg);
+static void pragma685_omp_task_hclib_async(void *____arg);
+static void pragma689_omp_task_hclib_async(void *____arg);
+static void pragma693_omp_task_hclib_async(void *____arg);
+static void pragma697_omp_task_hclib_async(void *____arg);
+static void pragma701_omp_task_hclib_async(void *____arg);
 void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSize,
      unsigned RowWidthC, unsigned RowWidthA, unsigned RowWidthB, int Depth)
 {
@@ -998,7 +998,7 @@ void OptimizedStrassenMultiply_par(REAL *C, REAL *A, REAL *B, unsigned MatrixSiz
 
   /* M2 = A11 x B11 */
  { 
-pragma687_omp_task *new_ctx = (pragma687_omp_task *)malloc(sizeof(pragma687_omp_task));
+pragma677_omp_task *new_ctx = (pragma677_omp_task *)malloc(sizeof(pragma677_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1040,12 +1040,12 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma687_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma677_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
   /* M5 = S1 * S5 */
  { 
-pragma691_omp_task *new_ctx = (pragma691_omp_task *)malloc(sizeof(pragma691_omp_task));
+pragma681_omp_task *new_ctx = (pragma681_omp_task *)malloc(sizeof(pragma681_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1087,12 +1087,12 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma691_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma681_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
   /* Step 1 of T1 = S2 x S6 + M2 */
  { 
-pragma695_omp_task *new_ctx = (pragma695_omp_task *)malloc(sizeof(pragma695_omp_task));
+pragma685_omp_task *new_ctx = (pragma685_omp_task *)malloc(sizeof(pragma685_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1134,12 +1134,12 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma695_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma685_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
   /* Step 1 of T2 = T1 + S3 x S7 */
  { 
-pragma699_omp_task *new_ctx = (pragma699_omp_task *)malloc(sizeof(pragma699_omp_task));
+pragma689_omp_task *new_ctx = (pragma689_omp_task *)malloc(sizeof(pragma689_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1181,12 +1181,12 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma699_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma689_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
   /* Step 1 of C11 = M2 + A12 * B21 */
  { 
-pragma703_omp_task *new_ctx = (pragma703_omp_task *)malloc(sizeof(pragma703_omp_task));
+pragma693_omp_task *new_ctx = (pragma693_omp_task *)malloc(sizeof(pragma693_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1228,12 +1228,12 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma703_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma693_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
   
   /* Step 1 of C12 = S4 x B22 + T1 + M5 */
  { 
-pragma707_omp_task *new_ctx = (pragma707_omp_task *)malloc(sizeof(pragma707_omp_task));
+pragma697_omp_task *new_ctx = (pragma697_omp_task *)malloc(sizeof(pragma697_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1275,12 +1275,12 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma707_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma697_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
   /* Step 1 of C21 = T2 - A22 * S8 */
  { 
-pragma711_omp_task *new_ctx = (pragma711_omp_task *)malloc(sizeof(pragma711_omp_task));
+pragma701_omp_task *new_ctx = (pragma701_omp_task *)malloc(sizeof(pragma701_omp_task));
 new_ctx->QuadrantSize_ptr = &(QuadrantSize);
 new_ctx->QuadrantSizeInBytes_ptr = &(QuadrantSizeInBytes);
 new_ctx->Column_ptr = &(Column);
@@ -1322,7 +1322,7 @@ new_ctx->RowWidthC_ptr = &(RowWidthC);
 new_ctx->RowWidthA_ptr = &(RowWidthA);
 new_ctx->RowWidthB_ptr = &(RowWidthB);
 new_ctx->Depth_ptr = &(Depth);
-hclib_async(pragma711_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma701_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
   /**********************************************
@@ -1387,8 +1387,8 @@ hclib_async(pragma711_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
   }
   free(StartHeap);
 } 
-static void pragma687_omp_task_hclib_async(void *____arg) {
-    pragma687_omp_task *ctx = (pragma687_omp_task *)____arg;
+static void pragma677_omp_task_hclib_async(void *____arg) {
+    pragma677_omp_task *ctx = (pragma677_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->M2_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1396,8 +1396,8 @@ OptimizedStrassenMultiply_par((*(ctx->M2_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr))
 }
 
 
-static void pragma691_omp_task_hclib_async(void *____arg) {
-    pragma691_omp_task *ctx = (pragma691_omp_task *)____arg;
+static void pragma681_omp_task_hclib_async(void *____arg) {
+    pragma681_omp_task *ctx = (pragma681_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->M5_ptr)), (*(ctx->S1_ptr)), (*(ctx->S5_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1405,8 +1405,8 @@ OptimizedStrassenMultiply_par((*(ctx->M5_ptr)), (*(ctx->S1_ptr)), (*(ctx->S5_ptr
 }
 
 
-static void pragma695_omp_task_hclib_async(void *____arg) {
-    pragma695_omp_task *ctx = (pragma695_omp_task *)____arg;
+static void pragma685_omp_task_hclib_async(void *____arg) {
+    pragma685_omp_task *ctx = (pragma685_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->T1sMULT_ptr)), (*(ctx->S2_ptr)), (*(ctx->S6_ptr)),  (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1414,8 +1414,8 @@ OptimizedStrassenMultiply_par((*(ctx->T1sMULT_ptr)), (*(ctx->S2_ptr)), (*(ctx->S
 }
 
 
-static void pragma699_omp_task_hclib_async(void *____arg) {
-    pragma699_omp_task *ctx = (pragma699_omp_task *)____arg;
+static void pragma689_omp_task_hclib_async(void *____arg) {
+    pragma689_omp_task *ctx = (pragma689_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C22_ptr)), (*(ctx->S3_ptr)), (*(ctx->S7_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)) /*FIXME*/, (*(ctx->QuadrantSize_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1423,8 +1423,8 @@ OptimizedStrassenMultiply_par((*(ctx->C22_ptr)), (*(ctx->S3_ptr)), (*(ctx->S7_pt
 }
 
 
-static void pragma703_omp_task_hclib_async(void *____arg) {
-    pragma703_omp_task *ctx = (pragma703_omp_task *)____arg;
+static void pragma693_omp_task_hclib_async(void *____arg) {
+    pragma693_omp_task *ctx = (pragma693_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A12_ptr)), (*(ctx->B21_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1432,8 +1432,8 @@ OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A12_ptr)), (*(ctx->B21_pt
 }
 
 
-static void pragma707_omp_task_hclib_async(void *____arg) {
-    pragma707_omp_task *ctx = (pragma707_omp_task *)____arg;
+static void pragma697_omp_task_hclib_async(void *____arg) {
+    pragma697_omp_task *ctx = (pragma697_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C12_ptr)), (*(ctx->S4_ptr)), (*(ctx->B22_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthB_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1441,8 +1441,8 @@ OptimizedStrassenMultiply_par((*(ctx->C12_ptr)), (*(ctx->S4_ptr)), (*(ctx->B22_p
 }
 
 
-static void pragma711_omp_task_hclib_async(void *____arg) {
-    pragma711_omp_task *ctx = (pragma711_omp_task *)____arg;
+static void pragma701_omp_task_hclib_async(void *____arg) {
+    pragma701_omp_task *ctx = (pragma701_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C21_ptr)), (*(ctx->A22_ptr)), (*(ctx->S8_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->RowWidthC_ptr)), (*(ctx->RowWidthA_ptr)), (*(ctx->QuadrantSize_ptr)), (*(ctx->Depth_ptr))+1) ;     ; hclib_end_finish_nonblocking();
 
@@ -1497,14 +1497,14 @@ REAL *alloc_matrix(int n)
      return (REAL *)malloc(n * n * sizeof(REAL));
 }
 
-typedef struct _pragma832_omp_task {
+typedef struct _pragma822_omp_task {
     double (*(*A_ptr));
     double (*(*B_ptr));
     double (*(*C_ptr));
     int (*n_ptr);
- } pragma832_omp_task;
+ } pragma822_omp_task;
 
-static void pragma832_omp_task_hclib_async(void *____arg);
+static void pragma822_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     double (*A);
     double (*B);
@@ -1522,12 +1522,12 @@ static void main_entrypoint(void *____arg) {
 {
 hclib_start_finish(); {
  { 
-pragma832_omp_task *new_ctx = (pragma832_omp_task *)malloc(sizeof(pragma832_omp_task));
+pragma822_omp_task *new_ctx = (pragma822_omp_task *)malloc(sizeof(pragma822_omp_task));
 new_ctx->A_ptr = &(A);
 new_ctx->B_ptr = &(B);
 new_ctx->C_ptr = &(C);
 new_ctx->n_ptr = &(n);
-hclib_async(pragma832_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma822_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
             } ; hclib_end_finish(); 
 	bots_message(" completed!\n");
@@ -1546,8 +1546,8 @@ const char *deps[] = { "system" };
 hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
-static void pragma832_omp_task_hclib_async(void *____arg) {
-    pragma832_omp_task *ctx = (pragma832_omp_task *)____arg;
+static void pragma822_omp_task_hclib_async(void *____arg) {
+    pragma822_omp_task *ctx = (pragma822_omp_task *)____arg;
     hclib_start_finish();
 OptimizedStrassenMultiply_par((*(ctx->C_ptr)), (*(ctx->A_ptr)), (*(ctx->B_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), (*(ctx->n_ptr)), 1) ;     ; hclib_end_finish_nonblocking();
 

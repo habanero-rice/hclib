@@ -182,7 +182,7 @@ for (cell_num = 0; cell_num < Nc; cell_num++) {
 			free(ri);
 	    } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma84_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma83_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 
 #ifdef OUTPUT

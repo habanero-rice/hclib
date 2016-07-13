@@ -44,45 +44,45 @@ long long fib_seq (int n)
 }
 
 
-typedef struct _pragma54_omp_task {
+typedef struct _pragma44_omp_task {
     long long (*x_ptr);
     long long (*y_ptr);
     int n;
- } pragma54_omp_task;
+ } pragma44_omp_task;
 
-typedef struct _pragma56_omp_task {
+typedef struct _pragma46_omp_task {
     long long (*x_ptr);
     long long (*y_ptr);
     int n;
- } pragma56_omp_task;
+ } pragma46_omp_task;
 
-static void pragma54_omp_task_hclib_async(void *____arg);
-static void pragma56_omp_task_hclib_async(void *____arg);
+static void pragma44_omp_task_hclib_async(void *____arg);
+static void pragma46_omp_task_hclib_async(void *____arg);
 long long fib (int n)
 {
 	long long x, y;
 	if (n < 2) return n;
 
  { 
-pragma54_omp_task *new_ctx = (pragma54_omp_task *)malloc(sizeof(pragma54_omp_task));
+pragma44_omp_task *new_ctx = (pragma44_omp_task *)malloc(sizeof(pragma44_omp_task));
 new_ctx->x_ptr = &(x);
 new_ctx->y_ptr = &(y);
 new_ctx->n = n;
-hclib_async(pragma54_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma44_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma56_omp_task *new_ctx = (pragma56_omp_task *)malloc(sizeof(pragma56_omp_task));
+pragma46_omp_task *new_ctx = (pragma46_omp_task *)malloc(sizeof(pragma46_omp_task));
 new_ctx->x_ptr = &(x);
 new_ctx->y_ptr = &(y);
 new_ctx->n = n;
-hclib_async(pragma56_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma46_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 
  hclib_end_finish(); hclib_start_finish(); ;
 	return x + y;
 } 
-static void pragma54_omp_task_hclib_async(void *____arg) {
-    pragma54_omp_task *ctx = (pragma54_omp_task *)____arg;
+static void pragma44_omp_task_hclib_async(void *____arg) {
+    pragma44_omp_task *ctx = (pragma44_omp_task *)____arg;
     int n; n = ctx->n;
     hclib_start_finish();
 (*(ctx->x_ptr)) = fib(n - 1) ;     ; hclib_end_finish_nonblocking();
@@ -91,8 +91,8 @@ static void pragma54_omp_task_hclib_async(void *____arg) {
 }
 
 
-static void pragma56_omp_task_hclib_async(void *____arg) {
-    pragma56_omp_task *ctx = (pragma56_omp_task *)____arg;
+static void pragma46_omp_task_hclib_async(void *____arg) {
+    pragma46_omp_task *ctx = (pragma46_omp_task *)____arg;
     int n; n = ctx->n;
     hclib_start_finish();
 (*(ctx->y_ptr)) = fib(n - 2) ;     ; hclib_end_finish_nonblocking();

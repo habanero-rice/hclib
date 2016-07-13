@@ -412,12 +412,12 @@ void put_in_hosp(struct Hosp *hosp, struct Patient *patient)
    }
 }
 /**********************************************************************/
-typedef struct _pragma430_omp_task {
+typedef struct _pragma420_omp_task {
     struct Village (*vlist);
     struct Village (*village);
- } pragma430_omp_task;
+ } pragma420_omp_task;
 
-static void pragma430_omp_task_hclib_async(void *____arg);
+static void pragma420_omp_task_hclib_async(void *____arg);
 void sim_village_par(struct Village *village)
 {
    struct Village *vlist;
@@ -432,10 +432,10 @@ void sim_village_par(struct Village *village)
    while(vlist)
    {
  { 
-pragma430_omp_task *new_ctx = (pragma430_omp_task *)malloc(sizeof(pragma430_omp_task));
+pragma420_omp_task *new_ctx = (pragma420_omp_task *)malloc(sizeof(pragma420_omp_task));
 new_ctx->vlist = vlist;
 new_ctx->village = village;
-hclib_async(pragma430_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma420_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
       vlist = vlist->next;
    }
@@ -457,8 +457,8 @@ hclib_async(pragma430_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
    /* Uses list v->population, v->hosp->asses and v->h->waiting */
    check_patients_population(village);
 } 
-static void pragma430_omp_task_hclib_async(void *____arg) {
-    pragma430_omp_task *ctx = (pragma430_omp_task *)____arg;
+static void pragma420_omp_task_hclib_async(void *____arg) {
+    pragma420_omp_task *ctx = (pragma420_omp_task *)____arg;
     struct Village (*vlist); vlist = ctx->vlist;
     struct Village (*village); village = ctx->village;
     hclib_start_finish();
@@ -573,12 +573,12 @@ int check_village(struct Village *top)
    return answer;
 }
 /**********************************************************************/
-typedef struct _pragma566_omp_task {
+typedef struct _pragma556_omp_task {
     long (*i_ptr);
     struct Village (*(*top_ptr));
- } pragma566_omp_task;
+ } pragma556_omp_task;
 
-static void pragma566_omp_task_hclib_async(void *____arg);
+static void pragma556_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     long i;
     struct Village (*top);
@@ -592,10 +592,10 @@ static void main_entrypoint(void *____arg) {
 {
 hclib_start_finish(); {
  { 
-pragma566_omp_task *new_ctx = (pragma566_omp_task *)malloc(sizeof(pragma566_omp_task));
+pragma556_omp_task *new_ctx = (pragma556_omp_task *)malloc(sizeof(pragma556_omp_task));
 new_ctx->i_ptr = &(i);
 new_ctx->top_ptr = &(top);
-hclib_async(pragma566_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma556_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
             } ; hclib_end_finish(); 
     } ;     free(____arg);
@@ -611,8 +611,8 @@ const char *deps[] = { "system" };
 hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
-static void pragma566_omp_task_hclib_async(void *____arg) {
-    pragma566_omp_task *ctx = (pragma566_omp_task *)____arg;
+static void pragma556_omp_task_hclib_async(void *____arg) {
+    pragma556_omp_task *ctx = (pragma556_omp_task *)____arg;
     hclib_start_finish();
 {
                     for ((*(ctx->i_ptr)) = 0; (*(ctx->i_ptr)) < sim_time; (*(ctx->i_ptr))++) sim_village_par((*(ctx->top_ptr)));   

@@ -76,7 +76,7 @@ for(int i = 0; i < N; i++)
 		dst[i] = src[i];
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma54_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma53_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 }
 
@@ -129,7 +129,7 @@ for(int i = 0; i < nelr; i++)
 		for(int j = 0; j < NVAR; j++) variables[i*NVAR + j] = ff_variable[j];
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma103_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma102_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 }
 
@@ -200,7 +200,7 @@ for(int i = 0; i < nelr; i++)
 		step_factors[i] = double(0.5) / (std::sqrt(areas[i]) * (std::sqrt(speed_sqd) + speed_of_sound));
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma156_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma155_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 }
 
@@ -343,7 +343,7 @@ for(int i = 0; i < nelr; i++)
 		fluxes[i*NVAR + VAR_DENSITY_ENERGY] = flux_i_density_energy;
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma187_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma186_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 }
 
@@ -362,7 +362,7 @@ for(int i = 0; i < nelr; i++)
 		variables[NVAR*i + (VAR_MOMENTUM+2)] = old_variables[NVAR*i + (VAR_MOMENTUM+2)] + factor*fluxes[NVAR*i + (VAR_MOMENTUM+2)];
 	} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma318_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma317_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 }
 /*
@@ -497,7 +497,7 @@ const unsigned long long full_program_start = current_time_ns();
 	dealloc<double>(step_factors);
     } ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 
 
 	std::cout << "Done..." << std::endl;

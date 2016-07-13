@@ -46,7 +46,7 @@
  * compute the W coefficients (that is, powers of the root of 1)
  * and store them into an array.
  */
-typedef struct _pragma68_omp_task {
+typedef struct _pragma58_omp_task {
     int (*ab_ptr);
     double (*twoPiOverN_ptr);
     int (*k_ptr);
@@ -56,9 +56,9 @@ typedef struct _pragma68_omp_task {
     int (*a_ptr);
     int (*b_ptr);
     COMPLEX (*(*W_ptr));
- } pragma68_omp_task;
+ } pragma58_omp_task;
 
-typedef struct _pragma70_omp_task {
+typedef struct _pragma60_omp_task {
     int (*ab_ptr);
     double (*twoPiOverN_ptr);
     int (*k_ptr);
@@ -68,10 +68,10 @@ typedef struct _pragma70_omp_task {
     int (*a_ptr);
     int (*b_ptr);
     COMPLEX (*(*W_ptr));
- } pragma70_omp_task;
+ } pragma60_omp_task;
 
-static void pragma68_omp_task_hclib_async(void *____arg);
-static void pragma70_omp_task_hclib_async(void *____arg);
+static void pragma58_omp_task_hclib_async(void *____arg);
+static void pragma60_omp_task_hclib_async(void *____arg);
 void compute_w_coefficients(int n, int a, int b, COMPLEX * W)
 {
      register double twoPiOverN;
@@ -90,7 +90,7 @@ void compute_w_coefficients(int n, int a, int b, COMPLEX * W)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma68_omp_task *new_ctx = (pragma68_omp_task *)malloc(sizeof(pragma68_omp_task));
+pragma58_omp_task *new_ctx = (pragma58_omp_task *)malloc(sizeof(pragma58_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->twoPiOverN_ptr = &(twoPiOverN);
 new_ctx->k_ptr = &(k);
@@ -100,10 +100,10 @@ new_ctx->n_ptr = &(n);
 new_ctx->a_ptr = &(a);
 new_ctx->b_ptr = &(b);
 new_ctx->W_ptr = &(W);
-hclib_async(pragma68_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma58_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma70_omp_task *new_ctx = (pragma70_omp_task *)malloc(sizeof(pragma70_omp_task));
+pragma60_omp_task *new_ctx = (pragma60_omp_task *)malloc(sizeof(pragma60_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->twoPiOverN_ptr = &(twoPiOverN);
 new_ctx->k_ptr = &(k);
@@ -113,13 +113,13 @@ new_ctx->n_ptr = &(n);
 new_ctx->a_ptr = &(a);
 new_ctx->b_ptr = &(b);
 new_ctx->W_ptr = &(W);
-hclib_async(pragma70_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma60_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma68_omp_task_hclib_async(void *____arg) {
-    pragma68_omp_task *ctx = (pragma68_omp_task *)____arg;
+static void pragma58_omp_task_hclib_async(void *____arg) {
+    pragma58_omp_task *ctx = (pragma58_omp_task *)____arg;
     hclib_start_finish();
 compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -127,8 +127,8 @@ compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ct
 }
 
 
-static void pragma70_omp_task_hclib_async(void *____arg) {
-    pragma70_omp_task *ctx = (pragma70_omp_task *)____arg;
+static void pragma60_omp_task_hclib_async(void *____arg) {
+    pragma60_omp_task *ctx = (pragma60_omp_task *)____arg;
     hclib_start_finish();
 compute_w_coefficients((*(ctx->n_ptr)), (*(ctx->ab_ptr)) + 1, (*(ctx->b_ptr)), (*(ctx->W_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -179,7 +179,7 @@ int factor(int n)
      return n;
 }
 
-typedef struct _pragma145_omp_task {
+typedef struct _pragma135_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     int (*j_ptr);
@@ -192,9 +192,9 @@ typedef struct _pragma145_omp_task {
     COMPLEX (*(*out_ptr));
     int (*r_ptr);
     int (*m_ptr);
- } pragma145_omp_task;
+ } pragma135_omp_task;
 
-typedef struct _pragma147_omp_task {
+typedef struct _pragma137_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     int (*j_ptr);
@@ -207,10 +207,10 @@ typedef struct _pragma147_omp_task {
     COMPLEX (*(*out_ptr));
     int (*r_ptr);
     int (*m_ptr);
- } pragma147_omp_task;
+ } pragma137_omp_task;
 
-static void pragma145_omp_task_hclib_async(void *____arg);
-static void pragma147_omp_task_hclib_async(void *____arg);
+static void pragma135_omp_task_hclib_async(void *____arg);
+static void pragma137_omp_task_hclib_async(void *____arg);
 void unshuffle(int a, int b, COMPLEX * in, COMPLEX * out, int r, int m)
 {
      int i, j;
@@ -239,7 +239,7 @@ void unshuffle(int a, int b, COMPLEX * in, COMPLEX * out, int r, int m)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma145_omp_task *new_ctx = (pragma145_omp_task *)malloc(sizeof(pragma145_omp_task));
+pragma135_omp_task *new_ctx = (pragma135_omp_task *)malloc(sizeof(pragma135_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->j_ptr = &(j);
@@ -252,10 +252,10 @@ new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma145_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma135_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma147_omp_task *new_ctx = (pragma147_omp_task *)malloc(sizeof(pragma147_omp_task));
+pragma137_omp_task *new_ctx = (pragma137_omp_task *)malloc(sizeof(pragma137_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->j_ptr = &(j);
@@ -268,13 +268,13 @@ new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma147_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma137_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma145_omp_task_hclib_async(void *____arg) {
-    pragma145_omp_task *ctx = (pragma145_omp_task *)____arg;
+static void pragma135_omp_task_hclib_async(void *____arg) {
+    pragma135_omp_task *ctx = (pragma135_omp_task *)____arg;
     hclib_start_finish();
 unshuffle((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -282,8 +282,8 @@ unshuffle((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr))
 }
 
 
-static void pragma147_omp_task_hclib_async(void *____arg) {
-    pragma147_omp_task *ctx = (pragma147_omp_task *)____arg;
+static void pragma137_omp_task_hclib_async(void *____arg) {
+    pragma137_omp_task *ctx = (pragma137_omp_task *)____arg;
     hclib_start_finish();
 unshuffle((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -351,7 +351,7 @@ void fft_twiddle_gen1(COMPLEX * in, COMPLEX * out,
      }
 }
 
-typedef struct _pragma215_omp_task {
+typedef struct _pragma205_omp_task {
     int (*i_ptr);
     int (*i1_ptr);
     COMPLEX (*(*in_ptr));
@@ -361,9 +361,9 @@ typedef struct _pragma215_omp_task {
     int (*nWdn_ptr);
     int (*r_ptr);
     int (*m_ptr);
- } pragma215_omp_task;
+ } pragma205_omp_task;
 
-typedef struct _pragma220_omp_task {
+typedef struct _pragma210_omp_task {
     int (*i2_ptr);
     int (*i_ptr);
     int (*i1_ptr);
@@ -374,9 +374,9 @@ typedef struct _pragma220_omp_task {
     int (*nWdn_ptr);
     int (*r_ptr);
     int (*m_ptr);
- } pragma220_omp_task;
+ } pragma210_omp_task;
 
-typedef struct _pragma223_omp_task {
+typedef struct _pragma213_omp_task {
     int (*i2_ptr);
     int (*i_ptr);
     int (*i1_ptr);
@@ -387,16 +387,16 @@ typedef struct _pragma223_omp_task {
     int (*nWdn_ptr);
     int (*r_ptr);
     int (*m_ptr);
- } pragma223_omp_task;
+ } pragma213_omp_task;
 
-static void pragma215_omp_task_hclib_async(void *____arg);
-static void pragma220_omp_task_hclib_async(void *____arg);
-static void pragma223_omp_task_hclib_async(void *____arg);
+static void pragma205_omp_task_hclib_async(void *____arg);
+static void pragma210_omp_task_hclib_async(void *____arg);
+static void pragma213_omp_task_hclib_async(void *____arg);
 void fft_twiddle_gen(int i, int i1, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int r, int m)
 {
      if (i == i1 - 1) {
  { 
-pragma215_omp_task *new_ctx = (pragma215_omp_task *)malloc(sizeof(pragma215_omp_task));
+pragma205_omp_task *new_ctx = (pragma205_omp_task *)malloc(sizeof(pragma205_omp_task));
 new_ctx->i_ptr = &(i);
 new_ctx->i1_ptr = &(i1);
 new_ctx->in_ptr = &(in);
@@ -406,12 +406,12 @@ new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma215_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma205_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      } else {
 	  int i2 = (i + i1) / 2;
  { 
-pragma220_omp_task *new_ctx = (pragma220_omp_task *)malloc(sizeof(pragma220_omp_task));
+pragma210_omp_task *new_ctx = (pragma210_omp_task *)malloc(sizeof(pragma210_omp_task));
 new_ctx->i2_ptr = &(i2);
 new_ctx->i_ptr = &(i);
 new_ctx->i1_ptr = &(i1);
@@ -422,10 +422,10 @@ new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma220_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma210_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma223_omp_task *new_ctx = (pragma223_omp_task *)malloc(sizeof(pragma223_omp_task));
+pragma213_omp_task *new_ctx = (pragma213_omp_task *)malloc(sizeof(pragma213_omp_task));
 new_ctx->i2_ptr = &(i2);
 new_ctx->i_ptr = &(i);
 new_ctx->i1_ptr = &(i1);
@@ -436,13 +436,13 @@ new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma223_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma213_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      }
  hclib_end_finish(); hclib_start_finish(); ;
 } 
-static void pragma215_omp_task_hclib_async(void *____arg) {
-    pragma215_omp_task *ctx = (pragma215_omp_task *)____arg;
+static void pragma205_omp_task_hclib_async(void *____arg) {
+    pragma205_omp_task *ctx = (pragma205_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen1((*(ctx->in_ptr)) + (*(ctx->i_ptr)), (*(ctx->out_ptr)) + (*(ctx->i_ptr)), (*(ctx->W_ptr)),
 				 (*(ctx->r_ptr)), (*(ctx->m_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->i_ptr)), (*(ctx->nWdn_ptr)) * (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
@@ -451,8 +451,8 @@ fft_twiddle_gen1((*(ctx->in_ptr)) + (*(ctx->i_ptr)), (*(ctx->out_ptr)) + (*(ctx-
 }
 
 
-static void pragma220_omp_task_hclib_async(void *____arg) {
-    pragma220_omp_task *ctx = (pragma220_omp_task *)____arg;
+static void pragma210_omp_task_hclib_async(void *____arg) {
+    pragma210_omp_task *ctx = (pragma210_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen((*(ctx->i_ptr)), (*(ctx->i2_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)),
 				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
@@ -461,8 +461,8 @@ fft_twiddle_gen((*(ctx->i_ptr)), (*(ctx->i2_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 }
 
 
-static void pragma223_omp_task_hclib_async(void *____arg) {
-    pragma223_omp_task *ctx = (pragma223_omp_task *)____arg;
+static void pragma213_omp_task_hclib_async(void *____arg) {
+    pragma213_omp_task *ctx = (pragma213_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen((*(ctx->i2_ptr)), (*(ctx->i1_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)),
 				(*(ctx->nWdn_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
@@ -499,7 +499,7 @@ void fft_base_2(COMPLEX * in, COMPLEX * out)
      c_re(out[1]) = (r1_0 - r1_1);
      c_im(out[1]) = (i1_0 - i1_1);
 }
-typedef struct _pragma285_omp_task {
+typedef struct _pragma275_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -517,9 +517,9 @@ typedef struct _pragma285_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma285_omp_task;
+ } pragma275_omp_task;
 
-typedef struct _pragma287_omp_task {
+typedef struct _pragma277_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -537,10 +537,10 @@ typedef struct _pragma287_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma287_omp_task;
+ } pragma277_omp_task;
 
-static void pragma285_omp_task_hclib_async(void *____arg);
-static void pragma287_omp_task_hclib_async(void *____arg);
+static void pragma275_omp_task_hclib_async(void *____arg);
+static void pragma277_omp_task_hclib_async(void *____arg);
 void fft_twiddle_2(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
 {
      int l1, i;
@@ -570,7 +570,7 @@ void fft_twiddle_2(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int n
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma285_omp_task *new_ctx = (pragma285_omp_task *)malloc(sizeof(pragma285_omp_task));
+pragma275_omp_task *new_ctx = (pragma275_omp_task *)malloc(sizeof(pragma275_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -588,10 +588,10 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma285_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma275_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma287_omp_task *new_ctx = (pragma287_omp_task *)malloc(sizeof(pragma287_omp_task));
+pragma277_omp_task *new_ctx = (pragma277_omp_task *)malloc(sizeof(pragma277_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -609,13 +609,13 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma287_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma277_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma285_omp_task_hclib_async(void *____arg) {
-    pragma285_omp_task *ctx = (pragma285_omp_task *)____arg;
+static void pragma275_omp_task_hclib_async(void *____arg) {
+    pragma275_omp_task *ctx = (pragma275_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -623,8 +623,8 @@ fft_twiddle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_p
 }
 
 
-static void pragma287_omp_task_hclib_async(void *____arg) {
-    pragma287_omp_task *ctx = (pragma287_omp_task *)____arg;
+static void pragma277_omp_task_hclib_async(void *____arg) {
+    pragma277_omp_task *ctx = (pragma277_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -664,7 +664,7 @@ void fft_twiddle_2_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, i
 	  fft_twiddle_2_seq(ab, b, in, out, W, nW, nWdn, m);
      }
 }
-typedef struct _pragma339_omp_task {
+typedef struct _pragma329_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -674,9 +674,9 @@ typedef struct _pragma339_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma339_omp_task;
+ } pragma329_omp_task;
 
-typedef struct _pragma341_omp_task {
+typedef struct _pragma331_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -686,10 +686,10 @@ typedef struct _pragma341_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma341_omp_task;
+ } pragma331_omp_task;
 
-static void pragma339_omp_task_hclib_async(void *____arg);
-static void pragma341_omp_task_hclib_async(void *____arg);
+static void pragma329_omp_task_hclib_async(void *____arg);
+static void pragma331_omp_task_hclib_async(void *____arg);
 void fft_unshuffle_2(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 {
      int i;
@@ -706,7 +706,7 @@ void fft_unshuffle_2(int a, int b, COMPLEX * in, COMPLEX * out, int m)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma339_omp_task *new_ctx = (pragma339_omp_task *)malloc(sizeof(pragma339_omp_task));
+pragma329_omp_task *new_ctx = (pragma329_omp_task *)malloc(sizeof(pragma329_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -716,10 +716,10 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma339_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma329_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma341_omp_task *new_ctx = (pragma341_omp_task *)malloc(sizeof(pragma341_omp_task));
+pragma331_omp_task *new_ctx = (pragma331_omp_task *)malloc(sizeof(pragma331_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -729,13 +729,13 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma341_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma331_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma339_omp_task_hclib_async(void *____arg) {
-    pragma339_omp_task *ctx = (pragma339_omp_task *)____arg;
+static void pragma329_omp_task_hclib_async(void *____arg) {
+    pragma329_omp_task *ctx = (pragma329_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -743,8 +743,8 @@ fft_unshuffle_2((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 }
 
 
-static void pragma341_omp_task_hclib_async(void *____arg) {
-    pragma341_omp_task *ctx = (pragma341_omp_task *)____arg;
+static void pragma331_omp_task_hclib_async(void *____arg) {
+    pragma331_omp_task *ctx = (pragma331_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_2((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -810,7 +810,7 @@ void fft_base_4(COMPLEX * in, COMPLEX * out)
      c_re(out[3]) = (r1_2 - i1_3);
      c_im(out[3]) = (i1_2 + r1_3);
 }
-typedef struct _pragma466_omp_task {
+typedef struct _pragma456_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -828,9 +828,9 @@ typedef struct _pragma466_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma466_omp_task;
+ } pragma456_omp_task;
 
-typedef struct _pragma468_omp_task {
+typedef struct _pragma458_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -848,10 +848,10 @@ typedef struct _pragma468_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma468_omp_task;
+ } pragma458_omp_task;
 
-static void pragma466_omp_task_hclib_async(void *____arg);
-static void pragma468_omp_task_hclib_async(void *____arg);
+static void pragma456_omp_task_hclib_async(void *____arg);
+static void pragma458_omp_task_hclib_async(void *____arg);
 void fft_twiddle_4(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
 {
      int l1, i;
@@ -915,7 +915,7 @@ void fft_twiddle_4(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int n
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma466_omp_task *new_ctx = (pragma466_omp_task *)malloc(sizeof(pragma466_omp_task));
+pragma456_omp_task *new_ctx = (pragma456_omp_task *)malloc(sizeof(pragma456_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -933,10 +933,10 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma466_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma456_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma468_omp_task *new_ctx = (pragma468_omp_task *)malloc(sizeof(pragma468_omp_task));
+pragma458_omp_task *new_ctx = (pragma458_omp_task *)malloc(sizeof(pragma458_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -954,13 +954,13 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma468_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma458_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma466_omp_task_hclib_async(void *____arg) {
-    pragma466_omp_task *ctx = (pragma466_omp_task *)____arg;
+static void pragma456_omp_task_hclib_async(void *____arg) {
+    pragma456_omp_task *ctx = (pragma456_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -968,8 +968,8 @@ fft_twiddle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_p
 }
 
 
-static void pragma468_omp_task_hclib_async(void *____arg) {
-    pragma468_omp_task *ctx = (pragma468_omp_task *)____arg;
+static void pragma458_omp_task_hclib_async(void *____arg) {
+    pragma458_omp_task *ctx = (pragma458_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -1043,7 +1043,7 @@ void fft_twiddle_4_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, i
 	  fft_twiddle_4_seq(ab, b, in, out, W, nW, nWdn, m);
      }
 }
-typedef struct _pragma558_omp_task {
+typedef struct _pragma548_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -1053,9 +1053,9 @@ typedef struct _pragma558_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma558_omp_task;
+ } pragma548_omp_task;
 
-typedef struct _pragma560_omp_task {
+typedef struct _pragma550_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -1065,10 +1065,10 @@ typedef struct _pragma560_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma560_omp_task;
+ } pragma550_omp_task;
 
-static void pragma558_omp_task_hclib_async(void *____arg);
-static void pragma560_omp_task_hclib_async(void *____arg);
+static void pragma548_omp_task_hclib_async(void *____arg);
+static void pragma550_omp_task_hclib_async(void *____arg);
 void fft_unshuffle_4(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 {
      int i;
@@ -1089,7 +1089,7 @@ void fft_unshuffle_4(int a, int b, COMPLEX * in, COMPLEX * out, int m)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma558_omp_task *new_ctx = (pragma558_omp_task *)malloc(sizeof(pragma558_omp_task));
+pragma548_omp_task *new_ctx = (pragma548_omp_task *)malloc(sizeof(pragma548_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -1099,10 +1099,10 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma558_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma548_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma560_omp_task *new_ctx = (pragma560_omp_task *)malloc(sizeof(pragma560_omp_task));
+pragma550_omp_task *new_ctx = (pragma550_omp_task *)malloc(sizeof(pragma550_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -1112,13 +1112,13 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma560_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma550_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma558_omp_task_hclib_async(void *____arg) {
-    pragma558_omp_task *ctx = (pragma558_omp_task *)____arg;
+static void pragma548_omp_task_hclib_async(void *____arg) {
+    pragma548_omp_task *ctx = (pragma548_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -1126,8 +1126,8 @@ fft_unshuffle_4((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 }
 
 
-static void pragma560_omp_task_hclib_async(void *____arg) {
-    pragma560_omp_task *ctx = (pragma560_omp_task *)____arg;
+static void pragma550_omp_task_hclib_async(void *____arg) {
+    pragma550_omp_task *ctx = (pragma550_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_4((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -1268,7 +1268,7 @@ void fft_base_8(COMPLEX * in, COMPLEX * out)
 	  c_im(out[7]) = (i1_6 + tmpi);
      }
 }
-typedef struct _pragma844_omp_task {
+typedef struct _pragma834_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -1286,9 +1286,9 @@ typedef struct _pragma844_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma844_omp_task;
+ } pragma834_omp_task;
 
-typedef struct _pragma846_omp_task {
+typedef struct _pragma836_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -1306,10 +1306,10 @@ typedef struct _pragma846_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma846_omp_task;
+ } pragma836_omp_task;
 
-static void pragma844_omp_task_hclib_async(void *____arg);
-static void pragma846_omp_task_hclib_async(void *____arg);
+static void pragma834_omp_task_hclib_async(void *____arg);
+static void pragma836_omp_task_hclib_async(void *____arg);
 void fft_twiddle_8(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
 {
      int l1, i;
@@ -1457,7 +1457,7 @@ void fft_twiddle_8(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int n
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma844_omp_task *new_ctx = (pragma844_omp_task *)malloc(sizeof(pragma844_omp_task));
+pragma834_omp_task *new_ctx = (pragma834_omp_task *)malloc(sizeof(pragma834_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -1475,10 +1475,10 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma844_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma834_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma846_omp_task *new_ctx = (pragma846_omp_task *)malloc(sizeof(pragma846_omp_task));
+pragma836_omp_task *new_ctx = (pragma836_omp_task *)malloc(sizeof(pragma836_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -1496,13 +1496,13 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma846_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma836_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma844_omp_task_hclib_async(void *____arg) {
-    pragma844_omp_task *ctx = (pragma844_omp_task *)____arg;
+static void pragma834_omp_task_hclib_async(void *____arg) {
+    pragma834_omp_task *ctx = (pragma834_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -1510,8 +1510,8 @@ fft_twiddle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_p
 }
 
 
-static void pragma846_omp_task_hclib_async(void *____arg) {
-    pragma846_omp_task *ctx = (pragma846_omp_task *)____arg;
+static void pragma836_omp_task_hclib_async(void *____arg) {
+    pragma836_omp_task *ctx = (pragma836_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -1669,7 +1669,7 @@ void fft_twiddle_8_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, i
 	  fft_twiddle_8_seq(ab, b, in, out, W, nW, nWdn, m);
      }
 }
-typedef struct _pragma1028_omp_task {
+typedef struct _pragma1018_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -1679,9 +1679,9 @@ typedef struct _pragma1028_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma1028_omp_task;
+ } pragma1018_omp_task;
 
-typedef struct _pragma1030_omp_task {
+typedef struct _pragma1020_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -1691,10 +1691,10 @@ typedef struct _pragma1030_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma1030_omp_task;
+ } pragma1020_omp_task;
 
-static void pragma1028_omp_task_hclib_async(void *____arg);
-static void pragma1030_omp_task_hclib_async(void *____arg);
+static void pragma1018_omp_task_hclib_async(void *____arg);
+static void pragma1020_omp_task_hclib_async(void *____arg);
 void fft_unshuffle_8(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 {
      int i;
@@ -1723,7 +1723,7 @@ void fft_unshuffle_8(int a, int b, COMPLEX * in, COMPLEX * out, int m)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma1028_omp_task *new_ctx = (pragma1028_omp_task *)malloc(sizeof(pragma1028_omp_task));
+pragma1018_omp_task *new_ctx = (pragma1018_omp_task *)malloc(sizeof(pragma1018_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -1733,10 +1733,10 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma1028_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma1018_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma1030_omp_task *new_ctx = (pragma1030_omp_task *)malloc(sizeof(pragma1030_omp_task));
+pragma1020_omp_task *new_ctx = (pragma1020_omp_task *)malloc(sizeof(pragma1020_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -1746,13 +1746,13 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma1030_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma1020_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma1028_omp_task_hclib_async(void *____arg) {
-    pragma1028_omp_task *ctx = (pragma1028_omp_task *)____arg;
+static void pragma1018_omp_task_hclib_async(void *____arg) {
+    pragma1018_omp_task *ctx = (pragma1018_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -1760,8 +1760,8 @@ fft_unshuffle_8((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out
 }
 
 
-static void pragma1030_omp_task_hclib_async(void *____arg) {
-    pragma1030_omp_task *ctx = (pragma1030_omp_task *)____arg;
+static void pragma1020_omp_task_hclib_async(void *____arg) {
+    pragma1020_omp_task *ctx = (pragma1020_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_8((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -2078,7 +2078,7 @@ void fft_base_16(COMPLEX * in, COMPLEX * out)
 	  c_im(out[15]) = (i1_14 + tmpi);
      }
 }
-typedef struct _pragma1690_omp_task {
+typedef struct _pragma1680_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -2096,9 +2096,9 @@ typedef struct _pragma1690_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma1690_omp_task;
+ } pragma1680_omp_task;
 
-typedef struct _pragma1692_omp_task {
+typedef struct _pragma1682_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -2116,10 +2116,10 @@ typedef struct _pragma1692_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma1692_omp_task;
+ } pragma1682_omp_task;
 
-static void pragma1690_omp_task_hclib_async(void *____arg);
-static void pragma1692_omp_task_hclib_async(void *____arg);
+static void pragma1680_omp_task_hclib_async(void *____arg);
+static void pragma1682_omp_task_hclib_async(void *____arg);
 void fft_twiddle_16(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
 {
      int l1, i;
@@ -2467,7 +2467,7 @@ void fft_twiddle_16(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int 
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma1690_omp_task *new_ctx = (pragma1690_omp_task *)malloc(sizeof(pragma1690_omp_task));
+pragma1680_omp_task *new_ctx = (pragma1680_omp_task *)malloc(sizeof(pragma1680_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -2485,10 +2485,10 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma1690_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma1680_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma1692_omp_task *new_ctx = (pragma1692_omp_task *)malloc(sizeof(pragma1692_omp_task));
+pragma1682_omp_task *new_ctx = (pragma1682_omp_task *)malloc(sizeof(pragma1682_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -2506,13 +2506,13 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma1692_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma1682_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma1690_omp_task_hclib_async(void *____arg) {
-    pragma1690_omp_task *ctx = (pragma1690_omp_task *)____arg;
+static void pragma1680_omp_task_hclib_async(void *____arg) {
+    pragma1680_omp_task *ctx = (pragma1680_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -2520,8 +2520,8 @@ fft_twiddle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_
 }
 
 
-static void pragma1692_omp_task_hclib_async(void *____arg) {
-    pragma1692_omp_task *ctx = (pragma1692_omp_task *)____arg;
+static void pragma1682_omp_task_hclib_async(void *____arg) {
+    pragma1682_omp_task *ctx = (pragma1682_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -2879,7 +2879,7 @@ void fft_twiddle_16_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, 
 	  fft_twiddle_16_seq(ab, b, in, out, W, nW, nWdn, m);
      }
 }
-typedef struct _pragma2090_omp_task {
+typedef struct _pragma2080_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -2889,9 +2889,9 @@ typedef struct _pragma2090_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma2090_omp_task;
+ } pragma2080_omp_task;
 
-typedef struct _pragma2092_omp_task {
+typedef struct _pragma2082_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -2901,10 +2901,10 @@ typedef struct _pragma2092_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma2092_omp_task;
+ } pragma2082_omp_task;
 
-static void pragma2090_omp_task_hclib_async(void *____arg);
-static void pragma2092_omp_task_hclib_async(void *____arg);
+static void pragma2080_omp_task_hclib_async(void *____arg);
+static void pragma2082_omp_task_hclib_async(void *____arg);
 void fft_unshuffle_16(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 {
      int i;
@@ -2949,7 +2949,7 @@ void fft_unshuffle_16(int a, int b, COMPLEX * in, COMPLEX * out, int m)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma2090_omp_task *new_ctx = (pragma2090_omp_task *)malloc(sizeof(pragma2090_omp_task));
+pragma2080_omp_task *new_ctx = (pragma2080_omp_task *)malloc(sizeof(pragma2080_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -2959,10 +2959,10 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma2090_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma2080_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma2092_omp_task *new_ctx = (pragma2092_omp_task *)malloc(sizeof(pragma2092_omp_task));
+pragma2082_omp_task *new_ctx = (pragma2082_omp_task *)malloc(sizeof(pragma2082_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -2972,13 +2972,13 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma2092_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma2082_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma2090_omp_task_hclib_async(void *____arg) {
-    pragma2090_omp_task *ctx = (pragma2090_omp_task *)____arg;
+static void pragma2080_omp_task_hclib_async(void *____arg) {
+    pragma2080_omp_task *ctx = (pragma2080_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -2986,8 +2986,8 @@ fft_unshuffle_16((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->ou
 }
 
 
-static void pragma2092_omp_task_hclib_async(void *____arg) {
-    pragma2092_omp_task *ctx = (pragma2092_omp_task *)____arg;
+static void pragma2082_omp_task_hclib_async(void *____arg) {
+    pragma2082_omp_task *ctx = (pragma2082_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_16((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -3720,7 +3720,7 @@ void fft_base_32(COMPLEX * in, COMPLEX * out)
 	  c_im(out[31]) = (i1_30 + tmpi);
      }
 }
-typedef struct _pragma3632_omp_task {
+typedef struct _pragma3622_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -3738,9 +3738,9 @@ typedef struct _pragma3632_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma3632_omp_task;
+ } pragma3622_omp_task;
 
-typedef struct _pragma3634_omp_task {
+typedef struct _pragma3624_omp_task {
     int (*ab_ptr);
     int (*l1_ptr);
     int (*i_ptr);
@@ -3758,10 +3758,10 @@ typedef struct _pragma3634_omp_task {
     int (*nW_ptr);
     int (*nWdn_ptr);
     int (*m_ptr);
- } pragma3634_omp_task;
+ } pragma3624_omp_task;
 
-static void pragma3632_omp_task_hclib_async(void *____arg);
-static void pragma3634_omp_task_hclib_async(void *____arg);
+static void pragma3622_omp_task_hclib_async(void *____arg);
+static void pragma3624_omp_task_hclib_async(void *____arg);
 void fft_twiddle_32(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int nW, int nWdn, int m)
 {
      int l1, i;
@@ -4573,7 +4573,7 @@ void fft_twiddle_32(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, int 
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma3632_omp_task *new_ctx = (pragma3632_omp_task *)malloc(sizeof(pragma3632_omp_task));
+pragma3622_omp_task *new_ctx = (pragma3622_omp_task *)malloc(sizeof(pragma3622_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -4591,10 +4591,10 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma3632_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma3622_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma3634_omp_task *new_ctx = (pragma3634_omp_task *)malloc(sizeof(pragma3634_omp_task));
+pragma3624_omp_task *new_ctx = (pragma3624_omp_task *)malloc(sizeof(pragma3624_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->l1_ptr = &(l1);
 new_ctx->i_ptr = &(i);
@@ -4612,13 +4612,13 @@ new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
 new_ctx->nWdn_ptr = &(nWdn);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma3634_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma3624_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma3632_omp_task_hclib_async(void *____arg) {
-    pragma3632_omp_task *ctx = (pragma3632_omp_task *)____arg;
+static void pragma3622_omp_task_hclib_async(void *____arg) {
+    pragma3622_omp_task *ctx = (pragma3622_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -4626,8 +4626,8 @@ fft_twiddle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_
 }
 
 
-static void pragma3634_omp_task_hclib_async(void *____arg) {
-    pragma3634_omp_task *ctx = (pragma3634_omp_task *)____arg;
+static void pragma3624_omp_task_hclib_async(void *____arg) {
+    pragma3624_omp_task *ctx = (pragma3624_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nWdn_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -5449,7 +5449,7 @@ void fft_twiddle_32_seq(int a, int b, COMPLEX * in, COMPLEX * out, COMPLEX * W, 
 	  fft_twiddle_32_seq(ab, b, in, out, W, nW, nWdn, m);
      }
 }
-typedef struct _pragma4528_omp_task {
+typedef struct _pragma4518_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -5459,9 +5459,9 @@ typedef struct _pragma4528_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma4528_omp_task;
+ } pragma4518_omp_task;
 
-typedef struct _pragma4530_omp_task {
+typedef struct _pragma4520_omp_task {
     int (*ab_ptr);
     int (*i_ptr);
     COMPLEX (*(*ip_ptr));
@@ -5471,10 +5471,10 @@ typedef struct _pragma4530_omp_task {
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
     int (*m_ptr);
- } pragma4530_omp_task;
+ } pragma4520_omp_task;
 
-static void pragma4528_omp_task_hclib_async(void *____arg);
-static void pragma4530_omp_task_hclib_async(void *____arg);
+static void pragma4518_omp_task_hclib_async(void *____arg);
+static void pragma4520_omp_task_hclib_async(void *____arg);
 void fft_unshuffle_32(int a, int b, COMPLEX * in, COMPLEX * out, int m)
 {
      int i;
@@ -5551,7 +5551,7 @@ void fft_unshuffle_32(int a, int b, COMPLEX * in, COMPLEX * out, int m)
      } else {
 	  int ab = (a + b) / 2;
  { 
-pragma4528_omp_task *new_ctx = (pragma4528_omp_task *)malloc(sizeof(pragma4528_omp_task));
+pragma4518_omp_task *new_ctx = (pragma4518_omp_task *)malloc(sizeof(pragma4518_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -5561,10 +5561,10 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma4528_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4518_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  { 
-pragma4530_omp_task *new_ctx = (pragma4530_omp_task *)malloc(sizeof(pragma4530_omp_task));
+pragma4520_omp_task *new_ctx = (pragma4520_omp_task *)malloc(sizeof(pragma4520_omp_task));
 new_ctx->ab_ptr = &(ab);
 new_ctx->i_ptr = &(i);
 new_ctx->ip_ptr = &(ip);
@@ -5574,13 +5574,13 @@ new_ctx->b_ptr = &(b);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
 new_ctx->m_ptr = &(m);
-hclib_async(pragma4530_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4520_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
  hclib_end_finish(); hclib_start_finish(); ;
      }
 } 
-static void pragma4528_omp_task_hclib_async(void *____arg) {
-    pragma4528_omp_task *ctx = (pragma4528_omp_task *)____arg;
+static void pragma4518_omp_task_hclib_async(void *____arg) {
+    pragma4518_omp_task *ctx = (pragma4518_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -5588,8 +5588,8 @@ fft_unshuffle_32((*(ctx->a_ptr)), (*(ctx->ab_ptr)), (*(ctx->in_ptr)), (*(ctx->ou
 }
 
 
-static void pragma4530_omp_task_hclib_async(void *____arg) {
-    pragma4530_omp_task *ctx = (pragma4530_omp_task *)____arg;
+static void pragma4520_omp_task_hclib_async(void *____arg) {
+    pragma4520_omp_task *ctx = (pragma4520_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_32((*(ctx->ab_ptr)), (*(ctx->b_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -5693,7 +5693,7 @@ void fft_unshuffle_32_seq(int a, int b, COMPLEX * in, COMPLEX * out, int m)
  * nW: size of W, that is, size of the original transform
  *
  */
-typedef struct _pragma4670_omp_task {
+typedef struct _pragma4660_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5703,9 +5703,9 @@ typedef struct _pragma4670_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4670_omp_task;
+ } pragma4660_omp_task;
 
-typedef struct _pragma4673_omp_task {
+typedef struct _pragma4663_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5715,9 +5715,9 @@ typedef struct _pragma4673_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4673_omp_task;
+ } pragma4663_omp_task;
 
-typedef struct _pragma4676_omp_task {
+typedef struct _pragma4666_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5727,9 +5727,9 @@ typedef struct _pragma4676_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4676_omp_task;
+ } pragma4666_omp_task;
 
-typedef struct _pragma4679_omp_task {
+typedef struct _pragma4669_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5739,9 +5739,9 @@ typedef struct _pragma4679_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4679_omp_task;
+ } pragma4669_omp_task;
 
-typedef struct _pragma4682_omp_task {
+typedef struct _pragma4672_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5751,9 +5751,9 @@ typedef struct _pragma4682_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4682_omp_task;
+ } pragma4672_omp_task;
 
-typedef struct _pragma4690_omp_task {
+typedef struct _pragma4680_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int k;
@@ -5763,9 +5763,21 @@ typedef struct _pragma4690_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
+ } pragma4680_omp_task;
+
+typedef struct _pragma4690_omp_task {
+    int (*r_ptr);
+    int (*m_ptr);
+    int (*k_ptr);
+    int (*n_ptr);
+    COMPLEX (*(*in_ptr));
+    COMPLEX (*(*out_ptr));
+    int (*(*factors_ptr));
+    COMPLEX (*(*W_ptr));
+    int (*nW_ptr);
  } pragma4690_omp_task;
 
-typedef struct _pragma4700_omp_task {
+typedef struct _pragma4693_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5775,9 +5787,9 @@ typedef struct _pragma4700_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4700_omp_task;
+ } pragma4693_omp_task;
 
-typedef struct _pragma4703_omp_task {
+typedef struct _pragma4696_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5787,9 +5799,9 @@ typedef struct _pragma4703_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4703_omp_task;
+ } pragma4696_omp_task;
 
-typedef struct _pragma4706_omp_task {
+typedef struct _pragma4699_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5799,9 +5811,9 @@ typedef struct _pragma4706_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4706_omp_task;
+ } pragma4699_omp_task;
 
-typedef struct _pragma4709_omp_task {
+typedef struct _pragma4702_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5811,9 +5823,9 @@ typedef struct _pragma4709_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4709_omp_task;
+ } pragma4702_omp_task;
 
-typedef struct _pragma4712_omp_task {
+typedef struct _pragma4705_omp_task {
     int (*r_ptr);
     int (*m_ptr);
     int (*k_ptr);
@@ -5823,32 +5835,20 @@ typedef struct _pragma4712_omp_task {
     int (*(*factors_ptr));
     COMPLEX (*(*W_ptr));
     int (*nW_ptr);
- } pragma4712_omp_task;
+ } pragma4705_omp_task;
 
-typedef struct _pragma4715_omp_task {
-    int (*r_ptr);
-    int (*m_ptr);
-    int (*k_ptr);
-    int (*n_ptr);
-    COMPLEX (*(*in_ptr));
-    COMPLEX (*(*out_ptr));
-    int (*(*factors_ptr));
-    COMPLEX (*(*W_ptr));
-    int (*nW_ptr);
- } pragma4715_omp_task;
-
-static void pragma4670_omp_task_hclib_async(void *____arg);
-static void pragma4673_omp_task_hclib_async(void *____arg);
-static void pragma4676_omp_task_hclib_async(void *____arg);
-static void pragma4679_omp_task_hclib_async(void *____arg);
-static void pragma4682_omp_task_hclib_async(void *____arg);
+static void pragma4660_omp_task_hclib_async(void *____arg);
+static void pragma4663_omp_task_hclib_async(void *____arg);
+static void pragma4666_omp_task_hclib_async(void *____arg);
+static void pragma4669_omp_task_hclib_async(void *____arg);
+static void pragma4672_omp_task_hclib_async(void *____arg);
+static void pragma4680_omp_task_hclib_async(void *____arg);
 static void pragma4690_omp_task_hclib_async(void *____arg);
-static void pragma4700_omp_task_hclib_async(void *____arg);
-static void pragma4703_omp_task_hclib_async(void *____arg);
-static void pragma4706_omp_task_hclib_async(void *____arg);
-static void pragma4709_omp_task_hclib_async(void *____arg);
-static void pragma4712_omp_task_hclib_async(void *____arg);
-static void pragma4715_omp_task_hclib_async(void *____arg);
+static void pragma4693_omp_task_hclib_async(void *____arg);
+static void pragma4696_omp_task_hclib_async(void *____arg);
+static void pragma4699_omp_task_hclib_async(void *____arg);
+static void pragma4702_omp_task_hclib_async(void *____arg);
+static void pragma4705_omp_task_hclib_async(void *____arg);
 void fft_aux(int n, COMPLEX * in, COMPLEX * out, int *factors, COMPLEX * W, int nW)
 {
      int r, m;
@@ -5889,7 +5889,7 @@ void fft_aux(int n, COMPLEX * in, COMPLEX * out, int *factors, COMPLEX * W, int 
 	   */
 	  if (r == 32) {
  { 
-pragma4670_omp_task *new_ctx = (pragma4670_omp_task *)malloc(sizeof(pragma4670_omp_task));
+pragma4660_omp_task *new_ctx = (pragma4660_omp_task *)malloc(sizeof(pragma4660_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -5899,11 +5899,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4670_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4660_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 	  } else if (r == 16) {
  { 
-pragma4673_omp_task *new_ctx = (pragma4673_omp_task *)malloc(sizeof(pragma4673_omp_task));
+pragma4663_omp_task *new_ctx = (pragma4663_omp_task *)malloc(sizeof(pragma4663_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -5913,11 +5913,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4673_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4663_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 	  } else if (r == 8) {
  { 
-pragma4676_omp_task *new_ctx = (pragma4676_omp_task *)malloc(sizeof(pragma4676_omp_task));
+pragma4666_omp_task *new_ctx = (pragma4666_omp_task *)malloc(sizeof(pragma4666_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -5927,11 +5927,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4676_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4666_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 	  } else if (r == 4) {
  { 
-pragma4679_omp_task *new_ctx = (pragma4679_omp_task *)malloc(sizeof(pragma4679_omp_task));
+pragma4669_omp_task *new_ctx = (pragma4669_omp_task *)malloc(sizeof(pragma4669_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -5941,11 +5941,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4679_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4669_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 	  } else if (r == 2) {
  { 
-pragma4682_omp_task *new_ctx = (pragma4682_omp_task *)malloc(sizeof(pragma4682_omp_task));
+pragma4672_omp_task *new_ctx = (pragma4672_omp_task *)malloc(sizeof(pragma4672_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -5955,7 +5955,7 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4682_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4672_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 	  } else
 	       unshuffle(0, m, in, out, r, m);
@@ -5964,7 +5964,7 @@ hclib_async(pragma4682_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 
 	  for (k = 0; k < n; k += m) {
  { 
-pragma4690_omp_task *new_ctx = (pragma4690_omp_task *)malloc(sizeof(pragma4690_omp_task));
+pragma4680_omp_task *new_ctx = (pragma4680_omp_task *)malloc(sizeof(pragma4680_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k = k;
@@ -5974,7 +5974,7 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4690_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4680_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
 	  }
  hclib_end_finish(); hclib_start_finish(); ;
@@ -5985,7 +5985,7 @@ hclib_async(pragma4690_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
       */
      if (r == 2) {
  { 
-pragma4700_omp_task *new_ctx = (pragma4700_omp_task *)malloc(sizeof(pragma4700_omp_task));
+pragma4690_omp_task *new_ctx = (pragma4690_omp_task *)malloc(sizeof(pragma4690_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -5995,11 +5995,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4700_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4690_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      } else if (r == 4) {
  { 
-pragma4703_omp_task *new_ctx = (pragma4703_omp_task *)malloc(sizeof(pragma4703_omp_task));
+pragma4693_omp_task *new_ctx = (pragma4693_omp_task *)malloc(sizeof(pragma4693_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -6009,11 +6009,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4703_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4693_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      } else if (r == 8) {
  { 
-pragma4706_omp_task *new_ctx = (pragma4706_omp_task *)malloc(sizeof(pragma4706_omp_task));
+pragma4696_omp_task *new_ctx = (pragma4696_omp_task *)malloc(sizeof(pragma4696_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -6023,11 +6023,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4706_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4696_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      } else if (r == 16) {
  { 
-pragma4709_omp_task *new_ctx = (pragma4709_omp_task *)malloc(sizeof(pragma4709_omp_task));
+pragma4699_omp_task *new_ctx = (pragma4699_omp_task *)malloc(sizeof(pragma4699_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -6037,11 +6037,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4709_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4699_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      } else if (r == 32) {
  { 
-pragma4712_omp_task *new_ctx = (pragma4712_omp_task *)malloc(sizeof(pragma4712_omp_task));
+pragma4702_omp_task *new_ctx = (pragma4702_omp_task *)malloc(sizeof(pragma4702_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -6051,11 +6051,11 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4712_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4702_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      } else {
  { 
-pragma4715_omp_task *new_ctx = (pragma4715_omp_task *)malloc(sizeof(pragma4715_omp_task));
+pragma4705_omp_task *new_ctx = (pragma4705_omp_task *)malloc(sizeof(pragma4705_omp_task));
 new_ctx->r_ptr = &(r);
 new_ctx->m_ptr = &(m);
 new_ctx->k_ptr = &(k);
@@ -6065,7 +6065,7 @@ new_ctx->out_ptr = &(out);
 new_ctx->factors_ptr = &(factors);
 new_ctx->W_ptr = &(W);
 new_ctx->nW_ptr = &(nW);
-hclib_async(pragma4715_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4705_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } ;
      }
 
@@ -6073,8 +6073,8 @@ hclib_async(pragma4715_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
 
      return;
 } 
-static void pragma4670_omp_task_hclib_async(void *____arg) {
-    pragma4670_omp_task *ctx = (pragma4670_omp_task *)____arg;
+static void pragma4660_omp_task_hclib_async(void *____arg) {
+    pragma4660_omp_task *ctx = (pragma4660_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6082,8 +6082,8 @@ fft_unshuffle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx
 }
 
 
-static void pragma4673_omp_task_hclib_async(void *____arg) {
-    pragma4673_omp_task *ctx = (pragma4673_omp_task *)____arg;
+static void pragma4663_omp_task_hclib_async(void *____arg) {
+    pragma4663_omp_task *ctx = (pragma4663_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6091,8 +6091,8 @@ fft_unshuffle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx
 }
 
 
-static void pragma4676_omp_task_hclib_async(void *____arg) {
-    pragma4676_omp_task *ctx = (pragma4676_omp_task *)____arg;
+static void pragma4666_omp_task_hclib_async(void *____arg) {
+    pragma4666_omp_task *ctx = (pragma4666_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6100,8 +6100,8 @@ fft_unshuffle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx-
 }
 
 
-static void pragma4679_omp_task_hclib_async(void *____arg) {
-    pragma4679_omp_task *ctx = (pragma4679_omp_task *)____arg;
+static void pragma4669_omp_task_hclib_async(void *____arg) {
+    pragma4669_omp_task *ctx = (pragma4669_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6109,8 +6109,8 @@ fft_unshuffle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx-
 }
 
 
-static void pragma4682_omp_task_hclib_async(void *____arg) {
-    pragma4682_omp_task *ctx = (pragma4682_omp_task *)____arg;
+static void pragma4672_omp_task_hclib_async(void *____arg) {
+    pragma4672_omp_task *ctx = (pragma4672_omp_task *)____arg;
     hclib_start_finish();
 fft_unshuffle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6118,8 +6118,8 @@ fft_unshuffle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx-
 }
 
 
-static void pragma4690_omp_task_hclib_async(void *____arg) {
-    pragma4690_omp_task *ctx = (pragma4690_omp_task *)____arg;
+static void pragma4680_omp_task_hclib_async(void *____arg) {
+    pragma4680_omp_task *ctx = (pragma4680_omp_task *)____arg;
     int k; k = ctx->k;
     hclib_start_finish();
 fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + k, (*(ctx->in_ptr)) + k, (*(ctx->factors_ptr)) + 1, (*(ctx->W_ptr)), (*(ctx->nW_ptr))) ;     ; hclib_end_finish_nonblocking();
@@ -6128,8 +6128,8 @@ fft_aux((*(ctx->m_ptr)), (*(ctx->out_ptr)) + k, (*(ctx->in_ptr)) + k, (*(ctx->fa
 }
 
 
-static void pragma4700_omp_task_hclib_async(void *____arg) {
-    pragma4700_omp_task *ctx = (pragma4700_omp_task *)____arg;
+static void pragma4690_omp_task_hclib_async(void *____arg) {
+    pragma4690_omp_task *ctx = (pragma4690_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6137,8 +6137,8 @@ fft_twiddle_2(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W
 }
 
 
-static void pragma4703_omp_task_hclib_async(void *____arg) {
-    pragma4703_omp_task *ctx = (pragma4703_omp_task *)____arg;
+static void pragma4693_omp_task_hclib_async(void *____arg) {
+    pragma4693_omp_task *ctx = (pragma4693_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6146,8 +6146,8 @@ fft_twiddle_4(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W
 }
 
 
-static void pragma4706_omp_task_hclib_async(void *____arg) {
-    pragma4706_omp_task *ctx = (pragma4706_omp_task *)____arg;
+static void pragma4696_omp_task_hclib_async(void *____arg) {
+    pragma4696_omp_task *ctx = (pragma4696_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6155,8 +6155,8 @@ fft_twiddle_8(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W
 }
 
 
-static void pragma4709_omp_task_hclib_async(void *____arg) {
-    pragma4709_omp_task *ctx = (pragma4709_omp_task *)____arg;
+static void pragma4699_omp_task_hclib_async(void *____arg) {
+    pragma4699_omp_task *ctx = (pragma4699_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6164,8 +6164,8 @@ fft_twiddle_16(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->
 }
 
 
-static void pragma4712_omp_task_hclib_async(void *____arg) {
-    pragma4712_omp_task *ctx = (pragma4712_omp_task *)____arg;
+static void pragma4702_omp_task_hclib_async(void *____arg) {
+    pragma4702_omp_task *ctx = (pragma4702_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6173,8 +6173,8 @@ fft_twiddle_32(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->
 }
 
 
-static void pragma4715_omp_task_hclib_async(void *____arg) {
-    pragma4715_omp_task *ctx = (pragma4715_omp_task *)____arg;
+static void pragma4705_omp_task_hclib_async(void *____arg) {
+    pragma4705_omp_task *ctx = (pragma4705_omp_task *)____arg;
     hclib_start_finish();
 fft_twiddle_gen(0, (*(ctx->m_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->W_ptr)), (*(ctx->nW_ptr)), (*(ctx->nW_ptr)) / (*(ctx->n_ptr)), (*(ctx->r_ptr)), (*(ctx->m_ptr))) ;     ; hclib_end_finish_nonblocking();
 
@@ -6248,7 +6248,7 @@ void fft_aux_seq(int n, COMPLEX * in, COMPLEX * out, int *factors, COMPLEX * W, 
 /*
  * user interface for fft_aux
  */
-typedef struct _pragma4807_omp_task {
+typedef struct _pragma4797_omp_task {
     int (*(*factors_ptr));
     int (*(*p_ptr));
     int (*l_ptr);
@@ -6257,9 +6257,9 @@ typedef struct _pragma4807_omp_task {
     int (*n_ptr);
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
- } pragma4807_omp_task;
+ } pragma4797_omp_task;
 
-typedef struct _pragma4830_omp_task {
+typedef struct _pragma4820_omp_task {
     int (*(*factors_ptr));
     int (*(*p_ptr));
     int (*l_ptr);
@@ -6268,10 +6268,10 @@ typedef struct _pragma4830_omp_task {
     int (*n_ptr);
     COMPLEX (*(*in_ptr));
     COMPLEX (*(*out_ptr));
- } pragma4830_omp_task;
+ } pragma4820_omp_task;
 
-static void pragma4807_omp_task_hclib_async(void *____arg);
-static void pragma4830_omp_task_hclib_async(void *____arg);
+static void pragma4797_omp_task_hclib_async(void *____arg);
+static void pragma4820_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     int (*factors);
     int (*p);
@@ -6298,7 +6298,7 @@ static void main_entrypoint(void *____arg) {
      W = (COMPLEX *) malloc((n + 1) * sizeof(COMPLEX));
 hclib_start_finish(); {
  { 
-pragma4807_omp_task *new_ctx = (pragma4807_omp_task *)malloc(sizeof(pragma4807_omp_task));
+pragma4797_omp_task *new_ctx = (pragma4797_omp_task *)malloc(sizeof(pragma4797_omp_task));
 new_ctx->factors_ptr = &(factors);
 new_ctx->p_ptr = &(p);
 new_ctx->l_ptr = &(l);
@@ -6307,7 +6307,7 @@ new_ctx->W_ptr = &(W);
 new_ctx->n_ptr = &(n);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
-hclib_async(pragma4807_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4797_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
          } ; hclib_end_finish(); 
      bots_message(" completed!\n");
@@ -6325,7 +6325,7 @@ hclib_async(pragma4807_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
      bots_message("Computing FFT ");
 hclib_start_finish(); {
  { 
-pragma4830_omp_task *new_ctx = (pragma4830_omp_task *)malloc(sizeof(pragma4830_omp_task));
+pragma4820_omp_task *new_ctx = (pragma4820_omp_task *)malloc(sizeof(pragma4820_omp_task));
 new_ctx->factors_ptr = &(factors);
 new_ctx->p_ptr = &(p);
 new_ctx->l_ptr = &(l);
@@ -6334,7 +6334,7 @@ new_ctx->W_ptr = &(W);
 new_ctx->n_ptr = &(n);
 new_ctx->in_ptr = &(in);
 new_ctx->out_ptr = &(out);
-hclib_async(pragma4830_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma4820_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
          } ; hclib_end_finish(); 
 
@@ -6369,8 +6369,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
      return;
 }  
-static void pragma4807_omp_task_hclib_async(void *____arg) {
-    pragma4807_omp_task *ctx = (pragma4807_omp_task *)____arg;
+static void pragma4797_omp_task_hclib_async(void *____arg) {
+    pragma4797_omp_task *ctx = (pragma4797_omp_task *)____arg;
     hclib_start_finish();
 {
                  compute_w_coefficients((*(ctx->n_ptr)), 0, (*(ctx->n_ptr)) / 2, (*(ctx->W_ptr)));
@@ -6380,8 +6380,8 @@ static void pragma4807_omp_task_hclib_async(void *____arg) {
 }
 
 
-static void pragma4830_omp_task_hclib_async(void *____arg) {
-    pragma4830_omp_task *ctx = (pragma4830_omp_task *)____arg;
+static void pragma4820_omp_task_hclib_async(void *____arg) {
+    pragma4820_omp_task *ctx = (pragma4820_omp_task *)____arg;
     hclib_start_finish();
 {
                  fft_aux((*(ctx->n_ptr)), (*(ctx->in_ptr)), (*(ctx->out_ptr)), (*(ctx->factors_ptr)), (*(ctx->W_ptr)), (*(ctx->n_ptr)));

@@ -4,19 +4,19 @@ __device__ inline int hclib_get_current_worker() {
 }
 
 template<class functor_type>
-__global__ void wrapper_kernel(unsigned niters, functor_type functor) {
+__global__ void wrapper_kernel(unsigned iter_offset, unsigned niters, functor_type functor) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor(tid);
+        functor(iter_offset + tid);
     }
 }
 template<class functor_type>
-static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned iter_offset, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
     const unsigned long long start = capp_current_time_ns();
-    wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
+    wrapper_kernel<<<nblocks, threads_per_block>>>(iter_offset, niters, functor);
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
@@ -79,7 +79,7 @@ int num_omp_threads;
  * advances the solution of the discretized difference equations 
  * by one time step
  */
-class pragma72_omp_parallel_hclib_async {
+class pragma62_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -106,7 +106,7 @@ class pragma72_omp_parallel_hclib_async {
     FLOAT* volatile h_result;
 
     public:
-        pragma72_omp_parallel_hclib_async(int set_chunk,
+        pragma62_omp_parallel_hclib_async(int set_chunk,
                 int set_chunks_in_col,
                 int set_chunks_in_row,
                 int set_row,
@@ -294,7 +294,8 @@ void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row, int col
 
 	// omp_set_num_threads(num_omp_threads);
  { const int niters = (num_chunk) - (0);
-kernel_launcher("pragma72_omp_parallel", niters, pragma72_omp_parallel_hclib_async(chunk, chunks_in_col, chunks_in_row, row, col, r, c, delta, Cap_1, power, temp, Rx_1, Ry_1, amb_temp, Rz_1, result));
+const int iters_offset = (0);
+kernel_launcher("pragma62_omp_parallel", iters_offset, niters, pragma62_omp_parallel_hclib_async(chunk, chunks_in_col, chunks_in_row, row, col, r, c, delta, Cap_1, power, temp, Rx_1, Ry_1, amb_temp, Rz_1, result));
  } 
 } 
 

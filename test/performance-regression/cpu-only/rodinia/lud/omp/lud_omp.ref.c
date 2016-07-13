@@ -117,7 +117,7 @@ for (j =0; j < BS; j++){
 
         } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma52_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma52_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
         
         // update interior block matrices
@@ -160,13 +160,13 @@ for (j = 0; j < BS; j++) {
             }
         } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma105_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma106_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
     }
 
     lud_diagonal_omp(a, size, offset);
     } ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 
 }

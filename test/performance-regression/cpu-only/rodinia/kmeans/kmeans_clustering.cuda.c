@@ -4,19 +4,19 @@ __device__ inline int hclib_get_current_worker() {
 }
 
 template<class functor_type>
-__global__ void wrapper_kernel(unsigned niters, functor_type functor) {
+__global__ void wrapper_kernel(unsigned iter_offset, unsigned niters, functor_type functor) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor(tid);
+        functor(iter_offset + tid);
     }
 }
 template<class functor_type>
-static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned iter_offset, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
     const unsigned long long start = capp_current_time_ns();
-    wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
+    wrapper_kernel<<<nblocks, threads_per_block>>>(iter_offset, niters, functor);
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
@@ -145,7 +145,7 @@ float euclid_dist_2(float *pt1,
 
 
 /*----< kmeans_clustering() >---------------------------------------------*/
-class pragma179_omp_parallel_hclib_async {
+class pragma173_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -203,7 +203,7 @@ float euclid_dist_2(float *pt1,
     float* volatile h_partial_new_centers;
 
     public:
-        pragma179_omp_parallel_hclib_async(int set_index,
+        pragma173_omp_parallel_hclib_async(int set_index,
                 float* set_feature,
                 int set_i,
                 int set_nfeatures,
@@ -377,7 +377,8 @@ float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
         delta = 0.0;
         {
  { const int niters = (npoints) - (0);
-kernel_launcher("pragma179_omp_parallel", niters, pragma179_omp_parallel_hclib_async(index, feature, i, nfeatures, clusters, nclusters, membership, delta, partial_new_centers_len, j, partial_new_centers));
+const int iters_offset = (0);
+kernel_launcher("pragma173_omp_parallel", iters_offset, niters, pragma173_omp_parallel_hclib_async(index, feature, i, nfeatures, clusters, nclusters, membership, delta, partial_new_centers_len, j, partial_new_centers));
  } 
         } /* end of #pragma omp parallel */
 

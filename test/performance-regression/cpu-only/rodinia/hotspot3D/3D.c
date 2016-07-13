@@ -139,7 +139,7 @@ float accuracy(float *arr1, float *arr2, int len)
 
 
 }
-typedef struct _pragma167_omp_parallel {
+typedef struct _pragma157_omp_parallel {
     int z;
     int (*count_ptr);
     float (*(*tIn_t_ptr));
@@ -164,9 +164,9 @@ typedef struct _pragma167_omp_parallel {
     float (*Rz_ptr);
     float (*dt_ptr);
     int (*numiter_ptr);
- } pragma167_omp_parallel;
+ } pragma157_omp_parallel;
 
-static void pragma167_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma157_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void computeTempOMP(float *pIn, float* tIn, float *tOut, 
         int nx, int ny, int nz, float Cap, 
         float Rx, float Ry, float Rz, 
@@ -191,7 +191,7 @@ void computeTempOMP(float *pIn, float* tIn, float *tOut,
         do {
             int z; 
  { 
-pragma167_omp_parallel *new_ctx = (pragma167_omp_parallel *)malloc(sizeof(pragma167_omp_parallel));
+pragma157_omp_parallel *new_ctx = (pragma157_omp_parallel *)malloc(sizeof(pragma157_omp_parallel));
 new_ctx->z = z;
 new_ctx->count_ptr = &(count);
 new_ctx->tIn_t_ptr = &(tIn_t);
@@ -221,7 +221,7 @@ domain[0].low = 0;
 domain[0].high = nz;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma167_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma157_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -233,8 +233,8 @@ free(new_ctx);
     } 
     return; 
 } 
-static void pragma167_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma167_omp_parallel *ctx = (pragma167_omp_parallel *)____arg;
+static void pragma157_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma157_omp_parallel *ctx = (pragma157_omp_parallel *)____arg;
     int z; z = ctx->z;
     do {
     z = ___iter0;

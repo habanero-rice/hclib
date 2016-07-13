@@ -39,26 +39,26 @@ void lud_diagonal_omp (float* a, int size, int offset)
 }
 
 // implements block LU factorization 
-typedef struct _pragma61_omp_parallel {
+typedef struct _pragma52_omp_parallel {
     int (*offset_ptr);
     int chunk_idx;
     int (*chunks_in_inter_row_ptr);
     int (*chunks_per_inter_ptr);
     float (*a);
     int size;
- } pragma61_omp_parallel;
+ } pragma52_omp_parallel;
 
-typedef struct _pragma113_omp_parallel {
+typedef struct _pragma106_omp_parallel {
     int (*offset_ptr);
     int chunk_idx;
     int (*chunks_in_inter_row_ptr);
     int (*chunks_per_inter_ptr);
     float (*a);
     int size;
- } pragma113_omp_parallel;
+ } pragma106_omp_parallel;
 
-static void pragma61_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-static void pragma113_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma52_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma106_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 typedef struct _main_entrypoint_ctx {
     float (*a);
     int size;
@@ -84,7 +84,7 @@ static void main_entrypoint(void *____arg) {
         // calculate perimeter block matrices
         // 
  { 
-pragma61_omp_parallel *new_ctx = (pragma61_omp_parallel *)malloc(sizeof(pragma61_omp_parallel));
+pragma52_omp_parallel *new_ctx = (pragma52_omp_parallel *)malloc(sizeof(pragma52_omp_parallel));
 new_ctx->offset_ptr = &(offset);
 new_ctx->chunk_idx = chunk_idx;
 new_ctx->chunks_in_inter_row_ptr = &(chunks_in_inter_row);
@@ -96,7 +96,7 @@ domain[0].low = 0;
 domain[0].high = chunks_in_inter_row;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma61_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma52_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -106,7 +106,7 @@ free(new_ctx);
         chunks_per_inter = chunks_in_inter_row*chunks_in_inter_row;
 
  { 
-pragma113_omp_parallel *new_ctx = (pragma113_omp_parallel *)malloc(sizeof(pragma113_omp_parallel));
+pragma106_omp_parallel *new_ctx = (pragma106_omp_parallel *)malloc(sizeof(pragma106_omp_parallel));
 new_ctx->offset_ptr = &(offset);
 new_ctx->chunk_idx = chunk_idx;
 new_ctx->chunks_in_inter_row_ptr = &(chunks_in_inter_row);
@@ -118,7 +118,7 @@ domain[0].low = 0;
 domain[0].high = chunks_per_inter;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma113_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma106_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -137,8 +137,8 @@ const char *deps[] = { "system" };
 hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
-static void pragma61_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma61_omp_parallel *ctx = (pragma61_omp_parallel *)____arg;
+static void pragma52_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma52_omp_parallel *ctx = (pragma52_omp_parallel *)____arg;
     int chunk_idx; chunk_idx = ctx->chunk_idx;
     float (*a); a = ctx->a;
     int size; size = ctx->size;
@@ -192,8 +192,8 @@ for (j =0; j < BS; j++){
 }
 
 
-static void pragma113_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma113_omp_parallel *ctx = (pragma113_omp_parallel *)____arg;
+static void pragma106_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma106_omp_parallel *ctx = (pragma106_omp_parallel *)____arg;
     int chunk_idx; chunk_idx = ctx->chunk_idx;
     float (*a); a = ctx->a;
     int size; size = ctx->size;

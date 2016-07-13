@@ -167,7 +167,7 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
             
         } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma101_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma100_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
     }    
         
@@ -226,7 +226,7 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
             }
         } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma156_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma155_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
     }
 
@@ -307,7 +307,7 @@ const unsigned long long full_program_start = current_time_ns();
 nw_optimized( input_itemsets, output_itemsets, referrence,
         max_rows, max_cols, penalty ) ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 ;
 
     long long end_time = get_time();

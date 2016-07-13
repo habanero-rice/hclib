@@ -88,7 +88,7 @@ MAT * chop_flip_image(unsigned char *image, int height, int width, int top, int 
 
 // Given x- and y-gradients of a video frame, computes the GICOV
 //  score for each sample ellipse at every pixel in the frame
-typedef struct _pragma121_omp_parallel {
+typedef struct _pragma111_omp_parallel {
     int i;
     int (*n_ptr);
     int (*k_ptr);
@@ -103,9 +103,9 @@ typedef struct _pragma121_omp_parallel {
     MAT (*(*gicov_ptr));
     MAT (*(*grad_x_ptr));
     MAT (*(*grad_y_ptr));
- } pragma121_omp_parallel;
+ } pragma111_omp_parallel;
 
-static void pragma121_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma111_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	int i, n, k;
 	// Compute the sine and cosine of the angle to each point in each sample circle
@@ -135,7 +135,7 @@ MAT * ellipsematching(MAT * grad_x, MAT * grad_y) {
 	
 	// Split the work among multiple threads, if OPEN is defined
  { 
-pragma121_omp_parallel *new_ctx = (pragma121_omp_parallel *)malloc(sizeof(pragma121_omp_parallel));
+pragma111_omp_parallel *new_ctx = (pragma111_omp_parallel *)malloc(sizeof(pragma111_omp_parallel));
 new_ctx->i = i;
 new_ctx->n_ptr = &(n);
 new_ctx->k_ptr = &(k);
@@ -155,15 +155,15 @@ domain[0].low = MaxR;
 domain[0].high = width - MaxR;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma121_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma111_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 	
 	return gicov;
 } 
-static void pragma121_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma121_omp_parallel *ctx = (pragma121_omp_parallel *)____arg;
+static void pragma111_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma111_omp_parallel *ctx = (pragma111_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {
@@ -236,16 +236,16 @@ MAT * structuring_element(int radius) {
 
 // Performs an image dilation on the specified matrix
 //  using the specified structuring element
-typedef struct _pragma196_omp_parallel {
+typedef struct _pragma186_omp_parallel {
     MAT (*(*dilated_ptr));
     int (*el_center_i_ptr);
     int (*el_center_j_ptr);
     int i;
     MAT (*(*img_in_ptr));
     MAT (*(*strel_ptr));
- } pragma196_omp_parallel;
+ } pragma186_omp_parallel;
 
-static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma186_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 MAT * dilate_f(MAT * img_in, MAT * strel) {
 	MAT * dilated = m_get(img_in->m, img_in->n);
 	
@@ -254,7 +254,7 @@ MAT * dilate_f(MAT * img_in, MAT * strel) {
 	
 	// Split the work among multiple threads, if OPEN is defined
  { 
-pragma196_omp_parallel *new_ctx = (pragma196_omp_parallel *)malloc(sizeof(pragma196_omp_parallel));
+pragma186_omp_parallel *new_ctx = (pragma186_omp_parallel *)malloc(sizeof(pragma186_omp_parallel));
 new_ctx->dilated_ptr = &(dilated);
 new_ctx->el_center_i_ptr = &(el_center_i);
 new_ctx->el_center_j_ptr = &(el_center_j);
@@ -266,15 +266,15 @@ domain[0].low = 0;
 domain[0].high = img_in->m;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma196_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma186_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 
 	return dilated;
 } 
-static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma196_omp_parallel *ctx = (pragma196_omp_parallel *)____arg;
+static void pragma186_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma186_omp_parallel *ctx = (pragma186_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {

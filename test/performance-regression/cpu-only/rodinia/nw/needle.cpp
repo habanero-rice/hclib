@@ -100,7 +100,7 @@ void usage(int argc, char **argv)
 	exit(1);
 }
 
-typedef struct _pragma110_omp_parallel {
+typedef struct _pragma100_omp_parallel {
     int blk;
     int (*(*input_itemsets_ptr));
     int (*(*output_itemsets_ptr));
@@ -108,9 +108,9 @@ typedef struct _pragma110_omp_parallel {
     int max_rows;
     int max_cols;
     int penalty;
- } pragma110_omp_parallel;
+ } pragma100_omp_parallel;
 
-typedef struct _pragma162_omp_parallel {
+typedef struct _pragma155_omp_parallel {
     int blk;
     int (*(*input_itemsets_ptr));
     int (*(*output_itemsets_ptr));
@@ -118,17 +118,17 @@ typedef struct _pragma162_omp_parallel {
     int max_rows;
     int max_cols;
     int penalty;
- } pragma162_omp_parallel;
+ } pragma155_omp_parallel;
 
-static void pragma110_omp_parallel_hclib_async(void *____arg, const int ___iter0);
-static void pragma162_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma100_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma155_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void nw_optimized(int *input_itemsets, int *output_itemsets, int *referrence,
         int max_rows, int max_cols, int penalty)
 {
     for( int blk = 1; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
  { 
-pragma110_omp_parallel *new_ctx = (pragma110_omp_parallel *)malloc(sizeof(pragma110_omp_parallel));
+pragma100_omp_parallel *new_ctx = (pragma100_omp_parallel *)malloc(sizeof(pragma100_omp_parallel));
 new_ctx->blk = blk;
 new_ctx->input_itemsets_ptr = &(input_itemsets);
 new_ctx->output_itemsets_ptr = &(output_itemsets);
@@ -141,7 +141,7 @@ domain[0].low = 0;
 domain[0].high = blk;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma110_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma100_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -152,7 +152,7 @@ free(new_ctx);
     for ( int blk = 2; blk <= (max_cols-1)/BLOCK_SIZE; blk++ )
     {
  { 
-pragma162_omp_parallel *new_ctx = (pragma162_omp_parallel *)malloc(sizeof(pragma162_omp_parallel));
+pragma155_omp_parallel *new_ctx = (pragma155_omp_parallel *)malloc(sizeof(pragma155_omp_parallel));
 new_ctx->blk = blk;
 new_ctx->input_itemsets_ptr = &(input_itemsets);
 new_ctx->output_itemsets_ptr = &(output_itemsets);
@@ -165,15 +165,15 @@ domain[0].low = blk - 1;
 domain[0].high = (max_cols - 1) / 16;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma162_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma155_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
     }
 
 } 
-static void pragma110_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma110_omp_parallel *ctx = (pragma110_omp_parallel *)____arg;
+static void pragma100_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma100_omp_parallel *ctx = (pragma100_omp_parallel *)____arg;
     int blk; blk = ctx->blk;
     int max_rows; max_rows = ctx->max_rows;
     int max_cols; max_cols = ctx->max_cols;
@@ -230,8 +230,8 @@ for ( int j = 0; j < BLOCK_SIZE; ++j)
 }
 
 
-static void pragma162_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma162_omp_parallel *ctx = (pragma162_omp_parallel *)____arg;
+static void pragma155_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma155_omp_parallel *ctx = (pragma155_omp_parallel *)____arg;
     int blk; blk = ctx->blk;
     int max_rows; max_rows = ctx->max_rows;
     int max_cols; max_cols = ctx->max_cols;

@@ -194,7 +194,7 @@ for (z = 0; z < nz; z++) {
                 }
             } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma158_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma157_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
             float *t = tIn_t;
             tIn_t = tOut_t;
@@ -286,7 +286,7 @@ const unsigned long long full_program_start = current_time_ns();
     printf("Accuracy: %e\n",acc);
     } ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 
     writeoutput(tempOut,numRows, numCols, layers, ofile);
     free(tempIn);

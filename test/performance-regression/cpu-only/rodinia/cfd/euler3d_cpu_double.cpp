@@ -56,17 +56,17 @@ void dealloc(T* array)
 	delete[] array;
 }
 
-typedef struct _pragma63_omp_parallel {
+typedef struct _pragma53_omp_parallel {
     double (*(*dst_ptr));
     double (*(*src_ptr));
     int (*N_ptr);
- } pragma63_omp_parallel;
+ } pragma53_omp_parallel;
 
-static void pragma63_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma53_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void copy(double *dst, double *src, int N)
 {
  { 
-pragma63_omp_parallel *new_ctx = (pragma63_omp_parallel *)malloc(sizeof(pragma63_omp_parallel));
+pragma53_omp_parallel *new_ctx = (pragma53_omp_parallel *)malloc(sizeof(pragma53_omp_parallel));
 new_ctx->dst_ptr = &(dst);
 new_ctx->src_ptr = &(src);
 new_ctx->N_ptr = &(N);
@@ -75,13 +75,13 @@ domain[0].low = 0;
 domain[0].high = N;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma63_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma53_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma63_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma63_omp_parallel *ctx = (pragma63_omp_parallel *)____arg;
+static void pragma53_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma53_omp_parallel *ctx = (pragma53_omp_parallel *)____arg;
     do {
     int i;     i = ___iter0;
 {
@@ -131,16 +131,16 @@ cfd_double3 ff_flux_contribution_momentum_z;
 cfd_double3 ff_flux_contribution_density_energy;
 
 
-typedef struct _pragma112_omp_parallel {
+typedef struct _pragma102_omp_parallel {
     int (*nelr_ptr);
     double (*(*variables_ptr));
- } pragma112_omp_parallel;
+ } pragma102_omp_parallel;
 
-static void pragma112_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma102_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void initialize_variables(int nelr, double* variables)
 {
  { 
-pragma112_omp_parallel *new_ctx = (pragma112_omp_parallel *)malloc(sizeof(pragma112_omp_parallel));
+pragma102_omp_parallel *new_ctx = (pragma102_omp_parallel *)malloc(sizeof(pragma102_omp_parallel));
 new_ctx->nelr_ptr = &(nelr);
 new_ctx->variables_ptr = &(variables);
 hclib_loop_domain_t domain[1];
@@ -148,13 +148,13 @@ domain[0].low = 0;
 domain[0].high = nelr;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma112_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma102_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma112_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma112_omp_parallel *ctx = (pragma112_omp_parallel *)____arg;
+static void pragma102_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma102_omp_parallel *ctx = (pragma102_omp_parallel *)____arg;
     do {
     int i;     i = ___iter0;
 {
@@ -208,18 +208,18 @@ inline double compute_speed_of_sound(double& density, double& pressure)
 
 
 
-typedef struct _pragma165_omp_parallel {
+typedef struct _pragma155_omp_parallel {
     int (*nelr_ptr);
     double (*(*variables_ptr));
     double (*(*areas_ptr));
     double (*(*step_factors_ptr));
- } pragma165_omp_parallel;
+ } pragma155_omp_parallel;
 
-static void pragma165_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma155_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void compute_step_factor(int nelr, double* variables, double* areas, double* step_factors)
 {
  { 
-pragma165_omp_parallel *new_ctx = (pragma165_omp_parallel *)malloc(sizeof(pragma165_omp_parallel));
+pragma155_omp_parallel *new_ctx = (pragma155_omp_parallel *)malloc(sizeof(pragma155_omp_parallel));
 new_ctx->nelr_ptr = &(nelr);
 new_ctx->variables_ptr = &(variables);
 new_ctx->areas_ptr = &(areas);
@@ -229,13 +229,13 @@ domain[0].low = 0;
 domain[0].high = nelr;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma165_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma155_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma165_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma165_omp_parallel *ctx = (pragma165_omp_parallel *)____arg;
+static void pragma155_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma155_omp_parallel *ctx = (pragma155_omp_parallel *)____arg;
     hclib_start_finish();
     do {
     int i;     i = ___iter0;
@@ -268,22 +268,22 @@ static void pragma165_omp_parallel_hclib_async(void *____arg, const int ___iter0
  *
 */
 
-typedef struct _pragma196_omp_parallel {
+typedef struct _pragma186_omp_parallel {
     double (*smoothing_coefficient_ptr);
     int (*nelr_ptr);
     int (*(*elements_surrounding_elements_ptr));
     double (*(*normals_ptr));
     double (*(*variables_ptr));
     double (*(*fluxes_ptr));
- } pragma196_omp_parallel;
+ } pragma186_omp_parallel;
 
-static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma186_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void compute_flux(int nelr, int* elements_surrounding_elements, double* normals, double* variables, double* fluxes)
 {
 	double smoothing_coefficient = double(0.2f);
 
  { 
-pragma196_omp_parallel *new_ctx = (pragma196_omp_parallel *)malloc(sizeof(pragma196_omp_parallel));
+pragma186_omp_parallel *new_ctx = (pragma186_omp_parallel *)malloc(sizeof(pragma186_omp_parallel));
 new_ctx->smoothing_coefficient_ptr = &(smoothing_coefficient);
 new_ctx->nelr_ptr = &(nelr);
 new_ctx->elements_surrounding_elements_ptr = &(elements_surrounding_elements);
@@ -295,13 +295,13 @@ domain[0].low = 0;
 domain[0].high = nelr;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma196_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma186_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma196_omp_parallel *ctx = (pragma196_omp_parallel *)____arg;
+static void pragma186_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma186_omp_parallel *ctx = (pragma186_omp_parallel *)____arg;
     hclib_start_finish();
     do {
     int i;     i = ___iter0;
@@ -436,20 +436,20 @@ static void pragma196_omp_parallel_hclib_async(void *____arg, const int ___iter0
 
 
 
-typedef struct _pragma327_omp_parallel {
+typedef struct _pragma317_omp_parallel {
     int (*j_ptr);
     int (*nelr_ptr);
     double (*(*old_variables_ptr));
     double (*(*variables_ptr));
     double (*(*step_factors_ptr));
     double (*(*fluxes_ptr));
- } pragma327_omp_parallel;
+ } pragma317_omp_parallel;
 
-static void pragma327_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma317_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 void time_step(int j, int nelr, double* old_variables, double* variables, double* step_factors, double* fluxes)
 {
  { 
-pragma327_omp_parallel *new_ctx = (pragma327_omp_parallel *)malloc(sizeof(pragma327_omp_parallel));
+pragma317_omp_parallel *new_ctx = (pragma317_omp_parallel *)malloc(sizeof(pragma317_omp_parallel));
 new_ctx->j_ptr = &(j);
 new_ctx->nelr_ptr = &(nelr);
 new_ctx->old_variables_ptr = &(old_variables);
@@ -461,13 +461,13 @@ domain[0].low = 0;
 domain[0].high = nelr;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma327_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma317_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
 } 
-static void pragma327_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma327_omp_parallel *ctx = (pragma327_omp_parallel *)____arg;
+static void pragma317_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma317_omp_parallel *ctx = (pragma317_omp_parallel *)____arg;
     do {
     int i;     i = ___iter0;
 {

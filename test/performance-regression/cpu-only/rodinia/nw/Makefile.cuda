@@ -5,7 +5,7 @@ include ../../custom.mak
 # C compiler
 HCLIB_PERF_CXX?=icpc
 CC = $(HCLIB_PERF_CXX)
-CC_FLAGS = -g -O3 $(HCLIB_CXXFLAGS)
+CC_FLAGS = -G -g -O3 $(HCLIB_CXXFLAGS)
 
 all: needle.cuda
 

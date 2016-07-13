@@ -4,19 +4,19 @@ __device__ inline int hclib_get_current_worker() {
 }
 
 template<class functor_type>
-__global__ void wrapper_kernel(unsigned niters, functor_type functor) {
+__global__ void wrapper_kernel(unsigned iter_offset, unsigned niters, functor_type functor) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor(tid);
+        functor(iter_offset + tid);
     }
 }
 template<class functor_type>
-static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned iter_offset, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
     const unsigned long long start = capp_current_time_ns();
-    wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
+    wrapper_kernel<<<nblocks, threads_per_block>>>(iter_offset, niters, functor);
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
@@ -80,7 +80,7 @@ void dealloc(T* array)
 	delete[] array;
 }
 
-class pragma63_omp_parallel_hclib_async {
+class pragma53_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -92,7 +92,7 @@ class pragma63_omp_parallel_hclib_async {
     double* volatile h_src;
 
     public:
-        pragma63_omp_parallel_hclib_async(double* set_dst,
+        pragma53_omp_parallel_hclib_async(double* set_dst,
                 double* set_src) {
             h_dst = set_dst;
             h_src = set_src;
@@ -163,7 +163,8 @@ class pragma63_omp_parallel_hclib_async {
 void copy(double *dst, double *src, int N)
 {
  { const int niters = (N) - (0);
-kernel_launcher("pragma63_omp_parallel", niters, pragma63_omp_parallel_hclib_async(dst, src));
+const int iters_offset = (0);
+kernel_launcher("pragma53_omp_parallel", iters_offset, niters, pragma53_omp_parallel_hclib_async(dst, src));
  } 
 } 
 
@@ -207,7 +208,7 @@ cfd_double3 ff_flux_contribution_momentum_z;
 cfd_double3 ff_flux_contribution_density_energy;
 
 
-class pragma112_omp_parallel_hclib_async {
+class pragma102_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -218,7 +219,7 @@ class pragma112_omp_parallel_hclib_async {
     volatile double ff_variable[5];
 
     public:
-        pragma112_omp_parallel_hclib_async(double* set_variables,
+        pragma102_omp_parallel_hclib_async(double* set_variables,
                 double set_ff_variable[5]) {
             h_variables = set_variables;
             memcpy((void *)ff_variable, (void *)set_ff_variable, sizeof(ff_variable));
@@ -283,7 +284,8 @@ class pragma112_omp_parallel_hclib_async {
 void initialize_variables(int nelr, double* variables)
 {
  { const int niters = (nelr) - (0);
-kernel_launcher("pragma112_omp_parallel", niters, pragma112_omp_parallel_hclib_async(variables, ff_variable));
+const int iters_offset = (0);
+kernel_launcher("pragma102_omp_parallel", iters_offset, niters, pragma102_omp_parallel_hclib_async(variables, ff_variable));
  } 
 } 
 
@@ -331,7 +333,7 @@ inline double compute_speed_of_sound(double& density, double& pressure)
 
 
 
-class pragma165_omp_parallel_hclib_async {
+class pragma155_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -367,7 +369,7 @@ class pragma165_omp_parallel_hclib_async {
     double* volatile h_areas;
 
     public:
-        pragma165_omp_parallel_hclib_async(double* set_variables,
+        pragma155_omp_parallel_hclib_async(double* set_variables,
                 double* set_step_factors,
                 double* set_areas) {
             h_variables = set_variables;
@@ -460,7 +462,8 @@ class pragma165_omp_parallel_hclib_async {
 void compute_step_factor(int nelr, double* variables, double* areas, double* step_factors)
 {
  { const int niters = (nelr) - (0);
-kernel_launcher("pragma165_omp_parallel", niters, pragma165_omp_parallel_hclib_async(variables, step_factors, areas));
+const int iters_offset = (0);
+kernel_launcher("pragma155_omp_parallel", iters_offset, niters, pragma155_omp_parallel_hclib_async(variables, step_factors, areas));
  } 
 } 
 
@@ -470,7 +473,7 @@ kernel_launcher("pragma165_omp_parallel", niters, pragma165_omp_parallel_hclib_a
  *
 */
 
-class pragma196_omp_parallel_hclib_async {
+class pragma186_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -534,7 +537,7 @@ class pragma196_omp_parallel_hclib_async {
     double* volatile h_fluxes;
 
     public:
-        pragma196_omp_parallel_hclib_async(double* set_variables,
+        pragma186_omp_parallel_hclib_async(double* set_variables,
                 int* set_elements_surrounding_elements,
                 double* set_normals,
                 double set_smoothing_coefficient,
@@ -757,11 +760,12 @@ void compute_flux(int nelr, int* elements_surrounding_elements, double* normals,
 	double smoothing_coefficient = double(0.2f);
 
  { const int niters = (nelr) - (0);
-kernel_launcher("pragma196_omp_parallel", niters, pragma196_omp_parallel_hclib_async(variables, elements_surrounding_elements, normals, smoothing_coefficient, ff_variable, &ff_flux_contribution_density_energy, &ff_flux_contribution_momentum_x, &ff_flux_contribution_momentum_y, &ff_flux_contribution_momentum_z, fluxes));
+const int iters_offset = (0);
+kernel_launcher("pragma186_omp_parallel", iters_offset, niters, pragma186_omp_parallel_hclib_async(variables, elements_surrounding_elements, normals, smoothing_coefficient, ff_variable, &ff_flux_contribution_density_energy, &ff_flux_contribution_momentum_x, &ff_flux_contribution_momentum_y, &ff_flux_contribution_momentum_z, fluxes));
  } 
 } 
 
-class pragma327_omp_parallel_hclib_async {
+class pragma317_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -778,7 +782,7 @@ class pragma327_omp_parallel_hclib_async {
     double* volatile h_fluxes;
 
     public:
-        pragma327_omp_parallel_hclib_async(double* set_step_factors,
+        pragma317_omp_parallel_hclib_async(double* set_step_factors,
                 int set_j,
                 double* set_variables,
                 double* set_old_variables,
@@ -873,7 +877,8 @@ class pragma327_omp_parallel_hclib_async {
 void time_step(int j, int nelr, double* old_variables, double* variables, double* step_factors, double* fluxes)
 {
  { const int niters = (nelr) - (0);
-kernel_launcher("pragma327_omp_parallel", niters, pragma327_omp_parallel_hclib_async(step_factors, j, variables, old_variables, fluxes));
+const int iters_offset = (0);
+kernel_launcher("pragma317_omp_parallel", iters_offset, niters, pragma317_omp_parallel_hclib_async(step_factors, j, variables, old_variables, fluxes));
  } 
 } 
 /*

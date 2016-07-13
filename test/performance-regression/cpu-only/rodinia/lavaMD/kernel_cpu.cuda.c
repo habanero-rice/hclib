@@ -4,19 +4,19 @@ __device__ inline int hclib_get_current_worker() {
 }
 
 template<class functor_type>
-__global__ void wrapper_kernel(unsigned niters, functor_type functor) {
+__global__ void wrapper_kernel(unsigned iter_offset, unsigned niters, functor_type functor) {
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < niters) {
-        functor(tid);
+        functor(iter_offset + tid);
     }
 }
 template<class functor_type>
-static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_type functor) {
+static void kernel_launcher(const char *kernel_lbl, unsigned iter_offset, unsigned niters, functor_type functor) {
     const int threads_per_block = 256;
     const int nblocks = (niters + threads_per_block - 1) / threads_per_block;
     functor.transfer_to_device();
     const unsigned long long start = capp_current_time_ns();
-    wrapper_kernel<<<nblocks, threads_per_block>>>(niters, functor);
+    wrapper_kernel<<<nblocks, threads_per_block>>>(iter_offset, niters, functor);
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error while synchronizing kernel - %s\n", cudaGetErrorString(err));
@@ -69,7 +69,7 @@ static void kernel_launcher(const char *kernel_lbl, unsigned niters, functor_typ
 //	PLASMAKERNEL_GPU
 //========================================================================================================================================================================================================200
 
-class pragma123_omp_parallel_hclib_async {
+class pragma117_omp_parallel_hclib_async {
     private:
         void **host_allocations;
         size_t *host_allocation_sizes;
@@ -109,7 +109,7 @@ class pragma123_omp_parallel_hclib_async {
     double fzij;
 
     public:
-        pragma123_omp_parallel_hclib_async(long set_first_i,
+        pragma117_omp_parallel_hclib_async(long set_first_i,
                 box_str* set_box,
                 int set_l,
                 FOUR_VECTOR* set_rA,
@@ -407,7 +407,8 @@ void  kernel_cpu(	par_str par,
 	//======================================================================================================================================================150
 
  { const int niters = (dim.number_boxes) - (0);
-kernel_launcher("pragma123_omp_parallel", niters, pragma123_omp_parallel_hclib_async(first_i, box, l, rA, rv, fA, fv, k, pointer, first_j, rB, qB, qv, i, j, r2, u2, a2, vij, fs, d, fxij, fyij, fzij));
+const int iters_offset = (0);
+kernel_launcher("pragma117_omp_parallel", iters_offset, niters, pragma117_omp_parallel_hclib_async(first_i, box, l, rA, rv, fA, fv, k, pointer, first_j, rB, qB, qv, i, j, r2, u2, a2, vij, fs, d, fxij, fyij, fzij));
  }  // for l
     }
 

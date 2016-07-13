@@ -159,7 +159,7 @@ for ( c = c_start; c < c_start + BLOCK_SIZE_C; ++c ) {
         }
     } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma63_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma62_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 }
 
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
 const unsigned long long full_program_start = current_time_ns();
 compute_tran_temp(result,sim_time, temp, power, grid_rows, grid_cols) ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 ;
 
     long long end_time = get_time();

@@ -439,7 +439,7 @@ double tracepath(int tsb1, int tsb2, int *print_ptr, int *displ, int seq1, int s
 }
 
 
-typedef struct _pragma473_omp_task {
+typedef struct _pragma465_omp_task {
     int i;
     int n;
     int m;
@@ -452,9 +452,9 @@ typedef struct _pragma473_omp_task {
     double mm_score;
     int (*(*mat_xref_ptr));
     int (*(*matptr_ptr));
- } pragma473_omp_task;
+ } pragma465_omp_task;
 
-static void pragma473_omp_task_hclib_async(void *____arg);
+static void pragma465_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     int i;
     int n;
@@ -499,7 +499,7 @@ hclib_start_finish(); for (si = 0; si < nseqs; si++) {
                bench_output[si*nseqs+sj] = (int) 1.0;
             } else {
  { 
-pragma473_omp_task *new_ctx = (pragma473_omp_task *)malloc(sizeof(pragma473_omp_task));
+pragma465_omp_task *new_ctx = (pragma465_omp_task *)malloc(sizeof(pragma465_omp_task));
 new_ctx->i = i;
 new_ctx->n = n;
 new_ctx->m = m;
@@ -512,7 +512,7 @@ new_ctx->gg = gg;
 new_ctx->mm_score = mm_score;
 new_ctx->mat_xref_ptr = &(mat_xref);
 new_ctx->matptr_ptr = &(matptr);
-hclib_async(pragma473_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma465_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  }  // end task
             } // end if (n == 0 || m == 0)
          } // for (j)
@@ -551,8 +551,8 @@ hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
    return 0;
 }  
-static void pragma473_omp_task_hclib_async(void *____arg) {
-    pragma473_omp_task *ctx = (pragma473_omp_task *)____arg;
+static void pragma465_omp_task_hclib_async(void *____arg) {
+    pragma465_omp_task *ctx = (pragma465_omp_task *)____arg;
     int i; i = ctx->i;
     int n; n = ctx->n;
     int m; m = ctx->m;

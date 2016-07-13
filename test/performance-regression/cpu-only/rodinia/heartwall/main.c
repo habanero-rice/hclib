@@ -102,7 +102,7 @@ void write_data(	char* filename,
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
 
-typedef struct _pragma556_omp_parallel {
+typedef struct _pragma546_omp_parallel {
     int i;
     int (*frames_processed_ptr);
     public_struct (*public_s_ptr);
@@ -112,9 +112,9 @@ typedef struct _pragma556_omp_parallel {
     int (*omp_num_threads_ptr);
     int (*argc_ptr);
     char (*(*(*argv_ptr)));
- } pragma556_omp_parallel;
+ } pragma546_omp_parallel;
 
-static void pragma556_omp_parallel_hclib_async(void *____arg, const int ___iter0);
+static void pragma546_omp_parallel_hclib_async(void *____arg, const int ___iter0);
 int main(int argc, char *argv []){
 
 	//======================================================================================================================================================
@@ -565,7 +565,7 @@ int main(int argc, char *argv []){
 	//====================================================================================================
 
  { 
-pragma556_omp_parallel *new_ctx = (pragma556_omp_parallel *)malloc(sizeof(pragma556_omp_parallel));
+pragma546_omp_parallel *new_ctx = (pragma546_omp_parallel *)malloc(sizeof(pragma546_omp_parallel));
 new_ctx->i = i;
 new_ctx->frames_processed_ptr = &(frames_processed);
 new_ctx->public_s_ptr = &(public_s);
@@ -580,7 +580,7 @@ domain[0].low = 0;
 domain[0].high = public_s.allPoints;
 domain[0].stride = 1;
 domain[0].tile = -1;
-hclib_future_t *fut = hclib_forasync_future((void *)pragma556_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
+hclib_future_t *fut = hclib_forasync_future((void *)pragma546_omp_parallel_hclib_async, new_ctx, 1, domain, HCLIB_FORASYNC_MODE);
 hclib_future_wait(fut);
 free(new_ctx);
  } 
@@ -676,8 +676,8 @@ free(new_ctx);
 
     return 0;
 } 
-static void pragma556_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
-    pragma556_omp_parallel *ctx = (pragma556_omp_parallel *)____arg;
+static void pragma546_omp_parallel_hclib_async(void *____arg, const int ___iter0) {
+    pragma546_omp_parallel *ctx = (pragma546_omp_parallel *)____arg;
     int i; i = ctx->i;
     hclib_start_finish();
     do {

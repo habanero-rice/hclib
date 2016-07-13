@@ -189,7 +189,7 @@ float* kmeans_clustering(float *feature,    /* in: [npoints][nfeatures] */
 #pragma omp parallel for shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len) private(i,j,index) firstprivate(npoints,nclusters,nfeatures) schedule(static) reduction(+:delta)
 for (i=0; i<npoints; i++) {
 	        /* find the index of nestest cluster centers */					
-            int tid = hclib_get_current_worker();				
+            int tid = omp_get_thread_num();				
 	        index = find_nearest_point(feature + (i * nfeatures),
 		             nfeatures,
 		             clusters,
@@ -207,7 +207,7 @@ for (i=0; i<npoints; i++) {
 		       partial_new_centers[tid * nclusters * nfeatures + index * nfeatures + j] += feature[i * nfeatures + j];
             } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma170_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma173_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
         } /* end of #pragma omp parallel */
 

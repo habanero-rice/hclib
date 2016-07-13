@@ -569,7 +569,7 @@ for(i=0; i<public_s.allPoints; i++){
 						private_s[i]);
 		} ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma547_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma546_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 
 	//====================================================================================================

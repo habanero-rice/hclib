@@ -253,30 +253,30 @@ void sparselu_seq_call(float **BENCH)
    }
 }
 
-typedef struct _pragma276_omp_task {
+typedef struct _pragma266_omp_task {
     int (*ii_ptr);
     int jj;
     int kk;
     float (*(*(*BENCH_ptr)));
- } pragma276_omp_task;
+ } pragma266_omp_task;
 
-typedef struct _pragma284_omp_task {
+typedef struct _pragma274_omp_task {
     int ii;
     int (*jj_ptr);
     int kk;
     float (*(*(*BENCH_ptr)));
- } pragma284_omp_task;
+ } pragma274_omp_task;
 
-typedef struct _pragma295_omp_task {
+typedef struct _pragma285_omp_task {
     int ii;
     int jj;
     int kk;
     float (*(*(*BENCH_ptr)));
- } pragma295_omp_task;
+ } pragma285_omp_task;
 
-static void pragma276_omp_task_hclib_async(void *____arg);
-static void pragma284_omp_task_hclib_async(void *____arg);
-static void pragma295_omp_task_hclib_async(void *____arg);
+static void pragma266_omp_task_hclib_async(void *____arg);
+static void pragma274_omp_task_hclib_async(void *____arg);
+static void pragma285_omp_task_hclib_async(void *____arg);
 typedef struct _main_entrypoint_ctx {
     int ii;
     int jj;
@@ -302,24 +302,24 @@ hclib_start_finish(); for (kk=0; kk<bots_arg_size; kk++)
          if (BENCH[kk*bots_arg_size+jj] != NULL)
          {
  { 
-pragma276_omp_task *new_ctx = (pragma276_omp_task *)malloc(sizeof(pragma276_omp_task));
+pragma266_omp_task *new_ctx = (pragma266_omp_task *)malloc(sizeof(pragma266_omp_task));
 new_ctx->ii_ptr = &(ii);
 new_ctx->jj = jj;
 new_ctx->kk = kk;
 new_ctx->BENCH_ptr = &(BENCH);
-hclib_async(pragma276_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma266_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
          }
       for (ii=kk+1; ii<bots_arg_size; ii++) 
          if (BENCH[ii*bots_arg_size+kk] != NULL)
          {
  { 
-pragma284_omp_task *new_ctx = (pragma284_omp_task *)malloc(sizeof(pragma284_omp_task));
+pragma274_omp_task *new_ctx = (pragma274_omp_task *)malloc(sizeof(pragma274_omp_task));
 new_ctx->ii = ii;
 new_ctx->jj_ptr = &(jj);
 new_ctx->kk = kk;
 new_ctx->BENCH_ptr = &(BENCH);
-hclib_async(pragma284_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma274_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
          }
 
@@ -329,12 +329,12 @@ hclib_async(pragma284_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
                if (BENCH[kk*bots_arg_size+jj] != NULL)
                {
  { 
-pragma295_omp_task *new_ctx = (pragma295_omp_task *)malloc(sizeof(pragma295_omp_task));
+pragma285_omp_task *new_ctx = (pragma285_omp_task *)malloc(sizeof(pragma285_omp_task));
 new_ctx->ii = ii;
 new_ctx->jj = jj;
 new_ctx->kk = kk;
 new_ctx->BENCH_ptr = &(BENCH);
-hclib_async(pragma295_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma285_omp_task_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
  } 
                }
 
@@ -356,8 +356,8 @@ const char *deps[] = { "system" };
 hclib_launch(main_entrypoint, new_ctx, deps, 1);
 
 }  
-static void pragma276_omp_task_hclib_async(void *____arg) {
-    pragma276_omp_task *ctx = (pragma276_omp_task *)____arg;
+static void pragma266_omp_task_hclib_async(void *____arg) {
+    pragma266_omp_task *ctx = (pragma266_omp_task *)____arg;
     int jj; jj = ctx->jj;
     int kk; kk = ctx->kk;
     hclib_start_finish();
@@ -369,8 +369,8 @@ static void pragma276_omp_task_hclib_async(void *____arg) {
 }
 
 
-static void pragma284_omp_task_hclib_async(void *____arg) {
-    pragma284_omp_task *ctx = (pragma284_omp_task *)____arg;
+static void pragma274_omp_task_hclib_async(void *____arg) {
+    pragma274_omp_task *ctx = (pragma274_omp_task *)____arg;
     int ii; ii = ctx->ii;
     int kk; kk = ctx->kk;
     hclib_start_finish();
@@ -382,8 +382,8 @@ static void pragma284_omp_task_hclib_async(void *____arg) {
 }
 
 
-static void pragma295_omp_task_hclib_async(void *____arg) {
-    pragma295_omp_task *ctx = (pragma295_omp_task *)____arg;
+static void pragma285_omp_task_hclib_async(void *____arg) {
+    pragma285_omp_task *ctx = (pragma285_omp_task *)____arg;
     int ii; ii = ctx->ii;
     int jj; jj = ctx->jj;
     int kk; kk = ctx->kk;

@@ -142,7 +142,7 @@ for (i = 0; i < rec_count; i++){
 			z[i] = sqrt(( (tmp_lat-target_lat) * (tmp_lat-target_lat) )+( (tmp_long-target_long) * (tmp_long-target_long) ));
         } ; 
 const unsigned long long parallel_for_end = current_time_ns();
-printf("pragma118_omp_parallel %llu ns", parallel_for_end - parallel_for_start); } 
+printf("pragma117_omp_parallel %llu ns\n", parallel_for_end - parallel_for_start); } 
 
 
 		
@@ -165,7 +165,7 @@ printf("pragma118_omp_parallel %llu ns", parallel_for_end - parallel_for_start);
 		}
 	} ; 
 const unsigned long long full_program_end = current_time_ns();
-printf("full_program %llu ns", full_program_end - full_program_start);
+printf("full_program %llu ns\n", full_program_end - full_program_start);
 //End while loop
 
 	fprintf(stderr, "The %d nearest neighbors are:\n", k);

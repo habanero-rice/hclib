@@ -106,7 +106,7 @@ function compile_all() {
     echo Compilation for $STYLE completed!
 }
 
-# compile_all gpu cuda
+compile_all gpu cuda
 compile_all tied ref
 # compile_all untied ref
 # compile_all flat
@@ -115,8 +115,10 @@ compile_all tied ref
 for TEST in "${!DATASETS[@]}"; do
     TEST_EXE=$(echo $TEST | awk -F ',' '{ print $1 }')
     REF_EXE=$TEST_EXE.ref
+    CUDA_EXE=$TEST_EXE.cuda.gpu
 
-    for EXE in $TEST_EXE.flat $TEST_EXE.recursive $REF_EXE.tied $REF_EXE.untied; do
+    for EXE in $CUDA_EXE $REF_EXE.tied; do
+    # for EXE in $TEST_EXE.flat $TEST_EXE.recursive $REF_EXE.tied $REF_EXE.untied; do
         if [[ ! -f $EXE ]]; then
             echo Missing executable $EXE
         fi
