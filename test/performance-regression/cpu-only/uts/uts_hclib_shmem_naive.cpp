@@ -46,14 +46,13 @@
 #define SHARED_INDEF
 #define VOLATILE         volatile
 #define MAX_OMP_THREADS       32
-#define MAX_SHMEM_THREADS     64
+#define MAX_SHMEM_THREADS     1024
 #define LOCK_T           omp_lock_t
 #define GET_NUM_THREADS  hclib::num_workers()
 #define GET_THREAD_NUM   hclib::get_current_worker()
 #define SET_LOCK(zlk)    omp_set_lock(zlk)
 #define UNSET_LOCK(zlk)  omp_unset_lock(zlk)
 #define SMEMCPY          memcpy
-#define ALLOC            malloc
 #define BARRIER          
 
 #else
@@ -99,7 +98,8 @@ static int steal_from(int target_pe, Node *stolen_out) {
     int remote_buffered_steals;
 
     hclib::shmem_set_lock(&steal_buffer_locks[target_pe]);
-    hclib::shmem_int_get(&remote_buffered_steals, (const int *)&n_buffered_steals, 1, target_pe);
+    hclib::shmem_int_get(&remote_buffered_steals,
+            (const int *)&n_buffered_steals, 1, target_pe);
 
     int stole_something = 0;
     if (remote_buffered_steals > 0) {
@@ -119,9 +119,18 @@ static int remote_steal(Node *stolen_out) {
     int pe_below = pe - 1;
     if (pe_below < 0) pe_below = npes - 1;
 
-    hclib::shmem_int_add(&complete_pes, 1, 0);
+    // First scan through all PEs looking for work
+    for (int target_pe = 0; target_pe < npes; target_pe++) {
+        if (target_pe == pe) continue;
+        if (steal_from(target_pe, stolen_out)) {
+            return 1;
+        }
+    }
 
-    int ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
+    const int finish_check_periodicity = 3;
+    int ndone = hclib::shmem_int_finc(&complete_pes, 0) + 1;
+
+    int attempts = 0;
     while (ndone != npes) {
         // Try to remote steal
 
@@ -134,7 +143,10 @@ static int remote_steal(Node *stolen_out) {
         pe_below = pe_below - 1;
         if (pe_below < 0) pe_below = npes - 1;
 
-        ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
+        attempts++;
+        if (attempts % finish_check_periodicity == 0) {
+            ndone = hclib::shmem_int_fadd(&complete_pes, 0, 0);
+        }
     }
 
     assert(ndone == npes);
@@ -663,7 +675,6 @@ void genChildren(Node * parent, Node * child) {
           }
           hclib::shmem_clear_lock(&steal_buffer_locks[pe]);
       }
-
       if (!made_available_for_stealing) {
           if (parent.height < 9) {
               hclib::async([parent] {
@@ -839,7 +850,8 @@ int main(int argc, char *argv[]) {
   memset(thread_info, 0x00, MAX_OMP_THREADS * sizeof(per_thread_info));
   memset(steal_buffer_locks, 0x00, MAX_SHMEM_THREADS * sizeof(long));
 
-  hclib::launch([argc, argv] {
+  const char *deps[] = { "system", "openshmem" };
+  hclib::launch(deps, 2, [argc, argv] {
 
       pe = hclib::pe_for_locale(hclib::shmem_my_pe());
       npes = hclib::shmem_n_pes();

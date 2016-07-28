@@ -42,7 +42,7 @@
 #define SHARED_INDEF
 #define VOLATILE         volatile
 #define MAX_OMP_THREADS       32
-#define MAX_SHMEM_THREADS     64
+#define MAX_SHMEM_THREADS     1024
 #define LOCK_T           omp_lock_t
 #define GET_NUM_THREADS  omp_get_num_threads()
 #define GET_THREAD_NUM   omp_get_thread_num()
@@ -124,9 +124,19 @@ static int remote_steal(Node *stolen_out) {
     int pe_below = pe - 1;
     if (pe_below < 0) pe_below = npes - 1;
 
-    shmem_int_add(&complete_pes, 1, 0);
+    int target_pe;
+    // First scan through all PEs looking for work
+    for (target_pe = 0; target_pe < npes; target_pe++) {
+        if (target_pe == pe) continue;
+        if (steal_from(target_pe, stolen_out)) {
+            return 1;
+        }
+    }
 
-    int ndone = shmem_int_fadd(&complete_pes, 0, 0);
+    const int finish_check_periodicity = 3;
+    int ndone = shmem_int_finc(&complete_pes, 0) + 1;
+
+    int attempts = 0;
     while (ndone != npes) {
         // Try to remote steal
 
@@ -139,7 +149,10 @@ static int remote_steal(Node *stolen_out) {
         pe_below = pe_below - 1;
         if (pe_below < 0) pe_below = npes - 1;
 
-        ndone = shmem_int_fadd(&complete_pes, 0, 0);
+        attempts++;
+        if (attempts % finish_check_periodicity == 0) {
+            ndone = shmem_int_fadd(&complete_pes, 0, 0);
+        }
     }
 
     assert(ndone == npes);
@@ -650,7 +663,7 @@ void genChildren(Node * parent, Node * child) {
     }
 #endif
 
-    unsigned char * parent_state = parent->state.state;
+    const unsigned char * parent_state = parent->state.state;
     unsigned char * child_state = child->state.state;
 
     for (i = 0; i < numChildren; i++) {
@@ -831,7 +844,6 @@ void showStats(double elapsedSecs) {
  *       parsing parameters
  */
 int main(int argc, char *argv[]) {
-  Node root;
 
 #ifdef THREAD_METADATA
   memset(t_metadata, 0x00, MAX_OMP_THREADS * sizeof(thread_metadata));
@@ -860,6 +872,7 @@ int main(int argc, char *argv[]) {
       uts_printParams();
   }
 
+  Node root;
   initRootNode(&root, type);
 
   shmem_barrier_all();

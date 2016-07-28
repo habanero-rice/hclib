@@ -60,6 +60,8 @@ void shmem_longlong_p(long long *addr, long long value, int pe);
 
 void shmem_int_add(int *dest, int value, int pe);
 int shmem_int_fadd(int *dest, int value, int pe);
+int shmem_int_finc(int *dest, int pe);
+int shmem_int_fetch(const int *dest, int pe);
 long long shmem_longlong_fadd(long long *target, long long value,
                               int pe);
 

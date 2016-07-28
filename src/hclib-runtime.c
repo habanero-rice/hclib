@@ -177,7 +177,9 @@ void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned)) {
 }
 
 int hclib_get_current_worker() {
-    return ((hclib_worker_state *)pthread_getspecific(ws_key))->id;
+    hclib_worker_state *ws = (hclib_worker_state *)pthread_getspecific(ws_key);
+    assert(ws);
+    return ws->id;
 }
 
 unsigned hclib_get_current_worker_pending_work() {
@@ -406,7 +408,8 @@ static inline void execute_task(hclib_task_t *task) {
      */
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 #ifdef VERBOSE
-    fprintf(stderr, "execute_task: setting current finish of %p to %p for task %p\n", CURRENT_WS_INTERNAL, current_finish, task);
+    fprintf(stderr, "execute_task: setting current finish of %p to %p for task "
+            "%p\n", CURRENT_WS_INTERNAL, current_finish, task);
     fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
 #endif
 
@@ -420,33 +423,42 @@ static inline void execute_task(hclib_task_t *task) {
     HC_FREE(task);
 }
 
-static inline void rt_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
+static inline void rt_schedule_async(hclib_task_t *async_task,
+        hclib_worker_state *ws) {
 #ifdef VERBOSE
-    fprintf(stderr, "rt_schedule_async: async_task=%p locale=%p\n", async_task, async_task->locale);
+    fprintf(stderr, "rt_schedule_async: async_task=%p locale=%p\n", async_task,
+            async_task->locale);
 #endif
 
     if (async_task->locale) {
         // If task was explicitly created at a locale, place it there
-        deque_push_locale(ws, async_task->locale, async_task);
+        if (!deque_push_locale(ws, async_task->locale, async_task)) {
+            assert(false);
+        }
     } else {
         /*
          * If no explicit locale was provided, place it at a default location.
          * In the old implementation, each worker had the concept of a 'current'
          * locale. For now we just place at locale 0 by default, but having a
-         * current locale might be a good thing to implement in the future. TODO.
+         * current locale might be a good thing to implement in the future.
+         * TODO.
          */
         const int wid = hclib_get_current_worker();
 #ifdef VERBOSE
         fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
-                "hc_context=%p hc_context->graph=%p\n", wid, hc_context, hc_context->graph);
+                "hc_context=%p hc_context->graph=%p\n", wid, hc_context,
+                hc_context->graph);
 #endif
-        if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque), async_task)) {
+        if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque),
+                    async_task)) {
+            assert(false);
             // TODO: deque is full, so execute in place
             printf("WARNING: deque full, local execution\n");
             execute_task(async_task);
         }
 #ifdef VERBOSE
-        fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n", wid);
+        fprintf(stderr, "rt_schedule_async: finished scheduling on worker "
+                "wid=%d\n", wid);
 #endif
     }
 }

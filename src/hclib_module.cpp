@@ -27,16 +27,25 @@ int hclib_add_module_init_function(const char *name,
             new std::vector<hclib_module_post_init_func_type>();
         finalize_functions = new std::vector<hclib_module_finalize_func_type>();
     }
-    assert(std::find(pre_init_functions->begin(), pre_init_functions->end(),
-                pre) == pre_init_functions->end());
-    assert(std::find(post_init_functions->begin(), post_init_functions->end(),
-                post) == post_init_functions->end());
-    assert(std::find(finalize_functions->begin(), finalize_functions->end(),
-                finalize) == finalize_functions->end());
 
-    pre_init_functions->push_back(pre);
-    post_init_functions->push_back(post);
-    finalize_functions->push_back(finalize);
+    if (std::find(pre_init_functions->begin(), pre_init_functions->end(),
+                pre) != pre_init_functions->end()) {
+        assert(std::find(post_init_functions->begin(),
+                    post_init_functions->end(), post) !=
+                post_init_functions->end());
+        assert(std::find(finalize_functions->begin(), finalize_functions->end(),
+                    finalize) != finalize_functions->end());
+    } else {
+        assert(std::find(post_init_functions->begin(),
+                    post_init_functions->end(), post) ==
+                post_init_functions->end());
+        assert(std::find(finalize_functions->begin(), finalize_functions->end(),
+                    finalize) == finalize_functions->end());
+
+        pre_init_functions->push_back(pre);
+        post_init_functions->push_back(post);
+        finalize_functions->push_back(finalize);
+    }
 
     return 0;
 }

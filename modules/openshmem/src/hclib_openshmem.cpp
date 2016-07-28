@@ -6,6 +6,68 @@
 #include <vector>
 #include <iostream>
 
+// #define TRACE
+// #define PROFILE
+
+#ifdef PROFILE
+#define START_PROFILE const unsigned long long start = hclib_current_time_ns();
+#define END_PROFILE(funcname) { \
+    const unsigned long long end = hclib_current_time_ns(); \
+    func_counters[funcname##_lbl]++; \
+    func_times[funcname##_lbl] += (end - start); \
+}
+
+enum FUNC_LABELS {
+    shmem_malloc_lbl = 0,
+    shmem_free_lbl,
+    shmem_barrier_all_lbl,
+    shmem_put64_lbl,
+    shmem_broadcast64_lbl,
+    shmem_set_lock_lbl,
+    shmem_clear_lock_lbl,
+    shmem_int_get_lbl,
+    shmem_getmem_lbl,
+    shmem_int_put_lbl,
+    shmem_int_add_lbl,
+    shmem_longlong_fadd_lbl,
+    shmem_int_fadd_lbl,
+    shmem_int_sum_to_all_lbl,
+    shmem_longlong_sum_to_all_lbl,
+    shmem_longlong_p_lbl,
+    shmem_longlong_put_lbl,
+    shmem_int_finc_lbl,
+    shmem_int_fetch_lbl,
+    N_FUNCS
+};
+
+const char *FUNC_NAMES[N_FUNCS] = {
+    "shmem_malloc",
+    "shmem_free",
+    "shmem_barrier_all",
+    "shmem_put64",
+    "shmem_broadcast64",
+    "shmem_set_lock",
+    "shmem_clear_lock",
+    "shmem_int_get",
+    "shmem_getmem",
+    "shmem_int_put",
+    "shmem_int_add",
+    "shmem_longlong_fadd",
+    "shmem_int_fadd",
+    "shmem_int_sum_to_all",
+    "shmem_longlong_sum_to_all",
+    "shmem_longlong_p",
+    "shmem_longlong_put",
+    "shmem_int_finc",
+    "shmem_int_fetch"};
+
+unsigned long long func_counters[N_FUNCS];
+unsigned long long func_times[N_FUNCS];
+#else
+#define START_PROFILE
+#define END_PROFILE(funcname)
+#endif
+
 typedef struct _lock_context_t {
     hclib_future_t *last_lock;
     hclib_promise_t * volatile live;
@@ -31,6 +93,10 @@ static int locale_id_to_pe(int locale_id) {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize) {
     nic_locale_id = hclib_add_known_locale_type("Interconnect");
+#ifdef PROFILE
+    memset(func_counters, 0x00, sizeof(func_counters));
+    memset(func_times, 0x00, sizeof(func_times));
+#endif
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
@@ -47,6 +113,16 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize) {
     ::shmem_finalize();
+#ifdef PROFILE
+    int i;
+    printf("PE %d OPENSHMEM PROFILE INFO:\n", ::shmem_my_pe());
+    for (i = 0; i < N_FUNCS; i++) {
+        if (func_counters[i] > 0) {
+            printf("  %s: %llu calls, %llu ms\n", FUNC_NAMES[i],
+                    func_counters[i], func_times[i] / 1000000);
+        }
+    }
+#endif
 }
 
 static hclib::locale_t *get_locale_for_pe(int pe) {
@@ -75,8 +151,14 @@ int hclib::shmem_n_pes() {
 void *hclib::shmem_malloc(size_t size) {
     hclib::promise_t *promise = new hclib::promise_t();
     hclib::async_at(nic, [size, promise] {
+        START_PROFILE
+#ifdef TRACE
+        std::cerr << ::shmem_my_pe() << ": shmem_malloc: Allocating " << size <<
+                " bytes" << std::endl;
+#endif
         void *alloc = ::shmem_malloc(size);
         promise->put(alloc);
+        END_PROFILE(shmem_malloc)
     });
 
     promise->get_future()->wait();
@@ -89,7 +171,13 @@ void *hclib::shmem_malloc(size_t size) {
 void hclib::shmem_free(void *ptr) {
     hclib::finish([ptr] {
         hclib::async_at(nic, [ptr] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_free: ptr=" << ptr <<
+                    std::endl;
+#endif
             ::shmem_free(ptr);
+            END_PROFILE(shmem_free)
         });
     });
 }
@@ -97,7 +185,12 @@ void hclib::shmem_free(void *ptr) {
 void hclib::shmem_barrier_all() {
     hclib::finish([] {
         hclib::async_at(nic, [] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_barrier_all" << std::endl;
+#endif
             ::shmem_barrier_all();
+            END_PROFILE(shmem_barrier_all)
         });
     });
 }
@@ -105,7 +198,14 @@ void hclib::shmem_barrier_all() {
 void hclib::shmem_put64(void *dest, const void *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_at(nic, [dest, source, nelems, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_put64: dest=" << dest <<
+                    " source=" << source << " nelems=" << nelems << " pe=" <<
+                    pe << std::endl;
+#endif
             ::shmem_put64(dest, source, nelems, pe);
+            END_PROFILE(shmem_put64)
         });
     });
 }
@@ -114,8 +214,17 @@ void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
         int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync) {
     hclib::finish([dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
         hclib::async_at(nic, [dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_broadcast64: dest=" <<
+                    dest << " source=" << source << " nelems=" << nelems <<
+                    " PE_root=" << PE_root << " PE_start=" << PE_start <<
+                    " logPE_stride=" << logPE_stride << " PE_size=" <<
+                    PE_size << std::endl;
+#endif
             ::shmem_broadcast64(dest, source, nelems, PE_root, PE_start,
                 logPE_stride, PE_size, pSync);
+            END_PROFILE(shmem_broadcast64)
         });
     });
 }
@@ -129,12 +238,24 @@ int hclib::pe_for_locale(hclib::locale_t *locale) {
 }
 
 static void *shmem_set_lock_impl(void *arg) {
+    START_PROFILE
+#ifdef TRACE
+    std::cerr << ::shmem_my_pe() << ": shmem_set_lock: lock=" << arg <<
+        std::endl;
+#endif
     ::shmem_set_lock((long *)arg);
+    END_PROFILE(shmem_set_lock)
     return NULL;
 }
 
 static void *shmem_clear_lock_impl(void *arg) {
+    START_PROFILE
+#ifdef TRACE
+    std::cerr << ::shmem_my_pe() << ": shmem_clear_lock: lock=" << arg <<
+        std::endl;
+#endif
     ::shmem_clear_lock((long *)arg);
+    END_PROFILE(shmem_clear_lock)
     return NULL;
 }
 
@@ -197,7 +318,14 @@ void hclib::shmem_clear_lock(long *lock) {
 void hclib::shmem_int_get(int *dest, const int *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_at(nic, [dest, source, nelems, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_get: dest=" << dest <<
+                    " source=" << source << " nelems=" << nelems << " pe=" <<
+                    pe << std::endl;
+#endif
             ::shmem_int_get(dest, source, nelems, pe);
+            END_PROFILE(shmem_int_get)
         });
     });
 }
@@ -205,7 +333,14 @@ void hclib::shmem_int_get(int *dest, const int *source, size_t nelems, int pe) {
 void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_at(nic, [dest, source, nelems, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_getmem: dest=" << dest <<
+                    " source=" << source << " nelems=" << nelems << " pe=" <<
+                    pe << std::endl;
+#endif
             ::shmem_getmem(dest, source, nelems, pe);
+            END_PROFILE(shmem_getmem)
         });
     });
 }
@@ -213,7 +348,14 @@ void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) 
 void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_at(nic, [dest, source, nelems, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_put: dest=" << dest <<
+                    " source=" << source << " nelems=" << nelems << " pe=" <<
+                    pe << std::endl;
+#endif
             ::shmem_int_put(dest, source, nelems, pe);
+            END_PROFILE(shmem_int_put)
         });
     });
 }
@@ -221,7 +363,13 @@ void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
 void hclib::shmem_int_add(int *dest, int value, int pe) {
     hclib::finish([dest, value, pe] {
         hclib::async_at(nic, [dest, value, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_add: dest=" << dest <<
+                    " value=" << value << " pe=" << pe << std::endl;
+#endif
             ::shmem_int_add(dest, value, pe);
+            END_PROFILE(shmem_int_add)
         });
     });
 }
@@ -232,9 +380,15 @@ long long hclib::shmem_longlong_fadd(long long *target, long long value,
     hclib::promise_t *promise = new hclib::promise_t();
 
     hclib::async_at(nic, [target, value, pe, promise, val_ptr] {
+        START_PROFILE
+#ifdef TRACE
+        std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
+        target << " value=" << value << " pe=" << pe << std::endl;
+#endif
         const long long val = ::shmem_longlong_fadd(target, value, pe);
         *val_ptr = val;
         promise->put(NULL);
+        END_PROFILE(shmem_longlong_fadd)
     });
 
     promise->get_future()->wait();
@@ -248,10 +402,16 @@ long long hclib::shmem_longlong_fadd(long long *target, long long value,
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     hclib::promise_t *promise = new hclib::promise_t();
     hclib::async_at(nic, [dest, value, pe, promise] {
+        START_PROFILE
+#ifdef TRACE
+        std::cerr << ::shmem_my_pe() << ": shmem_int_fadd: dest=" <<
+            dest << " value=" << value << " pe=" << pe << std::endl;
+#endif
         const int fetched = ::shmem_int_fadd(dest, value, pe);
         int *heap_fetched = (int *)malloc(sizeof(int));
         *heap_fetched = fetched;
         promise->put((void *)heap_fetched);
+        END_PROFILE(shmem_int_fadd)
     });
 
     promise->get_future()->wait();
@@ -263,6 +423,24 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     return fetched;
 }
 
+int hclib::shmem_int_finc(int *dest, int pe) {
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, pe, heap_fetched] {
+        hclib::async_at(nic, [dest, pe, heap_fetched] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_finc: dest=" << dest <<
+                " pe=" << pe << std::endl;
+#endif
+            *heap_fetched = ::shmem_int_finc(dest, pe);
+            END_PROFILE(shmem_int_finc)
+        });
+    });
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+    return fetched;
+}
+
 void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,
                           int PE_start, int logPE_stride,
                           int PE_size, int *pWrk, long *pSync) {
@@ -270,8 +448,16 @@ void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,
             pWrk, pSync] {
         hclib::async_at(nic, [target, source, nreduce, PE_start, logPE_stride,
             PE_size, pWrk, pSync] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_sum_to_all: target=" <<
+                target << " source=" << source << " nreduce=" << nreduce <<
+                " PE_start=" << PE_start << " logPE_stride=" << logPE_stride <<
+                " PE_size=" << PE_size << std::endl;
+#endif
             ::shmem_int_sum_to_all(target, source, nreduce, PE_start,
                 logPE_stride, PE_size, pWrk, pSync);
+            END_PROFILE(shmem_int_sum_to_all)
         });
     });
 }
@@ -284,8 +470,16 @@ void hclib::shmem_longlong_sum_to_all(long long *target, long long *source,
             pWrk, pSync] {
         hclib::async_at(nic, [target, source, nreduce, PE_start, logPE_stride,
             PE_size, pWrk, pSync] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_longlong_sum_to_all: "
+                "target=" << target << " source=" << source << " nreduce=" <<
+                nreduce << " PE_start=" << PE_start << " logPE_stride=" <<
+                logPE_stride << " PE_size=" << PE_size << std::endl;
+#endif
             ::shmem_longlong_sum_to_all(target, source, nreduce, PE_start,
                 logPE_stride, PE_size, pWrk, pSync);
+            END_PROFILE(shmem_longlong_sum_to_all)
         });
     });
 }
@@ -293,7 +487,13 @@ void hclib::shmem_longlong_sum_to_all(long long *target, long long *source,
 void hclib::shmem_longlong_p(long long *addr, long long value, int pe) {
     hclib::finish([addr, value, pe] {
         hclib::async_at(nic, [addr, value, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_longlong_p: addr=" <<
+                addr << " value=" << value << " pe=" << pe << std::endl;
+#endif
             ::shmem_longlong_p(addr, value, pe);
+            END_PROFILE(shmem_longlong_p)
         });
     });
 }
@@ -302,7 +502,14 @@ void hclib::shmem_longlong_put(long long *dest, const long long *src,
                         size_t nelems, int pe) {
     hclib::finish([dest, src, nelems, pe] {
         hclib::async_at(nic, [dest, src, nelems, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_longlong_put: dest=" <<
+                dest << " src=" << src << "nelems=" << nelems << " pe=" << pe <<
+                std::endl;
+#endif
             ::shmem_longlong_put(dest, src, nelems, pe);
+            END_PROFILE(shmem_longlong_put)
         });
     });
 }

@@ -7,14 +7,14 @@ TARGETS_ALL = uts-seq time_rng uts-pthread uts-mpi uts-shmem
 # C Compiler 
 # -------------------------------------
 CC = gcc
-CC_OPTS = -O3
+CC_OPTS = -O0 -g
 LD_OPTS = -lm
 
 # -------------------------------------
 # MPI Compiler 
 # -------------------------------------
 MPICC = icc
-MPICC_OPTS = -O3 -I/opt/cray/mpt/7.2.5/gni/mpich2-gnu/49/include
+MPICC_OPTS = -O0 -g -I/opt/cray/mpt/7.2.5/gni/mpich2-gnu/49/include
 MPILD_OPTS = -lm -lmpich -L/opt/cray/mpt/7.2.5/gni/mpich2-gnu/49/lib
 
 
@@ -30,16 +30,16 @@ UPCLD_OPTS = -lm
 # OPENMP Compiler 
 # -------------------------------------
 OMPCC = icc
-OMPCC_OPTS = -openmp -O3
-OMPLD_OPTS = -openmp -O3
+OMPCC_OPTS = -openmp -O0 -g
+OMPLD_OPTS = -openmp -O0 -g
 
 
 # -------------------------------------
 # SHMEM Compiler 
 # -------------------------------------
 SHMCC = icc
-SHMCC_OPTS = -O3
-SHMLD_OPTS = -O3
+SHMCC_OPTS = -O0 -g
+SHMLD_OPTS = -O0 -g
 
 # -------------------------------------
 # GPSHMEM Compiler 
