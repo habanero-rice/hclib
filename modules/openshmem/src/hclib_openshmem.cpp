@@ -1,4 +1,4 @@
-#include "hclib_openshmem-internal.h"
+ #include "hclib_openshmem-internal.h"
 
 #include "hclib-locality-graph.h"
 
@@ -7,7 +7,7 @@
 #include <iostream>
 
 // #define TRACE
-#define PROFILE
+// #define PROFILE
 // #define DETAILED_PROFILING
 
 #ifdef PROFILE
@@ -107,6 +107,26 @@ static int locale_id_to_pe(int locale_id) {
     return (locale_id + 1) * -1;
 }
 
+void hclib::reset_oshmem_profiling_data() {
+#ifdef PROFILE
+    memset(func_counters, 0x00, sizeof(func_counters));
+    memset(func_times, 0x00, sizeof(func_times));
+#endif
+}
+
+void hclib::print_oshmem_profiling_data() {
+#ifdef PROFILE
+    int i;
+    printf("PE %d OPENSHMEM PROFILE INFO:\n", ::shmem_my_pe());
+    for (i = 0; i < N_FUNCS; i++) {
+        if (func_counters[i] > 0) {
+            printf("  %s: %llu calls, %llu ms\n", FUNC_NAMES[i],
+                    func_counters[i], func_times[i] / 1000000);
+        }
+    }
+#endif
+}
+
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize) {
     nic_locale_id = hclib_add_known_locale_type("Interconnect");
 #ifdef PROFILE
@@ -129,16 +149,6 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize) {
     ::shmem_finalize();
-#ifdef PROFILE
-    int i;
-    printf("PE %d OPENSHMEM PROFILE INFO:\n", ::shmem_my_pe());
-    for (i = 0; i < N_FUNCS; i++) {
-        if (func_counters[i] > 0) {
-            printf("  %s: %llu calls, %llu ms\n", FUNC_NAMES[i],
-                    func_counters[i], func_times[i] / 1000000);
-        }
-    }
-#endif
 }
 
 static hclib::locale_t *get_locale_for_pe(int pe) {

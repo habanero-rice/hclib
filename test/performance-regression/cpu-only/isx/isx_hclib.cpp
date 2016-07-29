@@ -29,6 +29,8 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 POSSIBILITY OF SUCH DAMAGE.
 */
+#define HCLIB_VERSION
+
 #include <shmem.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -48,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_openshmem.h"
 
 #define ROOT_PE 0
+
+// #define ISX_PROFILING
 
 // Needed for shmem collective operations
 int pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -77,8 +81,8 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 40000)
-#define KEY_BUFFER_SIZE ((1uLL<<28uLL))
+#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 40000)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
 
 // The receive array for the All2All exchange
 KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -231,6 +235,7 @@ static char * parse_params(const int argc, char ** argv)
     printf("  Bucket Width: %" PRIu64 "\n", BUCKET_WIDTH);
     printf("  Number of Iterations: %u\n", NUM_ITERATIONS);
     printf("  Number of PEs: %" PRIu64 "\n", NUM_PES);
+    printf("  Worker threads per PE: %d\n", hclib::num_workers());
     printf("  %s Scaling!\n",scaling_msg);
     }
 
@@ -258,7 +263,10 @@ static int bucket_sort(void)
   {
 
     // Reset timers after burn in 
-    if(i == BURN_IN){ init_timers(NUM_ITERATIONS); } 
+    if(i == BURN_IN){
+        hclib::reset_oshmem_profiling_data();
+        init_timers(NUM_ITERATIONS);
+    } 
 
     SHMEM_BARRIER_AT_START;
 
@@ -266,13 +274,16 @@ static int bucket_sort(void)
 
     KEY_TYPE * my_keys = make_input();
 
-    int * local_bucket_sizes = count_local_bucket_sizes(my_keys);
+    int **bucket_counts_per_chunk;
+    int * local_bucket_sizes = count_local_bucket_sizes(my_keys,
+            &bucket_counts_per_chunk);
 
     int * send_offsets;
     int * local_bucket_offsets = compute_local_bucket_offsets(local_bucket_sizes,
                                                                    &send_offsets);
 
-    KEY_TYPE * my_local_bucketed_keys =  bucketize_local_keys(my_keys, local_bucket_offsets);
+    KEY_TYPE * my_local_bucketed_keys =  bucketize_local_keys(my_keys,
+            local_bucket_offsets, bucket_counts_per_chunk);
 
     KEY_TYPE * my_bucket_keys = exchange_keys(send_offsets, 
                                               local_bucket_sizes,
@@ -300,9 +311,15 @@ static int bucket_sort(void)
     free(local_bucket_offsets);
     free(send_offsets);
     free(my_local_key_counts);
+    for (int i = 0; i < hclib::num_workers(); i++) {
+        free(bucket_counts_per_chunk[i]);
+    }
+    free(bucket_counts_per_chunk);
 
     hclib::shmem_barrier_all();
   }
+
+  hclib::print_oshmem_profiling_data();
 
   return err;
 }
@@ -316,14 +333,34 @@ static KEY_TYPE * make_input(void)
 {
   timer_start(&timers[TIMER_INPUT]);
 
-  KEY_TYPE * const my_keys = (KEY_TYPE * const)malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
+  KEY_TYPE * const my_keys = (KEY_TYPE * const)malloc(NUM_KEYS_PER_PE *
+          sizeof(KEY_TYPE));
   assert(my_keys);
 
-  pcg32_random_t rng = seed_my_rank();
+#ifdef ISX_PROFILING
+  unsigned long long start = hclib_current_time_ns();
+#endif
+  hclib::finish([my_keys] {
+      const unsigned nworkers = hclib::num_workers();
+      for (unsigned i = 0; i < nworkers; i++) {
+          hclib::async([i, nworkers, my_keys] {
+              pcg32_random_t rng = seed_my_rank(i);
+              uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
+              uint64_t start_chunk = i * chunk_size;
+              uint64_t end_chunk = (i + 1) * chunk_size;
+              if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE;
 
-  for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i) {
-    my_keys[i] = pcg32_boundedrand_r(&rng, MAX_KEY_VAL);
-  }
+              for(uint64_t ii = start_chunk; ii < end_chunk; ++ii) {
+                my_keys[ii] = pcg32_boundedrand_r(&rng, MAX_KEY_VAL);
+              }
+          });
+      }
+  });
+
+#ifdef ISX_PROFILING
+  unsigned long long end = hclib_current_time_ns();
+  printf("Making input took %llu ns\n", end - start);
+#endif
 
   timer_stop(&timers[TIMER_INPUT]);
 
@@ -350,7 +387,8 @@ static KEY_TYPE * make_input(void)
  * Computes the size of each bucket by iterating all keys and incrementing
  * their corresponding bucket's size
  */
-static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
+static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
+        int ***bucket_counts_per_chunk_out)
 {
   int * const local_bucket_sizes = (int * const)malloc(NUM_BUCKETS * sizeof(int));
   assert(local_bucket_sizes);
@@ -359,10 +397,45 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
 
   init_array(local_bucket_sizes, NUM_BUCKETS);
 
-  for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
-    const uint32_t bucket_index = my_keys[i]/BUCKET_WIDTH;
-    local_bucket_sizes[bucket_index]++;
+#ifdef ISX_PROFILING
+  unsigned long long start = hclib_current_time_ns();
+#endif
+  const unsigned nworkers = hclib::num_workers();
+  int **bucket_counts_per_chunk = (int **)malloc(nworkers * sizeof(int *));
+  hclib::finish([local_bucket_sizes, my_keys, nworkers, bucket_counts_per_chunk] {
+      for (unsigned i = 0; i < nworkers; i++) {
+          hclib::async([i, nworkers, my_keys, bucket_counts_per_chunk] {
+              int *bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
+              memset(bucket_sizes, 0x00, NUM_BUCKETS * sizeof(int));
+
+              uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
+              uint64_t start_chunk = i * chunk_size;  
+              uint64_t end_chunk = (i + 1) * chunk_size; 
+              if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE; 
+
+              for (uint64_t ii = start_chunk; ii < end_chunk; ++ii) {
+                const uint32_t bucket_index = my_keys[ii]/BUCKET_WIDTH;
+                bucket_sizes[bucket_index]++;
+              }
+
+              bucket_counts_per_chunk[i] = bucket_sizes;
+          });
+      }
+  });
+  for (unsigned i = 0; i < nworkers; i++) {
+      int *worker_bucket_sizes = bucket_counts_per_chunk[i];
+      for (unsigned b = 0; b < NUM_BUCKETS; b++) {
+          local_bucket_sizes[b] += worker_bucket_sizes[b];
+      }
+      // free(worker_bucket_sizes);
   }
+  *bucket_counts_per_chunk_out = bucket_counts_per_chunk;
+  // free(bucket_counts_per_chunk);
+
+#ifdef ISX_PROFILING
+  unsigned long long end = hclib_current_time_ns();
+  printf("Counting local bucket sizes took %llu ns\n", end - start);
+#endif
 
   timer_stop(&timers[TIMER_BCOUNT]);
 
@@ -436,22 +509,78 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
  * The contents of each bucket are not sorted.
  */
 static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
-                                              int * const local_bucket_offsets)
+                                              int * const local_bucket_offsets,
+                                              int **bucket_counts_per_chunk)
 {
-  KEY_TYPE * const my_local_bucketed_keys = (KEY_TYPE * const)malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
+  KEY_TYPE * const my_local_bucketed_keys = (KEY_TYPE * const)malloc(
+          NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
   assert(my_local_bucketed_keys);
 
   timer_start(&timers[TIMER_BUCKETIZE]);
 
-  for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
-    const KEY_TYPE key = my_keys[i];
-    const uint32_t bucket_index = key / BUCKET_WIDTH;
-    uint32_t index;
-    assert(local_bucket_offsets[bucket_index] >= 0);
-    index = local_bucket_offsets[bucket_index]++;
-    assert(index < NUM_KEYS_PER_PE);
-    my_local_bucketed_keys[index] = key;
+#ifdef ISX_PROFILING
+  unsigned long long start = hclib_current_time_ns();
+#endif
+  unsigned nworkers = hclib::num_workers();
+
+  if (nworkers == 1) {
+      for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
+        const KEY_TYPE key = my_keys[i];
+        const uint32_t bucket_index = key / BUCKET_WIDTH;
+        uint32_t index;
+        assert(local_bucket_offsets[bucket_index] >= 0);
+        index = local_bucket_offsets[bucket_index]++;
+        assert(index < NUM_KEYS_PER_PE);
+        my_local_bucketed_keys[index] = key;
+      }
+  } else {
+      int *chunk_bucket_offsets = (int *)malloc(NUM_BUCKETS * nworkers *
+              sizeof(int));
+
+      hclib::finish([chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk] {
+          hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, NUM_BUCKETS);
+          hclib::forasync1D(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
+              chunk_bucket_offsets[b * nworkers + 0] = local_bucket_offsets[b];
+              for (unsigned w = 1; w < nworkers; w++) {
+                  chunk_bucket_offsets[b * nworkers + w] =
+                      chunk_bucket_offsets[b * nworkers + w - 1] +
+                      bucket_counts_per_chunk[w - 1][b];
+              }
+          }, FORASYNC_MODE_FLAT);
+      });
+
+      hclib::finish([nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
+          for (unsigned c = 0; c < nworkers; c++) {
+              hclib::async([c, nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
+                  uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
+                  uint64_t start_chunk = c * chunk_size;
+                  uint64_t end_chunk = (c + 1) * chunk_size;
+                  if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE;
+
+                  int *tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+                  for (unsigned i = 0; i < NUM_BUCKETS; i++) {
+                    tmp[i] = chunk_bucket_offsets[i * nworkers + c];
+                  }
+
+                  for (uint64_t i = start_chunk; i < end_chunk; i++) {
+                      const KEY_TYPE key = my_keys[i];
+                      const uint32_t bucket_index = key / BUCKET_WIDTH;
+                      uint32_t index = tmp[bucket_index]++;
+                      assert(index < NUM_KEYS_PER_PE);
+                      my_local_bucketed_keys[index] = key;
+                  }
+                  free(tmp);
+              });
+          }
+      });
+
+      free(chunk_bucket_offsets);
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = hclib_current_time_ns();
+  printf("Bucketizing took %llu ns\n", end - start);
+#endif
 
   timer_stop(&timers[TIMER_BUCKETIZE]);
 
@@ -492,10 +621,10 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
           &receive_offset, (long long int)local_bucket_sizes[my_rank], my_rank);
   assert((unsigned long long)write_offset_into_self +
           (unsigned long long)local_bucket_sizes[my_rank] <= KEY_BUFFER_SIZE);
+
   memcpy(&my_bucket_keys[write_offset_into_self], 
          &my_local_bucketed_keys[send_offsets[my_rank]], 
          local_bucket_sizes[my_rank]*sizeof(KEY_TYPE));
-
 
   for(uint64_t i = 0; i < NUM_PES; ++i){
 
@@ -576,15 +705,72 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   // const int my_rank = ::shmem_my_pe();
   const int my_min_key = my_rank * BUCKET_WIDTH;
 
-  // Count the occurences of each key in my bucket
-  for(long long int i = 0; i < my_bucket_size; ++i){
-    const unsigned int key_index = my_bucket_keys[i] - my_min_key;
+#ifdef ISX_PROFILING
+  unsigned long long start = hclib_current_time_ns();
+#endif
 
-    assert(my_bucket_keys[i] >= my_min_key);
-    assert(key_index < BUCKET_WIDTH);
+  const unsigned nworkers = hclib::num_workers();
+  int *per_chunk_counts = (int *)malloc(nworkers * BUCKET_WIDTH * sizeof(int));
+  memset(per_chunk_counts, 0x00, nworkers * BUCKET_WIDTH * sizeof(int));
 
-    my_local_key_counts[key_index]++;
-  }
+  hclib::finish([nworkers, per_chunk_counts, my_bucket_keys, my_min_key] {
+    for (unsigned c = 0; c < nworkers; c++) {
+        hclib::async([nworkers, c, per_chunk_counts, my_bucket_keys, my_min_key] {
+            long long int chunk_size = (my_bucket_size + nworkers - 1) / nworkers;
+            long long int start_chunk = c * chunk_size;
+            long long int end_chunk = (c + 1) * chunk_size;
+            if (end_chunk > my_bucket_size) end_chunk = my_bucket_size;
+
+            int *counts = per_chunk_counts + (c * BUCKET_WIDTH);
+
+            for (long long int i = start_chunk; i < end_chunk; i++) {
+                const unsigned int key_index = my_bucket_keys[i] - my_min_key;
+
+                counts[key_index]++;
+            }
+        });
+    }
+  });
+
+#ifdef ISX_PROFILING
+  unsigned long long intermediate = hclib_current_time_ns();
+#endif
+
+  hclib::finish([nworkers, my_local_key_counts, per_chunk_counts] {
+      for (unsigned c = 0; c < nworkers; c++) {
+          hclib::async([c, nworkers, my_local_key_counts, per_chunk_counts] {
+            unsigned chunk_size = (BUCKET_WIDTH + nworkers - 1) / nworkers;
+            unsigned start_chunk = c * chunk_size;
+            unsigned end_chunk = (c + 1) * chunk_size;
+            if (end_chunk > BUCKET_WIDTH) end_chunk = my_bucket_size;
+
+            for (unsigned c = 0; c < nworkers; c++) {
+                for (unsigned i = start_chunk; i < end_chunk; i++) {
+                    my_local_key_counts[i] += per_chunk_counts[c * BUCKET_WIDTH + i];
+                }
+            }
+
+          });
+      }
+  });
+  free(per_chunk_counts);
+#ifdef ISX_PROFILING
+  unsigned long long end = hclib_current_time_ns();
+  printf("Counting local took %llu ns for stage 1, %llu ns for stage 2, "
+          "my_bucket_size = %u\n", intermediate - start, end - intermediate,
+          my_bucket_size);
+#endif
+
+  // // Count the occurences of each key in my bucket
+  // for(long long int i = 0; i < my_bucket_size; ++i){
+  //   const unsigned int key_index = my_bucket_keys[i] - my_min_key;
+
+  //   assert(my_bucket_keys[i] >= my_min_key);
+  //   assert(key_index < BUCKET_WIDTH);
+
+  //   my_local_key_counts[key_index]++;
+  // }
+
   timer_stop(&timers[TIMER_SORT]);
 
 #ifdef DEBUG
@@ -623,6 +809,9 @@ static int verify_results(int const * const my_local_key_counts,
   const int my_min_key = my_rank * BUCKET_WIDTH;
   const int my_max_key = (my_rank+1) * BUCKET_WIDTH - 1;
 
+#ifdef ISX_PROFILING
+  unsigned long long start = hclib_current_time_ns();
+#endif
   // Verify all keys are within bucket boundaries
   for(long long int i = 0; i < my_bucket_size; ++i){
     const int key = my_local_keys[i];
@@ -632,6 +821,11 @@ static int verify_results(int const * const my_local_key_counts,
       error = 1;
     }
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = hclib_current_time_ns();
+  printf("Verifying took %llu ns\n", end - start);
+#endif
 
   // Verify the sum of the key population equals the expected bucket size
   long long int bucket_size_test = 0;
@@ -874,12 +1068,13 @@ static unsigned int * gather_rank_counts(_timer_t * const timer)
 /*
  * Seeds each rank based on the rank number and time
  */
-static inline pcg32_random_t seed_my_rank(void)
+static inline pcg32_random_t seed_my_rank(const int chunk)
 {
   const unsigned int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
-  // const unsigned int my_rank = ::shmem_my_pe();
+  const unsigned int nworkers = hclib::num_workers();
+  const unsigned int virtual_rank = my_rank * nworkers + chunk;
   pcg32_random_t rng;
-  pcg32_srandom_r(&rng, (uint64_t) my_rank, (uint64_t) my_rank );
+  pcg32_srandom_r(&rng, (uint64_t) virtual_rank, (uint64_t) virtual_rank );
   return rng;
 }
 

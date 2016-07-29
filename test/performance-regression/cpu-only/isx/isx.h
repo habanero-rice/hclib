@@ -71,7 +71,12 @@ static inline KEY_TYPE * make_input(void);
  * Computes the size of each local bucket by iterating all local keys and incrementing
  * their corresponding bucket's size
  */
+#ifdef HCLIB_VERSION
+static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
+        int ***bucket_counts_per_chunk_out);
+#else
 static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys);
+#endif
 
 /*
  * Computes the prefix scan of the local bucket sizes to determine the starting locations
@@ -86,8 +91,14 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
  * Rearranges all local keys into their corresponding local bucket.
  * The contents of each bucket are not sorted.
  */
+#ifdef HCLIB_VERSION
+static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
+                                       int * const local_bucket_offsets,
+                                       int **bucket_counts_per_chunk);
+#else
 static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
                                        int * const local_bucket_offsets);
+#endif
 /*
  * Each PE sends the contents of its local buckets to the PE that owns that bucket.
  */
@@ -111,7 +122,11 @@ static int verify_results(int const * const my_local_key_counts,
 /*
  * Seeds each rank based on the rank number and time
  */
+#ifdef HCLIB_VERSION
+static inline pcg32_random_t seed_my_rank(const int chunk);
+#else
 static inline pcg32_random_t seed_my_rank(void);
+#endif
 
 /*
  * Provides a sequential ordering of PE operations
