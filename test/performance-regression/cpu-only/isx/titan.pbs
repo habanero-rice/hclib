@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:20:00
-#PBS -l nodes=32
+#PBS -l nodes=8
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -12,21 +12,22 @@
 # cd $PBS_O_WORKDIR
 cd /ccs/proj/csc205/max/hclib/test/performance-regression/cpu-only/isx
 
-export SMA_SYMMETRIC_SIZE=21474836480
-export GASNET_PHYSMEM_MAX=20G
-
 export LD_LIBRARY_PATH=$PROJ_DIR/hclib/modules/openshmem/lib:$LD_LIBRARY_PATH
+export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
+export GASNET_BACKTRACE=1
+export SMA_SYMMETRIC_SIZE=2147483648
+export GASNET_PHYSMEM_MAX=2G
+export LD_PRELOAD=/lustre/atlas/sw/tbb/43/sles11.3_gnu4.8.2/source/build/linux_intel64_gcc_cc4.8.2_libc2.11.3_kernel3.0.101_release/libtbbmalloc_proxy.so.2
 ulimit -c unlimited
 
-# for NODES in 16 32; do
-for NODES in $PBS_NUM_NODES; do
-    # for THREADS in 1 2 4 8 16; do
-    for THREADS in 16; do
-        export OMP_NUM_THREADS=$THREADS
-        export HCLIB_WORKERS=$THREADS
-        # export LD_PRELOAD=/lustre/atlas/sw/tbb/43/sles11.3_gnu4.8.2/source/build/linux_intel64_gcc_cc4.8.2_libc2.11.3_kernel3.0.101_release/libtbbmalloc_proxy.so.2
-        export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
-        export GASNET_BACKTRACE=1
-        aprun --pes-per-node 16 -n $(($NODES * 16)) -ss -d 1 -S 8 ./bin/isx.weak 33554432 /tmp/output_weak
-    done
-done
+NODES=$PBS_NUM_NODES
+
+aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.weak 33554432 /tmp/output_weak
+
+export OMP_NUM_THREADS=1
+export HCLIB_WORKERS=1
+aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.hclib.weak 33554432 /tmp/output_weak
+
+# export OMP_NUM_THREADS=8
+# export HCLIB_WORKERS=8
+# aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak

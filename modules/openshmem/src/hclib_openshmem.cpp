@@ -7,15 +7,27 @@
 #include <iostream>
 
 // #define TRACE
-// #define PROFILE
+#define PROFILE
+// #define DETAILED_PROFILING
 
 #ifdef PROFILE
-#define START_PROFILE const unsigned long long start = hclib_current_time_ns();
+#define START_PROFILE const unsigned long long __start_time = hclib_current_time_ns();
+
+#ifdef DETAILED_PROFILING
 #define END_PROFILE(funcname) { \
-    const unsigned long long end = hclib_current_time_ns(); \
+    const unsigned long long __end_time = hclib_current_time_ns(); \
     func_counters[funcname##_lbl]++; \
-    func_times[funcname##_lbl] += (end - start); \
+    func_times[funcname##_lbl] += (__end_time - __start_time); \
+    printf("%s: %llu ns\n", FUNC_NAMES[funcname##_lbl], \
+            (__end_time - __start_time)); \
 }
+#else
+#define END_PROFILE(funcname) { \
+    const unsigned long long __end_time = hclib_current_time_ns(); \
+    func_counters[funcname##_lbl]++; \
+    func_times[funcname##_lbl] += (__end_time - __start_time); \
+}
+#endif
 
 enum FUNC_LABELS {
     shmem_malloc_lbl = 0,
@@ -37,6 +49,8 @@ enum FUNC_LABELS {
     shmem_longlong_put_lbl,
     shmem_int_finc_lbl,
     shmem_int_fetch_lbl,
+    shmem_collect32_lbl,
+    shmem_fcollect64_lbl,
     N_FUNCS
 };
 
@@ -59,7 +73,9 @@ const char *FUNC_NAMES[N_FUNCS] = {
     "shmem_longlong_p",
     "shmem_longlong_put",
     "shmem_int_finc",
-    "shmem_int_fetch"};
+    "shmem_int_fetch",
+    "shmem_collect32",
+    "shmem_fcollect64"};
 
 unsigned long long func_counters[N_FUNCS];
 unsigned long long func_times[N_FUNCS];
@@ -149,21 +165,21 @@ int hclib::shmem_n_pes() {
 }
 
 void *hclib::shmem_malloc(size_t size) {
-    hclib::promise_t *promise = new hclib::promise_t();
-    hclib::async_at(nic, [size, promise] {
-        START_PROFILE
+    void **out_alloc = (void **)malloc(sizeof(void *));
+    hclib::finish([out_alloc, size] {
+        hclib::async_at(nic, [size, out_alloc] {
+            START_PROFILE
 #ifdef TRACE
-        std::cerr << ::shmem_my_pe() << ": shmem_malloc: Allocating " << size <<
-                " bytes" << std::endl;
+            std::cerr << ::shmem_my_pe() << ": shmem_malloc: Allocating " << size <<
+                    " bytes" << std::endl;
 #endif
-        void *alloc = ::shmem_malloc(size);
-        promise->put(alloc);
-        END_PROFILE(shmem_malloc)
+            *out_alloc = ::shmem_malloc(size);
+            END_PROFILE(shmem_malloc)
+        });
     });
 
-    promise->get_future()->wait();
-    void *allocated = promise->get_future()->get();
-    delete promise;
+    void *allocated = *out_alloc;
+    free(out_alloc);
 
     return allocated;
 }
@@ -377,47 +393,43 @@ void hclib::shmem_int_add(int *dest, int value, int pe) {
 long long hclib::shmem_longlong_fadd(long long *target, long long value,
         int pe) {
     long long *val_ptr = (long long *)malloc(sizeof(long long));
-    hclib::promise_t *promise = new hclib::promise_t();
 
-    hclib::async_at(nic, [target, value, pe, promise, val_ptr] {
-        START_PROFILE
+    hclib::finish([target, value, pe, val_ptr] {
+        hclib::async_at(nic, [target, value, pe, val_ptr] {
+            START_PROFILE
 #ifdef TRACE
-        std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
-        target << " value=" << value << " pe=" << pe << std::endl;
+            std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
+                target << " value=" << value << " pe=" << pe << std::endl;
 #endif
-        const long long val = ::shmem_longlong_fadd(target, value, pe);
-        *val_ptr = val;
-        promise->put(NULL);
-        END_PROFILE(shmem_longlong_fadd)
+            const long long val = ::shmem_longlong_fadd(target, value, pe);
+            *val_ptr = val;
+            END_PROFILE(shmem_longlong_fadd)
+        });
     });
 
-    promise->get_future()->wait();
     const long long result = *val_ptr;
 
-    delete promise;
     free(val_ptr);
     return result;
 }
 
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
-    hclib::promise_t *promise = new hclib::promise_t();
-    hclib::async_at(nic, [dest, value, pe, promise] {
-        START_PROFILE
+    int *heap_fetched = (int *)malloc(sizeof(int));
+
+    hclib::finish([dest, value, pe, heap_fetched] {
+        hclib::async_at(nic, [dest, value, pe, heap_fetched] {
+            START_PROFILE
 #ifdef TRACE
-        std::cerr << ::shmem_my_pe() << ": shmem_int_fadd: dest=" <<
-            dest << " value=" << value << " pe=" << pe << std::endl;
+            std::cerr << ::shmem_my_pe() << ": shmem_int_fadd: dest=" <<
+                dest << " value=" << value << " pe=" << pe << std::endl;
 #endif
-        const int fetched = ::shmem_int_fadd(dest, value, pe);
-        int *heap_fetched = (int *)malloc(sizeof(int));
-        *heap_fetched = fetched;
-        promise->put((void *)heap_fetched);
-        END_PROFILE(shmem_int_fadd)
+            const int fetched = ::shmem_int_fadd(dest, value, pe);
+            *heap_fetched = fetched;
+            END_PROFILE(shmem_int_fadd)
+        });
     });
 
-    promise->get_future()->wait();
-    int *heap_fetched = (int *)promise->get_future()->get();
     const int fetched = *heap_fetched;
-    delete promise;
     free(heap_fetched);
 
     return fetched;
@@ -512,6 +524,37 @@ void hclib::shmem_longlong_put(long long *dest, const long long *src,
             END_PROFILE(shmem_longlong_put)
         });
     });
+}
+
+void hclib::shmem_collect32(void *dest, const void *source, size_t nelems,
+        int PE_start, int logPE_stride, int PE_size, long *pSync) {
+    hclib::finish([dest, source, nelems, PE_start, logPE_stride, PE_size, pSync] {
+        hclib::async_at(nic, [dest, source, nelems, PE_start, logPE_stride, PE_size, pSync] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_collect32" << std::endl;
+#endif
+            ::shmem_collect32(dest, source, nelems, PE_start, logPE_stride,
+                PE_size, pSync);
+            END_PROFILE(shmem_collect32)
+        });
+    });
+}
+
+void hclib::shmem_fcollect64(void *dest, const void *source, size_t nelems,
+        int PE_start, int logPE_stride, int PE_size, long *pSync) {
+    hclib::finish([dest, source, nelems, PE_start, logPE_stride, PE_size, pSync] {
+        hclib::async_at(nic, [dest, source, nelems, PE_start, logPE_stride, PE_size, pSync] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_fcollect64" << std::endl;
+#endif
+            ::shmem_fcollect64(dest, source, nelems, PE_start, logPE_stride,
+                PE_size, pSync);
+            END_PROFILE(shmem_fcollect64)
+        });
+    });
+
 }
 
 std::string hclib::shmem_name() {

@@ -1,18 +1,17 @@
-# include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
-# include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.pre.mak
-# include $(HCLIB_ROOT)/include/hclib.mak
-# include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
-# include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
-include $(GASNET_INSTALL)/include/gemini-conduit/gemini-par.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
+include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.pre.mak
+include $(HCLIB_ROOT)/include/hclib.mak
+include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
+include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
 
 
 CC = oshcc
 LD = $(CC)
 DEBUGFLAGS = -g -p -O0 -DDEBUG
 OPTFLAGS = -O3 -DNDEBUG -mavx
-CFLAGS += -Wall -Wextra -std=c99 $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) #$(OPTFLAGS)
+CFLAGS += -Wall -Wextra -std=c++11 $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) #$(OPTFLAGS)
 LDLIBS += -lrt -lm $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
-LDFLAGS += $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(CRAY_PMI_POST_LINK_OPTS) $(CRAY_XPMEM_POST_LINK_OPTS) $(CRAY_UGNI_POST_LINK_OPTS) -lugni -lxpmem
+LDFLAGS += $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS)
 ### 
 # If you change these values, you must also change them in params.h
 STRONG = 1
@@ -22,17 +21,17 @@ WEAKISO = 3
 
 .PHONY: all clean debug
 
-SRCS := isx.c pcg_basic.c timer.c
+SRCS := isx_hclib.cpp pcg_basic.cpp timer.cpp
 OBJDIR := obj
 BINDIR := bin
-STRONG_EXE = isx.strong
-WEAK_EXE = isx.weak 
-WEAKISO_EXE = isx.weak_iso
-STRONG_OBJS := $(SRCS:.c=.o_s)
+STRONG_EXE = isx.hclib.strong
+WEAK_EXE = isx.hclib.weak 
+WEAKISO_EXE = isx.hclib.weak_iso
+STRONG_OBJS := $(SRCS:.cpp=.o_s)
 STRONG_OBJS := $(addprefix $(OBJDIR)/,$(STRONG_OBJS))
-WEAK_OBJS := $(SRCS:.c=.o_w)
+WEAK_OBJS := $(SRCS:.cpp=.o_w)
 WEAK_OBJS := $(addprefix $(OBJDIR)/,$(WEAK_OBJS))
-WEAKISO_OBJS := $(SRCS:.c=.o_wi)
+WEAKISO_OBJS := $(SRCS:.cpp=.o_wi)
 WEAKISO_OBJS := $(addprefix $(OBJDIR)/,$(WEAKISO_OBJS))
 
 all: $(STRONG_EXE) $(WEAK_EXE) $(WEAKISO_EXE)
@@ -55,15 +54,15 @@ $(WEAKISO_EXE):$(WEAKISO_OBJS)
 	@mkdir -p $(BINDIR)
 	$(LD) $(WEAKISO_OBJS) -o $(BINDIR)/$(WEAKISO_EXE) $(LDLIBS) $(LDFLAGS)
 
-$(OBJDIR)/%.o_s : %.c
+$(OBJDIR)/%.o_s : %.cpp
 	@mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -D SCALING_OPTION=$(STRONG) -c $< -o $@
 
-$(OBJDIR)/%.o_w: %.c
+$(OBJDIR)/%.o_w: %.cpp
 	@mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -D SCALING_OPTION=$(WEAK) -c $< -o $@
 
-$(OBJDIR)/%.o_wi: %.c
+$(OBJDIR)/%.o_wi: %.cpp
 	@mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -D SCALING_OPTION=$(WEAKISO) -c $< -o $@
 

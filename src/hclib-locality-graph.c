@@ -405,9 +405,11 @@ void load_locality_info(const char *filename, int *nworkers_out,
 
     const char *nworkers_str = getenv("HCLIB_WORKERS");
     if (nworkers_str) {
-        nworkers = atoi(nworkers_str);
+        const int new_nworkers = atoi(nworkers_str);
         fprintf(stderr, "WARNING: Overloading # workers set in locality file "
-                "from HCLIB_WORKERS environment variable\n");
+                "(%d) from HCLIB_WORKERS environment variable (%d)\n", nworkers,
+                new_nworkers);
+        nworkers = new_nworkers;
     }
 
     // Declarations field of top-level object
@@ -504,22 +506,22 @@ void load_locality_info(const char *filename, int *nworkers_out,
     token_index++;
     const int n_pop_paths = tokens[token_index].size;
     token_index++;
-    assert(n_pop_paths > 0);
+    assert(n_pop_paths > 0 || nworkers == 0);
 
     token_index = parse_paths(token_index, n_pop_paths, json, tokens, locales,
             nlocales, worker_pop_paths, &default_pop_path_token);
-    assert(default_pop_path_token);
+    assert(default_pop_path_token || nworkers == 0);
 
     // List of steal paths for each worker
     assert(string_token_equals(tokens + token_index, json, "steal_paths") == 0);
     token_index++;
     const int n_steal_paths = tokens[token_index].size;
     token_index++;
-    assert(n_steal_paths > 0);
+    assert(n_steal_paths > 0 || nworkers == 0);
 
     token_index = parse_paths(token_index, n_steal_paths, json, tokens, locales,
             nlocales, worker_steal_paths, &default_steal_path_token);
-    assert(default_steal_path_token);
+    assert(default_steal_path_token || nworkers == 0);
 
     for (i = 0; i < nworkers; i++) {
         if (worker_pop_paths[i]) {

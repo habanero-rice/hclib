@@ -73,6 +73,11 @@ void shmem_longlong_sum_to_all(long long *target, long long *source,
                                int logPE_stride, int PE_size,
                                long long *pWrk, long *pSync);
 
+void shmem_collect32(void *dest, const void *source, size_t nelems,
+        int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_fcollect64(void *dest, const void *source, size_t nelems,
+        int PE_start, int logPE_stride, int PE_size, long *pSync);
+
 void shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value);
 void shmem_int_wait_until_any(volatile int **ivars, int cmp,
         int *cmp_values, int nwaits);

@@ -146,6 +146,12 @@ static void set_current_worker(int wid) {
      * pthread_setaffinity_np.
      */
 #ifndef __MACH__
+    /*
+     * Using pthread_setaffinity_np can interfere with other tools trying to
+     * control affinity (e.g. if you are using srun/aprun/taskset from outside
+     * the HClib process). For now we disable this.
+     */
+#if 0
     cpu_set_t cpu_set;
     CPU_ZERO(&cpu_set);
     if (wid >= hc_context->ncores) {
@@ -168,6 +174,7 @@ static void set_current_worker(int wid) {
                 "thread %d, ncores=%d: %s\n", wid, hc_context->ncores,
                 strerror(err));
     }
+#endif
 #endif
 }
 

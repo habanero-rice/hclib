@@ -43,6 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "isx.h"
 #include "timer.h"
 #include "pcg_basic.h"
+#include "hclib_cpp.h"
+#include "hclib_system.h"
+#include "hclib_openshmem.h"
 
 #define ROOT_PE 0
 
@@ -64,9 +67,9 @@ volatile int whose_turn;
 long long int receive_offset = 0;
 long long int my_bucket_size = 0;
 
-#define SHMEM_BARRIER_AT_START    { timer_start(&timers[TIMER_BARRIER_START]); shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_START]); }
-#define SHMEM_BARRIER_AT_EXCHANGE { timer_start(&timers[TIMER_BARRIER_EXCHANGE]); shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_EXCHANGE]); }
-#define SHMEM_BARRIER_AT_END      { timer_start(&timers[TIMER_BARRIER_END]); shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_END]); }
+#define SHMEM_BARRIER_AT_START    { timer_start(&timers[TIMER_BARRIER_START]); hclib::shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_START]); }
+#define SHMEM_BARRIER_AT_EXCHANGE { timer_start(&timers[TIMER_BARRIER_EXCHANGE]); hclib::shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_EXCHANGE]); }
+#define SHMEM_BARRIER_AT_END      { timer_start(&timers[TIMER_BARRIER_END]); hclib::shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_END]); }
 
 // #define EXTRA_STATS
 
@@ -74,7 +77,8 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
-#define KEY_BUFFER_SIZE (1uLL<<28uLL)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 40000)
+#define KEY_BUFFER_SIZE ((1uLL<<28uLL))
 
 // The receive array for the All2All exchange
 KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -85,11 +89,14 @@ int * permute_array;
 
 int main(const int argc,  char ** argv)
 {
-  shmem_init();
+  const char *deps[] = { "system", "openshmem" };
+    hclib::launch(deps, 2, [argc, argv] {
+  // ::shmem_init();
 
   #ifdef EXTRA_STATS
   _timer_t total_time;
-  if(shmem_my_pe() == 0) {
+  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0) {
+  // if(::shmem_my_pe() == 0) {
     printf("\n-----\nmkdir timedrun fake\n\n");
     timer_start(&total_time);
   }
@@ -104,7 +111,8 @@ int main(const int argc,  char ** argv)
   log_times(log_file);
 
   #ifdef EXTRA_STATS
-  if(shmem_my_pe() == 0) {
+  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0) {
+  // if(::shmem_my_pe() == 0) {
     just_timer_stop(&total_time);
     double tTime = ( total_time.stop.tv_sec - total_time.start.tv_sec ) + ( total_time.stop.tv_nsec - total_time.start.tv_nsec )/1E9;
     avg_time *= 1000;
@@ -138,8 +146,9 @@ int main(const int argc,  char ** argv)
   }
 #endif
 
-  shmem_finalize();
-  return err;
+  // ::shmem_finalize();
+    });
+  return 0;
 }
 
 
@@ -149,16 +158,17 @@ static char * parse_params(const int argc, char ** argv)
 {
   if(argc != 3)
   {
-    if( shmem_my_pe() == 0){
+    if( hclib::pe_for_locale(hclib::shmem_my_pe()) == 0){
+    // if(::shmem_my_pe() == 0) {
       printf("Usage:  \n");
       printf("  ./%s <total num keys(strong) | keys per pe(weak)> <log_file>\n",argv[0]);
     }
 
-    shmem_finalize();
+    // shmem_finalize();
     exit(1);
   }
 
-  NUM_PES = (uint64_t) shmem_n_pes();
+  NUM_PES = (uint64_t) hclib::shmem_n_pes();
   MAX_KEY_VAL = DEFAULT_MAX_KEY;
   NUM_BUCKETS = NUM_PES;
   BUCKET_WIDTH = (uint64_t) ceil((double)MAX_KEY_VAL/NUM_BUCKETS);
@@ -192,11 +202,12 @@ static char * parse_params(const int argc, char ** argv)
 
     default:
       {
-        if(shmem_my_pe() == 0){
+        if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0){
+        // if(::shmem_my_pe() == 0){
           printf("Invalid scaling option! See params.h to define the scaling option.\n");
         }
 
-        shmem_finalize();
+        // shmem_finalize();
         exit(1);
         break;
       }
@@ -209,7 +220,8 @@ static char * parse_params(const int argc, char ** argv)
   assert(NUM_BUCKETS > 0);
   assert(BUCKET_WIDTH > 0);
   
-  if(shmem_my_pe() == 0){
+  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0){
+  // if(::shmem_my_pe() == 0){
     printf("ISx v%1d.%1d\n",MAJOR_VERSION_NUMBER,MINOR_VERSION_NUMBER);
 #ifdef PERMUTE
     printf("Random Permute Used in ATA.\n");
@@ -289,7 +301,7 @@ static int bucket_sort(void)
     free(send_offsets);
     free(my_local_key_counts);
 
-    shmem_barrier_all();
+    hclib::shmem_barrier_all();
   }
 
   return err;
@@ -304,7 +316,7 @@ static KEY_TYPE * make_input(void)
 {
   timer_start(&timers[TIMER_INPUT]);
 
-  KEY_TYPE * const my_keys = malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
+  KEY_TYPE * const my_keys = (KEY_TYPE * const)malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
   assert(my_keys);
 
   pcg32_random_t rng = seed_my_rank();
@@ -318,7 +330,8 @@ static KEY_TYPE * make_input(void)
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: Initial Keys: ", my_rank);
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
     if(i < PRINT_MAX)
@@ -339,7 +352,7 @@ static KEY_TYPE * make_input(void)
  */
 static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
 {
-  int * const local_bucket_sizes = malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_sizes = (int * const)malloc(NUM_BUCKETS * sizeof(int));
   assert(local_bucket_sizes);
 
   timer_start(&timers[TIMER_BCOUNT]);
@@ -356,7 +369,8 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: local bucket sizes: ", my_rank);
   for(uint64_t i = 0; i < NUM_BUCKETS; ++i){
     if(i < PRINT_MAX)
@@ -381,12 +395,12 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
 static inline int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
                                                  int ** send_offsets)
 {
-  int * const local_bucket_offsets = malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_offsets = (int * const)malloc(NUM_BUCKETS * sizeof(int));
   assert(local_bucket_offsets);
 
   timer_start(&timers[TIMER_BOFFSET]);
 
-  (*send_offsets) = malloc(NUM_BUCKETS * sizeof(int));
+  (*send_offsets) = (int *)malloc(NUM_BUCKETS * sizeof(int));
   assert(*send_offsets);
 
   local_bucket_offsets[0] = 0;
@@ -402,7 +416,8 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: local bucket offsets: ", my_rank);
   for(uint64_t i = 0; i < NUM_BUCKETS; ++i){
     if(i < PRINT_MAX)
@@ -423,7 +438,7 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
 static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                                               int * const local_bucket_offsets)
 {
-  KEY_TYPE * const my_local_bucketed_keys = malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
+  KEY_TYPE * const my_local_bucketed_keys = (KEY_TYPE * const)malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
   assert(my_local_bucketed_keys);
 
   timer_start(&timers[TIMER_BUCKETIZE]);
@@ -443,7 +458,8 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: local bucketed keys: ", my_rank);
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
     if(i < PRINT_MAX)
@@ -467,11 +483,12 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
 {
   timer_start(&timers[TIMER_ATA_KEYS]);
 
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   unsigned int total_keys_sent = 0;
 
   // Keys destined for local key buffer can be written with memcpy
-  const long long int write_offset_into_self = shmem_longlong_fadd(
+  const long long int write_offset_into_self = hclib::shmem_longlong_fadd(
           &receive_offset, (long long int)local_bucket_sizes[my_rank], my_rank);
   assert((unsigned long long)write_offset_into_self +
           (unsigned long long)local_bucket_sizes[my_rank] <= KEY_BUFFER_SIZE);
@@ -496,7 +513,7 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
     const int read_offset_from_self = send_offsets[target_pe];
     const int my_send_size = local_bucket_sizes[target_pe];
 
-    const long long int write_offset_into_target = shmem_longlong_fadd(
+    const long long int write_offset_into_target = hclib::shmem_longlong_fadd(
             &receive_offset, (long long int)my_send_size, target_pe);
 
 #ifdef DEBUG
@@ -507,7 +524,7 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
     // fprintf(stderr, "PUTTING %llu\n", my_send_size);
     assert((unsigned long long)write_offset_into_target +
             (unsigned long long)my_send_size <= KEY_BUFFER_SIZE);
-    shmem_int_put(&(my_bucket_keys[write_offset_into_target]), 
+    hclib::shmem_int_put(&(my_bucket_keys[write_offset_into_target]), 
                   &(my_local_bucketed_keys[read_offset_from_self]), 
                   my_send_size, 
                   target_pe);
@@ -549,13 +566,14 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
  */
 static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 {
-  int * const my_local_key_counts = malloc(BUCKET_WIDTH * sizeof(int));
+  int * const my_local_key_counts = (int * const)malloc(BUCKET_WIDTH * sizeof(int));
   assert(my_local_key_counts);
   memset(my_local_key_counts, 0, BUCKET_WIDTH * sizeof(int));
 
   timer_start(&timers[TIMER_SORT]);
 
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   const int my_min_key = my_rank * BUCKET_WIDTH;
 
   // Count the occurences of each key in my bucket
@@ -595,11 +613,12 @@ static int verify_results(int const * const my_local_key_counts,
                            KEY_TYPE const * const my_local_keys)
 {
 
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
 
   int error = 0;
 
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
 
   const int my_min_key = my_rank * BUCKET_WIDTH;
   const int my_max_key = (my_rank+1) * BUCKET_WIDTH - 1;
@@ -627,8 +646,8 @@ static int verify_results(int const * const my_local_key_counts,
 
   // Verify the final number of keys equals the initial number of keys
   static long long int total_num_keys = 0;
-  shmem_longlong_sum_to_all(&total_num_keys, &my_bucket_size, 1, 0, 0, NUM_PES, llWrk, pSync);
-  shmem_barrier_all();
+  hclib::shmem_longlong_sum_to_all(&total_num_keys, &my_bucket_size, 1, 0, 0, NUM_PES, llWrk, pSync);
+  hclib::shmem_barrier_all();
 
   if(total_num_keys != (long long int)(NUM_KEYS_PER_PE * NUM_PES)){
     if(my_rank == ROOT_PE){
@@ -654,7 +673,8 @@ static void log_times(char * log_file)
     timers[i].all_counts = gather_rank_counts(&timers[i]);
   }
 
-  if(shmem_my_pe() == ROOT_PE)
+  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == ROOT_PE)
+  // if(::shmem_my_pe() == ROOT_PE)
   {
     int print_names = 0;
     if(file_exists(log_file) != 1){
@@ -800,19 +820,19 @@ static double * gather_rank_times(_timer_t * const timer)
     assert(timer->seconds_iter == timer->num_iters);
 
     const unsigned int num_records = NUM_PES * timer->seconds_iter;
-    double * my_times = shmem_malloc(timer->seconds_iter * sizeof(double));
+    double * my_times = (double *)hclib::shmem_malloc(timer->seconds_iter * sizeof(double));
     assert(my_times);
     memcpy(my_times, timer->seconds, timer->seconds_iter * sizeof(double));
 
-    double * all_times = shmem_malloc( num_records * sizeof(double));
+    double * all_times = (double *)hclib::shmem_malloc( num_records * sizeof(double));
     assert(all_times);
 
-    shmem_barrier_all();
+    hclib::shmem_barrier_all();
 
-    shmem_fcollect64(all_times, my_times, timer->seconds_iter, 0, 0, NUM_PES, pSync);
-    shmem_barrier_all();
+    hclib::shmem_fcollect64(all_times, my_times, timer->seconds_iter, 0, 0, NUM_PES, pSync);
+    hclib::shmem_barrier_all();
 
-    shmem_free(my_times);
+    hclib::shmem_free(my_times);
 
     return all_times;
   }
@@ -829,20 +849,20 @@ static unsigned int * gather_rank_counts(_timer_t * const timer)
   if(timer->count_iter > 0){
     const unsigned int num_records = NUM_PES * timer->num_iters;
 
-    unsigned int * my_counts = shmem_malloc(timer->num_iters * sizeof(unsigned int));
+    unsigned int * my_counts = (unsigned int *)hclib::shmem_malloc(timer->num_iters * sizeof(unsigned int));
     assert(my_counts);
     memcpy(my_counts, timer->count, timer->num_iters*sizeof(unsigned int));
 
-    unsigned int * all_counts = shmem_malloc( num_records * sizeof(unsigned int) );
+    unsigned int * all_counts = (unsigned int *)hclib::shmem_malloc( num_records * sizeof(unsigned int) );
     assert(all_counts);
 
-    shmem_barrier_all();
+    hclib::shmem_barrier_all();
 
-    shmem_collect32(all_counts, my_counts, timer->num_iters, 0, 0, NUM_PES, pSync);
+    hclib::shmem_collect32(all_counts, my_counts, timer->num_iters, 0, 0, NUM_PES, pSync);
 
-    shmem_barrier_all();
+    hclib::shmem_barrier_all();
 
-    shmem_free(my_counts);
+    hclib::shmem_free(my_counts);
 
     return all_counts;
   }
@@ -856,7 +876,8 @@ static unsigned int * gather_rank_counts(_timer_t * const timer)
  */
 static inline pcg32_random_t seed_my_rank(void)
 {
-  const unsigned int my_rank = shmem_my_pe();
+  const unsigned int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const unsigned int my_rank = ::shmem_my_pe();
   pcg32_random_t rng;
   pcg32_srandom_r(&rng, (uint64_t) my_rank, (uint64_t) my_rank );
   return rng;
@@ -870,7 +891,7 @@ static void init_shmem_sync_array(long * const pSync)
   for(uint64_t i = 0; i < _SHMEM_REDUCE_SYNC_SIZE; ++i){
     pSync[i] = _SHMEM_SYNC_VALUE;
   }
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
 }
 
 /*
@@ -894,25 +915,27 @@ static int file_exists(char * filename)
 #ifdef DEBUG
 static void wait_my_turn()
 {
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
   whose_turn = 0;
-  shmem_barrier_all();
-  const int my_rank = shmem_my_pe();
+  hclib::shmem_barrier_all();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
 
-  shmem_int_wait_until((int*)&whose_turn, SHMEM_CMP_EQ, my_rank);
+  hclib::shmem_int_wait_until((int*)&whose_turn, SHMEM_CMP_EQ, my_rank);
   sleep(1);
 
 }
 
 static void my_turn_complete()
 {
-  const int my_rank = shmem_my_pe();
+  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  // const int my_rank = ::shmem_my_pe();
   const int next_rank = my_rank+1;
 
   if(my_rank < (NUM_PES-1)){ // Last rank updates no one
-    shmem_int_put((int *) &whose_turn, &next_rank, 1, next_rank);
+    hclib::shmem_int_put((int *)&whose_turn, &next_rank, 1, next_rank);
   }
-  shmem_barrier_all();
+  hclib::shmem_barrier_all();
 }
 #endif
 

@@ -71,7 +71,7 @@ static inline KEY_TYPE * make_input(void);
  * Computes the size of each local bucket by iterating all local keys and incrementing
  * their corresponding bucket's size
  */
-static inline int * count_local_bucket_sizes(KEY_TYPE const * restrict const my_keys);
+static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys);
 
 /*
  * Computes the prefix scan of the local bucket sizes to determine the starting locations
@@ -79,34 +79,34 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * restrict const my_
  * Stores a copy of the bucket offsets in send_offsets for use in exchanging keys because the
  * original bucket_offsets array is modified in the bucketize function
  */
-static inline int * compute_local_bucket_offsets(int const * restrict const local_bucket_sizes,
+static inline int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
                                           int ** send_offsets);
 
 /*
  * Rearranges all local keys into their corresponding local bucket.
  * The contents of each bucket are not sorted.
  */
-static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * restrict my_keys,
-                                       int * restrict const local_bucket_offsets);
+static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
+                                       int * const local_bucket_offsets);
 /*
  * Each PE sends the contents of its local buckets to the PE that owns that bucket.
  */
-static inline KEY_TYPE * exchange_keys(int const * restrict const send_offsets,
-                                int const * restrict const local_bucket_sizes,
-                                KEY_TYPE const * restrict const local_bucketed_keys);
+static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
+                                int const * const local_bucket_sizes,
+                                KEY_TYPE const * const local_bucketed_keys);
 
 /*
  * Count the occurence of each key within my bucket. 
  */
-static inline int * count_local_keys(KEY_TYPE const * restrict const my_bucket_keys);
+static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys);
 
 /*
  * Verifies the correctness of the sort. 
  * Ensures all keys after the exchange are within a PE's bucket boundaries.
  * Ensures the final number of keys is equal to the initial.
  */
-static int verify_results(int const * restrict const my_local_key_counts, 
-                           KEY_TYPE const * restrict const my_local_keys);
+static int verify_results(int const * const my_local_key_counts, 
+                           KEY_TYPE const * const my_local_keys);
 
 /*
  * Seeds each rank based on the rank number and time
@@ -124,7 +124,7 @@ static void my_turn_complete();
 /*
  * Initializes the sync array needed by shmem collective operations.
  */
-static void init_shmem_sync_array(long * restrict const pSync);
+static void init_shmem_sync_array(long * const pSync);
 
 
 static inline void init_array(int * array, const int size)

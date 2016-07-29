@@ -6,16 +6,15 @@ DEFINES=-DHC_ASSERTION_CHECK
 
 OBJS=obj/hclib_openshmem.o
 
-# TARGETS=lib/libhclib_openshmem.so lib/libhclib_openshmem.a
-TARGETS=lib/libhclib_openshmem.a
+TARGETS=lib/libhclib_openshmem.so lib/libhclib_openshmem.a
 
 all: $(TARGETS)
 
 lib/libhclib_openshmem.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 
-# lib/libhclib_openshmem.so: $(OBJS)
-# 	g++ -shared $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(HCLIB_LDLIBS) -o $@ $(OBJS)
+lib/libhclib_openshmem.so: $(OBJS)
+	g++ -shared $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(HCLIB_LDLIBS) -o $@ $(OBJS)
 
 obj/hclib_openshmem.o: src/hclib_openshmem.cpp
 	g++ -std=c++11 -Iinc $^ -o $@ $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) --compile -fPIC $(DEFINES)
