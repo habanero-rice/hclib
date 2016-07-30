@@ -4,15 +4,15 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:20:00
-#PBS -l nodes=32
+#PBS -l nodes=2
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
 # export GASNET_MAX_SEGSIZE='512MB'
 # cd $PBS_O_WORKDIR
-cd /ccs/proj/csc205/max/hclib/test/performance-regression/cpu-only/isx
-
+cd /ccs/proj/csc205/max/hclib/test/performance-regression/cpu-only/graph500-2.1.4
 export LD_LIBRARY_PATH=/opt/gcc/4.9.0/snos/lib64:$LD_LIBRARY_PATH
+
 export LD_LIBRARY_PATH=$PROJ_DIR/hclib/modules/openshmem/lib:$LD_LIBRARY_PATH
 export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
 export GASNET_BACKTRACE=1
@@ -23,6 +23,23 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
+aprun -n 1 -d 16 -N 1 ./seq-csr/seq-csr
+
+echo
+echo
+
+aprun -n 1 -d 16 -N 1 ./seq-list/seq-list
+
+echo
+echo
+
+aprun -n 1 -d 16 -N 1 ./omp-csr/omp-csr
+
+echo
+echo
+
+aprun -n 2 -d 16 -N 1 ./mpi/graph500_mpi_simple 20 16
+
 # aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.weak 33554432 /tmp/output_weak
 # 
 # export OMP_NUM_THREADS=1
@@ -32,11 +49,3 @@ NODES=$PBS_NUM_NODES
 # export OMP_NUM_THREADS=8
 # export HCLIB_WORKERS=8
 # aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak
-
-export OMP_NUM_THREADS=1
-export HCLIB_WORKERS=1
-aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.omp.weak 33554432 /tmp/output_weak
-
-export OMP_NUM_THREADS=8
-export HCLIB_WORKERS=8
-aprun -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.omp.weak 33554432 /tmp/output_weak

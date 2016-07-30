@@ -1,4 +1,4 @@
-CC = cc
+CC = gcc
 CFLAGS = -DNDEBUG 
 LDFLAGS = $(CFLAGS) # -g -pg
 
