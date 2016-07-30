@@ -127,7 +127,7 @@ float avg_time=0, avg_time_all2all = 0;
 #endif
 
 // #define KEY_BUFFER_SIZE (1uLL<<28uLL)
-#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 60000)
+#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 70000)
 
 // The receive array for the All2All exchange
 // KEY_TYPE* my_bucket_keys;
@@ -657,6 +657,10 @@ static inline KEY_TYPE * exchange_keys(int const * restrict const send_offsets,
     const int read_offset_from_self = send_offsets[target_pe];
     const int my_send_size = local_bucket_sizes[target_pe];
     const long long int write_offset_into_target = shmem_longlong_fadd(&receive_offset, (long long int)my_send_size, target_pe); 
+    if (write_offset_into_target + my_send_size > KEY_BUFFER_SIZE) {
+        fprintf(stderr, "%llu %llu\n", write_offset_into_target + my_send_size, KEY_BUFFER_SIZE);
+        exit(1);
+    }
     assert(write_offset_into_target + my_send_size <= KEY_BUFFER_SIZE);
     assert(read_offset_from_self + my_send_size <= NUM_KEYS_PER_PE);
     shmem_int_put(&(my_bucket_keys[write_offset_into_target]),

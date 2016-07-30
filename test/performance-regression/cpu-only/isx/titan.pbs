@@ -33,6 +33,8 @@ NODES=$PBS_NUM_NODES
 # export HCLIB_WORKERS=8
 # aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak
 
+export ISX_PE_CHUNKS=8
+
 export OMP_NUM_THREADS=1
 export HCLIB_WORKERS=1
 aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.omp.weak 33554432 /tmp/output_weak
