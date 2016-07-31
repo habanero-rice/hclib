@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -79,7 +80,9 @@ void init_timers(const unsigned int num_iters)
   for(int t = 0; t < TIMER_NTIMERS; ++t){
     if(first_call == true) {
       timers[t].seconds = (double *) malloc(num_iters * sizeof(double));
+      assert(timers[t].seconds);
       timers[t].count = (unsigned int *) malloc(num_iters * sizeof(unsigned int));
+      assert(timers[t].count);
       timers[t].all_times = NULL;
       timers[t].all_counts = NULL;
     }

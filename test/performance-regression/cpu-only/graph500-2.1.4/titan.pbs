@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:20:00
-#PBS -l nodes=2
+#PBS -l nodes=64
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -23,22 +23,32 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
-aprun -n 1 -d 16 -N 1 ./seq-csr/seq-csr
+# aprun -n 1 -d 16 -N 1 ./seq-csr/seq-csr
+# 
+# echo
+# echo
+# 
+# aprun -n 1 -d 16 -N 1 ./seq-list/seq-list
+# 
+# echo
+# echo
+# 
+# aprun -n 1 -d 16 -N 1 ./omp-csr/omp-csr
+# 
+# echo
+# echo
+# 
+# aprun -n 2 -d 16 -N 1 ./mpi/graph500_mpi_simple 20 16
+# 
+# echo
+# echo
 
-echo
-echo
-
-aprun -n 1 -d 16 -N 1 ./seq-list/seq-list
-
-echo
-echo
-
-aprun -n 1 -d 16 -N 1 ./omp-csr/omp-csr
-
-echo
-echo
-
-aprun -n 2 -d 16 -N 1 ./mpi/graph500_mpi_simple 20 16
+export OMP_NUM_THREADS=1
+for NODES in 32 64; do
+    echo Running $(($NODES * 16)) ranks on $NODES nodes
+    aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_one_sided 21 16
+    aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_simple 21 16
+done
 
 # aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.weak 33554432 /tmp/output_weak
 # 

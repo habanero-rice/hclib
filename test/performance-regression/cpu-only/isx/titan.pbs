@@ -3,7 +3,7 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:20:00
+#PBS -l walltime=00:05:00
 #PBS -l nodes=32
 #PBS -l gres=atlas1%atlas2
 #PBS -V
@@ -24,21 +24,27 @@ ulimit -c unlimited
 NODES=$PBS_NUM_NODES
 
 # aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.weak 33554432 /tmp/output_weak
-# 
-# export OMP_NUM_THREADS=1
-# export HCLIB_WORKERS=1
-# aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.hclib.weak 33554432 /tmp/output_weak
-# 
-# export OMP_NUM_THREADS=8
-# export HCLIB_WORKERS=8
-# aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak
-
-export ISX_PE_CHUNKS=8
 
 export OMP_NUM_THREADS=1
 export HCLIB_WORKERS=1
-aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.omp.weak 33554432 /tmp/output_weak
+aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.hclib.weak 33554432 /tmp/output_weak
 
 export OMP_NUM_THREADS=8
 export HCLIB_WORKERS=8
-aprun -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.omp.weak 33554432 /tmp/output_weak
+aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak
+
+# export ISX_PE_CHUNKS=1
+
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=1
+# aprun -ss -n $(($NODES * 16)) -d 1 -N 16 -S 8 ./bin/isx.omp.weak 33554432 /tmp/output_weak
+
+
+# export OMP_NUM_THREADS=8
+# export HCLIB_WORKERS=8
+# aprun -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.omp.weak 33554432 /tmp/output_weak
+
+# export OMP_NUM_THREADS=8
+# aprun -n 512 -ss -S 8 -d 1 ./bin/isx.omp.weak 33554432 /tmp/output_weak
+# export OMP_NUM_THREADS=1
+# aprun -n 64 -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 -ss -S 1 -d 8 ./bin/isx.omp.weak 33554432 /tmp/output_weak

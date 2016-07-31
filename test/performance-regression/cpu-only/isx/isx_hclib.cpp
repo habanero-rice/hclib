@@ -85,7 +85,8 @@ float avg_time=0, avg_time_all2all = 0;
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
 
 // The receive array for the All2All exchange
-KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
+// KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
+KEY_TYPE *my_bucket_keys;
 
 #ifdef PERMUTE
 int * permute_array;
@@ -96,6 +97,8 @@ int main(const int argc,  char ** argv)
   const char *deps[] = { "system", "openshmem" };
     hclib::launch(deps, 2, [argc, argv] {
   // ::shmem_init();
+    
+    my_bucket_keys = (KEY_TYPE *)shmem_malloc(KEY_BUFFER_SIZE * sizeof(KEY_TYPE));
 
   #ifdef EXTRA_STATS
   _timer_t total_time;

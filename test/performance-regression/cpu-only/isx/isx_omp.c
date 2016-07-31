@@ -29,6 +29,8 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 POSSIBILITY OF SUCH DAMAGE.
 */
+#define _POSIX_C_SOURCE 199309L
+
 #include <shmem.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -74,6 +76,15 @@ static double * gather_rank_times(_timer_t * const timer);
 static unsigned int * gather_rank_counts(_timer_t * const timer);
 static void init_shmem_sync_array(long * restrict const pSync);
 static int file_exists(char * filename);
+
+#include <sys/time.h>
+#include <time.h>
+static unsigned long long current_time_ns() {
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+}
 
 
 // Needed for shmem collective operations
@@ -641,6 +652,8 @@ static inline KEY_TYPE * exchange_keys(int const * restrict const send_offsets,
   const int my_rank = shmem_my_pe();
   unsigned int total_keys_sent = 0;
 
+  unsigned long long start_time = current_time_ns();
+
   for(uint64_t i = 0; i < NUM_PES; ++i){
 
 #ifdef PERMUTE
@@ -663,6 +676,9 @@ static inline KEY_TYPE * exchange_keys(int const * restrict const send_offsets,
     }
     assert(write_offset_into_target + my_send_size <= KEY_BUFFER_SIZE);
     assert(read_offset_from_self + my_send_size <= NUM_KEYS_PER_PE);
+    if (shmem_my_pe() == 0) {
+        fprintf(stderr, "Putting %llu integers to PE %d\n", my_send_size, target_pe);
+    }
     shmem_int_put(&(my_bucket_keys[write_offset_into_target]),
                   &(my_local_bucketed_keys[read_offset_from_self]),
                   my_send_size, target_pe);
@@ -674,6 +690,8 @@ static inline KEY_TYPE * exchange_keys(int const * restrict const send_offsets,
 
     total_keys_sent += my_send_size;
   }
+
+  unsigned long long intermediate_time = current_time_ns();
 
   // Keys destined for local key buffer can be written with memcpy
   const long long int write_offset_into_self = shmem_longlong_fadd(&receive_offset, (long long int)local_bucket_sizes[my_rank], my_rank);
@@ -690,8 +708,17 @@ static inline KEY_TYPE * exchange_keys(int const * restrict const send_offsets,
       long long int leftover = max_bucket_size - (chunks * actual_num_workers);
       send_size += leftover;
     }
+    // if (shmem_my_pe() == 0) {
+    //     fprintf(stderr, "Copying  %llu integers to local buf %d\n", send_size, chunk);
+    // }
     memcpy(&my_bucket_keys[write_offset_into_self_worker],&my_local_bucketed_keys[send_offsets_start_worker],
                         send_size*sizeof(KEY_TYPE));
+  }
+
+  unsigned long long end_time = current_time_ns();
+
+  if (shmem_my_pe() == 0) {
+      fprintf(stderr, "Time slices = %llu %llu\n", intermediate_time - start_time, end_time - intermediate_time);
   }
 
 #ifdef BARRIER_ATA

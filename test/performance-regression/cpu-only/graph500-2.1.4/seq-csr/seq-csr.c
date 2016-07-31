@@ -17,11 +17,16 @@
 
 #define MINVECT_SIZE 2
 
+// nv = # of vertices
 static int64_t maxvtx, nv, sz;
 static int64_t * restrict xoff; /* Length 2*nv+2 */
 static int64_t * restrict xadjstore; /* Length MINVECT_SIZE + (xoff[nv] == nedge) */
 static int64_t * restrict xadj;
 
+/*
+ * Find the number of vertices in the graph based on the passed edges by
+ * iterating over all edges and finding the maximum vertex ID + 1.
+ */
 static void
 find_nv (const struct packed_edge * restrict IJ, const int64_t nedge)
 {
@@ -38,7 +43,7 @@ find_nv (const struct packed_edge * restrict IJ, const int64_t nedge)
 }
 
 static int
-alloc_graph (int64_t nedge)
+alloc_graph ()
 {
   sz = (2*nv+2) * sizeof (*xoff);
   xoff = xmalloc_large_ext (sz);
@@ -62,6 +67,8 @@ setup_deg_off (const struct packed_edge * restrict IJ, int64_t nedge)
   int64_t k, accum;
   for (k = 0; k < 2*nv+2; ++k)
     xoff[k] = 0;
+
+  // Count how many edges each node has and store that in xoff[2 * node_id]
   for (k = 0; k < nedge; ++k) {
     int64_t i = get_v0_from_edge(&IJ[k]);
     int64_t j = get_v1_from_edge(&IJ[k]);
@@ -70,6 +77,11 @@ setup_deg_off (const struct packed_edge * restrict IJ, int64_t nedge)
       if (j >= 0) ++XOFF(j);
     }
   }
+
+  /*
+   * Prefix sum over the accumulated edge counts for each vertex above, storing
+   * the prefix sum for each node at xoff[2 * node_id].
+   */
   accum = 0;
   for (k = 0; k < nv; ++k) {
     int64_t tmp = XOFF(k);
@@ -78,8 +90,10 @@ setup_deg_off (const struct packed_edge * restrict IJ, int64_t nedge)
     accum += tmp;
   }
   XOFF(nv) = accum;
+  // Copy prefix sums from xoff[2 * node_id] to xoff[2 * node_id + 1]
   for (k = 0; k < nv; ++k)
     XENDOFF(k) = XOFF(k);
+
   if (!(xadjstore = xmalloc_large_ext ((accum + MINVECT_SIZE) * sizeof (*xadjstore))))
     return -1;
   xadj = &xadjstore[MINVECT_SIZE]; /* Cheat and permit xadj[-1] to work. */
@@ -106,6 +120,7 @@ i64cmp (const void *a, const void *b)
   return 0;
 }
 
+// Just removes duplicate edge destinations for each node?
 static void
 pack_vtx_edges (const int64_t i)
 {
@@ -152,7 +167,7 @@ int
 create_graph_from_edgelist (struct packed_edge *IJ, int64_t nedge)
 {
   find_nv (IJ, nedge);
-  if (alloc_graph (nedge)) return -1;
+  if (alloc_graph ()) return -1;
   if (setup_deg_off (IJ, nedge)) {
     xfree_large (xoff);
     return -1;
@@ -179,25 +194,40 @@ make_bfs_tree (int64_t *bfs_tree_out, int64_t *max_vtx_out,
   for (k1 = 0; k1 < nv; ++k1)
     bfs_tree[k1] = -1;
 
+  /*
+   * This loop basically processes the graph in waves, starting from srcvtx.
+   *
+   * Starting from the srcvtx (the root of the BFS tree we're trying to
+   * construct), traverse all outbound edges (stored in xadj), mark the parent
+   * of those outbound edges, and add the destination of those outbound edges to
+   * a list of nodes to process (vlist). We loop until no new nodes are added to
+   * vlist. k1 stores an index into vlist of the first node we haven't processed
+   * in the next wave, and k2 stores the last index of the next wave. Hence at
+   * the beginning, k1 is initialized to 0 to point to the root node we placed
+   * at the 0-th index, and k2 is initialized to 1 to indicate that index 1 is
+   * the first empty location of vlist.
+   *
+   * bfs_tree[i] stores the parent vertex for vertex i.
+   */
   vlist[0] = srcvtx;
   bfs_tree[srcvtx] = srcvtx;
   k1 = 0; k2 = 1;
   while (k1 != k2) {
-    const int64_t oldk2 = k2;
-    int64_t k;
-    for (k = k1; k < oldk2; ++k) {
-      const int64_t v = vlist[k];
-      const int64_t veo = XENDOFF(v);
-      int64_t vo;
-      for (vo = XOFF(v); vo < veo; ++vo) {
-	const int64_t j = xadj[vo];
-	if (bfs_tree[j] == -1) {
-	  bfs_tree[j] = v;
-	  vlist[k2++] = j;
-	}
+      const int64_t oldk2 = k2;
+      int64_t k;
+      for (k = k1; k < oldk2; ++k) {
+          const int64_t v = vlist[k];
+          const int64_t veo = XENDOFF(v);
+          int64_t vo;
+          for (vo = XOFF(v); vo < veo; ++vo) {
+              const int64_t j = xadj[vo];
+              if (bfs_tree[j] == -1) {
+                  bfs_tree[j] = v;
+                  vlist[k2++] = j;
+              }
+          }
       }
-    }
-    k1 = oldk2;
+      k1 = oldk2;
   }
 
   xfree_large (vlist);
