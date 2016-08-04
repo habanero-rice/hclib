@@ -23,17 +23,17 @@ ulimit -c unlimited
 NODES=$PBS_NUM_NODES
 
 for REPEAT in {1..5}; do
-    # export SMA_SYMMETRIC_SIZE=402653184
-    # export SHMEM_SYMMETRIC_HEAP_SIZE=$SMA_SYMMETRIC_SIZE
-    # export GASNET_PHYSMEM_MAX=16G
-    # aprun -n $(($NODES * 16)) -N 16 -S 8 -d 1 ./bin/isx.weak 33554432 /tmp/output_weak
-
-    export SMA_SYMMETRIC_SIZE=1207959552
+    export SMA_SYMMETRIC_SIZE=402653184
     export SHMEM_SYMMETRIC_HEAP_SIZE=$SMA_SYMMETRIC_SIZE
     export GASNET_PHYSMEM_MAX=16G
-    export OMP_NUM_THREADS=8
-    export HCLIB_WORKERS=8
-    aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak
+    aprun -n $(($NODES * 16)) -N 16 -S 8 -d 1 ./bin/isx.weak 33554432 /tmp/output_weak
+
+    # export SMA_SYMMETRIC_SIZE=1207959552
+    # export SHMEM_SYMMETRIC_HEAP_SIZE=$SMA_SYMMETRIC_SIZE
+    # export GASNET_PHYSMEM_MAX=16G
+    # export OMP_NUM_THREADS=8
+    # export HCLIB_WORKERS=8
+    # aprun -n $(($NODES * 2)) -d 8 -N 2 -S 1 ./bin/isx.hclib.weak 268435456 /tmp/output_weak
 
     # export SMA_SYMMETRIC_SIZE=1207959552
     # export SHMEM_SYMMETRIC_HEAP_SIZE=$SMA_SYMMETRIC_SIZE
