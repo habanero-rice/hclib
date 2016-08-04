@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
   /* Get roots for BFS runs, plus maximum vertex with non-zero degree (used by
    * validator). */
   // int num_bfs_roots = 64;
-  int num_bfs_roots = 4;
+  int num_bfs_roots = 1;
   int64_t* bfs_roots = (int64_t*)xmalloc(num_bfs_roots * sizeof(int64_t));
   int64_t max_used_vertex = 0;
 

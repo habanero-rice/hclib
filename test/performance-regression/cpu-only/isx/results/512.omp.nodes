@@ -1,0 +1,56 @@
+ModuleCmd_Switch.c(172):ERROR:152: Module 'PrgEnv-pgi' is currently not loaded
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 262144
+  Number of Iterations: 1
+  Number of PEs: 1024
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 13.377807 seconds
+Average all2all time (per PE): 5.515138 seconds
+Application 11818123 resources: utime ~95245s, stime ~8239s, Rss ~2110556, inblocks ~2697266, outblocks ~1252557
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 262144
+  Number of Iterations: 1
+  Number of PEs: 1024
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 13.458456 seconds
+Average all2all time (per PE): 5.594632 seconds
+Application 11818126 resources: utime ~95260s, stime ~8258s, Rss ~2110752, inblocks ~2697266, outblocks ~1252556
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 262144
+  Number of Iterations: 1
+  Number of PEs: 1024
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 13.444377 seconds
+Average all2all time (per PE): 5.580202 seconds
+Application 11818129 resources: utime ~95308s, stime ~8272s, Rss ~2110764, inblocks ~2697266, outblocks ~1252556
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 262144
+  Number of Iterations: 1
+  Number of PEs: 1024
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 13.443141 seconds
+Average all2all time (per PE): 5.580229 seconds
+Application 11818139 resources: utime ~95242s, stime ~8233s, Rss ~2110760, inblocks ~2697266, outblocks ~1252556
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 262144
+  Number of Iterations: 1
+  Number of PEs: 1024
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 13.354525 seconds
+Average all2all time (per PE): 5.491020 seconds
+Application 11818143 resources: utime ~95196s, stime ~8230s, Rss ~2110564, inblocks ~2697266, outblocks ~1252556

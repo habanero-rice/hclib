@@ -138,11 +138,11 @@ float avg_time=0, avg_time_all2all = 0;
 #endif
 
 // #define KEY_BUFFER_SIZE (1uLL<<28uLL)
-#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 70000)
+#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
 
 // The receive array for the All2All exchange
-// KEY_TYPE* my_bucket_keys;
-KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
+KEY_TYPE* my_bucket_keys = NULL;
+// KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
 
 #ifdef PERMUTE
 int * permute_array;
@@ -165,6 +165,9 @@ int main (int argc, char ** argv) {
   shmem_init ();
   m_argc = argc;
   m_argv = argv;
+
+  my_bucket_keys = (KEY_TYPE *)shmem_malloc(KEY_BUFFER_SIZE * sizeof(KEY_TYPE));
+  assert(my_bucket_keys);
 
 #ifdef EXTRA_STATS
   _timer_t stage_time;
@@ -323,8 +326,6 @@ static int bucket_sort(void)
   create_permutation_array();
 #endif
 
-  // my_bucket_keys = (KEY_TYPE*) shmem_malloc(KEY_BUFFER_SIZE * sizeof(KEY_TYPE));
-  // assert(my_bucket_keys);
   my_local_key_counts = malloc(CHUNKS_COUNT_LOCAL_KEYS * sizeof(int*));
   assert(my_local_key_counts);
   for(int i=0; i<CHUNKS_COUNT_LOCAL_KEYS; i++) {

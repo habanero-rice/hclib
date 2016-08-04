@@ -1,0 +1,51 @@
+ModuleCmd_Switch.c(172):ERROR:152: Module 'PrgEnv-pgi' is currently not loaded
+ISx v1.1
+  Number of Keys per PE: 33554432
+  Max Key Value: 268435456
+  Bucket Width: 524288
+  Number of Iterations: 1
+  Number of PEs: 512
+  WEAK Scaling!
+Average total time (per PE): 7.659808 seconds
+Average all2all time (per PE): 1.928428 seconds
+Application 11805520 resources: utime ~8034s, stime ~924s, Rss ~268140, inblocks ~349835, outblocks ~78373
+ISx v1.1
+  Number of Keys per PE: 33554432
+  Max Key Value: 268435456
+  Bucket Width: 524288
+  Number of Iterations: 1
+  Number of PEs: 512
+  WEAK Scaling!
+Average total time (per PE): 7.696449 seconds
+Average all2all time (per PE): 1.965582 seconds
+Application 11805522 resources: utime ~8059s, stime ~927s, Rss ~268140, inblocks ~349835, outblocks ~78372
+ISx v1.1
+  Number of Keys per PE: 33554432
+  Max Key Value: 268435456
+  Bucket Width: 524288
+  Number of Iterations: 1
+  Number of PEs: 512
+  WEAK Scaling!
+Average total time (per PE): 7.724911 seconds
+Average all2all time (per PE): 1.991288 seconds
+Application 11805527 resources: utime ~8152s, stime ~925s, Rss ~268140, inblocks ~349835, outblocks ~78372
+ISx v1.1
+  Number of Keys per PE: 33554432
+  Max Key Value: 268435456
+  Bucket Width: 524288
+  Number of Iterations: 1
+  Number of PEs: 512
+  WEAK Scaling!
+Average total time (per PE): 7.699352 seconds
+Average all2all time (per PE): 1.963316 seconds
+Application 11805529 resources: utime ~8051s, stime ~927s, Rss ~268140, inblocks ~349835, outblocks ~78372
+ISx v1.1
+  Number of Keys per PE: 33554432
+  Max Key Value: 268435456
+  Bucket Width: 524288
+  Number of Iterations: 1
+  Number of PEs: 512
+  WEAK Scaling!
+Average total time (per PE): 7.635176 seconds
+Average all2all time (per PE): 1.902177 seconds
+Application 11805531 resources: utime ~8017s, stime ~926s, Rss ~268140, inblocks ~349835, outblocks ~78372

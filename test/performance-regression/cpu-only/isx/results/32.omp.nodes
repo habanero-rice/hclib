@@ -1,0 +1,56 @@
+ModuleCmd_Switch.c(172):ERROR:152: Module 'PrgEnv-pgi' is currently not loaded
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 4194304
+  Number of Iterations: 1
+  Number of PEs: 64
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 12.959153 seconds
+Average all2all time (per PE): 2.756705 seconds
+Application 11817871 resources: utime ~6970s, stime ~417s, Rss ~2248076, inblocks ~165291, outblocks ~78286
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 4194304
+  Number of Iterations: 1
+  Number of PEs: 64
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 12.829906 seconds
+Average all2all time (per PE): 2.616533 seconds
+Application 11817875 resources: utime ~6955s, stime ~416s, Rss ~2248076, inblocks ~165291, outblocks ~78285
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 4194304
+  Number of Iterations: 1
+  Number of PEs: 64
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 12.858973 seconds
+Average all2all time (per PE): 2.643063 seconds
+Application 11817878 resources: utime ~6968s, stime ~414s, Rss ~2248080, inblocks ~165291, outblocks ~78285
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 4194304
+  Number of Iterations: 1
+  Number of PEs: 64
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 12.839111 seconds
+Average all2all time (per PE): 2.636971 seconds
+Application 11817881 resources: utime ~6953s, stime ~413s, Rss ~2248080, inblocks ~165291, outblocks ~78285
+ISx v1.1
+  Number of Keys per PE: 268435456
+  Max Key Value: 268435456
+  Bucket Width: 4194304
+  Number of Iterations: 1
+  Number of PEs: 64
+  Worker threads per PE: 8
+  WEAK Scaling!
+Average total time (per PE): 12.912628 seconds
+Average all2all time (per PE): 2.709252 seconds
+Application 11817885 resources: utime ~6959s, stime ~413s, Rss ~2248084, inblocks ~165291, outblocks ~78285

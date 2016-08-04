@@ -64,9 +64,15 @@ volatile int whose_turn;
 long long int receive_offset = 0;
 long long int my_bucket_size = 0;
 
-#define SHMEM_BARRIER_AT_START    { timer_start(&timers[TIMER_BARRIER_START]); shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_START]); }
-#define SHMEM_BARRIER_AT_EXCHANGE { timer_start(&timers[TIMER_BARRIER_EXCHANGE]); shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_EXCHANGE]); }
-#define SHMEM_BARRIER_AT_END      { timer_start(&timers[TIMER_BARRIER_END]); shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_END]); }
+#define SHMEM_BARRIER_AT_START    { \
+    timer_start(&timers[TIMER_BARRIER_START]); \
+    shmem_barrier_all(); \
+    timer_stop(&timers[TIMER_BARRIER_START]); }
+#define SHMEM_BARRIER_AT_EXCHANGE { \
+    timer_start(&timers[TIMER_BARRIER_EXCHANGE]); \
+    shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_EXCHANGE]); }
+#define SHMEM_BARRIER_AT_END      { timer_start(&timers[TIMER_BARRIER_END]); \
+    shmem_barrier_all(); timer_stop(&timers[TIMER_BARRIER_END]); }
 
 // #define EXTRA_STATS
 
@@ -74,10 +80,13 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
-#define KEY_BUFFER_SIZE (1uLL<<28uLL)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 100000)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
+#define KEY_BUFFER_SIZE ((1uLL<<26uLL))
 
 // The receive array for the All2All exchange
-KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
+// KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
+KEY_TYPE *my_bucket_keys = NULL;
 
 #ifdef PERMUTE
 int * permute_array;
@@ -86,6 +95,11 @@ int * permute_array;
 int main(const int argc,  char ** argv)
 {
   shmem_init();
+
+  my_bucket_keys = (KEY_TYPE *)shmem_malloc(KEY_BUFFER_SIZE * sizeof(KEY_TYPE));
+  assert(my_bucket_keys);
+  // fprintf(stderr, "PE %d allocating %llu bytes at %p\n", shmem_my_pe(),
+  //         KEY_BUFFER_SIZE * sizeof(KEY_TYPE), my_bucket_keys);
 
   #ifdef EXTRA_STATS
   _timer_t total_time;
@@ -507,6 +521,8 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
     // fprintf(stderr, "PUTTING %llu\n", my_send_size);
     assert((unsigned long long)write_offset_into_target +
             (unsigned long long)my_send_size <= KEY_BUFFER_SIZE);
+    assert((unsigned long long)read_offset_from_self +
+            (unsigned long long)my_send_size <= NUM_KEYS_PER_PE);
     shmem_int_put(&(my_bucket_keys[write_offset_into_target]), 
                   &(my_local_bucketed_keys[read_offset_from_self]), 
                   my_send_size, 
