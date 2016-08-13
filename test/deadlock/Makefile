@@ -1,8 +1,9 @@
 TARGET := deadlock
 
+include $(HCLIB_ROOT)/include/hclib.mak
+
 $(TARGET): $(TARGET).c
-	@ [ -d "${HCLIB_ROOT}" ] || (echo Need to set HCLIB_ROOT; exit 1)
-	gcc $^ -o$@ -pthread -std=gnu99 -I${HCLIB_ROOT}/include ${HCLIB_ROOT}/lib/libhclib.a -lxml2 -L${LIBXML2_LIBS}
+	gcc $^ -o$@ -std=gnu11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
 
 NPROC ?= 4
 

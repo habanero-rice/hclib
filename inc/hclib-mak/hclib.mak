@@ -1,3 +1,7 @@
+ifeq ("$(HCLIB_ROOT)", "")
+  $(error Please set teh HCLIB_ROOT environment variable.)
+endif
+
 PROJECT_CFLAGS=-I$(HCLIB_ROOT)/include $(shell xml2-config --cflags)
 PROJECT_CXXFLAGS=-std=c++11 $(PROJECT_CFLAGS)
 PROJECT_LDFLAGS=-L$(HCLIB_ROOT)/lib
