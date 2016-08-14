@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
 
         hclib::finish([=]() {
             int i;
-            hclib::future_t *prev = NULL;
+            hclib::future_t<void> *prev = nullptr;
             for (i = 0; i < n_asyncs; i++) {
                 if (prev) {
                     prev = hclib::async_future_await([=]() {

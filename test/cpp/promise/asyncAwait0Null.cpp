@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "hclib_cpp.h"
 
@@ -16,39 +17,41 @@
  * reverse order they've been created.
  */
 int main(int argc, char ** argv) {
+    setbuf(stdout,nullptr);
     int n = 5;
-    hclib::promise_t ** promise_list = (hclib::promise_t **)malloc(
-            sizeof(hclib::promise_t *) * (2*(n+1)));
-
+    hclib::promise_t<void> **promise_list = new hclib::promise_t<void> *[n];
     hclib::launch([=]() {
         hclib::finish([=]() {
             int index = 0;
-            // Building 'n' NULL-terminated lists of a single promise each
-
+            // Create asyncs
             for (index = 0 ; index <= n; index++) {
-                promise_list[index*2] = new hclib::promise_t();
-                printf("Creating promise  %p at promise_list\n",
-                        &promise_list[index*2]);
-                promise_list[index*2+1] = NULL;
+                promise_list[index] = new hclib::promise_t<void>();
+                printf("Populating promise_list at address %p\n",
+                        &promise_list[index]);
             }
 
             for(index=n; index>=1; index--) {
-                printf("Creating async %d\n", index);
                 // Build async's arguments
                 printf("Creating async %d await on %p will enable %p\n", index,
-                        &(promise_list[(index-1)*2]), &(promise_list[index*2]));
+                        promise_list, &(promise_list[index]));
                 hclib::async_await([=]() {
-                    hclib::promise_t *promise = promise_list[index * 2];
-                    promise->put(NO_DATUM); }, promise_list[(index - 1)*2]->get_future());
+                    printf("Running async %d\n", index);
+                    printf("Async %d putting in promise %d @ %p\n", index, index,
+                            promise_list[index]);
+                    promise_list[index]->put();
+                }, promise_list[index-1]->get_future());
             }
+
             printf("Putting in promise 0\n");
-            promise_list[0]->put(NO_DATUM);
+            promise_list[0]->put();
         });
         // freeing everything up
         for (int index = 0 ; index <= n; index++) {
-            delete promise_list[index*2];
+            delete promise_list[index];
         }
-        free(promise_list);
+        delete[] promise_list;
     });
+
     return 0;
 }
+
