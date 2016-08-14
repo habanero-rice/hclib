@@ -69,9 +69,7 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
     typedef typename std::remove_reference<T>::type U;
     // FIXME - this whole call chain is kind of a mess
     // leaving C malloc/free and memcpy calls for now (come back to fix it later)
-    const size_t task_size =
-        await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
-    hclib_task_t* task = static_cast<hclib_task_t*>(calloc(1, task_size));
+    hclib_task_t* task = static_cast<hclib_task_t*>(calloc(1, sizeof(*task)));
     task->_fp = lambda_wrapper<U>;
 
     // make a copy of the user's function object using dynamic storage duration

@@ -48,7 +48,7 @@ void entrypoint(void *arg) {
         future_list[index * 2 + 1] = NULL;
     }
 
-    for(index=n-1; index>=1; index--) {
+    for(index=n; index>=1; index--) {
         // Build async's arguments
         // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
         void ** argv = malloc(sizeof(void *) * 3);

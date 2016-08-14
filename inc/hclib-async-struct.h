@@ -64,6 +64,7 @@ void spawn_at_hpt(place_t* pl, hclib_task_t * task);
 void spawn_await_at(hclib_task_t * task, hclib_future_t** future_list,
         place_t *pl);
 void spawn_await(hclib_task_t * task, hclib_future_t** future_list);
+void spawn_escaping(hclib_task_t * task, hclib_future_t** future_list);
 void spawn_comm_task(hclib_task_t * task);
 void spawn_gpu_task(hclib_task_t *task);
 

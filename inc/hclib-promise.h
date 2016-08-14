@@ -73,31 +73,15 @@ typedef struct _hclib_future_t {
     struct hclib_promise_st *owner;
 } hclib_future_t;
 
-/**
- * An hclib_triggered_task_t associates dependent tasks and the promises that
- * trigger their execution. This is exposed so that the runtime knows the size
- * of the struct.
- */
-typedef struct hclib_triggered_task_st {
-    // NULL-terminated list of futures this task is registered on
-    hclib_future_t **waiting_frontier;
-    /*
-     * This allows us to chain all dependent tasks waiting on a same promise.
-     * Whenever a triggered task wants to register on a promise, and that
-     * promise is not ready, we chain the current triggered task and the
-     * promise's wait_list_head and try to cas on the promise's wait_list_head,
-     * with the current triggered task.
-     */
-    struct hclib_triggered_task_st *next_waiting_on_same_future;
-} hclib_triggered_task_t;
+struct hclib_task_t;
 
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
     hclib_future_t future;
-	int kind;
-    volatile void *datum;
+    promise_kind_t kind;
+    void *volatile datum;
     // List of tasks that are awaiting the satisfaction of this promise
-    volatile hclib_triggered_task_t *wait_list_head;
+    struct hclib_task_t *volatile wait_list_head;
 } hclib_promise_t;
 
 /**
@@ -160,11 +144,5 @@ void hclib_promise_put(hclib_promise_t *promise, void *datum);
  * that was put on promise.
  */
 void *hclib_future_wait(hclib_future_t *future);
-
-/*
- * Some extras
- */
-void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_future_t **future_list);
 
 #endif /* HCLIB_PROMISE_H_ */

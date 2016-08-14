@@ -73,7 +73,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CACHE_LINE_L1 8
 
 // Default value of a promise datum
-#define UNINITIALIZED_PROMISE_DATA_PTR ((void *)-1)
+#define UNINITIALIZED_PROMISE_DATA_PTR NULL
+
+// For waiting frontier (last element of the list)
+#define SATISFIED_FUTURE_WAITLIST_PTR NULL
+#define SENTINEL_FUTURE_WAITLIST_PTR ((void*) -1)
 
 typedef struct {
     volatile uint64_t flag;
@@ -127,10 +131,12 @@ void bind_thread(int worker_id, int *bind_map, int bind_map_size);
 int get_current_worker();
 
 // promise
-int register_on_all_promise_dependencies(hclib_triggered_task_t *tasks);
-hclib_triggered_task_t * rt_async_task_to_triggered_task(
-        hclib_task_t * async_task);
+int register_on_all_promise_dependencies(hclib_task_t *task);
 void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
         hclib_worker_state *ws);
+
+int static inline _hclib_promise_is_satisfied(hclib_promise_t *p) {
+    return p->wait_list_head == SATISFIED_FUTURE_WAITLIST_PTR;
+}
 
 #endif /* HCLIB_INTERNAL_H_ */

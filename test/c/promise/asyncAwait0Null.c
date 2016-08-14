@@ -35,12 +35,12 @@ void entrypoint(void *arg) {
         promise_list[index * 2] = hclib_promise_create();
         future_list[index * 2] = hclib_get_future_for_promise(promise_list[index * 2]);
 
-        printf("Creating promise  %p at promise_list @ %p \n", &promise_list[index*2],
-                hclib_future_get(future_list[index*2]));
+        printf("Creating promise  %p at promise_list @ %p \n",
+                &promise_list[index*2], future_list[index*2]);
         promise_list[index*2+1] = NULL;
         future_list[index * 2 + 1] = NULL;
     }
-    for(index=n-1; index>=1; index--) {
+    for(index=n; index>=1; index--) {
         printf("Creating async %d\n", index);
         // Build async's arguments
         void ** argv = malloc(sizeof(void *) * 2);
@@ -57,7 +57,6 @@ void entrypoint(void *arg) {
     hclib_end_finish();
     // freeing everything up
     for (index = 0 ; index <= n; index++) {
-        free(hclib_future_get(future_list[index*2]));
         hclib_promise_free(promise_list[index*2]);
     }
     free(promise_list);

@@ -10,7 +10,6 @@
 
 namespace hclib {
 
-typedef hclib_triggered_task_t triggered_task_t;
 typedef loop_domain_t loop_domain_t;
 typedef place_t place_t;
 typedef place_type_t place_type_t;
