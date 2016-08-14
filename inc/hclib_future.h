@@ -21,6 +21,11 @@ class future_t {
         }
 };
 
+// FIXME - we should be able to make future_t into a zero-overhead wrapper
+// around hclib_future_t, possibly via inheritance + static_cast
+//HASSERT_STATIC(std::is_pod<future_t>::value);
+//HASSERT_STATIC(sizeof(future_t) == sizeof(hclib_future_t));
+
 }
 
 #endif

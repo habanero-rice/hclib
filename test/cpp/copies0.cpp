@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+/* Copyright (c) 2013, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -27,69 +27,44 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- */
+*/
 
 /**
- * DESC: Fork a bunch of asyncs in a top-level loop
+ * DESC: Counting lambda copies for a simple async
  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <unistd.h>
 
-#include "hclib.h"
+#include "hclib_cpp.h"
 
-#define H1 256
-#define T1 33
+struct CopyCounter {
+    int copies;
+    int moves;
 
-//user written code
-void forasync_fct1(void *argv, int idx) {
-    int *ran = (int *)argv;
-
-    usleep(100000);
-
-    assert(ran[idx] == -1);
-    ran[idx] = idx;
-    printf("finished %d / %d\n", idx, H1);
-}
-
-void init_ran(int *ran, int size) {
-    while (size > 0) {
-        ran[size-1] = -1;
-        size--;
+    CopyCounter(): copies(0), moves(0) {
+        printf("Created new counter object.\n");
     }
-}
 
-void entrypoint(void *arg) {
-    int *ran = (int *)arg;
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
+    CopyCounter(const CopyCounter &other):
+        copies(other.copies+1), moves(other.moves) { }
 
-    init_ran(ran, H1);
-    loop_domain_t loop = {0, H1, 1, T1};
-
-    hclib_start_finish();
-    hclib_forasync(forasync_fct1, (void*)ran, NULL, 1, &loop,
-            FORASYNC_MODE_FLAT);
-    hclib_future_t *event = hclib_end_finish_nonblocking();
-
-    hclib_future_wait(event);
-    printf("Call Finalize\n");
-}
+    CopyCounter(const CopyCounter &&other):
+        copies(other.copies), moves(other.moves+1) { }
+};
 
 int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    int *ran=(int *)malloc(H1*sizeof(int));
-    assert(ran);
-
-    hclib_launch(entrypoint, ran);
-
-    printf("Check results: ");
-    int i = 0;
-    while(i < H1) {
-        assert(ran[i] == i);
-        i++;
-    }
-    printf("OK\n");
+    hclib::launch([]() {
+        hclib::finish([]() {
+            CopyCounter k {};
+            hclib::async([k] {
+                printf("Counted %d copies, %d moves...\n", k.copies, k.moves);
+                // Copy 1: capturing "k" by-value into the lambda
+                // Copy 2: copying the lambda (and its closure) into the heap
+                assert(k.copies + k.moves <= 2);
+            });
+        });
+    });
+    printf("Exiting...\n");
     return 0;
 }

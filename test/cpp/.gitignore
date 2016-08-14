@@ -1,3 +1,4 @@
+targets.txt
 *.dSYM
 async0
 async1
@@ -19,4 +20,5 @@ forasync3DCh
 forasync3DRec
 neconlce1
 access_argc
-capture[0-9]
+capture?
+copies?

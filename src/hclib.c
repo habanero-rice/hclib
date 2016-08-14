@@ -435,7 +435,8 @@ void forasync3D_flat(void *forasync_arg) {
 }
 
 static void forasync_internal(void *user_fct_ptr, void *user_arg,
-                              int dim, loop_domain_t *loop_domain, forasync_mode_t mode) {
+                              int dim, const loop_domain_t *loop_domain,
+                              forasync_mode_t mode) {
     // All the sub-asyncs share async_def
 
     // The user loop code to execute
@@ -469,7 +470,8 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
 }
 
 void hclib_forasync(void *forasync_fct, void *argv,
-                    hclib_future_t **future_list, int dim, loop_domain_t *domain,
+                    hclib_future_t **future_list, int dim,
+                    const loop_domain_t *domain,
                     forasync_mode_t mode) {
     HASSERT(future_list == NULL &&
             "Limitation: forasync does not support futures yet");
@@ -478,7 +480,8 @@ void hclib_forasync(void *forasync_fct, void *argv,
 }
 
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-                                      hclib_future_t **future_list, int dim, loop_domain_t *domain,
+                                      hclib_future_t **future_list, int dim,
+                                      const loop_domain_t *domain,
                                       forasync_mode_t mode) {
 
     hclib_start_finish();

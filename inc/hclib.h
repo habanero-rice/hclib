@@ -103,7 +103,8 @@ typedef int forasync_mode_t;
 /** @brief Forasync mode to perform static chunking of the iteration space. */
 #define FORASYNC_MODE_FLAT 0
 /** @brief To indicate an async need not register with any finish scopes. */
-#define ESCAPING_ASYNC      ((int) 0x2)
+#define ESCAPING_ASYNC ((int) 0x2)
+#define COMM_ASYNC     ((int) 0x4)
 
 /**
  * @brief Function prototype for a 1-dimension forasync.
@@ -146,7 +147,7 @@ typedef void (*forasync3D_Fct_t)(void *arg, int index_outer, int index_mid,
  * @param[in] mode              Forasync mode to control chunking strategy (flat chunking or recursive).
  */
 void hclib_forasync(void *forasync_fct, void *argv,
-        hclib_future_t **future_list, int dim, loop_domain_t *domain,
+        hclib_future_t **future_list, int dim, const loop_domain_t *domain,
         forasync_mode_t mode);
 
 /*
@@ -154,7 +155,7 @@ void hclib_forasync(void *forasync_fct, void *argv,
  * triggered when all tasks belonging to this forasync have finished.
  */
 hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
-        hclib_future_t **future_list, int dim, loop_domain_t *domain,
+        hclib_future_t **future_list, int dim, const loop_domain_t *domain,
         forasync_mode_t mode);
 
 /**

@@ -26,7 +26,7 @@ int main(int argc, char ** argv) {
                     assert(signal);
                     *signal = 42;
 
-                    sleep(5);
+                    sleep(1);
                     event->put(signal);
                 });
         });
