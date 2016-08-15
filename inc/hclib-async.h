@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 #include <functional>
+#include <type_traits>
 
 #include "hclib-async-struct.h"
 #include "hcupc-support.h"
@@ -55,6 +56,7 @@ namespace hclib {
  * TODO optimize that overhead.
  */
 
+/* raw function pointer for calling lambdas */
 template<typename T>
 void lambda_wrapper(void *arg) {
     T* lambda = static_cast<T*>(arg);
@@ -64,26 +66,23 @@ void lambda_wrapper(void *arg) {
     delete lambda;
 }
 
-template <typename T>
-inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
-    typedef typename std::remove_reference<T>::type U;
-    // FIXME - this whole call chain is kind of a mess
-    // leaving C malloc/free and memcpy calls for now (come back to fix it later)
-    hclib_task_t* task = static_cast<hclib_task_t*>(calloc(1, sizeof(*task)));
-    task->_fp = lambda_wrapper<U>;
 
-    // make a copy of the user's function object using dynamic storage duration
-    // to ensure that it's still available later.
-    task->args = new U(lambda);
-
-    return task;
+/* this version also deletes a runtime-managed future list */
+template<typename T>
+struct lambda_await_args {
+    T* lambda;
+    hclib_future_t **future_list;
+};
+template<typename T>
+void lambda_await_wrapper(void *raw_arg) {
+    auto arg = static_cast<lambda_await_args<T>*>(raw_arg);
+    delete arg->future_list;
+    MARK_BUSY(current_ws()->id);
+    (*arg->lambda)(); // !!! May cause a worker-swap !!!
+    MARK_OVH(current_ws()->id);
+    delete arg->lambda;
+    delete arg;
 }
-
-#if defined(HUPCPP) && defined(DIST_WS)	// i.e. if we are supporting distributed work-stealing in HabaneroUPC++
-#define _allocate_async _allocate_async_hcupc
-#else
-#define _allocate_async _allocate_async_hclib
-#endif
 
 /*
  * Yes, the name "async_at_hpt" sounds weird
@@ -92,137 +91,116 @@ inline hclib_task_t* _allocate_async_hclib(T lambda, bool await) {
  * name to async_at_hpt.
  */
 template <typename T>
-inline void async_at_hpt(place_t* pl, T lambda) {
+inline void async(T &&lambda) {
     MARK_OVH(current_ws()->id);
-    hclib_task_t* task = _allocate_async<T>(lambda, false);
-    spawn_at_hpt(pl, task);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_async(lambda_wrapper<U>, new U(lambda), nullptr, nullptr, nullptr, 0);
 }
 
 template <typename T>
-inline void async(T lambda) {
-	MARK_OVH(current_ws()->id);
-	hclib_task_t* task = _allocate_async<T>(lambda, false);
-	spawn(task);
-}
-
-inline int _count_futures() {
-    return 0;
-}
-template <typename... future_list_t>
-inline int _count_futures(hclib::future_t *future,
-        future_list_t... futures) {
-    return 1 + _count_futures(futures...);
-}
-template <typename... future_list_t>
-inline int count_futures(future_list_t... futures) {
-    return _count_futures(futures...);
-}
-
-inline void _construct_future_list(int index, hclib_future_t **future_list,
-        hclib::future_t *future) {
-    future_list[index] = future->internal;
-}
-template <typename... future_list_t>
-inline void _construct_future_list(int index, hclib_future_t **future_list,
-        hclib::future_t *future, future_list_t... remaining) {
-    future_list[index] = future->internal;
-    _construct_future_list(index + 1, future_list, remaining...);
-}
-
-template <typename... future_list_t>
-inline hclib_future_t **construct_future_list(future_list_t... futures) {
-    const int nfutures = count_futures(futures...);
-    hclib_future_t **future_list = (hclib_future_t **)malloc(
-            (nfutures + 1) * sizeof(hclib_future_t *));
-    HASSERT(future_list);
-    _construct_future_list(0, future_list, futures...);
-    future_list[nfutures] = NULL;
-    return future_list;
+inline void async_at_hpt(place_t* pl, T &&lambda) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_async(lambda_wrapper<U>, new U(lambda), nullptr, nullptr, pl, 0);
 }
 
 template <typename T>
-inline void async_await(T lambda, hclib_future_t **future_list) {
-	MARK_OVH(current_ws()->id);
-	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future_list);
+inline void async_await(T &&lambda, hclib_future_t **fs) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_async(lambda_wrapper<U>, new U(lambda), fs, nullptr, nullptr, 0);
+}
+
+template <typename... Ts>
+inline hclib_future_t **construct_future_list(Ts... futures) {
+    const size_t n = sizeof...(futures); // parameter pack count
+    return new hclib_future_t*[n+1] { futures..., nullptr };
 }
 
 template <typename T, typename... future_list_t>
-inline void async_await(T lambda, future_list_t... futures) {
-    hclib_future_t **future_list = construct_future_list(futures...);
-    async_await(lambda, future_list);
+inline void async_await(T &&lambda, future_list_t... futures) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_future_t **fs = construct_future_list(futures...);
+    lambda_await_args<U> *args = new lambda_await_args<U> { new U(lambda), fs };
+    hclib_async(lambda_await_wrapper<U>, args,
+            fs, nullptr, nullptr, 0);
 }
 
 template <typename T>
-inline void async_await_at(T lambda, place_t *pl,
-        hclib_future_t **future_list) {
-	MARK_OVH(current_ws()->id);
-	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, future_list, pl);
+inline void async_await_at(T &&lambda, place_t *pl, hclib_future_t **fs) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_async(lambda_wrapper<U>, new U(lambda), fs, nullptr, pl, 0);
 }
 
 template <typename T, typename... future_list_t>
-inline void async_await_at(T lambda, place_t *pl, future_list_t... futures) {
-    hclib_future_t **future_list = construct_future_list(futures...);
-    async_await_at(lambda, pl, future_list);
+inline void async_await_at(T &&lambda, place_t *pl, future_list_t... futures) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_future_t **fs = construct_future_list(futures...);
+    lambda_await_args<U> *args = new lambda_await_args<U> { new U(lambda), fs };
+    hclib_async(lambda_await_wrapper<U>, args,
+            fs, nullptr, pl, 0);
 }
 
 template <typename T>
-inline void async_comm(T lambda) {
-	hclib_task_t* task = _allocate_async<T>(lambda, false);
-	spawn_comm_task(task);
+inline void async_comm(T &&lambda) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_async(lambda_wrapper<U>, new U(lambda),
+            nullptr, nullptr, nullptr, COMM_ASYNC);
 }
 
 template <typename T>
-hclib::future_t *async_future(T lambda) {
+hclib::future_t *async_future(T &&lambda) {
+    // FIXME - memory leak? (no handle to destroy the promise)
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_promise_t *internal_event = &event->internal;
     /*
      * TODO creating this closure may be inefficient. While the capture list is
      * precise, if the user-provided lambda is large then copying it by value
      * will also take extra time.
      */
-    auto wrapper = [internal_event, lambda]() {
+    async([event, lambda]() {
         lambda();
-        hclib_promise_put(internal_event, NULL);
-    };
-    hclib_task_t* task = _allocate_async(wrapper, false);
-    spawn(task);
+        // FIXME - why does this get satisfied with null?
+        // we should be able to return a useful value from the lambda
+        event->put(nullptr);
+    });
     return event->get_future();
 }
 
 template <typename T, typename... future_list_t>
-hclib::future_t *async_future_await(T lambda, future_list_t... futures) {
+hclib::future_t *async_future_await(T &&lambda, future_list_t... futures) {
+    // FIXME - memory leak? (no handle to destroy the promise)
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_promise_t *internal_event = &event->internal;
     /*
      * TODO creating this closure may be inefficient. While the capture list is
      * precise, if the user-provided lambda is large then copying it by value
      * will also take extra time.
      */
-    auto wrapper = [internal_event, lambda]() {
+    async_await([event, lambda]() {
         lambda();
-        hclib_promise_put(internal_event, NULL);
-    };
-
-    hclib_future_t **future_list = construct_future_list(futures...);
-
-    hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await(task, future_list);
+        // FIXME - why does this get satisfied with null?
+        // we should be able to return a useful value from the lambda
+        event->put(nullptr);
+    }, futures...);
     return event->get_future();
 }
 
-inline void finish(std::function<void()> lambda) {
+template <typename T>
+inline void finish(T &&lambda) {
     hclib_start_finish();
     lambda();
     hclib_end_finish();
 }
 
-inline hclib::future_t *nonblocking_finish(std::function<void()> lambda) {
+template <typename T>
+inline hclib::future_t *nonblocking_finish(T &&lambda) {
     hclib_start_finish();
     lambda();
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_end_finish_nonblocking_helper(&event->internal);
+    hclib_end_finish_nonblocking_helper(event);
     return event->get_future();
 }
 

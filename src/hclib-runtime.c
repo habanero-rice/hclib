@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <pthread.h>
 #include <sys/time.h>
+#include <stddef.h>
 
 #include <hclib.h>
 #include <hclib-internal.h>
@@ -1155,16 +1156,24 @@ void hclib_end_finish() {
     free(current_finish);
 }
 
+// Based on help_finish
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
     HASSERT(current_finish->counter > 0);
 
-    // Based on help_finish
-    hclib_future_t **finish_deps = malloc(2 * sizeof(*finish_deps));
-    HASSERT(finish_deps);
-    finish_deps[0] = &event->future;
-    finish_deps[1] = NULL;
+    // NOTE: this is a nasty hack to avoid a memory leak here.
+    // Previously we were allocating a two-element array of
+    // futures here, but there was no good way to free it...
+    // Since the promise datum is null until the promise is satisfied,
+    // we can use that as the null-terminator for our future list.
+    hclib_future_t **finish_deps = (hclib_future_t**)&event->future.owner;
+    HASSERT_STATIC(sizeof(event->future) == sizeof(event->datum) &&
+            offsetof(hclib_promise_t, future) == 0 &&
+            offsetof(hclib_promise_t, datum) == sizeof(hclib_future_t*),
+            "ad-hoc null terminator is correctly aligned in promise struct");
+    HASSERT(event->datum == NULL && UNINITIALIZED_PROMISE_DATA_PTR == NULL &&
+            "ad-hoc null terminator must have value NULL");
     current_finish->finish_deps = finish_deps;
 
     // Check out this "task" from the current finish

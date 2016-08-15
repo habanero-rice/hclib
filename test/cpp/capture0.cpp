@@ -51,7 +51,7 @@ int main (int argc, char ** argv) {
             auto p = std::make_shared<SimpleObject>();
             std::cout << "Value starts as " << p->value << std::endl;
             hclib::async([=](){
-                usleep(100);
+                usleep(100000);
                 std::cout << "Value in async is " << p->value << std::endl;
                 assert(p->value == 1);
             });

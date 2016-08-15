@@ -5,10 +5,9 @@ set -e
 make clean
 make -j
 
-for f in $(find . -name "*"); do
-    if [[ -x $f && ! -d $f && $(basename $f) != 'test_all.sh' ]]; then
-        echo "========== Running $f =========="
-        $f
-        echo
-    fi
+for f in `cat targets.txt`; do
+    [[ -x $f && ! -d $f ]]
+    echo "========== Running $f =========="
+    ./$f
+    echo
 done
