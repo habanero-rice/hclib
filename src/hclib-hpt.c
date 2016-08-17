@@ -37,8 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
+#ifndef DISABLE_XML
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#endif
 #include <unistd.h>
 
 #include "hclib-hpt.h"
@@ -115,8 +117,8 @@ hclib_task_t *hpt_pop_task(hclib_worker_state *ws) {
     while (current != NULL) {
 #ifdef VERBOSE
         printf("hpt_pop_task: worker %d looking to pop from deque %p in "
-               "place %p at level %d\n", ws->id, current, current->pl,
-               current->pl->level);
+                "place %p at level %d\n", ws->id, current, current->pl,
+                current->pl->level);
 #endif
         hclib_task_t *buff = deque_pop(&current->deque);
         if (buff) {
@@ -665,6 +667,7 @@ void hc_hpt_cleanup(hc_context *context) {
 /*
  * Interfaces to read the xml files and parse correctly to generate the place data-structures
  */
+#ifndef DISABLE_XML
 hclib_worker_state *parse_worker_element(xmlNode *wkNode) {
     hclib_worker_state *wk = (hclib_worker_state *) malloc(sizeof(
                                  hclib_worker_state));
@@ -829,6 +832,7 @@ place_t *parseHPTDoc(xmlNode *hptNode) {
     }
     return hpt;
 }
+#endif // DISABLE_XML
 
 typedef struct place_node {
     place_t *data;
@@ -1279,6 +1283,7 @@ place_t *read_hpt(place_t *** all_places, int *num_pl, int *nproc,
         hpt = generate_fake_hpt(num_workers, all_places, num_pl, nproc,
                                 all_workers, num_wk);
     } else {
+#ifndef DISABLE_XML
         /* create a parser context */
         xmlParserCtxt *ctxt = xmlNewParserCtxt();
         if (ctxt == NULL) {
@@ -1308,6 +1313,7 @@ place_t *read_hpt(place_t *** all_places, int *num_pl, int *nproc,
 
         /* free up the parser context */
         xmlFreeParserCtxt(ctxt);
+#endif // DISABLE_XML
     }
 
     /*

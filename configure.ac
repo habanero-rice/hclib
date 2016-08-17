@@ -35,6 +35,17 @@ CPPFLAGS=$CPPFLAGS_BACKUP
 ########### GET LOW LEVEL DETAILS IN THE INSTALLATION #############
 ###################################################################
 
+
+AC_ARG_ENABLE([useXML],
+    AS_HELP_STRING([--disable-useXML], [Disable XML HPT]))
+
+AS_IF([test "x$enable_useXML" != "xno"],
+      [ AC_MSG_NOTICE([Enabled XML support]) ],
+      [ AC_MSG_NOTICE([Disabled XML support]) ])
+
+AM_CONDITIONAL(DISABLE_XML, test "x$enable_useXML" != xno)
+
+
 ### INTERFACE HCLIB WITH PHASER LIBRARY
 AC_ARG_ENABLE(phaser,
     AS_HELP_STRING([--enable-phaser],
