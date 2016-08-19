@@ -1,0 +1,7 @@
+#ifndef HCLIB_CONFIG_H_
+#define HCLIB_CONFIG_H_
+
+/* Defined if C++11 std::is_trivially_copyable is supported. */
+#undef HAVE_CXX11_TRIVIAL_COPY_CHECK
+
+#endif  // HCLIB_CONFIG_H_

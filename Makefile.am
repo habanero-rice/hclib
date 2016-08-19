@@ -12,6 +12,7 @@ AUX_DIST = \
 library_includedir=$(includedir)
 
 library_include_HEADERS = inc/hclib-timer.h inc/hclib-rt.h inc/hclib.h \
+						  inc/hclib_config.h \
 						  inc/hclib-mak/hclib.mak inc/hclib-async.h src/inc/hclib-hpt.h \
 						  inc/hclib-forasync.h inc/hclib-promise.h inc/hclib_promise.h \
 						  src/inc/hclib-atomics.h inc/hclib-place.h inc/hcupc-support.h \

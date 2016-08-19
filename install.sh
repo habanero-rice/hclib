@@ -28,6 +28,9 @@ check_error()
 }
 
 
+# Don't clobber our custom header template
+export AUTOHEADER="echo autoheader disabled"
+
 #
 # Bootstrap, Configure, Make and Install
 #

@@ -133,6 +133,19 @@ AS_IF([test "x$with_production" != xno],
 AM_CONDITIONAL(PRODUCTION_SETTINGS, test "x$with_production" != xno)
 ### End PRODUCTION settings
 
+### C++11 features check
+_old_CXXFLAGS="${CXXFLAGS}"
+CXXFLAGS="${_old_CXXFLAGS} -std=c++11"
+AC_CACHE_CHECK([for C++11 std::is_trivially_copyable support], [ac_cv_cxx11_trivial_copy_check],
+[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include  <type_traits>], [return std::is_trivially_copyable<int>::value;])],
+                   [ac_cv_cxx11_trivial_copy_check=yes],
+                   [ac_cv_cxx11_trivial_copy_check=no])])
+if test $ac_cv_cxx11_trivial_copy_check = yes; then
+    AC_DEFINE([HAVE_CXX11_TRIVIAL_COPY_CHECK], [1], [Defined if C++11 std::is_trivially_copyable is supported.])
+fi
+CXXFLAGS="${_old_CXXFLAGS}"
+### End C++11 features check
+
 # Variable substitutions.
 AC_SUBST([ac_aux_dir])
 AC_SUBST([abs_top_srcdir])
@@ -144,6 +157,9 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 ])
+
+# Header files
+AC_CONFIG_HEADERS([inc/hclib_config.h])
 
 # Generates and runs config.status, which in turn creates the makefiles 
 # and any other files resulting from configuration
