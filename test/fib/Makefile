@@ -3,7 +3,7 @@ TARGET := fib
 include $(HCLIB_ROOT)/include/hclib.mak
 
 $(TARGET): $(TARGET).c
-	gcc $^ -o$@ -std=gnu11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
+	$(CC) $^ -o$@ -std=gnu11 $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) $(PROJECT_LDLIBS)
 
 WORKLOAD_ARGS ?= 5
 
