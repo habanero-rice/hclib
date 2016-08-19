@@ -10,7 +10,7 @@ kernel: kernel.cu
 	nvcc -arch=sm_30 ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 %: %.cpp
-	g++ ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	$(CXX) ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean:
 	rm -f $(TARGETS)
