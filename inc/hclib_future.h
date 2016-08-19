@@ -11,8 +11,10 @@ struct future_t: public hclib_future_t {
 
     HASSERT_STATIC(sizeof(T) <= sizeof(void*),
             "future_t arg type is too large to store by value.");
+#if defined(__GNUC__) && __GNUC__ >= 5
     HASSERT_STATIC(std::is_trivially_copyable<T>::value,
             "future_t arg type can't be recast to void*.");
+#endif
 
     union _ValUnion { T val; void *vp; };
 
