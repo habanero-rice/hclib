@@ -18,7 +18,7 @@ void producer(void *arg) {
     assert(signal);
     *signal = 42;
 
-    sleep(5);
+    sleep(1);
 
     hclib_promise_put(event, signal);
 }

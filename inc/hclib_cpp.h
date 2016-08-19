@@ -15,12 +15,9 @@ typedef place_t place_t;
 typedef place_type_t place_type_t;
 
 template <typename T>
-void launch(T lambda) {
-    hclib_task_t *user_task = _allocate_async(lambda, false);
-    hclib_launch((generic_frame_ptr)spawn, user_task);
+inline void launch(T &&lambda) {
+    hclib_launch(lambda_wrapper<T>, new T(lambda));
 }
-
-promise_t **promise_create_n(size_t nb_promises, int null_terminated);
 
 extern hclib_worker_state *current_ws();
 int current_worker();
@@ -46,19 +43,19 @@ void free_at(place_t *pl, T *ptr) {
 }
 
 template<typename T>
-future_t *async_copy(place_t *dst_pl, T *dst, place_t *src_pl, T *src,
+future_t<void> *async_copy(place_t *dst_pl, T *dst, place_t *src_pl, T *src,
         size_t nitems, void *user_arg) {
-    hclib::promise_t *promise = new hclib::promise_t();
+    hclib::promise_t<void> *promise = new hclib::promise_t<void>();
     hclib_async_copy_helper(dst_pl, dst, src_pl, src, nitems * sizeof(T),
             NULL, user_arg, &promise->internal);
     return promise->get_future();
 }
 
 template<typename T, typename... future_list_t>
-future_t *async_copy(place_t *dst_pl, T *dst,
+future_t<void> *async_copy(place_t *dst_pl, T *dst,
         place_t *src_pl, T *src, size_t nitems,
         void *user_arg, future_list_t... futures) {
-    hclib::promise_t *promise = new hclib::promise_t();
+    hclib::promise_t<void> *promise = new hclib::promise_t<void>();
     hclib_future_t **future_list = construct_future_list(futures...);
     hclib_async_copy_helper(dst_pl, dst, src_pl, src, nitems * sizeof(T),
             future_list, user_arg, &promise->internal);
@@ -66,18 +63,18 @@ future_t *async_copy(place_t *dst_pl, T *dst,
 }
 
 template<typename T>
-future_t *async_memset(place_t *pl, T *ptr, int val,
+future_t<void> *async_memset(place_t *pl, T *ptr, int val,
         size_t nitems, void *user_arg) {
-    hclib::promise_t *promise = new hclib::promise_t();
+    hclib::promise_t<void> *promise = new hclib::promise_t<void>();
     hclib_async_memset_helper(pl, ptr, val, nitems * sizeof(T), NULL,
             user_arg, &promise->internal);
     return promise->get_future();
 }
 
 template<typename T, typename... future_list_t>
-future_t *async_memset(place_t *pl, T *ptr, int val,
+future_t<void> *async_memset(place_t *pl, T *ptr, int val,
         size_t nitems, void *user_arg, future_list_t... futures) {
-    hclib::promise_t *promise = new hclib::promise_t();
+    hclib::promise_t<void> *promise = new hclib::promise_t<void>();
     hclib_future_t **future_list = construct_future_list(futures...);
     hclib_async_memset_helper(pl, ptr, val, nitems * sizeof(T), future_list,
             user_arg, &promise->internal);
