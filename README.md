@@ -11,6 +11,7 @@ is intended to be the intra-node resource management and scheduling component
 within an exascale programming system, integrating with inter-node communication
 models such as MPI, UPC++, or OpenSHMEM.
 
+[![Build Status](https://travis-ci.org/habanero-rice/hclib.svg?branch=master)](https://travis-ci.org/habanero-rice/hclib)
 
 Installation
 ---------------------------------------------
@@ -45,7 +46,7 @@ Dependencies
 ---------------------------------------------
 
 * automake
-* gcc >= 4.9.0, or clang >= 3.3
+* gcc >= 4.8.4, or clang >= 3.5
   (must support -std=c++11)
 * libxml2 (with development headers)
 
