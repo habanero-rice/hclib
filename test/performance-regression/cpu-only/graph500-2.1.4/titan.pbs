@@ -3,8 +3,8 @@
 #PBS -N max
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:20:00
-#PBS -l nodes=1024
+#PBS -l walltime=00:10:00
+#PBS -l nodes=512
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
