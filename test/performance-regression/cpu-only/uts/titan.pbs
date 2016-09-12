@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:20:00
-#PBS -l nodes=32
+#PBS -l nodes=1
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -13,6 +13,7 @@
 cd /ccs/proj/csc205/max/hclib/test/performance-regression/cpu-only/uts
 source sample_trees.sh
 
+export LD_LIBRARY_PATH=/opt/gcc/4.9.0/snos/lib64:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$PROJ_DIR/hclib/modules/openshmem/lib:$LD_LIBRARY_PATH
 ulimit -c unlimited
 
@@ -27,8 +28,16 @@ for NODES in $PBS_NUM_NODES; do
         export GASNET_BACKTRACE=1
         # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-hclib-shmem-naive $T1XXL
         # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-omp-task-shmem $T1XXL
-        aprun -cc none --pes-per-node 1 -n $(($NODES * 1)) -d 16 ./uts-shmem $T1XXL
-        # aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-shmem-omp $T1XXL
+        # aprun -cc none --pes-per-node 1 -n $(($NODES * 1)) -d 16 ./uts-shmem $T1XXL
+
+        aprun -cc none --pes-per-node 1 -n $NODES -d 16 -m 32G ./uts-shmem-omp $T1
+
+        export OMP_NUM_THREADS=1
+        export HCLIB_WORKERS=1
+        export SMA_SYMMETRIC_SIZE=402653184
+        export SHMEM_SYMMETRIC_HEAP_SIZE=$SMA_SYMMETRIC_SIZE
+        export GASNET_PHYSMEM_MAX=16G
+        aprun -cc none --pes-per-node 16 -n $(($NODES * 16)) -S 8 -d 1 ./uts-shmem $T1
     done
 done
 

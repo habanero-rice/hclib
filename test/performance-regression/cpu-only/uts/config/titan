@@ -30,8 +30,8 @@ UPCLD_OPTS = -lm
 # OPENMP Compiler 
 # -------------------------------------
 OMPCC = icc
-OMPCC_OPTS = -openmp -O0 -g
-OMPLD_OPTS = -openmp -O0 -g
+OMPCC_OPTS = -fopenmp -O0 -g
+OMPLD_OPTS = -fopenmp -O0 -g
 
 
 # -------------------------------------

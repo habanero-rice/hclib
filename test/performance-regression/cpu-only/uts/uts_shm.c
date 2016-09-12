@@ -1116,6 +1116,7 @@ int cbarrier_wait() {
 
   SET_LOCK(cb_lock);
   cb_count++;
+  fprintf(stderr, "PE %d: cb_count=%d, # PEs=%d\n", shmem_my_pe(), cb_count, shmem_n_pes());
 #ifdef _SHMEM
   PUT_ALL(cb_count, cb_count);
 #endif
@@ -1147,6 +1148,8 @@ int cbarrier_wait() {
     l_done = cb_done;
   }
   while (!l_cancel && !l_done);
+
+  fprintf(stderr, "PE %d: exiting spin loop because l_cancel=%d l_done=%d\n", shmem_my_pe(), l_cancel, l_done);
 
   if (debug & 16)
     printf("Thread %d exit  spin-wait, count = %d, done = %d, cancel = %d\n",
@@ -1224,7 +1227,8 @@ void parTreeSearch(StealStack *ss) {
 
   /* tree search */
   while (done == 0) {
-    
+   
+    // fprintf(stderr, "PE %d: AAAAA\n", shmem_my_pe());
     /* local work */
     while (ss_localDepth(ss) > 0) {		
 
@@ -1233,6 +1237,7 @@ void parTreeSearch(StealStack *ss) {
       /* examine node at stack top */
       parent = ss_top(ss);
       if (parent->numChildren < 0){
+          fprintf(stderr, "PE %d: processed a node\n", shmem_my_pe());
           // first time visited, construct children and place on stack
           genChildren(parent,&child,ss);
 
@@ -1250,6 +1255,7 @@ void parTreeSearch(StealStack *ss) {
       // and wake up quiescent threads
       releaseNodes(ss);
     }
+    // fprintf(stderr, "PE %d: BBBBB\n", shmem_my_pe());
 		
     /* local work exhausted on this stack - resume tree search if able
      * to re-acquire work from shared portion of this thread's stack
@@ -1257,22 +1263,28 @@ void parTreeSearch(StealStack *ss) {
     if (ss_acquire(ss, chunkSize))
       continue;
 
+    // fprintf(stderr, "PE %d: CCCCC\n", shmem_my_pe());
+
     /* no work left in this thread's stack           */
     /* try to steal work from another thread's stack */
     if (doSteal) {
-      int goodSteal = 0;
-      int victimId;
-      
-      ss_setState(ss, SS_SEARCH);
-      victimId = findwork(chunkSize);
-      while (victimId != -1 && !goodSteal) {
-	// some work detected, try to steal it
-	goodSteal = ss_steal(ss, victimId, chunkSize);
-	if (!goodSteal)
-	  victimId = findwork(chunkSize);
-      }
-      if (goodSteal)
-	  continue;
+        int goodSteal = 0;
+        int victimId;
+        // fprintf(stderr, "PE %d: DDDDD\n", shmem_my_pe());
+
+        ss_setState(ss, SS_SEARCH);
+        victimId = findwork(chunkSize);
+        while (victimId != -1 && !goodSteal) {
+            // some work detected, try to steal it
+            goodSteal = ss_steal(ss, victimId, chunkSize);
+            if (!goodSteal)
+                victimId = findwork(chunkSize);
+        }
+
+        fprintf(stderr, "PE %d: EEEEE %d\n", shmem_my_pe(), goodSteal);
+
+        if (goodSteal)
+            continue;
     }
 	
     /* unable to steal work from shared portion of other stacks -
@@ -1281,7 +1293,9 @@ void parTreeSearch(StealStack *ss) {
      * (done == 0).
      */
     ss_setState(ss, SS_IDLE);
+    fprintf(stderr, "PE %d: FFFFF\n", shmem_my_pe());
     done = cbarrier_wait();
+    fprintf(stderr, "PE %d: GGGGG\n", shmem_my_pe());
   }
   
   /* tree search complete ! */
