@@ -16,7 +16,7 @@ namespace hcpp {
 /*
  * Comment this if you don't want timing analysis
  */
-//#define _TIMER_ON_
+#define _TIMER_ON_
 
 /* Search status */
 #define STATUS_HAVEWORK 0
