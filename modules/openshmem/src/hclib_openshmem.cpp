@@ -1,4 +1,4 @@
- #include "hclib_openshmem-internal.h"
+#include "hclib_openshmem-internal.h"
 
 #include "hclib-locality-graph.h"
 

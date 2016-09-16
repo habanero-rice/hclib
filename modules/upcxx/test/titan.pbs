@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -A csc205
+#PBS -N max
+#PBS -j oe
+#PBS -q debug
+#PBS -l walltime=00:10:00,nodes=4
+#PBS -V
+
+export GASNET_MAX_SEGSIZE='512MB'
+export GASNET_BACKTRACE=1
+export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
+
+cd $PBS_O_WORKDIR
+# -n is # of nodes
+# -N is PEs per node
+# -d is # cores per PE
+
+for TEST in basic; do
+    echo ======= $TEST =======
+    aprun -n 4 -N 1 -d 16 ./$TEST
+    echo
+done
