@@ -38,10 +38,12 @@ fi
 
 CONDUIT_NAME=$(echo $(basename $GASNET_LIB) | cut -d '-' -f2)
 CONDUIT_TYPE=$(echo $(basename $GASNET_LIB) | cut -d '-' -f3 | cut -d '.' -f1)
+CAPITALIZED_CONDUIT_NAME=$(echo $CONDUIT_NAME | tr '[:lower:]' '[:upper:]')
 
-sed -e "s|CONDUIT_NAME|$CONDUIT_NAME|g" \
+sed -e "s|CAPITALIZED_CONDUIT_NAME|$CAPITALIZED_CONDUIT_NAME|g" \
         inc/hclib_upcxx.post.mak.template > inc/hclib_upcxx.post.mak
 sed -i -e "s|CONDUIT_TYPE|$CONDUIT_TYPE|g" inc/hclib_upcxx.post.mak
+sed -i -e "s|CONDUIT_NAME|$CONDUIT_NAME|g" inc/hclib_upcxx.post.mak
 sed -i -e "s|EXTRA_LIBS_PATTERN|$EXTRA_LIBS|g" inc/hclib_upcxx.post.mak
 make clean
 make

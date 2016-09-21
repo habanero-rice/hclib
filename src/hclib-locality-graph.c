@@ -26,7 +26,13 @@ static hclib_fptr_list_t *metadata_populate_registrations = NULL;
 unsigned hclib_add_known_locale_type(const char *lbl) {
     int i;
     for (i = 0; i < n_known_locale_types; i++) {
-        HASSERT(strcmp(lbl, known_locale_types[i]) != 0);
+        if (strcmp(lbl, known_locale_types[i]) == 0) {
+            /*
+             * Someone else already registered this locale type, return the
+             * correct ID.
+             */
+            return i;
+        }
     }
 
     known_locale_types = (char **)realloc(known_locale_types,
@@ -368,7 +374,10 @@ void load_locality_info(const char *filename, int *nworkers_out,
     printf("Loading locality graph from %s\n", filename);
 
     FILE *fp = fopen(filename, "r");
-    assert(fp);
+    if (!fp) {
+        fprintf(stderr, "Failed loading locality graph from %s\n", filename);
+        exit(1);
+    }
 
     fseek(fp, 0L, SEEK_END);
     size_t file_size = ftell(fp);

@@ -2,7 +2,7 @@
 # it to add flags to the overall project compile and link flags.
 include $(GASNET_INSTALL)/include/CONDUIT_NAME-conduit/CONDUIT_NAME-CONDUIT_TYPE.mak
 
-HCLIB_UPCXX_CFLAGS+=-DGASNET_CONDUIT_GEMINI -DGASNET_SEQ -I$(HCLIB_ROOT)/../modules/upcxx/inc -I$(UPCXX_INSTALL)/include -I$(GASNET_INSTALL)/include -I$(GASNET_INSTALL)/include/CONDUIT_NAME-conduit
-HCLIB_UPCXX_CXXFLAGS+=-DGASNET_CONDUIT_GEMINI -DGASNET_SEQ -I$(HCLIB_ROOT)/../modules/upcxx/inc -I$(UPCXX_INSTALL)/include -I$(GASNET_INSTALL)/include -I$(GASNET_INSTALL)/include/CONDUIT_NAME-conduit
+HCLIB_UPCXX_CFLAGS+=-DGASNET_CONDUIT_CAPITALIZED_CONDUIT_NAME -DGASNET_SEQ -I$(HCLIB_ROOT)/../modules/upcxx/inc -I$(UPCXX_INSTALL)/include -I$(GASNET_INSTALL)/include -I$(GASNET_INSTALL)/include/CONDUIT_NAME-conduit
+HCLIB_UPCXX_CXXFLAGS+=-DGASNET_CONDUIT_CAPITALIZED_CONDUIT_NAME -DGASNET_SEQ -I$(HCLIB_ROOT)/../modules/upcxx/inc -I$(UPCXX_INSTALL)/include -I$(GASNET_INSTALL)/include -I$(GASNET_INSTALL)/include/CONDUIT_NAME-conduit
 HCLIB_UPCXX_LDFLAGS+=-Wl,-init,-L$(HCLIB_ROOT)/../modules/upcxx/lib -L$(UPCXX_INSTALL)/lib -L$(LIBELF_DIR)/lib -L$(MPI_HOME)/lib $(CRAY_PMI_POST_LINK_OPTS) $(CRAY_XPMEM_POST_LINK_OPTS) $(CRAY_UGNI_POST_LINK_OPTS)
 HCLIB_UPCXX_LDLIBS+=-lrt -lhclib_system -Wl,--whole-archive $(HCLIB_ROOT)/../modules/upcxx/lib/libhclib_upcxx.a $(UPCXX_INSTALL)/lib/libupcxx.a -Wl,--no-whole-archive $(GASNET_LIBS) -lelf -lpmi EXTRA_LIBS_PATTERN

@@ -1,5 +1,4 @@
 #include "hclib_mpi-internal.h"
-
 #include "hclib-locality-graph.h"
 
 #include <iostream>
@@ -22,7 +21,11 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_post_initialize) {
-    CHECK_MPI(MPI_Init(NULL, NULL));
+    int provided;
+    CHECK_MPI(MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided));
+    assert(provided == MPI_THREAD_FUNNELED);
+    // CHECK_MPI(MPI_Init(NULL, NULL));
+
     int n_nics;
     hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
             &n_nics);
@@ -56,19 +59,12 @@ static hclib::locale_t *get_locale_for_rank(int rank, MPI_Comm comm) {
     return new_locale;
 }
 
-hclib::locale_t *hclib::MPI_Comm_rank(MPI_Comm comm) {
-    int rank;
-    CHECK_MPI(::MPI_Comm_rank(comm, &rank));
-
-    return get_locale_for_rank(rank, comm);
+void hclib::MPI_Comm_rank(MPI_Comm comm, int *rank) {
+    CHECK_MPI(::MPI_Comm_rank(comm, rank));
 }
 
 void hclib::MPI_Comm_size(MPI_Comm comm, int *size) {
     CHECK_MPI(::MPI_Comm_size(comm, size));
-}
-
-hclib::locale_t *hclib::MPI_Comm_remote(MPI_Comm comm, int remote_rank) {
-    return get_locale_for_rank(remote_rank, comm);
 }
 
 int hclib::integer_rank_for_locale(locale_t *locale) {
@@ -110,6 +106,41 @@ hclib::future_t *hclib::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         CHECK_MPI(::MPI_Recv(buf, count, datatype,
                 locale_id_to_mpi_rank(source->id), tag, comm, &status));
     }, nic);
+}
+
+void hclib::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
+    CHECK_MPI(::MPI_Comm_dup(comm, newcomm));
+}
+
+void hclib::MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm) {
+    CHECK_MPI(::MPI_Comm_split(comm, color, key, newcomm));
+}
+
+void hclib::MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
+        MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+    hclib::finish([&sendbuf, &recvbuf, &count, &datatype, &op, &comm] {
+        hclib::async_at(nic, [&sendbuf, &recvbuf, &count, &datatype, &op, &comm] {
+            CHECK_MPI(::MPI_Allreduce(sendbuf, recvbuf, count, datatype, op,
+                    comm));
+        });
+    });
+}
+
+void hclib::MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root, 
+        MPI_Comm comm) {
+    hclib::finish([&buffer, &count, &datatype, &root, &comm] {
+            hclib::async_at(nic, [&buffer, &count, &datatype, &root, &comm] {
+                CHECK_MPI(::MPI_Bcast(buffer, count, datatype, root, comm));
+            });
+    });
+}
+
+int hclib::MPI_Barrier(MPI_Comm comm) {
+    hclib::finish([&comm] {
+        hclib::async_at(nic, [&comm] {
+            CHECK_MPI(::MPI_Barrier(comm));
+        });
+    });
 }
 
 HCLIB_REGISTER_MODULE("mpi", mpi_pre_initialize, mpi_post_initialize, mpi_finalize)

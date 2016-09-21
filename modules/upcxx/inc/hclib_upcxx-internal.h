@@ -12,6 +12,12 @@
 
 namespace hclib {
 
+namespace upcxx {
+
+hclib::locale_t *nic_place();
+
+}
+
 }
 
 #endif

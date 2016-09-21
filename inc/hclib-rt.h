@@ -78,7 +78,9 @@ typedef struct _hclib_worker_state {
 #ifdef HC_ASSERTION_CHECK
 #define HASSERT(cond) { \
     if (!(cond)) { \
-        fprintf(stderr, "W%d: assertion failure\n", hclib_get_current_worker()); \
+        if (pthread_getspecific(ws_key)) { \
+            fprintf(stderr, "W%d: assertion failure\n", hclib_get_current_worker()); \
+        } \
         assert(cond); \
     } \
 }

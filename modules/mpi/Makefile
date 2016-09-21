@@ -7,6 +7,8 @@ OBJS=obj/hclib_mpi.o
 
 TARGETS=lib/libhclib_mpi.so lib/libhclib_mpi.a
 
+all: $(TARGETS)
+
 lib/libhclib_mpi.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 

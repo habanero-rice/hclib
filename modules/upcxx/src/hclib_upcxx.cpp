@@ -1,4 +1,4 @@
- #include "hclib_upcxx-internal.h"
+ #include "hclib_upcxx.h"
 
 #include "hclib-locality-graph.h"
 
@@ -14,9 +14,9 @@ HCLIB_MODULE_INITIALIZATION_FUNC(upcxx_pre_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(upcxx_post_initialize) {
-    upcxx::init(NULL, NULL);
+    ::upcxx::init(NULL, NULL);
 
-    std::cerr << "UPC++ module initializing on rank " << upcxx::myrank() << std::endl;
+    hclib::upcxx::team_all = ::upcxx::team_all;
 
     int n_nics;
     hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
@@ -28,7 +28,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(upcxx_post_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(upcxx_finalize) {
-    upcxx::finalize();
+    ::upcxx::finalize();
 }
 
 HCLIB_REGISTER_MODULE("upcxx", upcxx_pre_initialize, upcxx_post_initialize, upcxx_finalize)
@@ -37,25 +37,50 @@ namespace hclib {
 
 namespace upcxx {
 
+team team_all;
+
 uint32_t ranks() {
-    uint32_t out;
-    // hclib::finish([&out] {
-    //     hclib::async_at(nic, [&out] {
-            out = ::upcxx::ranks();
-    //     });
-    // });
-    return out;
+    return ::upcxx::ranks();
 }
 
 uint32_t myrank() {
-    uint32_t out;
-    // hclib::finish([&out] {
-    //     hclib::async_at(nic, [&out] {
-            out = ::upcxx::myrank();
-    //     });
-    // });
-    return out;
+    return ::upcxx::myrank();
 }
+
+void barrier() {
+    hclib::finish([] {
+        hclib::async_at(nic, [] {
+            ::upcxx::barrier();
+        });
+    });
+}
+
+void async_wait() {
+    hclib::finish([] {
+        hclib::async_at(nic, [] {
+            ::upcxx::async_wait();
+        });
+    });
+}
+
+hclib::upcxx::gasnet_launcher<::upcxx::rank_t> async_after(::upcxx::rank_t rank,
+        hclib::upcxx::event *after, hclib::upcxx::event *ack) {
+    hclib::upcxx::gasnet_launcher<::upcxx::rank_t> *result = NULL;
+
+    hclib::finish([&rank, &after, &ack, &result] {
+        hclib::async_at(nic, [&rank, &after, &ack, &result] {
+            result = new hclib::upcxx::gasnet_launcher<::upcxx::rank_t>(
+                ::upcxx::async_after(rank, after, ack));
+        });
+    });
+    return *result;
+}
+
+bool is_memory_shared_with(::upcxx::rank_t r) {
+    return ::upcxx::is_memory_shared_with(r);
+}
+
+hclib::locale_t *nic_place() { return nic; }
 
 }
 }
