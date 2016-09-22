@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main (int argc, char ** argv) {
     const char *deps[] = { "system" };
     hclib::launch(deps, 1, []() {
-        hclib_atomic_t<int> *atomic = new hclib_atomic_t<int>(0);
+        hclib::atomic_t<int> *atomic = new hclib::atomic_t<int>(0);
         hclib::finish([atomic]() {
             for (int i = 0; i < N; i++) {
                 hclib::async([=]() {

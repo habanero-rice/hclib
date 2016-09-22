@@ -7,11 +7,13 @@
 
 #define CACHE_LINE_LEN_IN_BYTES 32
 
+namespace hclib {
+
 /**
  * A base atomic variable for use in HClib programs.
  */
 template <class T>
-class hclib_atomic_t {
+class atomic_t {
     private:
         typedef struct _padded_val_t {
             T val;
@@ -23,12 +25,12 @@ class hclib_atomic_t {
         T default_value;
 
     public:
-        hclib_atomic_t(T set_default_value) {
+        atomic_t(T set_default_value) {
             default_value = set_default_value;
             nthreads = hclib_num_workers();
 
             vals = (padded_val_t *)malloc(nthreads * sizeof(padded_val_t));
-            for (int i = 0; i < nthreads; i++) {
+            for (unsigned i = 0; i < nthreads; i++) {
                 vals[i].val = default_value;
             }
         }
@@ -46,11 +48,46 @@ class hclib_atomic_t {
          */
         T gather(std::function<T(T, T)> reduce) {
             T aggregate = default_value;
-            for (int i = 0; i < nthreads; i++) {
+            for (unsigned i = 0; i < nthreads; i++) {
                 aggregate = reduce(aggregate, vals[i].val);
             }
             return aggregate;
         }
 };
+
+// Provide some commonly useful atomic variables below
+
+template <class T>
+class atomic_sum_t : private atomic_t<T> {
+    public:
+        atomic_sum_t(T set_default_value) : atomic_t<T>(set_default_value) {
+        }
+
+        atomic_sum_t& operator+=(T other) {
+            atomic_t<T>::update([&other] (T curr) { return curr + other; });
+            return *this;
+        }
+
+        T get() {
+            return atomic_t<T>::gather([] (T a, T b) { return a + b; });
+        }
+};
+
+template <class T>
+class atomic_max_t : private atomic_t<T> {
+    public:
+        atomic_max_t(T set_default_value) : atomic_t<T>(set_default_value) {
+        }
+
+        void update(T other) {
+            atomic_t<T>::update([&other] (T curr) { return (curr > other ? curr : other); });
+        }
+
+        T get() {
+            return atomic_t<T>::gather([] (T a, T b) { return (a > b ? a : b); });
+        }
+};
+
+}
 
 #endif

@@ -55,7 +55,6 @@ int main (int argc, char ** argv) {
     int *ran=(int *)malloc(H1*H2*sizeof(int));
     const char *deps[] = { "system" };
     hclib::launch(deps, 1, [=]() {
-        int i = 0;
         // This is ok to have these on stack because this
         // code is alive until the end of the program.
 
@@ -64,7 +63,7 @@ int main (int argc, char ** argv) {
             hclib::loop_domain_2d *loop = new hclib::loop_domain_2d(H1, H2);
             hclib::forasync2D(loop, [=](int idx1, int idx2) {
                     assert(ran[idx1*H2+idx2] == -1);
-                    ran[idx1*H2+idx2] = idx1*H2+idx2; }, FORASYNC_MODE_RECURSIVE);
+                    ran[idx1*H2+idx2] = idx1*H2+idx2; }, false, FORASYNC_MODE_RECURSIVE);
         });
     });
 

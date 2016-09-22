@@ -27,57 +27,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- */
+*/
 
 /**
- * DESC: Fork a bunch of asyncs in a top-level loop
+ * DESC: Top-level async spawn
  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <iostream>
 
 #include "hclib_cpp.h"
+#include "hclib_atomic.h"
 
-#define H3 1024
-#define H2 512
-#define H1 16
-#define T3 33
-#define T2 217
-#define T1 7
-
-void init_ran(int *ran, int size) {
-    while (size > 0) {
-        ran[size-1] = -1;
-        size--;
-    }
-}
+#define N 1024
 
 int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    int *ran=(int *)malloc(H1*H2*H3*sizeof(int));
-
     const char *deps[] = { "system" };
-    hclib::launch(deps, 1, [=]() {
-        // This is ok to have these on stack because this
-        // code is alive until the end of the program.
-
-        init_ran(ran, H1*H2*H3);
-        hclib::finish([=]() {
-            hclib::loop_domain_3d *loop = new hclib::loop_domain_3d(H1, H2, H3);
-            hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
-                    assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
-                    ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3; },
-                    false, FORASYNC_MODE_RECURSIVE);
+    hclib::launch(deps, 1, []() {
+        hclib::atomic_sum_t<int> *atomic = new hclib::atomic_sum_t<int>(0);
+        hclib::finish([atomic]() {
+            for (int i = 0; i < N; i++) {
+                hclib::async([=]() {
+                    *atomic += 1;
+                });
+            }
         });
+        std::cout << "Got " << atomic->get() << std::endl;
     });
-
-    printf("Check results: ");
-    int i = 0;
-    while(i < H1*H2*H3) {
-        assert(ran[i] == i);
-        i++;
-    }
-    free(ran);
-    printf("OK\n");
+    printf("Exiting...\n");
     return 0;
 }

@@ -23,3 +23,4 @@ no_async_finish
 future_wait_in_finish
 nested_finish
 atomic
+atomic_sum

@@ -55,8 +55,8 @@ int pollint   = 1;        // BUPC Polling interval
 
 int n_leaves = 0;
 int n_nodes = 0;
-hclib_atomic_t<size_t> *count_leaves = NULL;
-hclib_atomic_t<size_t> *count_nodes = NULL;
+hclib::atomic_t<size_t> *count_leaves = NULL;
+hclib::atomic_t<size_t> *count_nodes = NULL;
 
 #ifdef THREAD_METADATA
 typedef struct _thread_metadata {
@@ -796,8 +796,8 @@ static void main_entrypoint(void *____arg) {
 
   initRootNode(&root, type);
 
-  count_leaves = new hclib_atomic_t<size_t>(0);
-  count_nodes = new hclib_atomic_t<size_t>(0);
+  count_leaves = new hclib::atomic_t<size_t>(0);
+  count_nodes = new hclib::atomic_t<size_t>(0);
 
   hclib::shmem_barrier_all();
 

@@ -133,8 +133,8 @@ typedef struct metaData_t MetaData;
 /* holds text string for debugging info */
 char debug_str[1000];
 
-hclib_atomic_t<size_t> *count_leaves = NULL;
-hclib_atomic_t<size_t> *count_nodes = NULL;
+hclib::atomic_t<size_t> *count_leaves = NULL;
+hclib::atomic_t<size_t> *count_nodes = NULL;
 
 /***********************************************************
  * StealStack types                                        *
@@ -747,8 +747,8 @@ static void main_entrypoint(void *____arg) {
 
   initRootNode(&root, type);
 
-  count_leaves = new hclib_atomic_t<size_t>(0);
-  count_nodes = new hclib_atomic_t<size_t>(0);
+  count_leaves = new hclib::atomic_t<size_t>(0);
+  count_nodes = new hclib::atomic_t<size_t>(0);
 
   /* time parallel search */
   t1 = uts_wctime();

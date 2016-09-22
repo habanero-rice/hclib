@@ -6,9 +6,9 @@ TARGETS=async0 async1 finish0 finish1 finish2  forasync1DCh  forasync1DRec \
 		forasync2DCh  forasync2DRec  forasync3DCh  forasync3DRec \
 		promise/asyncAwait0 promise/asyncAwait0Null promise/future0 \
 		promise/future1 promise/future2 promise/future3 neconlce1 access_argc \
-		no_async_finish nested_finish future_wait_in_finish atomic
+		no_async_finish nested_finish future_wait_in_finish atomic atomic_sum
 
-FLAGS=-g -std=c++11
+FLAGS=-g -std=c++11 -Wall
 
 all: $(TARGETS)
 

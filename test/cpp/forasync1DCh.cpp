@@ -54,7 +54,6 @@ int main (int argc, char ** argv) {
 
     const char *deps[] = { "system" };
     hclib::launch(deps, 1, [=]() {
-        int i = 0;
         // This is ok to have these on stack because this
         // code is alive until the end of the program.
 
@@ -62,7 +61,7 @@ int main (int argc, char ** argv) {
         hclib::finish([=]() {
             hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, H1);
             hclib::forasync1D(loop, [=](int idx) { assert(ran[idx] == -1);
-                    ran[idx] = idx; }, FORASYNC_MODE_FLAT);
+                    ran[idx] = idx; }, false, FORASYNC_MODE_FLAT);
         });
     });
 

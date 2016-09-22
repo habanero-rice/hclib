@@ -56,7 +56,6 @@ int main (int argc, char ** argv) {
 
     const char *deps[] = { "system" };
     hclib::launch(deps, 1, [=]() {
-            int i = 0;
             // This is ok to have these on stack because this
             // code is alive until the end of the program.
 
@@ -69,7 +68,7 @@ int main (int argc, char ** argv) {
                         assert(ran[idx] == -1);
                         ran[idx] = idx;
                         printf("finished %d / %d\n", idx, H1);
-                    }, FORASYNC_MODE_FLAT);
+                    }, false, FORASYNC_MODE_FLAT);
             });
 
             event->wait();
