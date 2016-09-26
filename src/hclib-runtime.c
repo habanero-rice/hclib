@@ -65,15 +65,6 @@ static double user_specified_timer = 0;
 // TODO use __thread on Linux?
 pthread_key_t ws_key;
 
-#ifdef HC_COMM_WORKER
-semi_conc_deque_t *comm_worker_out_deque;
-#endif
-#ifdef HC_CUDA
-semi_conc_deque_t *gpu_worker_deque;
-pending_cuda_op *pending_cuda_ops_head = NULL;
-pending_cuda_op *pending_cuda_ops_tail = NULL;
-#endif
-
 hclib_context *hc_context = NULL;
 
 static int profile_launch_body = 0;
@@ -92,8 +83,6 @@ typedef struct _per_worker_stats {
 } per_worker_stats;
 static per_worker_stats *worker_stats = NULL;
 #endif
-
-static void (*idle_callback)(unsigned, unsigned) = NULL;
 
 void hclib_start_finish();
 
@@ -178,11 +167,6 @@ static void set_current_worker(int wid) {
 #endif
 }
 
-void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned)) {
-    HASSERT(idle_callback == NULL);
-    idle_callback = set_idle_callback;
-}
-
 int hclib_get_current_worker() {
     hclib_worker_state *ws = (hclib_worker_state *)pthread_getspecific(ws_key);
     assert(ws);
@@ -216,12 +200,6 @@ hclib_worker_state *current_ws() {
 
 // FWD declaration for pthread_create
 static void *worker_routine(void *args);
-#ifdef HC_COMM_WORKER
-static void *communication_worker_routine(void *finish);
-#endif
-#ifdef HC_CUDA
-static void *gpu_worker_routine(void *finish);
-#endif
 
 /*
  * Main initialization function for the hclib_context object.
@@ -458,10 +436,8 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
 #endif
         if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque),
                     async_task)) {
+            // Deque is full
             assert(false);
-            // TODO: deque is full, so execute in place
-            printf("WARNING: deque full, local execution\n");
-            execute_task(async_task);
         }
 #ifdef VERBOSE
         fprintf(stderr, "rt_schedule_async: finished scheduling on worker "
@@ -566,253 +542,10 @@ void spawn_await(hclib_task_t *task, hclib_future_t *future1,
     spawn_await_at(task, future1, future2, NULL);
 }
 
-#ifdef HC_CUDA
-extern void *unsupported_place_type_err(place_t *pl);
-extern int is_pinned_cpu_mem(void *ptr);
-
-static pending_cuda_op *create_pending_cuda_op(hclib_promise_t *promise,
-        void *arg) {
-    pending_cuda_op *op = malloc(sizeof(pending_cuda_op));
-    op->promise_to_put = promise;
-    op->arg_to_put = arg;
-    CHECK_CUDA(cudaEventCreate(&op->event));
-    return op;
-}
-
-static void enqueue_pending_cuda_op(pending_cuda_op *op) {
-    if (pending_cuda_ops_head) {
-        HASSERT(pending_cuda_ops_tail);
-        pending_cuda_ops_tail->next = op;
-    } else {
-        HASSERT(pending_cuda_ops_tail == NULL);
-        pending_cuda_ops_head = op;
-    }
-    pending_cuda_ops_tail = op;
-    op->next = NULL;
-}
-
-static pending_cuda_op *do_gpu_memset(place_t *pl, void *ptr, int val,
-                                      size_t nbytes, hclib_promise_t *to_put, void *arg_to_put) {
-    if (is_cpu_place(pl)) {
-        memset(ptr, val, nbytes);
-        return NULL;
-    } else if (is_nvgpu_place(pl)) {
-        CHECK_CUDA(cudaMemsetAsync(ptr, val, nbytes, pl->cuda_stream));
-        pending_cuda_op *op = create_pending_cuda_op(to_put,
-                              arg_to_put);
-        CHECK_CUDA(cudaEventRecord(op->event, pl->cuda_stream));
-        return op;
-    } else {
-        return unsupported_place_type_err(pl);
-    }
-}
-
-static pending_cuda_op *do_gpu_copy(place_t *dst_pl, place_t *src_pl, void *dst,
-                                    void *src, size_t nbytes, hclib_promise_t *to_put, void *arg_to_put) {
-    HASSERT(to_put);
-
-    if (is_cpu_place(dst_pl)) {
-        if (is_cpu_place(src_pl)) {
-            // CPU -> CPU
-            memcpy(dst, src, nbytes);
-            return NULL;
-        } else if (is_nvgpu_place(src_pl)) {
-            // GPU -> CPU
-#ifdef VERBOSE
-            fprintf(stderr, "do_gpu_copy: is dst pinned? %s\n",
-                    is_pinned_cpu_mem(dst) ? "true" : "false");
-#endif
-            if (is_pinned_cpu_mem(dst)) {
-                CHECK_CUDA(cudaMemcpyAsync(dst, src, nbytes,
-                                           cudaMemcpyDeviceToHost, src_pl->cuda_stream));
-                pending_cuda_op *op = create_pending_cuda_op(to_put,
-                                      arg_to_put);
-                CHECK_CUDA(cudaEventRecord(op->event, src_pl->cuda_stream));
-                return op;
-            } else {
-                CHECK_CUDA(cudaMemcpy(dst, src, nbytes,
-                                      cudaMemcpyDeviceToHost));
-                return NULL;
-            }
-        } else {
-            return unsupported_place_type_err(src_pl);
-        }
-    } else if (is_nvgpu_place(dst_pl)) {
-        if (is_cpu_place(src_pl)) {
-            // CPU -> GPU
-#ifdef VERBOSE
-            fprintf(stderr, "do_gpu_copy: is src pinned? %s\n",
-                    is_pinned_cpu_mem(src) ? "true" : "false");
-#endif
-            if (is_pinned_cpu_mem(src)) {
-                CHECK_CUDA(cudaMemcpyAsync(dst, src, nbytes,
-                                           cudaMemcpyHostToDevice, dst_pl->cuda_stream));
-                pending_cuda_op *op = create_pending_cuda_op(to_put,
-                                      arg_to_put);
-                CHECK_CUDA(cudaEventRecord(op->event, dst_pl->cuda_stream));
-                return op;
-            } else {
-                CHECK_CUDA(cudaMemcpy(dst, src, nbytes,
-                                      cudaMemcpyHostToDevice));
-                return NULL;
-            }
-        } else if (is_nvgpu_place(src_pl)) {
-            // GPU -> GPU
-            CHECK_CUDA(cudaMemcpyAsync(dst, src, nbytes,
-                                       cudaMemcpyDeviceToDevice, dst_pl->cuda_stream));
-            pending_cuda_op *op = create_pending_cuda_op(to_put, arg_to_put);
-            CHECK_CUDA(cudaEventRecord(op->event, dst_pl->cuda_stream));
-            return op;
-        } else {
-            return unsupported_place_type_err(src_pl);
-        }
-    } else {
-        return unsupported_place_type_err(dst_pl);
-    }
-}
-
-void *gpu_worker_routine(void *finish_ptr) {
-    set_current_worker(GPU_WORKER_ID);
-    worker_done_t *done_flag = hc_context->done_flags + GPU_WORKER_ID;
-
-    semi_conc_deque_t *deque = gpu_worker_deque;
-    while (done_flag->flag) {
-        gpu_task_t *task = (gpu_task_t *)semi_conc_deque_non_locked_pop(deque);
-#ifdef VERBOSE
-        fprintf(stderr, "gpu_worker: done flag=%lu task=%p\n",
-                done_flag->flag, task);
-#endif
-        if (task) {
-#ifdef VERBOSE
-            fprintf(stderr, "gpu_worker: picked up task %p\n", task);
-#endif
-            pending_cuda_op *op = NULL;
-            switch (task->gpu_type) {
-            case (GPU_COMM_TASK): {
-                // Run a GPU communication task
-                gpu_comm_task_t *comm_task = &task->gpu_task_def.comm_task;
-                op = do_gpu_copy(comm_task->dst_pl, comm_task->src_pl,
-                                 comm_task->dst, comm_task->src, comm_task->nbytes,
-                                 task->promise_to_put, task->arg_to_put);
-                break;
-            }
-            case (GPU_MEMSET_TASK): {
-                gpu_memset_task_t *memset_task =
-                    &task->gpu_task_def.memset_task;
-                op = do_gpu_memset(memset_task->pl, memset_task->ptr,
-                                   memset_task->val, memset_task->nbytes,
-                                   task->promise_to_put, task->arg_to_put);
-                break;
-            }
-            case (GPU_COMPUTE_TASK): {
-                gpu_compute_task_t *compute_task =
-                    &task->gpu_task_def.compute_task;
-                /*
-                 * Assume that functor_caller enqueues a kernel in
-                 * compute_task->stream
-                 */
-                CHECK_CUDA(cudaSetDevice(compute_task->cuda_id));
-                (compute_task->kernel_launcher->functor_caller)(
-                    compute_task->niters, compute_task->tile_size,
-                    compute_task->stream,
-                    compute_task->kernel_launcher->functor_on_heap);
-                op = create_pending_cuda_op(task->promise_to_put,
-                                            task->arg_to_put);
-                CHECK_CUDA(cudaEventRecord(op->event,
-                                           compute_task->stream));
-                break;
-            }
-            default:
-                fprintf(stderr, "Unknown GPU task type %d\n",
-                        task->gpu_type);
-                exit(1);
-            }
-
-            check_out_finish(get_current_finish((hclib_task_t *)task));
-
-            if (op) {
-#ifdef VERBOSE
-                fprintf(stderr, "gpu_worker: task %p produced CUDA pending op "
-                        "%p\n", task, op);
-#endif
-                enqueue_pending_cuda_op(op);
-            } else if (task->promise_to_put) {
-                /*
-                 * No pending operation implies we did a blocking CUDA
-                 * operation, and can immediately put any dependent promises.
-                 */
-                hclib_promise_put(task->promise_to_put, task->arg_to_put);
-            }
-
-            // HC_FREE(task);
-        }
-
-        /*
-         * Check to see if any pending ops have completed. This implicitly
-         * assumes that events will complete in the order they are placed in the
-         * queue. This assumption is not necessary for correctness, but it may
-         * cause satisfied events in the pending event queue to not be
-         * discovered because they are behind an unsatisfied event.
-         */
-        cudaError_t event_status = cudaErrorNotReady;
-        while (pending_cuda_ops_head &&
-                (event_status = cudaEventQuery(pending_cuda_ops_head->event)) ==
-                cudaSuccess) {
-            hclib_promise_put(pending_cuda_ops_head->promise_to_put,
-                              pending_cuda_ops_head->arg_to_put);
-            CHECK_CUDA(cudaEventDestroy(pending_cuda_ops_head->event));
-            pending_cuda_op *old_head = pending_cuda_ops_head;
-            pending_cuda_ops_head = pending_cuda_ops_head->next;
-            if (pending_cuda_ops_head == NULL) {
-                // Empty list
-                pending_cuda_ops_tail = NULL;
-            }
-            free(old_head);
-        }
-        if (event_status != cudaErrorNotReady && pending_cuda_ops_head) {
-            fprintf(stderr, "Unexpected CUDA error from cudaEventQuery: %s\n",
-                    cudaGetErrorString(event_status));
-            exit(1);
-        }
-    }
-    return NULL;
-}
-#endif
-
-#ifdef HC_COMM_WORKER
-void *communication_worker_routine(void *finish_ptr) {
-    set_current_worker(COMMUNICATION_WORKER_ID);
-    worker_done_t *done_flag = hc_context->done_flags + COMMUNICATION_WORKER_ID;
-
-#ifdef VERBOSE
-    fprintf(stderr, "communication worker spinning up\n");
-#endif
-
-    semi_conc_deque_t *deque = comm_worker_out_deque;
-    while (done_flag->flag) {
-        // try to pop
-        hclib_task_t *task = semi_conc_deque_non_locked_pop(deque);
-        // Comm worker cannot steal
-        if (task) {
-#ifdef VERBOSE
-            fprintf(stderr, "communication worker popped task %p\n", task);
-#endif
-            execute_task(task);
-        }
-    }
-
-#ifdef VERBOSE
-    fprintf(stderr, "communication worker exiting\n");
-#endif
-
-    return NULL;
-}
-#endif
-
 void find_and_run_task(hclib_worker_state *ws) {
     hclib_task_t *task = locale_pop_task(ws);
     if (!task) {
-        unsigned failed_steals = 1;
+        unsigned failed_steals = 0;
         while (hc_context->done_flags[ws->id].flag) {
             // try to steal
             task = locale_steal_task(ws);
@@ -822,8 +555,9 @@ void find_and_run_task(hclib_worker_state *ws) {
 #endif
                 break;
             }
-            if (idle_callback) {
-                idle_callback(ws->id, failed_steals++);
+            failed_steals++;
+            if (failed_steals % 5 == 0) {
+                locale_run_idle_tasks(ws);
             }
         }
     }
@@ -876,19 +610,6 @@ static void *worker_routine(void *args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-
-#ifdef HC_COMM_WORKER
-    if (wid == COMMUNICATION_WORKER_ID) {
-        communication_worker_routine(ws->current_finish);
-        return NULL;
-    }
-#endif
-#ifdef HC_CUDA
-    if (wid == GPU_WORKER_ID) {
-        gpu_worker_routine(ws->current_finish);
-        return NULL;
-    }
-#endif
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create(__func__);

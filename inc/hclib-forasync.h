@@ -73,6 +73,11 @@ class loop_domain_1d {
             loop.stride = 1; loop.tile = default_tile_size(high - low, hclib_num_workers());
         }
 
+        loop_domain_1d(int low, int high, int nchunks) {
+            loop.low = low; loop.high = high;
+            loop.stride = 1; loop.tile = default_tile_size(high - low, nchunks);
+        }
+
         hclib_loop_domain_t *get_internal() { return &loop; }
 };
 
@@ -504,32 +509,27 @@ inline void forasync3D(loop_domain_3d* loop, T lambda,
 
 template <typename T>
 inline hclib::future_t *forasync1D_future(loop_domain_1d* loop, T lambda,
-        int mode, hclib_locale_t *locale, hclib::future_t *future = NULL) {
+        bool force_seq = false, int mode = FORASYNC_MODE_RECURSIVE,
+        hclib_locale_t *locale = NULL, hclib::future_t *future = NULL) {
 #ifdef VERBOSE
     fprintf(stderr, "forasync1D_future: locale=%p future=%p\n", locale, future);
 #endif
-    hclib_start_finish();
-    forasync1D_internal<T>(loop->get_internal(), lambda, mode, locale, future);
     hclib::promise_t *event = new hclib::promise_t();
-    hclib_end_finish_nonblocking_helper(&event->internal);
-    return event->get_future();
-}
 
-template <typename T>
-inline hclib::future_t *forasync1D_future(loop_domain_1d* loop, T lambda) {
-    return forasync1D_future(loop, lambda, FORASYNC_MODE_RECURSIVE, NULL, NULL);
-}
-
-template <typename T>
-inline hclib::future_t *forasync1D_future(loop_domain_1d* loop, T lambda,
-        int mode) {
-    return forasync1D_future(loop, lambda, mode, NULL, NULL);
-}
-
-template <typename T>
-inline hclib::future_t *forasync1D_future(loop_domain_1d* loop, T lambda,
-        int mode, hclib_locale_t *locale) {
-    return forasync1D_future(loop, lambda, mode, locale, NULL);
+    if (force_seq) {
+        hclib_loop_domain_t *internal = loop->get_internal();
+        for (int i = internal[0].low; i < internal[0].high;
+                i += internal[0].stride) {
+            lambda(i);
+        }
+        event->put(NULL);
+        return event->get_future();
+    } else {
+        hclib_start_finish();
+        forasync1D_internal<T>(loop->get_internal(), lambda, mode, locale, future);
+        hclib_end_finish_nonblocking_helper(&event->internal);
+        return event->get_future();
+    }
 }
 
 template <typename T>

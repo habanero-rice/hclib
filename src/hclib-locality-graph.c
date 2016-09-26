@@ -342,6 +342,8 @@ static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
     locale->id = id;
     locale->lbl = lbl;
     locale->type = locale_type_id;
+    locale->idle_funcs = NULL;
+    locale->n_idle_funcs = 0;
     locale->deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
     assert(locale->deques);
     for (i = 0; i < nworkers; i++) {
@@ -781,6 +783,28 @@ hclib_task_t *locale_pop_task(hclib_worker_state *ws) {
     }
 
     return NULL;
+}
+
+void locale_register_idle_task(hclib_locale_t *locale, void (*fp)(void)) {
+    locale->idle_funcs = (void (**)(void))realloc(locale->idle_funcs,
+            (locale->n_idle_funcs + 1) * sizeof(void (*)(void)));
+    assert(locale->idle_funcs);
+    locale->idle_funcs[locale->n_idle_funcs] = fp;
+    locale->n_idle_funcs++;
+}
+
+void locale_run_idle_tasks(hclib_worker_state *ws) {
+    int i;
+    hclib_worker_paths *paths = ws->paths;
+    hclib_locality_path *steal = paths->steal_path;
+
+    for (i = 0; i < steal->path_length; i++) {
+        hclib_locale_t *locale = steal->locales[i];
+        int j;
+        for (j = 0; j < locale->n_idle_funcs; j++) {
+            (locale->idle_funcs[j])();
+        }
+    }
 }
 
 /*

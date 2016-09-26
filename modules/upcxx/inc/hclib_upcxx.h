@@ -3,6 +3,55 @@
 
 #include "hclib_upcxx-internal.h"
 
+#include <set>
+
+#if defined(HCLIB_MEASURE_START_LATENCY) || defined(HCLIB_PROFILE)
+enum UPCXX_FUNC_LABELS {
+    barrier_lbl = 0,
+    async_wait_lbl,
+    advance_lbl,
+    async_after_lbl,
+    async_copy_lbl,
+    async_lbl,
+    N_UPCXX_FUNCS
+};
+#endif
+
+#ifdef HCLIB_MEASURE_START_LATENCY
+extern unsigned long long upcxx_latency_counters[N_UPCXX_FUNCS];
+extern unsigned long long upcxx_latency_times[N_UPCXX_FUNCS];
+#endif
+
+#ifdef HCLIB_PROFILE
+extern unsigned long long upcxx_profile_counters[N_UPCXX_FUNCS];
+extern unsigned long long upcxx_profile_times[N_UPCXX_FUNCS];
+#endif
+
+#ifdef HCLIB_PROFILE
+#define UPCXX_START_PROFILE const unsigned long long __upcxx_profile_start_time = hclib_current_time_ns();
+
+#define UPCXX_END_PROFILE(funcname) { \
+    const unsigned long long __upcxx_profile_end_time = hclib_current_time_ns(); \
+    upcxx_profile_counters[funcname##_lbl]++; \
+    upcxx_profile_times[funcname##_lbl] += (__upcxx_profile_end_time - __upcxx_profile_start_time); \
+}
+#else
+#define UPCXX_START_PROFILE
+#define UPCXX_END_PROFILE(funcname)
+#endif
+
+#ifdef HCLIB_MEASURE_START_LATENCY
+#define UPCXX_START_LATENCY const unsigned long long __upcxx_latency_start_time = hclib_current_time_ns();
+#define UPCXX_END_LATENCY(funcname) { \
+    const unsigned long long __upcxx_latency_end_time = hclib_current_time_ns(); \
+    upcxx_latency_counters[funcname##_lbl]++; \
+    upcxx_latency_times[funcname##_lbl] += (__upcxx_latency_end_time - __upcxx_latency_start_time); \
+}
+#else
+#define UPCXX_START_LATENCY
+#define UPCXX_END_LATENCY(funcname)
+#endif
+
 namespace hclib {
 
 namespace upcxx {
@@ -100,7 +149,11 @@ struct shared_array {
 
     public:
         void init(size_t sz, size_t blk_sz) {
-            internal.init(sz, blk_sz);
+            hclib::finish([&] {
+                hclib::async_at(nic_place(), [&] {
+                    internal.init(sz, blk_sz);
+                });
+            });
         }
 
         hclib::upcxx::global_ref<T> operator [] (size_t global_index) {
@@ -133,27 +186,56 @@ struct gasnet_launcher {
 };
 
 extern hclib::upcxx::team team_all;
+extern std::set<hclib::upcxx::event *> seen_events;
+extern unsigned long long async_copy_latency;
+extern unsigned long long async_copy_count;
 
 uint32_t ranks();
 uint32_t myrank();
 
 void barrier();
 void async_wait();
+int advance();
+
+void print_upcxx_profiling_data();
+
+// static void remote_put_on(hclib::promise_t *promise) {
+//     promise->put(NULL);
+// }
 
 template<typename T>
-int async_copy(hclib::upcxx::global_ptr<T> src,
-        hclib::upcxx::global_ptr<T> dst, size_t count,
-        hclib::upcxx::event *done_event) {
-    hclib::finish([&src, &dst, &count, &done_event] {
-        hclib::async_at(nic_place(), [&src, &dst, &count, &done_event] {
-            ::upcxx::async_copy((::upcxx::global_ptr<T>)src, (::upcxx::global_ptr<T>)dst, count,
-                done_event);
-        });
-    });
+static void call_lambda(T lambda /* , int source_rank, hclib::promise_t *promise */ ) {
+    lambda();
+    // if (source_rank != -1) {
+    //     fprintf(stderr, "Doing remote put from %d to %d, %p\n", ::upcxx::myrank(), source_rank, promise);
+    //     assert(promise);
+    //     ::upcxx::async(source_rank)(remote_put_on, promise);
+    // }
 }
 
-hclib::upcxx::gasnet_launcher<::upcxx::rank_t> async_after(::upcxx::rank_t rank,
-        hclib::upcxx::event *after, hclib::upcxx::event *ack);
+template<typename T>
+hclib::future_t *async_after(::upcxx::rank_t rank, hclib::future_t *after,
+        T lambda) {
+    return hclib::async_future_await_at([=] {
+            ::upcxx::async(rank)(call_lambda<T>, lambda);
+        }, nic_place(), after);
+}
+
+template<typename T>
+hclib::future_t *async_copy(hclib::upcxx::global_ptr<T> src,
+        hclib::upcxx::global_ptr<T> dst, size_t count) {
+    return hclib::async_future_at([=] {
+            UPCXX_END_LATENCY(async_copy);
+
+            UPCXX_START_PROFILE;
+            ::upcxx::copy((::upcxx::global_ptr<T>)src,
+                (::upcxx::global_ptr<T>)dst, count);
+            UPCXX_END_PROFILE(async_copy);
+        }, nic_place());
+}
+
+hclib::upcxx::gasnet_launcher<::upcxx::rank_t> async(::upcxx::rank_t rank,
+        hclib::upcxx::event *ack);
 
 bool is_memory_shared_with(::upcxx::rank_t r);
 int split(uint32_t color, uint32_t relrank, team *&new_team);
@@ -161,6 +243,11 @@ int split(uint32_t color, uint32_t relrank, team *&new_team);
 template<typename T>
 hclib::upcxx::global_ptr<T> allocate(::upcxx::rank_t rank, size_t count) {
     return hclib::upcxx::global_ptr<T>(::upcxx::allocate<T>(rank, count));
+}
+
+template<typename T>
+void deallocate(global_ptr<T> ptr) {
+    ::upcxx::deallocate(ptr);
 }
 
 template<typename T>

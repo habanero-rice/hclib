@@ -18,6 +18,44 @@
     } \
 }
 
+#if defined(HCLIB_MEASURE_START_LATENCY) || defined(HCLIB_PROFILE)
+enum MPI_FUNC_LABELS {
+    MPI_Send_lbl = 0,
+    MPI_Recv_lbl,
+    MPI_Isend_lbl,
+    MPI_Irecv_lbl,
+    MPI_Allreduce_lbl,
+    MPI_Bcast_lbl,
+    MPI_Barrier_lbl,
+    N_MPI_FUNCS
+};
+#endif
+
+#ifdef HCLIB_PROFILE
+#define MPI_START_PROFILE const unsigned long long __mpi_profile_start_time = hclib_current_time_ns();
+
+#define MPI_END_PROFILE(funcname) { \
+    const unsigned long long __mpi_profile_end_time = hclib_current_time_ns(); \
+    mpi_profile_counters[funcname##_lbl]++; \
+    mpi_profile_times[funcname##_lbl] += (__mpi_profile_end_time - __mpi_profile_start_time); \
+}
+#else
+#define MPI_START_PROFILE
+#define MPI_END_PROFILE(funcname)
+#endif
+
+#ifdef HCLIB_MEASURE_START_LATENCY
+#define MPI_START_LATENCY const unsigned long long __mpi_latency_start_time = hclib_current_time_ns();
+#define MPI_END_LATENCY(funcname) { \
+    const unsigned long long __mpi_latency_end_time = hclib_current_time_ns(); \
+    mpi_latency_counters[funcname##_lbl]++; \
+    mpi_latency_times[funcname##_lbl] += (__mpi_latency_end_time - __mpi_latency_start_time); \
+}
+#else
+#define MPI_START_LATENCY
+#define MPI_END_LATENCY(funcname)
+#endif
+
 namespace hclib {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize);
@@ -50,6 +88,8 @@ void MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 void MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root, 
         MPI_Comm comm);
 int MPI_Barrier(MPI_Comm comm);
+
+void print_mpi_profiling_data();
 
 }
 

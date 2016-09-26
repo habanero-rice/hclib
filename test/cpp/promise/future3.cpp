@@ -68,7 +68,7 @@ int main (int argc, char ** argv) {
                         assert(ran[idx] == -1);
                         ran[idx] = idx;
                         printf("finished %d / %d on %d\n", idx, H1, hclib_get_current_worker());
-                    }, FORASYNC_MODE_FLAT);
+                    });
 
             event->wait();
             printf("Call Finalize\n");
