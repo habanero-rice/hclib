@@ -66,7 +66,7 @@ typedef struct {
 
 typedef struct {
     forasync_t base;
-    hclib_loop_domain_t loop0;
+    hclib_loop_domain_t loop;
 } forasync1D_t;
 
 typedef struct _forasync_1D_task_t {
@@ -76,8 +76,7 @@ typedef struct _forasync_1D_task_t {
 
 typedef struct {
     forasync_t base;
-    hclib_loop_domain_t loop0;
-    hclib_loop_domain_t loop1;
+    hclib_loop_domain_t loop[2];
 } forasync2D_t;
 
 typedef struct _forasync_2D_task_t {
@@ -87,9 +86,7 @@ typedef struct _forasync_2D_task_t {
 
 typedef struct {
     forasync_t base;
-    hclib_loop_domain_t loop0;
-    hclib_loop_domain_t loop1;
-    hclib_loop_domain_t loop2;
+    hclib_loop_domain_t loop[3];
 } forasync3D_t;
 
 typedef struct _forasync_3D_task_t {
