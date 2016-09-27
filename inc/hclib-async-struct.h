@@ -52,8 +52,6 @@ extern void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
 extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale);
 extern void spawn_await(hclib_task_t *task, hclib_future_t *future,
         hclib_future_t *future2);
-extern void spawn_comm_task(hclib_task_t * task);
-extern void spawn_gpu_task(hclib_task_t *task);
 
 #ifdef __cplusplus
 }

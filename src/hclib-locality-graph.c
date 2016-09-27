@@ -871,6 +871,39 @@ hclib_locale_t *hclib_get_closest_locale() {
 }
 
 /*
+ * Find all locales that are the first locale checked in any thread's steal
+ * path.
+ */
+hclib_locale_t **hclib_get_thread_attached_locales(
+        int *n_thread_attached_locales_out) {
+    int i;
+
+    hclib_locale_t **locales = NULL;
+    int nlocales = 0;
+
+    for (i = 0; i < hc_context->nworkers; i++) {
+        hclib_worker_paths *paths = hc_context->worker_paths + i;
+        hclib_locality_path *steal = paths->steal_path;
+        hclib_locale_t *locale = steal->locales[0];
+
+        int have = 0;
+        int j;
+        for (j = 0; j < nlocales && have == 0; j++) {
+            if (locales[j] == locale) have = 1;
+        }
+
+        if (have == 0) {
+            locales = (hclib_locale_t **)realloc(locales,
+                    (nlocales + 1) * sizeof(hclib_locale_t *));
+            locales[nlocales++] = locale;
+        }
+    }
+
+    *n_thread_attached_locales_out = nlocales;
+    return locales;
+}
+
+/*
  * Fetch the locale closest to the master worker thread.
  */
 hclib_locale_t *hclib_get_master_place() {

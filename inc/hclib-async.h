@@ -183,39 +183,35 @@ template <typename T>
 inline void async_await(T lambda, hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future->internal, NULL);
+	spawn_await(task, future ? future->internal : NULL, NULL);
 }
 
 template <typename T>
-inline void async_await(T lambda, hclib::future_t *future1, hclib::future_t *future2) {
+inline void async_await(T lambda, hclib::future_t *future1,
+        hclib::future_t *future2) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future1->internal, future2->internal);
+	spawn_await(task, future1 ? future1->internal : NULL,
+            future2 ? future2->internal : NULL);
 }
 
 template <typename T>
-inline void async_await_at(T lambda, hclib_locale_t *locale,
-        hclib::future_t *future) {
+inline void async_await_at(T lambda, hclib::future_t *future,
+        hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await_at(task, future ? future->internal : NULL, NULL, locale);
 }
 
 template <typename T>
-inline void async_await_at(T lambda, hclib_locale_t *locale,
-        hclib::future_t *future1, hclib::future_t *future2) {
+inline void async_await_at(T lambda, hclib::future_t *future1,
+        hclib::future_t *future2, hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
 	spawn_await_at(task, future1 ? future1->internal : NULL,
             future2 ? future2->internal : NULL, locale);
 }
 
-
-template <typename T>
-inline void async_comm(T lambda) {
-	hclib_task_t* task = _allocate_async<T>(lambda, false);
-	spawn_comm_task(task);
-}
 
 template <typename T>
 hclib::future_t *async_future(T lambda) {
@@ -274,8 +270,8 @@ hclib::future_t *async_future_at(T lambda, hclib_locale_t *locale) {
 }
 
 template <typename T>
-hclib::future_t *async_future_await_at(T lambda, hclib_locale_t *locale,
-        hclib::future_t *future) {
+hclib::future_t *async_future_await_at(T lambda, hclib::future_t *future,
+        hclib_locale_t *locale) {
     hclib::promise_t *event = new hclib::promise_t();
     hclib_promise_t *internal_event = &event->internal;
     /*

@@ -101,6 +101,8 @@ extern void locale_register_idle_task(hclib_locale_t *locale, void (*fp)(void));
 
 extern int hclib_get_num_locales();
 extern hclib_locale_t *hclib_get_closest_locale();
+extern hclib_locale_t **hclib_get_thread_attached_locales(
+        int *n_thread_attached_locales_out);
 extern hclib_locale_t *hclib_get_master_place();
 extern hclib_locale_t *hclib_get_all_locales();
 extern hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,

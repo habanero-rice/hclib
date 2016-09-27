@@ -26,11 +26,8 @@ void hclib_async(generic_frame_ptr fp, void *arg,
         task->async_task.args = arg;
         task->async_task.locale = NULL;
 
-        if (locale) {
-            spawn_await_at((hclib_task_t *)task, singleton_future_0, NULL, locale);
-        } else {
-            spawn_await((hclib_task_t *)task, singleton_future_0, NULL);
-        }
+        // locale may be NULL, in which case this is equivalent to spawn_await
+        spawn_await_at((hclib_task_t *)task, singleton_future_0, NULL, locale);
     } else {
         hclib_task_t *task = malloc(sizeof(hclib_task_t));
         task->_fp = fp;
@@ -39,11 +36,8 @@ void hclib_async(generic_frame_ptr fp, void *arg,
         task->args = arg;
         task->locale = NULL;
 
-        if (locale) {
-            spawn_at(task, locale);
-        } else {
-            spawn(task);
-        }
+        // locale may be NULL, in which case this is equivalent to spawn
+        spawn_at(task, locale);
     }
 }
 
@@ -100,7 +94,7 @@ forasync3D_task_t *allocate_forasync3D_task() {
     return forasync_task;
 }
 
-void forasync1D_runner(void *forasync_arg) {
+static void forasync1D_runner(void *forasync_arg) {
     forasync1D_t *forasync = (forasync1D_t *) forasync_arg;
     hclib_task_t *user = forasync->base.user;
     forasync1D_Fct_t user_fct_ptr = (forasync1D_Fct_t) user->_fp;
@@ -112,7 +106,7 @@ void forasync1D_runner(void *forasync_arg) {
     }
 }
 
-void forasync2D_runner(void *forasync_arg) {
+static void forasync2D_runner(void *forasync_arg) {
     forasync2D_t *forasync = (forasync2D_t *) forasync_arg;
     hclib_task_t *user = *((hclib_task_t **) forasync_arg);
     forasync2D_Fct_t user_fct_ptr = (forasync2D_Fct_t) user->_fp;
@@ -127,7 +121,7 @@ void forasync2D_runner(void *forasync_arg) {
     }
 }
 
-void forasync3D_runner(void *forasync_arg) {
+static void forasync3D_runner(void *forasync_arg) {
     forasync3D_t *forasync = (forasync3D_t *) forasync_arg;
     hclib_task_t *user = *((hclib_task_t **) forasync_arg);
     forasync3D_Fct_t user_fct_ptr = (forasync3D_Fct_t) user->_fp;

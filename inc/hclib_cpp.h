@@ -28,6 +28,8 @@ int num_workers();
 
 int get_num_locales();
 hclib_locale_t *get_closest_locale();
+hclib_locale_t **get_thread_attached_locales(
+        int *n_thread_attached_locales_out);
 hclib_locale_t *get_all_locales();
 hclib_locale_t **get_all_locales_of_type(int type, int *out_count);
 

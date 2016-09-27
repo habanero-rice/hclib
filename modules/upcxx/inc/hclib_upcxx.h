@@ -226,7 +226,7 @@ void async_after(::upcxx::rank_t rank, hclib::future_t *after,
         T lambda) {
     hclib::async_await_at([=] {
             ::upcxx::async(rank)(call_lambda<T>, lambda);
-        }, nic_place(), after);
+        }, after, nic_place());
 }
 
 template<typename T>
