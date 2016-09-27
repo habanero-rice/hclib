@@ -199,24 +199,32 @@ int advance();
 
 void print_upcxx_profiling_data();
 
-// static void remote_put_on(hclib::promise_t *promise) {
-//     promise->put(NULL);
-// }
-
 template<typename T>
-static void call_lambda(T lambda /* , int source_rank, hclib::promise_t *promise */ ) {
+static void call_lambda(T lambda) {
     lambda();
-    // if (source_rank != -1) {
-    //     fprintf(stderr, "Doing remote put from %d to %d, %p\n", ::upcxx::myrank(), source_rank, promise);
-    //     assert(promise);
-    //     ::upcxx::async(source_rank)(remote_put_on, promise);
-    // }
+}
+
+static void advance_callback(hclib_future_t *fut) {
+    if (hclib_future_is_satisfied(fut)) return;
+
+    hclib::async([=] {
+            hclib::upcxx::advance();
+            advance_callback(fut);
+        });
 }
 
 template<typename T>
-hclib::future_t *async_after(::upcxx::rank_t rank, hclib::future_t *after,
+void remote_finish(T lambda) {
+    hclib::finish([=] {
+        lambda();
+    });
+    hclib::upcxx::async_wait();
+}
+
+template<typename T>
+void async_after(::upcxx::rank_t rank, hclib::future_t *after,
         T lambda) {
-    return hclib::async_future_await_at([=] {
+    hclib::async_await_at([=] {
             ::upcxx::async(rank)(call_lambda<T>, lambda);
         }, nic_place(), after);
 }

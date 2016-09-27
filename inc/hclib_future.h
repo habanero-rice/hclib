@@ -19,6 +19,10 @@ class future_t {
         void *wait() {
             return hclib_future_wait(internal);
         }
+
+        bool test() {
+            return hclib_future_is_satisfied(internal);
+        }
 };
 
 }

@@ -669,6 +669,10 @@ void _help_wait(LiteCtx *ctx) {
     HASSERT(0);
 }
 
+int hclib_future_is_satisfied(hclib_future_t *future) {
+    return future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR;
+}
+
 void *hclib_future_wait(hclib_future_t *future) {
     if (future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
         return (void *)future->owner->datum;
@@ -677,6 +681,8 @@ void *hclib_future_wait(hclib_future_t *future) {
     worker_stats[CURRENT_WS_INTERNAL->id].count_future_waits++;
 #endif
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+
+    if (future->owner->cb) (future->owner->cb)(future);
 
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);

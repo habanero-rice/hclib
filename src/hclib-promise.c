@@ -68,7 +68,7 @@ void hclib_triggered_task_init(hclib_triggered_task_t *task,
  * Initialize a pre-Allocated promise.
  */
 void hclib_promise_init(hclib_promise_t *promise) {
-    promise->kind = PROMISE_KIND_SHARED;
+    promise->cb = NULL;
     promise->datum = UNINITIALIZED_PROMISE_DATA_PTR;
     promise->wait_list_head = UNINITIALIZED_PROMISE_WAITLIST_PTR;
     promise->future.owner = promise;
@@ -82,6 +82,11 @@ hclib_promise_t *hclib_promise_create() {
     HASSERT(promise);
     hclib_promise_init(promise);
     return promise;
+}
+
+void hclib_promise_set_pre_wait_callback(hclib_promise_t *promise,
+        pre_wait_callback cb) {
+    promise->cb = cb;
 }
 
 hclib_future_t *hclib_get_future_for_promise(hclib_promise_t *promise) {

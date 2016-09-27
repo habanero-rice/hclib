@@ -43,6 +43,11 @@ class promise_t {
         promise_t() {
             hclib_promise_init(&internal);
         }
+
+        promise_t(pre_wait_callback set_cb) : promise_t() {
+            hclib_promise_set_pre_wait_callback(&internal, set_cb);
+        }
+
         ~promise_t() { }
 
         void put(void *datum) {

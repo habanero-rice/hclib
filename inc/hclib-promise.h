@@ -63,16 +63,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 struct hclib_promise_st;
 
-typedef enum promise_kind {
-	PROMISE_KIND_UNKNOWN=0,
-	PROMISE_KIND_SHARED,
-	PROMISE_KIND_DISTRIBUTED_OWNER,
-	PROMISE_KIND_DISTRIBUTED_REMOTE,
-} promise_kind_t;
-
 typedef struct _hclib_future_t {
     struct hclib_promise_st *owner;
 } hclib_future_t;
+
+/*
+ * Optional callback that can be registered on a future immediately prior to
+ * doing a blocking wait, to give external modules the opportunity to insert
+ * some logic before suspending the current task.
+ */
+typedef void (*pre_wait_callback)(hclib_future_t *fut);
 
 /**
  * An hclib_triggered_task_t associates dependent tasks and the promises that
@@ -96,7 +96,7 @@ typedef struct hclib_triggered_task_st {
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
     hclib_future_t future;
-	int kind;
+    pre_wait_callback cb;
     volatile void *datum;
     /*
      * List of tasks that are awaiting the satisfaction of this promise.
@@ -169,6 +169,18 @@ void hclib_promise_put(hclib_promise_t *promise, void *datum);
  * that was put on promise.
  */
 void *hclib_future_wait(hclib_future_t *future);
+
+/*
+ * Check if a value has been put on the corresponding promise.
+ */
+int hclib_future_is_satisfied(hclib_future_t *future);
+
+/**
+ * Set a callback on a promise and its future to be called immediately prior to
+ * blocking on it.
+ */
+void hclib_promise_set_pre_wait_callback(hclib_promise_t *promise,
+        pre_wait_callback cb);
 
 /*
  * Some extras
