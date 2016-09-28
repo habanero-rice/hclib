@@ -36,9 +36,8 @@ hclib::locale_t *hclib::get_closest_locale() {
     return hclib_get_closest_locale();
 }
 
-hclib::locale_t **hclib::get_thread_attached_locales(
-        int *n_thread_attached_locales) {
-    return hclib_get_thread_attached_locales(n_thread_attached_locales);
+hclib::locale_t **hclib::get_thread_private_locales() {
+    return hclib_get_thread_private_locales();
 }
 
 hclib::locale_t *hclib::get_all_locales() {

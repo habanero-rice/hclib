@@ -340,8 +340,9 @@ static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
     }
 
     locale->id = id;
-    locale->lbl = lbl;
     locale->type = locale_type_id;
+    locale->lbl = lbl;
+    locale->special_type = NULL;
     locale->idle_funcs = NULL;
     locale->n_idle_funcs = 0;
     locale->deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
@@ -807,6 +808,16 @@ void locale_run_idle_tasks(hclib_worker_state *ws) {
     }
 }
 
+void hclib_locale_mark_special(hclib_locale_t *locale,
+        const char *special_type) {
+    if (locale->special_type) {
+        // Check that the existing special type matches the new one
+        assert(strcmp(locale->special_type, special_type) == 0);
+    } else {
+        locale->special_type = special_type;
+    }
+}
+
 /*
  * Try to find new work by stealing work from some other worker. We traverse the
  * steal path for the current worker and check all deques at each locale.
@@ -871,35 +882,114 @@ hclib_locale_t *hclib_get_closest_locale() {
 }
 
 /*
- * Find all locales that are the first locale checked in any thread's steal
- * path.
+ * A locale is thread-private if it:
+ *
+ *   1) Is on both a thread's steal and pop paths
+ *   2) No other threads have that locale on their steal or pop paths
+ *   3) Is a general-purpose locale, and no module has classified it as
+ *      special-purpose.
+ *
+ * This allows us to identify locales which allow us to explicitly point to the
+ * thread which must execute a task. If multiple locales fit the above criteria,
+ * we select the one earliest on its steal path.
  */
-hclib_locale_t **hclib_get_thread_attached_locales(
-        int *n_thread_attached_locales_out) {
-    int i;
+hclib_locale_t **hclib_get_thread_private_locales() {
+    int i, j, k, l;
 
-    hclib_locale_t **locales = NULL;
-    int nlocales = 0;
+    hclib_locale_t **locales = (hclib_locale_t **)malloc(
+            hc_context->nworkers * sizeof(hclib_locale_t *));
+    assert(locales);
 
     for (i = 0; i < hc_context->nworkers; i++) {
         hclib_worker_paths *paths = hc_context->worker_paths + i;
         hclib_locality_path *steal = paths->steal_path;
-        hclib_locale_t *locale = steal->locales[0];
+        hclib_locality_path *pop = paths->pop_path;
 
-        int have = 0;
-        int j;
-        for (j = 0; j < nlocales && have == 0; j++) {
-            if (locales[j] == locale) have = 1;
+        hclib_locale_t **candidates = (hclib_locale_t **)malloc(
+                steal->path_length * sizeof(hclib_locale_t *));
+        assert(candidates);
+
+        unsigned also_in_pop = 0;
+        for (j = 0; j < steal->path_length; j++) {
+            int found = 0;
+            for (k = 0; k < pop->path_length && found == 0; k++) {
+                if (steal->locales[j] == pop->locales[k]) {
+                    found = 1;
+                }
+            }
+
+            if (found) {
+                candidates[also_in_pop++] = steal->locales[j];
+            }
+        }
+        assert(also_in_pop <= steal->path_length);
+
+        /*
+         * candidates now contains only locales that are in both the steal and
+         * pop path of this thread.
+         */
+        candidates = (hclib_locale_t **)realloc(candidates,
+                also_in_pop * sizeof(hclib_locale_t *));
+
+        j = 0;
+        while (j < also_in_pop) {
+            hclib_locale_t *curr = candidates[j];
+
+            int found = 0;
+            for (k = 0; k < hc_context->nworkers && found == 0; k++) {
+                if (k == i) continue; // Don't compare a worker path to itself
+
+                hclib_worker_paths *other_paths = hc_context->worker_paths + k;
+                hclib_locality_path *other_steal = other_paths->steal_path;
+                hclib_locality_path *other_pop = other_paths->pop_path;
+
+                for (l = 0; l < other_steal->path_length && found == 0; l++) {
+                    if (other_steal->locales[l] == curr) found = 1;
+                }
+                for (l = 0; l < other_pop->path_length && found == 0; l++) {
+                    if (other_pop->locales[l] == curr) found = 1;
+                }
+            }
+
+            if (found) {
+                /*
+                 * Locale was on someone else's path, should not be marked
+                 * thread-private
+                 */
+                for (k = j + 1; k < also_in_pop; k++) {
+                    candidates[k - 1] = candidates[k];
+                }
+                also_in_pop--;
+            } else {
+                j++;
+            }
         }
 
-        if (have == 0) {
-            locales = (hclib_locale_t **)realloc(locales,
-                    (nlocales + 1) * sizeof(hclib_locale_t *));
-            locales[nlocales++] = locale;
+        /*
+         * candidates now contains only locales which are also not on any other
+         * thread's pop or steal paths.
+         */
+        j = 0;
+        while (j < also_in_pop) {
+            hclib_locale_t *curr = candidates[j];
+            if (curr->special_type) {
+                // Locale was marked special, delete it
+                for (k = j + 1; k < also_in_pop; k++) {
+                    candidates[k - 1] = candidates[k];
+                }
+                also_in_pop--;
+            } else {
+                j++;
+            }
+        }
+
+        if (also_in_pop > 0) {
+            locales[i] = candidates[0];
+        } else {
+            locales[i] = NULL;
         }
     }
 
-    *n_thread_attached_locales_out = nlocales;
     return locales;
 }
 

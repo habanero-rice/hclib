@@ -545,7 +545,6 @@ void spawn_await(hclib_task_t *task, hclib_future_t *future1,
 void find_and_run_task(hclib_worker_state *ws) {
     hclib_task_t *task = locale_pop_task(ws);
     if (!task) {
-        unsigned failed_steals = 0;
         while (hc_context->done_flags[ws->id].flag) {
             // try to steal
             task = locale_steal_task(ws);
@@ -554,10 +553,6 @@ void find_and_run_task(hclib_worker_state *ws) {
                 worker_stats[CURRENT_WS_INTERNAL->id].count_steals++;
 #endif
                 break;
-            }
-            failed_steals++;
-            if (failed_steals % 5 == 0) {
-                locale_run_idle_tasks(ws);
             }
         }
     }

@@ -66,6 +66,8 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_post_initialize) {
     HASSERT(nics);
     HASSERT(nic == NULL);
     nic = nics[0];
+
+    hclib_locale_mark_special(nic, "COMM");
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_finalize) {
