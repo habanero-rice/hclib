@@ -13,6 +13,22 @@
 extern "C" {
 #endif
 
+static loop_dist_func *registered_dist_funcs = NULL;
+static unsigned n_registered_dist_funcs = 0;
+
+unsigned hclib_register_dist_func(loop_dist_func func) {
+    registered_dist_funcs = (loop_dist_func *)realloc(registered_dist_funcs,
+            (n_registered_dist_funcs + 1) * sizeof(loop_dist_func));
+    HASSERT(registered_dist_funcs);
+    registered_dist_funcs[n_registered_dist_funcs++] = func;
+    return n_registered_dist_funcs - 1;
+}
+
+loop_dist_func hclib_lookup_dist_func(unsigned id) {
+    HASSERT(id < n_registered_dist_funcs);
+    return registered_dist_funcs[id];
+}
+
 /*** START ASYNC IMPLEMENTATION ***/
 
 void hclib_async(generic_frame_ptr fp, void *arg,

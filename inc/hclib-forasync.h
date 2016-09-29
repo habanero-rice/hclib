@@ -133,16 +133,16 @@ class loop_domain_3d {
 
 template <typename T>
 inline void forasync1D_runner(const _hclib_loop_domain_t* loop, T lambda) {
-	hclib_loop_domain_t loop0 = loop[0];
-	for (int i=loop0.low; i<loop0.high; i += loop0.stride) {
-		lambda(i);
-	}
+	const hclib_loop_domain_t loop0 = loop[0];
+    for (int i=loop0.low; i<loop0.high; i += loop0.stride) {
+        lambda(i);
+    }
 }
 
 template <typename T>
 inline void forasync2D_runner(const _hclib_loop_domain_t loop[2], T lambda) {
-	hclib_loop_domain_t loop0 = loop[0];
-	hclib_loop_domain_t loop1 = loop[1];
+	const hclib_loop_domain_t loop0 = loop[0];
+	const hclib_loop_domain_t loop1 = loop[1];
 	for(int i=loop0.low; i<loop0.high; i+=loop0.stride) {
 		for(int j=loop1.low; j<loop1.high; j+=loop1.stride) {
 			lambda(i, j);
@@ -152,9 +152,9 @@ inline void forasync2D_runner(const _hclib_loop_domain_t loop[2], T lambda) {
 
 template <typename T>
 inline void forasync3D_runner(const _hclib_loop_domain_t loop[3], T lambda) {
-	hclib_loop_domain_t loop0 = loop[0];
-	hclib_loop_domain_t loop1 = loop[1];
-	hclib_loop_domain_t loop2 = loop[2];
+	const hclib_loop_domain_t loop0 = loop[0];
+	const hclib_loop_domain_t loop1 = loop[1];
+	const hclib_loop_domain_t loop2 = loop[2];
 	for (int i = loop0.low; i < loop0.high; i += loop0.stride) {
 		for (int j = loop1.low; j < loop1.high; j += loop1.stride) {
 			for (int k = loop2.low; k < loop2.high; k += loop2.stride) {
@@ -323,18 +323,22 @@ inline void forasync3D_recursive(const hclib_loop_domain_t loop[3], T lambda,
 
 template <typename T>
 inline void forasync1D_flat(hclib_loop_domain_t* loop, T lambda,
-        hclib::future_t *future) {
-    const int low = loop->low, high = loop->high, stride = loop->stride, tile = loop->tile;
+        hclib::future_t *future, const int dist_func_id) {
+    const int low = loop->low, high = loop->high, stride = loop->stride,
+            tile = loop->tile;
+    const loop_dist_func func = hclib_lookup_dist_func(dist_func_id);
+
 	int nb_chunks = (int) (high/tile);
 	int size = tile * nb_chunks;
 	int low0;
 	for (low0 = low; low0 < size; low0 += tile) {
+        _hclib_loop_domain_t ld = {low0, low0 + tile, stride, tile};
         auto lambda_wrapper = [=]() {
-			_hclib_loop_domain_t ld = {low0, low0 + tile, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		};
 
-        hclib::async_await(lambda_wrapper, future);
+        hclib_locale_t *locale = func(1, &ld, loop, FORASYNC_MODE_FLAT);
+        hclib::async_await_at(lambda_wrapper, future, locale);
 	}
 	// handling leftover
 	if (size < high) {
@@ -422,12 +426,13 @@ inline void forasync3D_flat(const hclib_loop_domain_t loop[3], T lambda,
 
 template <typename T>
 inline void forasync1D_internal(_hclib_loop_domain_t* loop, T lambda, int mode,
-        hclib::future_t *future) {
+        hclib::future_t *future, const int dist_func_id) {
 	switch(mode) {
 	case FORASYNC_MODE_FLAT:
-		forasync1D_flat<T>(loop, lambda, future);
+		forasync1D_flat<T>(loop, lambda, future, dist_func_id);
 		break;
 	case FORASYNC_MODE_RECURSIVE:
+        HASSERT(dist_func_id == HCLIB_DEFAULT_LOOP_DIST);
 		forasync1D_recursive<T>(loop, lambda, future);
 		break;
 	default:
@@ -468,7 +473,8 @@ inline void forasync3D_internal(const hclib_loop_domain_t loop[3], T lambda,
 template <typename T>
 inline void forasync1D(loop_domain_1d* loop, T lambda,
         bool force_seq = false, int mode = FORASYNC_MODE_RECURSIVE,
-        hclib::future_t *future = NULL) {
+        hclib::future_t *future = NULL,
+        int dist_func_id = HCLIB_DEFAULT_LOOP_DIST) {
     if (force_seq) {
         hclib_loop_domain_t *internal = loop->get_internal();
         for (int i = internal->low; i < internal->high; i += internal->stride) {
@@ -476,7 +482,7 @@ inline void forasync1D(loop_domain_1d* loop, T lambda,
         }
     } else {
         forasync1D_internal<T>(loop->get_internal(), lambda, mode,
-                future);
+                future, dist_func_id);
     }
 }
 
@@ -509,7 +515,8 @@ inline void forasync3D(loop_domain_3d* loop, T lambda,
 template <typename T>
 inline hclib::future_t *forasync1D_future(loop_domain_1d* loop, T lambda,
         bool force_seq = false, int mode = FORASYNC_MODE_RECURSIVE,
-        hclib::future_t *future = NULL) {
+        hclib::future_t *future = NULL,
+        int dist_func_id = HCLIB_DEFAULT_LOOP_DIST) {
 #ifdef VERBOSE
     fprintf(stderr, "forasync1D_future: future=%p\n", future);
 #endif
@@ -525,7 +532,8 @@ inline hclib::future_t *forasync1D_future(loop_domain_1d* loop, T lambda,
         return event->get_future();
     } else {
         hclib_start_finish();
-        forasync1D_internal<T>(loop->get_internal(), lambda, mode, future);
+        forasync1D_internal<T>(loop->get_internal(), lambda, mode, future,
+                dist_func_id);
         hclib_end_finish_nonblocking_helper(&event->internal);
         return event->get_future();
     }

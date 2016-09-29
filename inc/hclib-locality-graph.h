@@ -107,6 +107,7 @@ extern int hclib_get_num_locales();
 extern hclib_locale_t *hclib_get_closest_locale();
 extern hclib_locale_t **hclib_get_thread_private_locales();
 extern hclib_locale_t *hclib_get_master_place();
+extern hclib_locale_t *hclib_get_central_place();
 extern hclib_locale_t *hclib_get_all_locales();
 extern hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,
         int *locale_types, int n_locale_types);

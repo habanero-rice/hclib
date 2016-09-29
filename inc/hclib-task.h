@@ -60,6 +60,21 @@ typedef struct _hclib_loop_domain_t {
     int tile;
 } hclib_loop_domain_t;
 
+/*
+ * A function which accepts:
+ *
+ *   1) The dimensionality of a loop (1, 2, or 3).
+ *   2) The domain of each dimension of a subset of that loop that is being
+ *      scheduled.
+ *   3) The domain of each dimension of the whole loop.
+ *   4) The loop execution mode (recursive or flat)
+ *   5) Some arbitrary, user-provided data.
+ *
+ * and which then returns a locale to place this subset of the loop at.
+ */
+typedef hclib_locale_t *(*loop_dist_func)(const int,
+        const hclib_loop_domain_t *, const hclib_loop_domain_t *, const int);
+
 typedef struct {
     hclib_task_t *user;
 } forasync_t;

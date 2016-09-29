@@ -75,6 +75,12 @@ void hclib_set_idle_callback(void (*set_idle_callback)(unsigned, unsigned));
 
 void hclib_run_on_main_ctx(void (*fp)(void *), void *data);
 
+#define HCLIB_DEFAULT_LOOP_DIST 0
+
+unsigned hclib_register_dist_func(loop_dist_func func);
+
+loop_dist_func hclib_lookup_dist_func(unsigned id);
+
 /*
  * Async definition and API
  */

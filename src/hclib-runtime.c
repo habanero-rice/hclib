@@ -201,6 +201,16 @@ hclib_worker_state *current_ws() {
 // FWD declaration for pthread_create
 static void *worker_routine(void *args);
 
+hclib_locale_t *default_dist_func(const int dim,
+        const hclib_loop_domain_t *subloops, const hclib_loop_domain_t *loops,
+        const int mode) {
+    static hclib_locale_t *central_place = NULL;
+    if (!central_place) {
+        central_place = hclib_get_central_place();
+    }
+    return central_place;
+}
+
 /*
  * Main initialization function for the hclib_context object.
  */
@@ -333,6 +343,9 @@ static void hclib_entrypoint(const char **module_dependencies,
 
     }
     set_current_worker(0);
+
+    const unsigned dist_id = hclib_register_dist_func(default_dist_func);
+    HASSERT(dist_id == HCLIB_DEFAULT_LOOP_DIST);
 
     // Initialize any registered modules
     hclib_call_module_post_init_functions();

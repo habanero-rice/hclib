@@ -1001,6 +1001,77 @@ hclib_locale_t *hclib_get_master_place() {
 }
 
 /*
+ * Remove any elements from l that are not in path. Return the new length of l.
+ */
+static int keep_duplicates(hclib_locale_t **l, hclib_locale_t **path,
+        const int l_length, const int path_length) {
+    int j;
+    int new_l_length = l_length;
+
+    int i = 0;
+    while (i < new_l_length) {
+        hclib_locale_t *curr = l[i];
+        int found = 0;
+        for (j = 0; j < path_length && found == 0; j++) {
+            if (path[j] == curr) {
+                found = 1;
+            }
+        }
+        if (found) {
+            i++; // Keep in l
+        } else {
+            for (j = i + 1; j < new_l_length; j++) {
+                l[j - 1] = l[j];
+            }
+            new_l_length--;
+        }
+    }
+    return new_l_length;
+}
+
+/*
+ * Fetch a locale that is on all threads' pop and steal paths.
+ */
+hclib_locale_t *hclib_get_central_place() {
+    static int central_initialized = 0;
+    static hclib_locale_t *central = NULL;
+
+    if (central_initialized == 0) {
+        hclib_worker_paths *paths = hc_context->worker_paths + 0;
+        hclib_locality_path *steal = paths->steal_path;
+        hclib_locality_path *pop = paths->pop_path;
+
+        hclib_locale_t **candidates = (hclib_locale_t **)malloc(
+                steal->path_length * sizeof(hclib_locale_t *));
+        HASSERT(candidates);
+        memcpy(candidates, steal->locales,
+                steal->path_length * sizeof(hclib_locale_t *));
+        int candidates_length = keep_duplicates(candidates, pop->locales,
+                steal->path_length, pop->path_length);
+
+        int worker;
+        for (worker = 1; worker < hc_context->nworkers; worker++) {
+            paths = hc_context->worker_paths + worker;
+            steal = paths->steal_path;
+            pop = paths->pop_path;
+
+            candidates_length = keep_duplicates(candidates, steal->locales,
+                    candidates_length, steal->path_length);
+            candidates_length = keep_duplicates(candidates, pop->locales,
+                    candidates_length, pop->path_length);
+        }
+
+        if (candidates_length > 0) {
+            central = candidates[0];
+        }
+        free(candidates);
+        central_initialized = 1;
+    }
+
+    return central;
+}
+
+/*
  * Return a list of all the locales in the current runtime. The length of this
  * list can be determined by hclib_get_num_locales.
  */
