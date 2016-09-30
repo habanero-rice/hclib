@@ -138,6 +138,34 @@ class global_ptr : public ::upcxx::global_ptr<T> {
             return global_ptr<T>(((T *)::upcxx::global_ptr<T>::raw_ptr()) + i,
                     ::upcxx::global_ptr<T>::where());
         }
+
+//         explicit operator T*() const {
+//             if (this->where() == ::upcxx::global_myrank()) {
+//                 // return raw_ptr if the data pointed to is on the same rank
+//                 return this->raw_ptr();
+//             } else {
+//                 T *result = NULL;
+// 
+//                 hclib::finish([&] {
+//                     hclib::async_at(nic_place(), [&] {
+//                         // if (this->where() == ::upcxx::global_myrank()) {
+//                         //     // return raw_ptr if the data pointed to is on the same rank
+//                         //     result = this->raw_ptr();
+//                         // } else {
+// 
+// #if GASNET_PSHM
+//                             result = (T*)::upcxx::pshm_remote_addr2local(this->where(), this->raw_ptr());
+// #else
+//                             // return NULL if this global address can't casted to a valid
+//                             // local address
+//                             result = NULL;
+// #endif
+//                         // }
+//                     });
+//                 });
+//                 return result;
+//             }
+//         }
 };
 
 

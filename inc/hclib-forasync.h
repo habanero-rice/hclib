@@ -342,11 +342,12 @@ inline void forasync1D_flat(hclib_loop_domain_t* loop, T lambda,
 	}
 	// handling leftover
 	if (size < high) {
+        _hclib_loop_domain_t ld = {low0, high, stride, tile};
         auto lambda_wrapper = [=]() {
-			_hclib_loop_domain_t ld = {low0, high, stride, tile};
 			forasync1D_runner<T>(&ld, lambda);
 		};
-        hclib::async_await(lambda_wrapper, future);
+        hclib_locale_t *locale = func(1, &ld, loop, FORASYNC_MODE_FLAT);
+        hclib::async_await_at(lambda_wrapper, future, locale);
 	}
 }
 

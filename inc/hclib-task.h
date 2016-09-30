@@ -30,6 +30,7 @@ typedef struct _hclib_task_t {
     hclib_future_t *singleton_future_0;
     hclib_future_t *singleton_future_1;
     hclib_locale_t *locale;
+    int non_blocking;
 } hclib_task_t;
 
 /*

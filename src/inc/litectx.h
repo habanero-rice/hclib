@@ -9,7 +9,8 @@
 // #define OVERFLOW_PROTECT
 
 #define LITECTX_FREE(ptr) free(ptr)
-#define LITECTX_SIZE 0x40000 /* 256KB */
+// #define LITECTX_SIZE 0x40000 /* 256KB */
+#define LITECTX_SIZE 0x10000 /* 64KB */
 
 #ifdef OVERFLOW_PROTECT
 // This must be a multiple of the page size on this machine?

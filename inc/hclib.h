@@ -99,6 +99,12 @@ void hclib_async(generic_frame_ptr fp, void *arg,
         hclib_future_t *singleton_future_0,
         hclib_locale_t *locale);
 
+/**
+ * A variant of hclib_async that promises the created task will not block (i.e.
+ * will not wait on a future, close a finish scope, etc.)
+ */
+void hclib_async_nb(generic_frame_ptr fp, void *arg, hclib_locale_t *locale);
+
 /*
  * Spawn an async that automatically puts a promise on termination.
  */

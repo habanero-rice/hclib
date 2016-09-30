@@ -664,10 +664,9 @@ void _help_wait(LiteCtx *ctx) {
     hclib_future_t *continuation_dep = ctx->arg;
     LiteCtx *wait_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
-                                       hclib_dependent_task_t));
+    hclib_dependent_task_t *task = (hclib_dependent_task_t *)calloc(
+            1, sizeof(hclib_dependent_task_t));
     HASSERT(task);
-    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
     task->async_task.args = wait_ctx;
 
@@ -723,10 +722,9 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)malloc(sizeof(
-                                       hclib_dependent_task_t));
+    hclib_dependent_task_t *task = (hclib_dependent_task_t *)calloc(
+            1, sizeof(hclib_dependent_task_t));
     HASSERT(task);
-    memset(task, 0x00, sizeof(hclib_dependent_task_t));
     task->async_task._fp = _finish_ctx_resume;
     task->async_task.args = hclib_finish_ctx;
 
