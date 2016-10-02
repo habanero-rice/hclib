@@ -122,3 +122,9 @@ hclib_task_t *deque_pop(deque_t *deq) {
     deq->tail = deq->head;
     return t;
 }
+
+unsigned deque_size(deque_t *deq) {
+    const int size = deq->tail - deq->head;
+    if (size <= 0) return 0;
+    else return (unsigned)size;
+}

@@ -64,6 +64,7 @@ void hclib_launch(async_fct_t fct_ptr, void * arg, const char **deps,
         int ndeps);
 
 unsigned long long hclib_current_time_ns();
+unsigned long long hclib_current_time_ms();
 
 /**
  * Register a function to be called when a thread in the hclib runtime is idle,

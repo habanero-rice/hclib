@@ -212,12 +212,21 @@ void remote_finish(T lambda) {
     hclib::upcxx::async_wait();
 }
 
+unsigned n_pending_tasks();
+
 template<typename T>
 void async_after(::upcxx::rank_t rank, hclib::future_t *after,
         T lambda) {
     hclib::async_nb_await_at([=] {
             ::upcxx::async(rank)(call_lambda<T>, lambda);
         }, after, nic_place());
+}
+
+template<typename T>
+void async(::upcxx::rank_t rank, T lambda) {
+    hclib::async_nb_at([=] {
+            ::upcxx::async(rank)(call_lambda<T>, lambda);
+        }, nic_place());
 }
 
 template<typename T>
@@ -232,9 +241,6 @@ hclib::future_t *async_copy(hclib::upcxx::global_ptr<T> src,
             UPCXX_END_PROFILE(async_copy);
         }, nic_place());
 }
-
-hclib::upcxx::gasnet_launcher<::upcxx::rank_t> async(::upcxx::rank_t rank,
-        hclib::upcxx::event *ack);
 
 bool is_memory_shared_with(::upcxx::rank_t r);
 int split(uint32_t color, uint32_t relrank, team *&new_team);

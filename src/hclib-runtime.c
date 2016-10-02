@@ -124,6 +124,11 @@ unsigned long long hclib_current_time_ns() {
     return current_time_ns();
 }
 
+unsigned long long hclib_current_time_ms() {
+    return current_time_ns() / 1000000;
+}
+
+
 static void set_current_worker(int wid) {
     int err;
     if ((err = pthread_setspecific(ws_key, hc_context->workers[wid])) != 0) {
@@ -503,7 +508,7 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 
 void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
-        int escaping) {
+        const int escaping) {
     HASSERT(task);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;

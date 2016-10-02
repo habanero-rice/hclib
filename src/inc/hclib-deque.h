@@ -45,7 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* DEQUE API                                        */
 /****************************************************/
 
-#define INIT_DEQUE_CAPACITY 16384
+// #define INIT_DEQUE_CAPACITY 16384
+#define INIT_DEQUE_CAPACITY 32768
 
 typedef struct deque_t {
     volatile int head;
@@ -58,5 +59,6 @@ int deque_push(deque_t *deq, void *entry);
 hclib_task_t* deque_pop(deque_t *deq);
 hclib_task_t* deque_steal(deque_t *deq);
 void deque_destroy(deque_t *deq);
+unsigned deque_size(deque_t *deq);
 
 #endif /* HCLIB_DEQUE_H_ */

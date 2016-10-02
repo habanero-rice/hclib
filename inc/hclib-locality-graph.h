@@ -96,6 +96,7 @@ extern int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
 extern size_t workers_backlog(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_pop_task(hclib_worker_state *ws);
 extern struct _hclib_task_t *locale_steal_task(hclib_worker_state *ws);
+extern unsigned locale_num_tasks(hclib_locale_t *locale);
 
 extern void locale_run_idle_tasks(hclib_worker_state *ws);
 extern void locale_register_idle_task(hclib_locale_t *locale, void (*fp)(void));

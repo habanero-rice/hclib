@@ -119,24 +119,6 @@ int advance() {
     });
 }
 
-hclib::upcxx::gasnet_launcher<::upcxx::rank_t> async(::upcxx::rank_t rank,
-        hclib::upcxx::event *ack) {
-    UPCXX_START_LATENCY;
-
-    hclib::upcxx::gasnet_launcher<::upcxx::rank_t> *result = NULL;
-
-    hclib::finish([&] {
-        hclib::async_nb_at([&] {
-            UPCXX_END_LATENCY(async);
-            UPCXX_START_PROFILE;
-            result = new hclib::upcxx::gasnet_launcher<::upcxx::rank_t>(
-                ::upcxx::async(rank, ack));
-            UPCXX_END_PROFILE(async);
-        }, nic);
-    });
-    return *result;
-}
-
 bool is_memory_shared_with(::upcxx::rank_t r) {
     return ::upcxx::is_memory_shared_with(r);
 }
@@ -165,6 +147,10 @@ void print_upcxx_profiling_data() {
 #endif
     }
 #endif
+}
+
+unsigned n_pending_tasks() {
+    return locale_num_tasks(nic_place());
 }
 
 }

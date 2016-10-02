@@ -749,6 +749,16 @@ size_t workers_backlog(hclib_worker_state *ws) {
     return sum_work;
 }
 
+unsigned locale_num_tasks(hclib_locale_t *locale) {
+    unsigned count = 0;
+    int i;
+    hclib_deque_t *deqs = locale->deques;
+    for (i = 0; i < hc_context->nworkers; i++) {
+        count += deque_size(&(deqs[i].deque));
+    }
+    return count;
+}
+
 /*
  * Try to find a new task that was originally created by this worker by
  * traversing its pop path and only looking at deques owned by this worker.
