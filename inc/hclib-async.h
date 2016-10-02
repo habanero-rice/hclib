@@ -106,35 +106,23 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
         new async_arguments<Function, T1*>(lambda_caller, lambda_on_heap);
     t->_fp = lambda_wrapper<Function, T1 *>;
     t->args = args;
-    t->singleton_future_0 = NULL;
-    t->singleton_future_1 = NULL;
-    t->locale = NULL;
 }
 
 template <typename T>
-inline hclib_task_t* _allocate_async(T lambda, bool await) {
-	const size_t hclib_task_size = await ? sizeof(hclib_dependent_task_t) : sizeof(hclib_task_t);
+inline hclib_task_t* _allocate_async(T lambda, const bool await) {
+	const size_t hclib_task_size = (await ? sizeof(hclib_dependent_task_t) :
+            sizeof(hclib_task_t));
     // create off-stack storage for this task
-	hclib_task_t* task = (hclib_task_t*)HC_MALLOC(hclib_task_size);
-	const size_t lambda_size = sizeof(T);
+	hclib_task_t* task = (hclib_task_t*)calloc(1, hclib_task_size);
     /*
      * create off-stack storage for the lambda object (including its captured
      * variables), which will be pointed to from the task_t.
      */
-	T* lambda_on_heap = (T*)HC_MALLOC(lambda_size);
-	memcpy(lambda_on_heap, &lambda, lambda_size);
+	T* lambda_on_heap = (T*)malloc(sizeof(T));
+	memcpy(lambda_on_heap, &lambda, sizeof(T));
 
-    hclib_task_t t;
-    initialize_task(&t, call_lambda<T>, lambda_on_heap);
-	memcpy(task, &t, sizeof(hclib_task_t));
+    initialize_task(task, call_lambda<T>, lambda_on_heap);
 	return task;
-}
-
-template <typename T>
-inline void async_at(hclib_locale_t *locale, T lambda) {
-    MARK_OVH(current_ws()->id);
-    hclib_task_t* task = _allocate_async<T>(lambda, false);
-    spawn_at(task, locale);
 }
 
 template <typename T>
@@ -142,6 +130,46 @@ inline void async(T lambda) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, false);
 	spawn(task);
+}
+
+template <typename T>
+inline void async_at(T lambda, hclib_locale_t *locale) {
+    MARK_OVH(current_ws()->id);
+    hclib_task_t* task = _allocate_async<T>(lambda, false);
+    spawn_at(task, locale);
+}
+
+template <typename T>
+inline void async_nb(T lambda) {
+	MARK_OVH(current_ws()->id);
+    hclib_task_t *task = _allocate_async<T>(lambda, false);
+    task->non_blocking = 1;
+	spawn(task);
+}
+
+template <typename T>
+inline void async_nb_at(T lambda, hclib_locale_t *locale) {
+	MARK_OVH(current_ws()->id);
+    hclib_task_t *task = _allocate_async<T>(lambda, false);
+    task->non_blocking = 1;
+	spawn_at(task, locale);
+}
+
+template <typename T>
+inline void async_nb_await(T lambda, hclib::future_t *future) {
+	MARK_OVH(current_ws()->id);
+	hclib_task_t* task = _allocate_async<T>(lambda, true);
+    task->non_blocking = 1;
+	spawn_await(task, future ? future->internal : NULL, NULL);
+}
+
+template <typename T>
+inline void async_nb_await_at(T lambda, hclib::future_t *fut,
+        hclib_locale_t *locale) {
+    MARK_OVH(current_ws()->id);
+    hclib_task_t *task = _allocate_async<T>(lambda, true);
+    task->non_blocking = 1;
+    spawn_await_at(task, fut ? fut->internal : NULL, NULL, locale);
 }
 
 inline int _count_futures() {
@@ -251,7 +279,8 @@ hclib::future_t *async_future_await(T lambda, hclib::future_t *future) {
 }
 
 template <typename T>
-hclib::future_t *async_future_at(T lambda, hclib_locale_t *locale) {
+hclib::future_t *async_future_at_helper(T lambda, hclib_locale_t *locale,
+        bool nb) {
     hclib::promise_t *event = new hclib::promise_t();
     hclib_promise_t *internal_event = &event->internal;
     /*
@@ -265,8 +294,19 @@ hclib::future_t *async_future_at(T lambda, hclib_locale_t *locale) {
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
+    if (nb) task->non_blocking = 1;
     spawn_await_at(task, NULL, NULL, locale);
     return event->get_future();
+}
+
+template <typename T>
+hclib::future_t *async_future_at(T lambda, hclib_locale_t *locale) {
+    return async_future_at_helper<T>(lambda, locale, false);
+}
+
+template <typename T>
+hclib::future_t *async_nb_future_at(T lambda, hclib_locale_t *locale) {
+    return async_future_at_helper<T>(lambda, locale, true);
 }
 
 template <typename T>

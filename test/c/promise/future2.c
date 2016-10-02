@@ -88,6 +88,9 @@ int main (int argc, char ** argv) {
     printf("Check results: ");
     int i = 0;
     while(i < H1) {
+        if (ran[i] != i) {
+            fprintf(stderr, "Error on element %d / %d\n", i, H1);
+        }
         assert(ran[i] == i);
         i++;
     }

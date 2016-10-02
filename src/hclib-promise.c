@@ -68,7 +68,7 @@ void hclib_triggered_task_init(hclib_triggered_task_t *task,
  * Initialize a pre-Allocated promise.
  */
 void hclib_promise_init(hclib_promise_t *promise) {
-    promise->cb = NULL;
+    promise->satisfied = 0;
     promise->datum = UNINITIALIZED_PROMISE_DATA_PTR;
     promise->wait_list_head = UNINITIALIZED_PROMISE_WAITLIST_PTR;
     promise->future.owner = promise;
@@ -82,11 +82,6 @@ hclib_promise_t *hclib_promise_create() {
     HASSERT(promise);
     hclib_promise_init(promise);
     return promise;
-}
-
-void hclib_promise_set_pre_wait_callback(hclib_promise_t *promise,
-        pre_wait_callback cb) {
-    promise->cb = cb;
 }
 
 hclib_future_t *hclib_get_future_for_promise(hclib_promise_t *promise) {
@@ -117,7 +112,7 @@ hclib_promise_t **hclib_promise_create_n(size_t nb_promises,
  * Note: this is concurrent with the 'put' operation.
  */
 void *hclib_future_get(hclib_future_t *future) {
-    if (future->owner->datum == UNINITIALIZED_PROMISE_DATA_PTR) {
+    if (!future->owner->satisfied) {
         return NULL;
     }
     return (void *)future->owner->datum;
@@ -220,11 +215,10 @@ hclib_triggered_task_t *rt_async_task_to_triggered_task(
  * the promise's frontier to try to advance tasks that were waiting on this
  * promise.
  */
-void hclib_promise_put(hclib_promise_t *promise_to_be_put, void *datum_to_be_put) {
-    HASSERT (datum_to_be_put != UNINITIALIZED_PROMISE_DATA_PTR &&
-             EMPTY_DATUM_ERROR_MSG);
-    HASSERT (promise_to_be_put != NULL && "can not put into NULL promise");
-    HASSERT (promise_to_be_put-> datum == UNINITIALIZED_PROMISE_DATA_PTR &&
+void hclib_promise_put(hclib_promise_t *promise_to_be_put,
+        void *datum_to_be_put) {
+    HASSERT(promise_to_be_put != NULL && "can not put into NULL promise");
+    HASSERT(promise_to_be_put->satisfied == 0 &&
              "violated single assignment property for promises");
 
     volatile hclib_triggered_task_t *wait_list_of_promise =
@@ -233,6 +227,7 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put, void *datum_to_be_put
     hclib_triggered_task_t *next_task = NULL;
 
     promise_to_be_put->datum = datum_to_be_put;
+    promise_to_be_put->satisfied = 1;
     /*
      * Loop while this CAS fails, trying to atomically grab the list of tasks
      * dependent on the future of this promise. Anyone else who comes along will

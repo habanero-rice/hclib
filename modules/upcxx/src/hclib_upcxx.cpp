@@ -84,12 +84,12 @@ void barrier() {
     UPCXX_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             UPCXX_END_LATENCY(barrier);
             UPCXX_START_PROFILE;
             ::upcxx::barrier();
             UPCXX_END_PROFILE(barrier);
-        });
+        }, nic);
     });
 }
 
@@ -97,12 +97,12 @@ void async_wait() {
     UPCXX_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             UPCXX_END_LATENCY(async_wait);
             UPCXX_START_PROFILE;
             ::upcxx::async_wait();
             UPCXX_END_PROFILE(async_wait);
-        });
+        }, nic);
     });
 }
 
@@ -110,12 +110,12 @@ int advance() {
     UPCXX_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             UPCXX_END_LATENCY(advance);
             UPCXX_START_PROFILE;
             ::upcxx::advance();
             UPCXX_END_PROFILE(advance);
-        });
+        }, nic);
     });
 }
 
@@ -126,13 +126,13 @@ hclib::upcxx::gasnet_launcher<::upcxx::rank_t> async(::upcxx::rank_t rank,
     hclib::upcxx::gasnet_launcher<::upcxx::rank_t> *result = NULL;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             UPCXX_END_LATENCY(async);
             UPCXX_START_PROFILE;
             result = new hclib::upcxx::gasnet_launcher<::upcxx::rank_t>(
                 ::upcxx::async(rank, ack));
             UPCXX_END_PROFILE(async);
-        });
+        }, nic);
     });
     return *result;
 }

@@ -96,7 +96,7 @@ typedef struct hclib_triggered_task_st {
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
     hclib_future_t future;
-    pre_wait_callback cb;
+    volatile int satisfied;
     volatile void *datum;
     /*
      * List of tasks that are awaiting the satisfaction of this promise.
@@ -174,13 +174,6 @@ void *hclib_future_wait(hclib_future_t *future);
  * Check if a value has been put on the corresponding promise.
  */
 int hclib_future_is_satisfied(hclib_future_t *future);
-
-/**
- * Set a callback on a promise and its future to be called immediately prior to
- * blocking on it.
- */
-void hclib_promise_set_pre_wait_callback(hclib_promise_t *promise,
-        pre_wait_callback cb);
 
 /*
  * Some extras

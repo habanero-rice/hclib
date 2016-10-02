@@ -111,13 +111,13 @@ void hclib::MPI_Send(void *buf, int count, MPI_Datatype datatype, hclib::locale_
     MPI_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             MPI_END_LATENCY(MPI_Send);
             MPI_START_PROFILE;
             CHECK_MPI(::MPI_Send(buf, count, datatype,
                     locale_id_to_mpi_rank(dest->id), tag, comm));
             MPI_END_PROFILE(MPI_Send);
-        });
+        }, nic);
     });
 }
 
@@ -126,13 +126,13 @@ void hclib::MPI_Recv(void *buf, int count, MPI_Datatype datatype, hclib::locale_
     MPI_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             MPI_END_LATENCY(MPI_Recv);
             MPI_START_PROFILE;
             CHECK_MPI(::MPI_Recv(buf, count, datatype,
                     locale_id_to_mpi_rank(source->id), tag, comm, status));
             MPI_END_PROFILE(MPI_Recv);
-        });
+        }, nic);
     });
 }
 
@@ -140,7 +140,7 @@ hclib::future_t *hclib::MPI_Isend(void *buf, int count, MPI_Datatype datatype,
         hclib::locale_t *dest, int tag, MPI_Comm comm) {
     MPI_START_LATENCY;
 
-    return hclib::async_future_at([=] {
+    return hclib::async_nb_future_at([=] {
         MPI_END_LATENCY(MPI_Isend);
         MPI_START_PROFILE;
         CHECK_MPI(::MPI_Send(buf, count, datatype,
@@ -153,7 +153,7 @@ hclib::future_t *hclib::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         hclib::locale_t *source, int tag, MPI_Comm comm) {
     MPI_START_LATENCY;
 
-    return hclib::async_future_at([=] {
+    return hclib::async_nb_future_at([=] {
         MPI_END_LATENCY(MPI_Irecv);
         MPI_START_PROFILE;
         MPI_Status status;
@@ -176,13 +176,13 @@ void hclib::MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     MPI_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             MPI_END_LATENCY(MPI_Allreduce);
             MPI_START_PROFILE;
             CHECK_MPI(::MPI_Allreduce(sendbuf, recvbuf, count, datatype, op,
                     comm));
             MPI_END_PROFILE(MPI_Allreduce);
-        });
+        }, nic);
     });
 }
 
@@ -191,12 +191,12 @@ void hclib::MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,
     MPI_START_LATENCY;
 
     hclib::finish([&] {
-            hclib::async_at(nic, [&] {
+            hclib::async_nb_at([&] {
                 MPI_END_LATENCY(MPI_Bcast);
                 MPI_START_PROFILE;
                 CHECK_MPI(::MPI_Bcast(buffer, count, datatype, root, comm));
                 MPI_END_PROFILE(MPI_Bcast);
-            });
+            }, nic);
     });
 }
 
@@ -204,12 +204,12 @@ int hclib::MPI_Barrier(MPI_Comm comm) {
     MPI_START_LATENCY;
 
     hclib::finish([&] {
-        hclib::async_at(nic, [&] {
+        hclib::async_nb_at([&] {
             MPI_END_LATENCY(MPI_Barrier);
             MPI_START_PROFILE;
             CHECK_MPI(::MPI_Barrier(comm));
             MPI_END_PROFILE(MPI_Barrier);
-        });
+        }, nic);
     });
 }
 

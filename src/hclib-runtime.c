@@ -80,6 +80,7 @@ typedef struct _per_worker_stats {
     size_t count_end_finishes;
     size_t count_future_waits;
     size_t count_end_finishes_nonblocking;
+    size_t count_ctx_creates;
 } per_worker_stats;
 static per_worker_stats *worker_stats = NULL;
 #endif
@@ -245,9 +246,9 @@ void hclib_global_init() {
     hc_context->nworkers = nworkers;
     hc_context->graph = graph;
     hc_context->worker_paths = worker_paths;
-    hc_context->done_flags = (worker_done_t *)calloc(nworkers,
-            sizeof(worker_done_t));
-    assert(hc_context->done_flags);
+    const int perr = posix_memalign((void **)&hc_context->done_flags, 64,
+            nworkers * sizeof(worker_done_t));
+    HASSERT(perr == 0);
     hc_context->workers = (hclib_worker_state **)calloc(nworkers,
             sizeof(hclib_worker_state *));
     assert(hc_context->workers);
@@ -290,6 +291,12 @@ static void load_dependencies(const char **module_dependencies,
 
 static void hclib_entrypoint(const char **module_dependencies,
         int n_module_dependencies) {
+    /*
+     * Assert that the completion flag structures are each on separate cache
+     * lines.
+     */
+    HASSERT(sizeof(worker_done_t) == 64);
+
     load_dependencies(module_dependencies, n_module_dependencies);
 
     hclib_call_module_pre_init_functions();
@@ -320,10 +327,9 @@ static void hclib_entrypoint(const char **module_dependencies,
     pthread_setconcurrency(hc_context->nworkers);
 
 #ifdef HCLIB_STATS
-    worker_stats = (per_worker_stats *)malloc(hc_context->nworkers *
+    worker_stats = (per_worker_stats *)calloc(hc_context->nworkers,
             sizeof(per_worker_stats));
     HASSERT(worker_stats);
-    memset(worker_stats, 0x00, hc_context->nworkers * sizeof(per_worker_stats));
 #endif
 
     // Launch the worker threads
@@ -498,7 +504,6 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
         int escaping) {
-
     HASSERT(task);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
@@ -555,23 +560,30 @@ void spawn_await(hclib_task_t *task, hclib_future_t *future1,
     spawn_await_at(task, future1, future2, NULL);
 }
 
-void find_and_run_task(hclib_worker_state *ws) {
+static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
+        const int on_fresh_ctx, volatile int *flag, const int flag_val) {
     hclib_task_t *task = locale_pop_task(ws);
+    // volatile int *flag = &(hc_context->done_flags[ws->id].flag);
     if (!task) {
-        while (hc_context->done_flags[ws->id].flag) {
+        while (*flag != flag_val) {
             // try to steal
             task = locale_steal_task(ws);
             if (task) {
 #ifdef HCLIB_STATS
-                worker_stats[CURRENT_WS_INTERNAL->id].count_steals++;
+                worker_stats[ws->id].count_steals++;
 #endif
                 break;
             }
         }
     }
 
-    if (task) {
+    if (task == NULL) {
+        return NULL;
+    } else if (task && (on_fresh_ctx || task->non_blocking)) {
         execute_task(task);
+        return NULL;
+    } else {
+        return task;
     }
 }
 
@@ -584,12 +596,19 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
     HASSERT(0); // Should never return here
 }
 
-static void core_work_loop(void) {
+static void core_work_loop(hclib_task_t *starting_task) {
+
+    if (starting_task) {
+        execute_task(starting_task);
+    }
+
     uint64_t wid;
     do {
         hclib_worker_state *ws = CURRENT_WS_INTERNAL;
         wid = (uint64_t)ws->id;
-        find_and_run_task(ws);
+        hclib_task_t *must_be_null = find_and_run_task(ws, 1,
+                &(hc_context->done_flags[wid].flag), 0);
+        HASSERT(must_be_null == NULL);
     } while (hc_context->done_flags[wid].flag);
 
     // Jump back to the system thread context for this worker
@@ -600,7 +619,7 @@ static void core_work_loop(void) {
 }
 
 static void crt_work_loop(LiteCtx *ctx) {
-    core_work_loop(); // this function never returns
+    core_work_loop(NULL); // this function never returns
     HASSERT(0); // Should never return here
 }
 
@@ -628,7 +647,10 @@ static void *worker_routine(void *args) {
      * crt_work_loop at the top of the stack.
      */
     LiteCtx *newCtx = LiteCtx_create(crt_work_loop);
-    newCtx->arg = args;
+    newCtx->arg1 = args;
+#ifdef HCLIB_STATS
+    worker_stats[CURRENT_WS_INTERNAL->id].count_ctx_creates++;
+#endif
 
     // Swap in the newCtx lite context
     ctx_swap(currentCtx, newCtx, __func__);
@@ -661,7 +683,8 @@ void crt_work_loop(LiteCtx *ctx);
  * context when a thread waits on a future.
  */
 void _help_wait(LiteCtx *ctx) {
-    hclib_future_t *continuation_dep = ctx->arg;
+    hclib_future_t *continuation_dep = ctx->arg1;
+    hclib_task_t *starting_task = ctx->arg2;
     LiteCtx *wait_ctx = ctx->prev;
 
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)calloc(
@@ -672,16 +695,16 @@ void _help_wait(LiteCtx *ctx) {
 
     spawn_escaping((hclib_task_t *)task, continuation_dep);
 
-    core_work_loop();
+    core_work_loop(starting_task);
     HASSERT(0);
 }
 
 int hclib_future_is_satisfied(hclib_future_t *future) {
-    return future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR;
+    return future->owner->satisfied;
 }
 
 void *hclib_future_wait(hclib_future_t *future) {
-    if (future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR) {
+    if (future->owner->satisfied) {
         return (void *)future->owner->datum;
     }
 #ifdef HCLIB_STATS
@@ -689,19 +712,32 @@ void *hclib_future_wait(hclib_future_t *future) {
 #endif
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
-    if (future->owner->cb) (future->owner->cb)(future);
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    hclib_task_t *need_to_swap_ctx = NULL;
+    while (future->owner->satisfied == 0 &&
+            need_to_swap_ctx == NULL) {
+        // This is a bit hacky...
+        need_to_swap_ctx = find_and_run_task(ws, 0,
+                &(future->owner->satisfied), 1);
+    }
 
-    LiteCtx *currentCtx = get_curr_lite_ctx();
-    HASSERT(currentCtx);
-    LiteCtx *newCtx = LiteCtx_create(_help_wait);
-    newCtx->arg = future;
-    ctx_swap(currentCtx, newCtx, __func__);
-    LiteCtx_destroy(currentCtx->prev);
+    if (need_to_swap_ctx) {
+        LiteCtx *currentCtx = get_curr_lite_ctx();
+        HASSERT(currentCtx);
+        LiteCtx *newCtx = LiteCtx_create(_help_wait);
+        newCtx->arg1 = future;
+        newCtx->arg2 = need_to_swap_ctx;
+#ifdef HCLIB_STATS
+        worker_stats[CURRENT_WS_INTERNAL->id].count_ctx_creates++;
+#endif
+        ctx_swap(currentCtx, newCtx, __func__);
+        LiteCtx_destroy(currentCtx->prev);
+    }
 
     // Restore the finish state from before the wait
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 
-    HASSERT(future->owner->datum != UNINITIALIZED_PROMISE_DATA_PTR);
+    HASSERT(future->owner->satisfied);
     return (void *)future->owner->datum;
 }
 
@@ -719,7 +755,9 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 #ifdef VERBOSE
     printf("_help_finish_ctx: ctx = %p, ctx->arg = %p\n", ctx, ctx->arg);
 #endif
-    finish_t *finish = ctx->arg;
+    finish_t *finish = ctx->arg1;
+    hclib_task_t *starting_task = ctx->arg2;
+    HASSERT(finish && starting_task);
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
     hclib_dependent_task_t *task = (hclib_dependent_task_t *)calloc(
@@ -740,8 +778,9 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * so check it out.
      */
     check_out_finish(finish);
+
     // keep workstealing until this context gets swapped out and destroyed
-    core_work_loop(); // this function never returns
+    core_work_loop(starting_task); // this function never returns
     HASSERT(0); // we should never return here
 }
 
@@ -753,31 +792,49 @@ void help_finish(finish_t *finish) {
      * async is created inside _help_finish_ctx).
      */
 
-    if (finish->counter == 0) {
-        // Quick optimization: if no asyncs remain in this finish scope, just return
+    if (finish->counter == 1) {
+        /*
+         * Quick optimization: if no asyncs remain in this finish scope, just
+         * return. finish counter will be 1 here because we haven't checked out
+         * the main thread (this thread) yet.
+         */
         return;
     }
-    // create finish event
-    hclib_promise_t *finish_promise = hclib_promise_create();
-    finish->finish_dep = &finish_promise->future;
-    // TODO - should only switch contexts after actually finding work
-    LiteCtx *currentCtx = get_curr_lite_ctx();
-    HASSERT(currentCtx);
-    LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
-    newCtx->arg = finish;
+
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    hclib_task_t *need_to_swap_ctx = NULL;
+    while (finish->counter > 1 && need_to_swap_ctx == NULL) {
+        need_to_swap_ctx = find_and_run_task(ws, 0, &(finish->counter), 1);
+    }
+
+    if (need_to_swap_ctx) {
+        // create finish event
+        hclib_promise_t *finish_promise = hclib_promise_create();
+        finish->finish_dep = &finish_promise->future;
+        LiteCtx *currentCtx = get_curr_lite_ctx();
+        HASSERT(currentCtx);
+        LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
+        newCtx->arg1 = finish;
+        newCtx->arg2 = need_to_swap_ctx;
+#ifdef HCLIB_STATS
+        worker_stats[CURRENT_WS_INTERNAL->id].count_ctx_creates++;
+#endif
 
 #ifdef VERBOSE
-printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
+        printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
 #endif
-    ctx_swap(currentCtx, newCtx, __func__);
-    /*
-     * destroy the context that resumed this one since it's now defunct
-     * (there are no other handles to it, and it will never be resumed)
-     */
-    LiteCtx_destroy(currentCtx->prev);
-    hclib_promise_free(finish_promise);
+        ctx_swap(currentCtx, newCtx, __func__);
+        /*
+         * destroy the context that resumed this one since it's now defunct
+         * (there are no other handles to it, and it will never be resumed)
+         */
+        LiteCtx_destroy(currentCtx->prev);
+        hclib_promise_free(finish_promise);
 
-    HASSERT(finish->counter == 0);
+        HASSERT(finish->counter == 0);
+    } else {
+        HASSERT(finish->counter == 1);
+    }
 }
 
 /*
@@ -786,9 +843,8 @@ printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
 
 void hclib_start_finish() {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    finish_t *finish = (finish_t *) HC_MALLOC(sizeof(finish_t));
+    finish_t *finish = (finish_t *)calloc(1, sizeof(finish_t));
     HASSERT(finish);
-    memset(finish, 0x00, sizeof(finish_t));
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
      * finish being a task registered on the finish. When we reach the
@@ -825,7 +881,6 @@ void hclib_end_finish() {
     HASSERT(current_finish);
     HASSERT(current_finish->counter > 0);
     help_finish(current_finish);
-    HASSERT(current_finish->counter == 0);
 
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
 
@@ -932,6 +987,9 @@ size_t hclib_current_worker_backlog() {
 static void hclib_finalize() {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
+#ifdef HCLIB_STATS
+    worker_stats[CURRENT_WS_INTERNAL->id].count_ctx_creates++;
+#endif
     CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
     ctx_swap(finalize_ctx, finish_ctx, __func__);
     while (save_fp) {
@@ -950,16 +1008,18 @@ static void hclib_finalize() {
     size_t sum_end_finishes = 0;
     size_t sum_future_waits = 0;
     size_t sum_end_finishes_nonblocking = 0;
+    size_t sum_ctx_creates = 0;
     for (i = 0; i < hc_context->nworkers; i++) {
         printf("  Worker %d: %lu tasks, %lu steals\n", i,
                 worker_stats[i].count_tasks, worker_stats[i].count_steals);
         sum_end_finishes += worker_stats[i].count_end_finishes;
         sum_future_waits += worker_stats[i].count_future_waits;
         sum_end_finishes_nonblocking += worker_stats[i].count_end_finishes_nonblocking;
+        sum_ctx_creates += worker_stats[i].count_ctx_creates;
     }
     printf("Total: %lu end finishes, %lu future waits, %lu non-blocking end "
-            "finishes\n", sum_end_finishes, sum_future_waits,
-            sum_end_finishes_nonblocking);
+            "finishes, %lu ctx creates\n", sum_end_finishes, sum_future_waits,
+            sum_end_finishes_nonblocking, sum_ctx_creates);
     free(worker_stats);
 #endif
 

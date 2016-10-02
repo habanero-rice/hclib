@@ -9,8 +9,8 @@
 // #define OVERFLOW_PROTECT
 
 #define LITECTX_FREE(ptr) free(ptr)
-// #define LITECTX_SIZE 0x40000 /* 256KB */
-#define LITECTX_SIZE 0x10000 /* 64KB */
+#define LITECTX_SIZE 0x40000 /* 256KB */
+// #define LITECTX_SIZE 0x10000 /* 64KB */
 
 #ifdef OVERFLOW_PROTECT
 // This must be a multiple of the page size on this machine?
@@ -29,7 +29,8 @@ typedef struct LiteCtxStruct {
     char overflow_buffer[OVERFLOW_PADDING_SIZE];
 #endif
     struct LiteCtxStruct *volatile prev;
-    void *volatile arg;
+    void *volatile arg1;
+    void *volatile arg2;
     fcontext_t _fctx;
     char _stack[];
 } LiteCtx;
@@ -69,9 +70,14 @@ static inline void *LITECTX_ALLOC(size_t nbytes) {
 
 static __inline__ LiteCtx *LiteCtx_create(void (*fn)(LiteCtx*)) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(LITECTX_SIZE);
+    if (!ctx) {
+        fprintf(stderr, "Failed allocating litectx\n");
+        exit(1);
+    }
     char *const stack_top = ctx->_stack + LITECTX_STACK_SIZE;
     ctx->prev = NULL;
-    ctx->arg = NULL;
+    ctx->arg1 = NULL;
+    ctx->arg2 = NULL;
     ctx->_fctx = make_fcontext(stack_top, LITECTX_STACK_SIZE,
             (void (*)(void *))fn);
 

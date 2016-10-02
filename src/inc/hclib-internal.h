@@ -77,7 +77,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNINITIALIZED_PROMISE_DATA_PTR ((void *)-1)
 
 typedef struct {
-    volatile uint64_t flag;
+    volatile int flag;
+    int padding;
     void * pad[CACHE_LINE_L1 - 1];
 } worker_done_t;
 

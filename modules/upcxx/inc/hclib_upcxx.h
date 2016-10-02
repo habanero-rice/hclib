@@ -138,34 +138,6 @@ class global_ptr : public ::upcxx::global_ptr<T> {
             return global_ptr<T>(((T *)::upcxx::global_ptr<T>::raw_ptr()) + i,
                     ::upcxx::global_ptr<T>::where());
         }
-
-//         explicit operator T*() const {
-//             if (this->where() == ::upcxx::global_myrank()) {
-//                 // return raw_ptr if the data pointed to is on the same rank
-//                 return this->raw_ptr();
-//             } else {
-//                 T *result = NULL;
-// 
-//                 hclib::finish([&] {
-//                     hclib::async_at(nic_place(), [&] {
-//                         // if (this->where() == ::upcxx::global_myrank()) {
-//                         //     // return raw_ptr if the data pointed to is on the same rank
-//                         //     result = this->raw_ptr();
-//                         // } else {
-// 
-// #if GASNET_PSHM
-//                             result = (T*)::upcxx::pshm_remote_addr2local(this->where(), this->raw_ptr());
-// #else
-//                             // return NULL if this global address can't casted to a valid
-//                             // local address
-//                             result = NULL;
-// #endif
-//                         // }
-//                     });
-//                 });
-//                 return result;
-//             }
-//         }
 };
 
 
@@ -178,9 +150,9 @@ struct shared_array {
     public:
         void init(size_t sz, size_t blk_sz) {
             hclib::finish([&] {
-                hclib::async_at(nic_place(), [&] {
+                hclib::async_nb_at([&] {
                     internal.init(sz, blk_sz);
-                });
+                }, nic_place());
             });
         }
 
@@ -232,15 +204,6 @@ static void call_lambda(T lambda) {
     lambda();
 }
 
-static void advance_callback(hclib_future_t *fut) {
-    if (hclib_future_is_satisfied(fut)) return;
-
-    hclib::async([=] {
-            hclib::upcxx::advance();
-            advance_callback(fut);
-        });
-}
-
 template<typename T>
 void remote_finish(T lambda) {
     hclib::finish([=] {
@@ -252,7 +215,7 @@ void remote_finish(T lambda) {
 template<typename T>
 void async_after(::upcxx::rank_t rank, hclib::future_t *after,
         T lambda) {
-    hclib::async_await_at([=] {
+    hclib::async_nb_await_at([=] {
             ::upcxx::async(rank)(call_lambda<T>, lambda);
         }, after, nic_place());
 }
@@ -260,7 +223,7 @@ void async_after(::upcxx::rank_t rank, hclib::future_t *after,
 template<typename T>
 hclib::future_t *async_copy(hclib::upcxx::global_ptr<T> src,
         hclib::upcxx::global_ptr<T> dst, size_t count) {
-    return hclib::async_future_at([=] {
+    return hclib::async_nb_future_at([=] {
             UPCXX_END_LATENCY(async_copy);
 
             UPCXX_START_PROFILE;

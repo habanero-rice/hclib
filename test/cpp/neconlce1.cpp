@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
             for (int i = 0; i < num_locales; i++) {
                 hclib::locale_t *locale = locales + i;
 
-                hclib::async_at(locale, [=] {
+                hclib::async_at([=] {
                     cerr << "Hello I'm Worker " << hclib::get_current_worker() << " of " << numWorkers << " workers" << endl;
-                });
+                }, locale);
             }
         });
     });
