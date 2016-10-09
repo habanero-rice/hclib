@@ -442,11 +442,11 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
         forasync1D_t forasync = {{user_def}, loop_domain[0]};
         (fct_ptr[dim-1])((void *) &forasync);
     } else if (dim == 2) {
-        forasync2D_t forasync = {{user_def}, loop_domain[0], loop_domain[1]};
+        forasync2D_t forasync = {{user_def}, {loop_domain[0], loop_domain[1]}};
         (fct_ptr[dim-1])((void *) &forasync);
     } else if (dim == 3) {
-        forasync3D_t forasync = {{user_def}, loop_domain[0], loop_domain[1],
-            loop_domain[2]};
+        forasync3D_t forasync = {{user_def}, {loop_domain[0], loop_domain[1],
+            loop_domain[2]}};
         (fct_ptr[dim-1])((void *) &forasync);
     }
 }
