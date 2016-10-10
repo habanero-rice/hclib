@@ -20,10 +20,14 @@ volatile long long max_n_local_edges;
 long long pWrk[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 long pSync[SHMEM_REDUCE_SYNC_SIZE];
 
+int pWrk_int[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
+long pSync_int[SHMEM_REDUCE_SYNC_SIZE];
+
 #define UNSIGNALLED 0
 
 volatile long long *nsignals = NULL;
 int ndone = 0;
+int consensus, vote;
 int checking_if_done = 0;
 int nstill_working = 0;
 
@@ -59,6 +63,50 @@ static int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     return vertex / vertices_per_pe;
 }
 
+static int do_termination_detection(
+        const int coming_from_termination_detection_code,
+        volatile long long *nsignals, const long long expected_signal_count,
+        const int npes, const int pe) {
+    int i;
+    assert(*nsignals % 2 == 1); // Got a termination signal
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d doing actual termination detection\n", pe);
+#endif
+
+    for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
+        pSync_int[i] = SHMEM_SYNC_VALUE;
+    }
+
+    /*
+     * Wait for everyone to recognize the termination notification and ensure
+     * message completion.
+     */
+    shmem_barrier_all();
+
+    if (pe == 0) ndone = 0;
+    
+    vote = 0;
+    if (coming_from_termination_detection_code &&
+            *nsignals == expected_signal_count + 1) {
+        vote = 1;
+    }
+
+    *nsignals = *nsignals + 1; // Clear termination signal
+
+    shmem_int_min_to_all(&consensus, &vote, 1, 0, 0, npes, pWrk_int, pSync_int);
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d done with actual termination detection\n", pe);
+#endif
+
+    return consensus; // Return 1 if we're deciding to terminate, 0 otherwise
+}
+
+/*
+ * Returns the number of parent relationships successfully made with children of
+ * any vertices in our current wavefront.
+ */
 static int scan_signals(uint64_t n_local_vertices, int *signals,
         unsigned *local_vertex_offsets, uint64_t *neighbors,
         uint64_t nglobalverts, const uint64_t local_min_vertex,
@@ -71,8 +119,7 @@ static int scan_signals(uint64_t n_local_vertices, int *signals,
     uint64_t nunique_pes = 0;
     uint64_t nfailed = 0;
 
-    long long int *pe_incrs = (long long int *)malloc(npes * sizeof(long long int));
-    memset(pe_incrs, 0x00, npes * sizeof(long long int));
+    long long int *pe_incrs = (long long int *)calloc(npes, sizeof(long long int));
 
     int sent_any_signals = 0;
     for (i = 0; i < n_local_vertices; i++) {
@@ -111,31 +158,55 @@ static int scan_signals(uint64_t n_local_vertices, int *signals,
                         local_min_vertex + i + 1, target_pe);
 
                 if (old == UNSIGNALLED) {
-                    pe_incrs[target_pe] += 1;
+                    pe_incrs[target_pe]++;
+#ifdef VERBOSE
+                    fprintf(stderr, "Signalled %d\n", neighbors[j]);
+#endif
                     // Update sent_any_signals
                     sent_any_signals++;
-                } else {
+                } else { // Someone else has already signalled
                     nfailed++;
                 }
             }
         }
     }
+
+    /*
+     * To ensure that the updates to each remote PE's signals array arrive
+     * before we signal their nsignals.
+     */
     shmem_fence();
+
     for (i = 0; i < npes; i++) {
         if (pe_incrs[i] > 0) {
-            shmem_longlong_add((long long int *)nsignals, pe_incrs[i], i);
+            shmem_longlong_add((long long int *)nsignals, 2 * pe_incrs[i], i);
         }
     }
 
     free(unique_pes);
     free(pe_incrs);
 
-
-    fprintf(stderr, "PE %d sent %d signals on iteration %u, nfailed=%lu, "
-            "nunique PEs = %lu\n", pe, sent_any_signals, iteration,
-            nfailed, nunique_pes);
+#ifdef VERBOSE
+    if (sent_any_signals > 0) {
+        fprintf(stderr, "PE %d sent %d signals on iteration %u, nfailed=%lu, "
+                "nunique PEs = %lu\n", pe, sent_any_signals, iteration,
+                nfailed, nunique_pes);
+    }
+#endif
 
     return sent_any_signals;
+}
+
+static unsigned count_handled_local_vertices(int *signals,
+        uint64_t n_local_vertices) {
+    int i;
+    unsigned count = 0;
+    for (i = 0; i < n_local_vertices; i++) {
+        if (signals[i] != 0) {
+            count++;
+        }
+    }
+    return count;
 }
 
 int main(int argc, char **argv) {
@@ -183,53 +254,62 @@ int main(int argc, char **argv) {
     }
 
     if (pe == 0) {
-        fprintf(stderr, "%lu total vertices, %lu total edges, %d PEs, ~%lu edges per "
-                "PE, ~%lu vertices per PE\n", nglobalverts, nglobaledges, npes,
+        fprintf(stderr, "%llu: %lu total vertices, %lu total edges, %d PEs, ~%lu edges per "
+                "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts, nglobaledges, npes,
                 edges_per_pe, get_vertices_per_pe(nglobalverts));
     }
+
+    /*
+     * Use the Graph500 utilities to generate a set of edges distributed across
+     * PEs.
+     */
     packed_edge *actual_buf = (packed_edge *)malloc(
             nedges_this_pe * sizeof(packed_edge));
     assert(actual_buf || nedges_this_pe == 0);
     generate_kronecker_range(seed, scale, start_edge_index,
             start_edge_index + nedges_this_pe, actual_buf);
 
-    long long *local_incrs = (long long *)malloc(npes * sizeof(long long));
-    assert(local_incrs);
-    memset(local_incrs, 0x00, npes * sizeof(long long));
+    /*
+     * Count the number of edge endpoints in actual_buf that are resident on
+     * each PE.
+     */
+    long long *count_edges_shared_with_pe = (long long *)calloc(npes,
+            sizeof(long long));
+    assert(count_edges_shared_with_pe);
     uint64_t i;
     for (i = 0; i < nedges_this_pe; i++) {
         int64_t v0 = get_v0_from_edge(actual_buf + i);
         int64_t v1 = get_v1_from_edge(actual_buf + i);
         int v0_pe = get_owner_pe(v0, nglobalverts);
         int v1_pe = get_owner_pe(v1, nglobalverts);
-        local_incrs[v0_pe] += 1;
-        local_incrs[v1_pe] += 1;
+        count_edges_shared_with_pe[v0_pe] += 1;
+        count_edges_shared_with_pe[v1_pe] += 1;
     }
 
+    /*
+     * Tell each PE how many edges you have to send it based on vertex
+     * ownership.
+     */
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
     assert(remote_offsets);
     for (i = 0; i < npes; i++) {
         remote_offsets[i] = shmem_longlong_fadd((long long int *)&n_local_edges,
-                local_incrs[i], i);
+                count_edges_shared_with_pe[i], i);
     }
-    free(local_incrs);
-
-    fprintf(stderr, "PE %d > A\n", pe);
+    free(count_edges_shared_with_pe);
 
     shmem_barrier_all();
 
-    fprintf(stderr, "PE %d > B\n", pe);
-
+    // Just for fun, find maximum # edges each PE will have
     for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
         pSync[i] = SHMEM_SYNC_VALUE;
     }
     shmem_longlong_max_to_all((long long int *)&max_n_local_edges,
             (long long int *)&n_local_edges, 1, 0, 0, npes, pWrk, pSync);
 
-    fprintf(stderr, "PE %d > C\n", pe);
-
     if (pe == 0) {
-        fprintf(stderr, "Max. # local edges = %lld\n", max_n_local_edges);
+        fprintf(stderr, "%llu: Max. # local edges = %lld\n", current_time_ns(),
+                max_n_local_edges);
     }
 
     uint64_t local_min_vertex = get_starting_vertex_for_pe(pe, nglobalverts);
@@ -241,17 +321,30 @@ int main(int argc, char **argv) {
         n_local_vertices = local_max_vertex - local_min_vertex;
     }
 
-    packed_edge *local_edges = (packed_edge *)shmalloc(
+    /*
+     * Allocate buffers on each PE for storing all edges for which at least one
+     * of the vertices of the edge is handled by this PE. This information will
+     * be provided by other PEs.
+     */
+    packed_edge *local_edges = (packed_edge *)shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
     assert(local_edges);
-    int *signals = (int *)shmalloc(get_vertices_per_pe(nglobalverts) *
+
+    int *signals = (int *)shmem_malloc(get_vertices_per_pe(nglobalverts) *
             sizeof(int));
     assert(signals);
     memset(signals, UNSIGNALLED, get_vertices_per_pe(nglobalverts) *
             sizeof(int));
-    nsignals = (long long *)shmalloc(sizeof(long long));
-    assert(nsignals);
 
+    nsignals = (long long *)shmem_malloc(sizeof(long long));
+    assert(nsignals);
+    *nsignals = 0;
+
+    /*
+     * Send out to each PE based on the vertices each owns, all edges that have
+     * a vertix on that node. This means that vertices which have one vertix on
+     * one node and one vertix on another will be sent to two different nodes.
+     */
     for (i = 0; i < nedges_this_pe; i++) {
         int64_t v0 = get_v0_from_edge(actual_buf + i);
         int64_t v1 = get_v1_from_edge(actual_buf + i);
@@ -264,19 +357,20 @@ int main(int argc, char **argv) {
                 sizeof(packed_edge), v1_pe);
         remote_offsets[v1_pe]++;
     }
-    fprintf(stderr, "PE %d > D\n", pe);
 
     shmem_barrier_all();
 
-    fprintf(stderr, "PE %d > E\n", pe);
-
     free(actual_buf);
 
-    unsigned *local_vertex_offsets = (unsigned *)malloc(
-            (n_local_vertices + 1) * sizeof(unsigned));
+    unsigned *local_vertex_offsets = (unsigned *)calloc(
+            (n_local_vertices + 1), sizeof(unsigned));
     assert(local_vertex_offsets);
-    memset(local_vertex_offsets, 0x00, n_local_vertices * sizeof(unsigned));
 
+    /*
+     * Location i in local_vertex_offsets stores the number of endpoints in
+     * local_edges that have locale vertix i as one of the endpoints. Hence, it
+     * is the total number of edge endpoints that are vertix i.
+     */
     for (i = 0; i < n_local_edges; i++) {
         packed_edge *edge = local_edges + i;
         int64_t v0 = get_v0_from_edge(edge);
@@ -292,6 +386,18 @@ int main(int argc, char **argv) {
         }
     }
 
+    /*
+     * After this loop, location i in local_vertex_offsets stores a global
+     * offset for vertix i in a local list of all endpoints stored on this PE.
+     * The total number of local endpoints is the number of endpoints on the
+     * locally stored edges that are for a vertix assigned to this PE (where the
+     * locally stored edges are defined to be all edges that have at least one
+     * vertix on this node). The sum of all local endpoints (the value in acc
+     * after this loop) must be >= n_local_edges because each local edge must
+     * have at least one endpoint that is a vertix on this node, but
+     * <= n_local_edges * 2 because each edge can have at most 2 endpoints that
+     * are vertices on this node.
+     */
     uint64_t acc = 0;
     for (i = 0; i < n_local_vertices; i++) {
         uint64_t new_acc = acc + local_vertex_offsets[i];
@@ -299,7 +405,17 @@ int main(int argc, char **argv) {
         acc = new_acc;
     }
     local_vertex_offsets[n_local_vertices] = acc;
+    assert(acc >= n_local_edges && acc <= n_local_edges * 2);
 
+    /*
+     * In neighbors, for each local endpoint discovered above we store the
+     * destination vertex for that endpoint. So, after this loop, given local
+     * vertex i:
+     * 
+     *     - its global vertex ID would be local_min_vertex + i
+     *     - the list of global vertix IDs it is attached to by edges starts at
+     *       local_vertex_offsets[i] and ends at local_vertex_offsets[i + 1]
+     */
     uint64_t *neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
     assert(neighbors);
     for (i = 0; i < n_local_edges; i++) {
@@ -317,97 +433,143 @@ int main(int argc, char **argv) {
         }
     }
 
-    shfree(local_edges);
+    shmem_free(local_edges);
 
     long long expected_signal_count = 0;
     if (get_owner_pe(0, nglobalverts) == pe) {
+        // If this PE owns the root vertex, signal it to start traversal.
         signals[0] = 1;
-        *nsignals++;
+        *nsignals = 2;
+    }
+
+    for (i = 0; i < npes; i++) {
+        if (i == pe) {
+            int j;
+            for (j = 0; j < n_local_vertices; j++) {
+                unsigned global_vertex_id = local_min_vertex + j;
+                fprintf(stderr, "%u:", global_vertex_id);
+
+                int k;
+                for (k = local_vertex_offsets[j]; k < local_vertex_offsets[j + 1];
+                        k++) {
+                    fprintf(stderr, " %u", neighbors[k]);
+                }
+                fprintf(stderr, "\n");
+            }
+            fprintf(stderr, "\n");
+        }
+        shmem_barrier_all();
     }
 
     uint64_t nprocessed = 0;
     uint32_t niterations = 0;
-    uint32_t checked_done = 0;
     unsigned long long time_spent_waiting = 0;
-    unsigned long long time_spent_in_barriers = 0;
     shmem_barrier_all();
     const unsigned long long start_bfs = current_time_ns();
 
     while (1) {
+        const unsigned long long start_iter = current_time_ns();
+
+        /*
+         * Fences on all signal transmissions ensure that the atomic adds to
+         * nsignals must appear after the updates to the signals vector.
+         */
+        expected_signal_count = *nsignals;
+
         const int sent_any_signals = scan_signals(n_local_vertices, signals,
                 local_vertex_offsets, neighbors, nglobalverts, local_min_vertex,
                 niterations);
         nprocessed += sent_any_signals;
 
-        if (checking_if_done) {
-            shmem_int_add(&nstill_working, sent_any_signals, 0);
-            checking_if_done = 0;
-            const unsigned long long start_barrier = current_time_ns();
-            shmem_barrier_all();
-            shmem_barrier_all();
-            time_spent_in_barriers += (current_time_ns() - start_barrier);
-            if (shmem_int_fadd(&nstill_working, 0, 0) == -1) {
-                // All done
-                break;
-            }
+#ifdef VERBOSE
+        fprintf(stderr, "PE %d sent %d signals\n", pe, sent_any_signals);
+#endif
+
+        // Spin for a little bit while we don't see any incoming messages
+        for (i = 0; i < 10 && *nsignals == expected_signal_count; i++) {
         }
 
-        const int ncomplete = shmem_int_finc(&ndone, 0) + 1;
-        if (ncomplete == npes) {
-            // Signal all and make sure all are complete
-            checked_done += 1;
-            fprintf(stderr, "PE %d signalling to check if done after %f ms\n",
-                    pe, (current_time_ns() - start_bfs) / 1000000.0);
-            for (i = 0; i < npes; i++) {
-                int one = 1;
-                if (i != pe) {
-                    shmem_int_put(&checking_if_done, &one, 1, i);
+        const unsigned long long elapsed_iter = current_time_ns() - start_iter;
+
+        if (*nsignals == expected_signal_count) {
+            /*
+             * If no new work appears to have arrived, enter termination
+             * detection.
+             */
+            const int ncomplete = shmem_int_finc(&ndone, 0) + 1;
+
+#ifdef VERBOSE
+            fprintf(stderr, "PE %d entering termination detection, "
+                    "ncomplete=%d npes=%d\n", pe, ncomplete, npes);
+#endif
+
+            if (ncomplete == npes) {
+                /*
+                 * Everyone inside termination detection, signal to wake up and
+                 * make sure have terminated.
+                 */
+                for (i = 0; i < npes; i++) {
+                    /*
+                     * Send everyone a termination notification by making
+                     * nsignals odd.
+                     */
+                    shmem_longlong_add((long long int *)nsignals, 1, i);
                 }
-            }
-
-            shmem_fence();
-
-            // Signal all to wake up and check if done
-            for (i = 0; i < npes; i++) {
-                if (i != pe) {
-                    shmem_longlong_inc((long long int *)nsignals, i);
-                }
-            }
-
-            const int sent_any_signals = scan_signals(n_local_vertices, signals,
-                    local_vertex_offsets, neighbors, nglobalverts,
-                    local_min_vertex, niterations);
-            nprocessed += sent_any_signals;
-            shmem_int_add(&nstill_working, sent_any_signals, 0);
-
-            unsigned long long start_barrier = current_time_ns();
-            shmem_barrier_all();
-            time_spent_in_barriers += (current_time_ns() - start_barrier);
-
-            const int any_working = shmem_int_fadd(&nstill_working, 0, 0);
-            if (any_working) {
-                shmem_int_swap(&nstill_working, 0, 0);
+                assert(*nsignals % 2 == 1);
             } else {
-                shmem_int_swap(&nstill_working, -1, 0);
-                break;
+                const unsigned long long start_wait = current_time_ns();
+                shmem_longlong_wait_until((long long int *)nsignals,
+                        SHMEM_CMP_GT, expected_signal_count);
+
+                int expected = ncomplete;
+                int replace_with = expected - 1;
+
+                while (1) {
+                    const int old = shmem_int_cswap(&ndone, expected,
+                            replace_with, 0);
+                    if (old == npes) {
+                        /*
+                         * Got to do termination detection, loop until we get
+                         * the master PE's signal.
+                         */
+                        assert(expected != npes); // Assert that we failed CAS
+                        // Ensure we will enter termination detection logic
+                        while (*nsignals % 2 != 1) ;
+                        break;
+                    } else if (old == expected) {
+                        // Successfully decremented, get out
+                        assert(*nsignals % 2 != 1);
+                        break;
+                    } else {
+                        // Reset and try again
+                        assert(old != npes);
+                        expected = old;
+                        replace_with = expected - 1;
+                    }
+                }
+
+                const unsigned long long elapsed = current_time_ns() -
+                    start_wait;
+                time_spent_waiting += elapsed;
             }
-            expected_signal_count = *nsignals;
-            shmem_int_add(&ndone, -1, 0);
 
-            start_barrier = current_time_ns();
-            shmem_barrier_all();
-            time_spent_in_barriers += (current_time_ns() - start_barrier);
-        } else {
-            const unsigned long long start_wait = current_time_ns();
-            shmem_longlong_wait_until((long long int *)nsignals, SHMEM_CMP_GT,
-                    expected_signal_count);
-            time_spent_waiting += (current_time_ns() - start_wait);
+            if (*nsignals % 2 == 1) {
+                // Got a termination detection notification
+                const int terminating = do_termination_detection(1, nsignals,
+                        expected_signal_count, npes, pe);
+                if (terminating) {
+#ifdef VERBOSE
+                    fprintf(stderr, "PE %d terminating\n", pe);
+#endif
+                    break;
+                }
+            }
 
-            fprintf(stderr, "PE %d bumping from %lld to %lld\n",
-                    pe, expected_signal_count, *nsignals);
-            expected_signal_count = *nsignals;
-            shmem_int_add(&ndone, -1, 0);
+#ifdef VERBOSE
+            fprintf(stderr, "PE %d leaving termination detection\n", pe);
+#endif
         }
+
         niterations++;
     }
 
@@ -417,26 +579,19 @@ int main(int argc, char **argv) {
         fprintf(stderr, "BFS took %f ms\n", (double)(end_bfs - start_bfs) / 1000000.0);
     }
 
-    if (expected_signal_count != *nsignals) {
-        fprintf(stderr, "PE %d expected # signals to be %lld but was %lld\n",
-                expected_signal_count, *nsignals);
-        exit(1);
-    }
-
     uint64_t count_parents = 0;
     for (i = 0; i < n_local_vertices; i++) {
         assert(signals[i] <= 0);
         if (signals[i] < 0) count_parents++;
     }
 
-    fprintf(stderr, "PE %d got out, processed %llu vertices, %f ms waiting, "
-            "%f ms in barriers, %u iterations, %u checked done, %lu parents "
+    fprintf(stderr, "PE %d got out, marked parents for %llu vertices, %f ms "
+            "waiting, %u iterations, %lu parents "
             "found out of %lu local vertices\n", pe,
             nprocessed, (double)time_spent_waiting / 1000000.0,
-            (double)time_spent_in_barriers / 1000000.0, niterations,
-            checked_done, count_parents, n_local_vertices);
+            niterations, count_parents, n_local_vertices);
 
-    shfree(signals);
+    shmem_free(signals);
 
     shmem_finalize();
 
