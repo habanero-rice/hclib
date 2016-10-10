@@ -119,7 +119,8 @@ static int scan_signals(uint64_t n_local_vertices, int *signals,
     uint64_t nunique_pes = 0;
     uint64_t nfailed = 0;
 
-    long long int *pe_incrs = (long long int *)calloc(npes, sizeof(long long int));
+    long long int *pe_incrs = (long long int *)calloc(npes,
+            sizeof(long long int));
 
     int sent_any_signals = 0;
     for (i = 0; i < n_local_vertices; i++) {
@@ -464,6 +465,7 @@ int main(int argc, char **argv) {
     uint64_t nprocessed = 0;
     uint32_t niterations = 0;
     unsigned long long time_spent_waiting = 0;
+    unsigned long long time_spent_signalling = 0;
     shmem_barrier_all();
     const unsigned long long start_bfs = current_time_ns();
 
@@ -490,6 +492,7 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long elapsed_iter = current_time_ns() - start_iter;
+        time_spent_signalling += elapsed_iter;
 
         if (*nsignals == expected_signal_count) {
             /*
@@ -586,9 +589,10 @@ int main(int argc, char **argv) {
     }
 
     fprintf(stderr, "PE %d got out, marked parents for %llu vertices, %f ms "
-            "waiting, %u iterations, %lu parents "
+            "waiting, %f ms signalling, %u iterations, %lu parents "
             "found out of %lu local vertices\n", pe,
             nprocessed, (double)time_spent_waiting / 1000000.0,
+            (double)time_spent_signalling / 1000000.0,
             niterations, count_parents, n_local_vertices);
 
     shmem_free(signals);
