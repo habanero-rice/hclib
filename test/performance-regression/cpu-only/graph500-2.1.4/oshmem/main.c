@@ -63,67 +63,38 @@ static int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     return vertex / vertices_per_pe;
 }
 
-static int do_termination_detection(
-        const int coming_from_termination_detection_code,
-        volatile long long *nsignals, const long long expected_signal_count,
-        const int npes, const int pe) {
-    int i;
-    assert(*nsignals % 2 == 1); // Got a termination signal
-
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d doing actual termination detection\n", pe);
-#endif
-
-    for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
-        pSync_int[i] = SHMEM_SYNC_VALUE;
-    }
-
-    /*
-     * Wait for everyone to recognize the termination notification and ensure
-     * message completion.
-     */
-    shmem_barrier_all();
-
-    if (pe == 0) ndone = 0;
-    
-    vote = 0;
-    if (coming_from_termination_detection_code &&
-            *nsignals == expected_signal_count + 1) {
-        vote = 1;
-    }
-
-    *nsignals = *nsignals + 1; // Clear termination signal
-
-    shmem_int_min_to_all(&consensus, &vote, 1, 0, 0, npes, pWrk_int, pSync_int);
-
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d done with actual termination detection\n", pe);
-#endif
-
-    return consensus; // Return 1 if we're deciding to terminate, 0 otherwise
-}
-
 /*
  * Returns the number of parent relationships successfully made with children of
  * any vertices in our current wavefront.
  */
-static int scan_signals(uint64_t n_local_vertices, int *signals,
-        unsigned *local_vertex_offsets, uint64_t *neighbors,
+static int scan_signals(uint64_t *min_unsignalled, uint64_t *max_unsignalled,
+        uint64_t n_local_vertices,
+        int *signals, unsigned *local_vertex_offsets, uint64_t *neighbors,
         uint64_t nglobalverts, const uint64_t local_min_vertex,
         const uint32_t iteration) {
     uint64_t i, j;
 
-    int *unique_verts = NULL;
-    uint64_t nunique_verts = 0;
-    int *unique_pes = NULL;
-    uint64_t nunique_pes = 0;
+    // int *unique_verts = NULL;
+    // uint64_t nunique_verts = 0;
+    // int *unique_pes = NULL;
+    // uint64_t nunique_pes = 0;
     uint64_t nfailed = 0;
 
-    long long int *pe_incrs = (long long int *)calloc(npes,
-            sizeof(long long int));
+    const uint64_t save_min_unsignalled = *min_unsignalled;
+    const uint64_t save_max_unsignalled = *max_unsignalled;
+
+    uint64_t new_min_unsignalled = save_min_unsignalled;
+    uint64_t new_max_unsignalled = save_max_unsignalled;
+
+    static long long int *pe_incrs = NULL;
+    if (pe_incrs == NULL) {
+        pe_incrs = (long long int *)malloc(npes * sizeof(long long int));
+    }
+    memset(pe_incrs, 0x00, npes * sizeof(long long int));
 
     int sent_any_signals = 0;
     for (i = 0; i < n_local_vertices; i++) {
+    // for (i = save_min_unsignalled; i < save_max_unsignalled; i++) {
         /*
          * signals[i] == 0 indicates we have not received a signal for that
          * vertex yet.
@@ -134,7 +105,20 @@ static int scan_signals(uint64_t n_local_vertices, int *signals,
          */
         if (signals[i] > 0) {
             // Mark signals[i] as finished
+            
+            // fprintf(stderr, "PE %d handling signal %d on local vertex %d with "
+            //         "min_unsignalled=%d\n", pe, signals[i], i,
+            //         new_min_unsignalled);
+
             signals[i] *= -1;
+
+            if (i == new_min_unsignalled) {
+                /*
+                 * Update min unsignalled if we are handling a signal on the
+                 * current min unsignalled.
+                 */
+                new_min_unsignalled++;
+            }
 
             // Handle signal by signalling children
             for (j = local_vertex_offsets[i]; j < local_vertex_offsets[i + 1];
@@ -170,6 +154,17 @@ static int scan_signals(uint64_t n_local_vertices, int *signals,
                 }
             }
         }
+
+        if (!(signals[i] < 0)) {
+            /*
+             * There is a race between the signals[i] > 0 check above and other
+             * PEs RDMA-ing signals into the signals array. Therefore, if we get
+             * to this point we still need to check for a possibly unhandled
+             * signal (i.e. signals[i] > 0) even though this conditional looks
+             * partially redundant with the one above.
+             */
+            new_max_unsignalled = i + 1;
+        }
     }
 
     /*
@@ -184,8 +179,11 @@ static int scan_signals(uint64_t n_local_vertices, int *signals,
         }
     }
 
-    free(unique_pes);
+    // free(unique_pes);
     free(pe_incrs);
+
+    *min_unsignalled = new_min_unsignalled;
+    *max_unsignalled = new_max_unsignalled;
 
 #ifdef VERBOSE
     if (sent_any_signals > 0) {
@@ -436,13 +434,14 @@ int main(int argc, char **argv) {
 
     shmem_free(local_edges);
 
-    long long expected_signal_count = 0;
+    // long long expected_signal_count = 0;
     if (get_owner_pe(0, nglobalverts) == pe) {
         // If this PE owns the root vertex, signal it to start traversal.
         signals[0] = 1;
         *nsignals = 2;
     }
 
+#ifdef VERBOSE
     for (i = 0; i < npes; i++) {
         if (i == pe) {
             int j;
@@ -461,11 +460,28 @@ int main(int argc, char **argv) {
         }
         shmem_barrier_all();
     }
+#endif
+
+    uint64_t min_unsignalled = 0;
+    uint64_t max_unsignalled = n_local_vertices;
+
+    int *reduce_dest = (int *)shmem_malloc(sizeof(int));
+    int *reduce_src = (int *)shmem_malloc(sizeof(int));
 
     uint64_t nprocessed = 0;
     uint32_t niterations = 0;
+    uint32_t nwaits = 0;
     unsigned long long time_spent_waiting = 0;
     unsigned long long time_spent_signalling = 0;
+
+    int *pWkr_int = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(int));
+    long *pSync_int = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
+    for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
+        pSync_int[i] = SHMEM_SYNC_VALUE;
+    }
+
+    int *other_signals = (int *)shmem_malloc(npes * sizeof(int));
+
     shmem_barrier_all();
     const unsigned long long start_bfs = current_time_ns();
 
@@ -476,102 +492,59 @@ int main(int argc, char **argv) {
          * Fences on all signal transmissions ensure that the atomic adds to
          * nsignals must appear after the updates to the signals vector.
          */
-        expected_signal_count = *nsignals;
 
-        const int sent_any_signals = scan_signals(n_local_vertices, signals,
-                local_vertex_offsets, neighbors, nglobalverts, local_min_vertex,
-                niterations);
+        const int sent_any_signals = scan_signals(&min_unsignalled,
+                    &max_unsignalled, n_local_vertices, signals,
+                    local_vertex_offsets, neighbors,
+                    nglobalverts, local_min_vertex, niterations);
         nprocessed += sent_any_signals;
 
 #ifdef VERBOSE
         fprintf(stderr, "PE %d sent %d signals\n", pe, sent_any_signals);
 #endif
 
-        // Spin for a little bit while we don't see any incoming messages
-        for (i = 0; i < 10 && *nsignals == expected_signal_count; i++) {
-        }
-
         const unsigned long long elapsed_iter = current_time_ns() - start_iter;
         time_spent_signalling += elapsed_iter;
 
-        if (*nsignals == expected_signal_count) {
-            /*
-             * If no new work appears to have arrived, enter termination
-             * detection.
-             */
-            const int ncomplete = shmem_int_finc(&ndone, 0) + 1;
+        const unsigned long long start_wait = current_time_ns();
 
-#ifdef VERBOSE
-            fprintf(stderr, "PE %d entering termination detection, "
-                    "ncomplete=%d npes=%d\n", pe, ncomplete, npes);
-#endif
-
-            if (ncomplete == npes) {
-                /*
-                 * Everyone inside termination detection, signal to wake up and
-                 * make sure have terminated.
-                 */
-                for (i = 0; i < npes; i++) {
-                    /*
-                     * Send everyone a termination notification by making
-                     * nsignals odd.
-                     */
-                    shmem_longlong_add((long long int *)nsignals, 1, i);
-                }
-                assert(*nsignals % 2 == 1);
+        for (i = 0; i < npes; i++) {
+            if (i == pe) {
+                other_signals[pe] = sent_any_signals;
             } else {
-                const unsigned long long start_wait = current_time_ns();
-                shmem_longlong_wait_until((long long int *)nsignals,
-                        SHMEM_CMP_GT, expected_signal_count);
-
-                int expected = ncomplete;
-                int replace_with = expected - 1;
-
-                while (1) {
-                    const int old = shmem_int_cswap(&ndone, expected,
-                            replace_with, 0);
-                    if (old == npes) {
-                        /*
-                         * Got to do termination detection, loop until we get
-                         * the master PE's signal.
-                         */
-                        assert(expected != npes); // Assert that we failed CAS
-                        // Ensure we will enter termination detection logic
-                        while (*nsignals % 2 != 1) ;
-                        break;
-                    } else if (old == expected) {
-                        // Successfully decremented, get out
-                        assert(*nsignals % 2 != 1);
-                        break;
-                    } else {
-                        // Reset and try again
-                        assert(old != npes);
-                        expected = old;
-                        replace_with = expected - 1;
-                    }
-                }
-
-                const unsigned long long elapsed = current_time_ns() -
-                    start_wait;
-                time_spent_waiting += elapsed;
+                shmem_int_put_nbi(other_signals + pe, &sent_any_signals,
+                        1, i);
             }
-
-            if (*nsignals % 2 == 1) {
-                // Got a termination detection notification
-                const int terminating = do_termination_detection(1, nsignals,
-                        expected_signal_count, npes, pe);
-                if (terminating) {
-#ifdef VERBOSE
-                    fprintf(stderr, "PE %d terminating\n", pe);
-#endif
-                    break;
-                }
-            }
-
-#ifdef VERBOSE
-            fprintf(stderr, "PE %d leaving termination detection\n", pe);
-#endif
         }
+
+        /*
+         * Ensure outstanding signals have completed before we check for
+         * completion.
+         */
+        shmem_barrier_all();
+        // shmem_quiet();
+
+        int break_out = 1;
+        for (i = 0; i < npes; i++) {
+            if (other_signals[i] > 0) {
+                break_out = 0;
+                break;
+            }
+        }
+
+        const unsigned long long elapsed = current_time_ns() - start_wait;
+        time_spent_waiting += elapsed;
+
+        if (break_out) {
+            break;
+        }
+
+        // *reduce_src = sent_any_signals;
+        // shmem_int_max_to_all(reduce_dest, reduce_src, 1, 0, 0, npes, pWrk_int,
+        //         pSync_int);
+        // if (*reduce_dest == 0) {
+        //     break;
+        // }
 
         niterations++;
     }
@@ -579,21 +552,28 @@ int main(int argc, char **argv) {
     shmem_barrier_all();
     const unsigned long long end_bfs = current_time_ns();
     if (pe == 0) {
-        fprintf(stderr, "BFS took %f ms\n", (double)(end_bfs - start_bfs) / 1000000.0);
+        fprintf(stderr, "BFS took %f ms\n",
+                (double)(end_bfs - start_bfs) / 1000000.0);
     }
 
     uint64_t count_parents = 0;
     for (i = 0; i < n_local_vertices; i++) {
-        assert(signals[i] <= 0);
+        if (signals[i] > 0) {
+            fprintf(stderr, "Unhandled signal on local vertex %d on PE %d, "
+                    "signals[%d] = %d, min_unsignalled=%u, "
+                    "max_unsignalled=%u\n", i, pe, i, signals[i],
+                    min_unsignalled, max_unsignalled);
+            shmem_global_exit(2);
+        }
         if (signals[i] < 0) count_parents++;
     }
 
     fprintf(stderr, "PE %d got out, marked parents for %llu vertices, %f ms "
-            "waiting, %f ms signalling, %u iterations, %lu parents "
+            "waiting, %f ms signalling, %u iterations, %u waits, %lu parents "
             "found out of %lu local vertices\n", pe,
             nprocessed, (double)time_spent_waiting / 1000000.0,
             (double)time_spent_signalling / 1000000.0,
-            niterations, count_parents, n_local_vertices);
+            niterations, nwaits, count_parents, n_local_vertices);
 
     shmem_free(signals);
 
