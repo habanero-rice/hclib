@@ -12,7 +12,7 @@
 #include "utilities.h"
 #include "generator.h"
 
-#define MAILBOX_SIZE 131072
+#define MAILBOX_SIZE 262144
 
 static int pe = -1;
 static int npes = -1;
@@ -106,32 +106,6 @@ int main(int argc, char **argv) {
     }
 
     uint64_t i;
-    // Inbox and outbox
-    int ***mailbox_arr = (int ***)malloc(2 * sizeof(int **));
-    assert(mailbox_arr);
-
-    mailbox_arr[0] = (int **)malloc(npes * sizeof(int *));
-    mailbox_arr[1] = (int **)malloc(npes * sizeof(int *));
-    assert(mailbox_arr[0] && mailbox_arr[1]);
-
-    for (i = 0; i < npes; i++) {
-        mailbox_arr[0][i] = (int *)shmem_malloc(MAILBOX_SIZE * sizeof(int));
-        mailbox_arr[1][i] = (int *)shmem_malloc(MAILBOX_SIZE * sizeof(int));
-        assert(mailbox_arr[0][i] && mailbox_arr[1][i]);
-
-        memset(mailbox_arr[0][i], 0x00, MAILBOX_SIZE * sizeof(int));
-        memset(mailbox_arr[1][i], 0x00, MAILBOX_SIZE * sizeof(int));
-    }
-
-    int **reading = mailbox_arr[0];
-    int **filling = mailbox_arr[1];
-
-    // Buffers to use to transmit next wave to each other PE, output only
-    int **send_bufs = (int **)malloc(npes * sizeof(int *));
-    for (i = 0; i < npes; i++) {
-        send_bufs[i] = (int *)calloc(MAILBOX_SIZE, sizeof(int));
-        assert(send_bufs[i]);
-    }
 
     /*
      * Use the Graph500 utilities to generate a set of edges distributed across
@@ -302,6 +276,33 @@ int main(int argc, char **argv) {
 
     shmem_free(local_edges);
 
+    // Inbox and outbox
+    packed_edge ***mailbox_arr = (packed_edge ***)malloc(2 * sizeof(packed_edge **));
+    assert(mailbox_arr);
+
+    mailbox_arr[0] = (packed_edge **)malloc(npes * sizeof(packed_edge *));
+    mailbox_arr[1] = (packed_edge **)malloc(npes * sizeof(packed_edge *));
+    assert(mailbox_arr[0] && mailbox_arr[1]);
+
+    for (i = 0; i < npes; i++) {
+        mailbox_arr[0][i] = (packed_edge *)shmem_malloc(MAILBOX_SIZE * sizeof(packed_edge));
+        mailbox_arr[1][i] = (packed_edge *)shmem_malloc(MAILBOX_SIZE * sizeof(packed_edge));
+        assert(mailbox_arr[0][i] && mailbox_arr[1][i]);
+
+        memset(mailbox_arr[0][i], 0x00, MAILBOX_SIZE * sizeof(packed_edge));
+        memset(mailbox_arr[1][i], 0x00, MAILBOX_SIZE * sizeof(packed_edge));
+    }
+
+    packed_edge **reading = mailbox_arr[0];
+    packed_edge **filling = mailbox_arr[1];
+
+    // Buffers to use to transmit next wave to each other PE, output only
+    packed_edge **send_bufs = (packed_edge **)malloc(npes * sizeof(packed_edge *));
+    for (i = 0; i < npes; i++) {
+        send_bufs[i] = (packed_edge *)calloc(MAILBOX_SIZE, sizeof(packed_edge));
+        assert(send_bufs[i]);
+    }
+
     int *nmessages_local = (int *)shmem_malloc(sizeof(int));
     int *nmessages_global = (int *)shmem_malloc(sizeof(int));
     assert(nmessages_local && nmessages_global);
@@ -311,9 +312,8 @@ int main(int argc, char **argv) {
          * Signal that this PE has received 1 item in its inbox, setting the
          * parent for vertex 0 to 0.
          */
-        reading[0][0] = 1;
-        reading[0][1] = 0;
-        reading[0][2] = 0;
+        write_edge(&(reading[0][0]), 1, 0);
+        write_edge(&(reading[0][1]), 0, 0);
     }
 
     shmem_barrier_all();
@@ -323,13 +323,13 @@ int main(int argc, char **argv) {
         *nmessages_local = 0;
 
         for (i = 0; i < npes; i++) {
-            int *in = reading[i];
-            const int nin = in[0];
+            packed_edge *in = reading[i];
+            const int64_t nin = get_v0_from_edge(&in[0]);
 
             int j;
             for (j = 0; j < nin; j++) {
-                const int vertex = in[1 + 2 * j];
-                const int parent = in[1 + 2 * j + 1];
+                const int vertex = get_v0_from_edge(&in[1 + j]);
+                const int parent = get_v1_from_edge(&in[1 + j]);
                 assert(vertex >= local_min_vertex && vertex < local_max_vertex);
                 const int local_vertex_id = vertex - local_min_vertex;
 
@@ -341,29 +341,39 @@ int main(int argc, char **argv) {
                             k < local_vertex_offsets[local_vertex_id + 1]; k++) {
                         const int target_pe = get_owner_pe(neighbors[k],
                                 nglobalverts);
-                        int *send_buf = send_bufs[target_pe];
-                        const int curr_size = send_buf[0];
-                        assert(1 + 2 * (curr_size + 1) <= MAILBOX_SIZE);
+                        const uint64_t to_explore = neighbors[k];
+                        packed_edge *send_buf = send_bufs[target_pe];
+                        const int curr_size = get_v0_from_edge(&send_buf[0]);
 
-                        send_buf[1 + 2 * curr_size] = neighbors[k];
-                        send_buf[1 + 2 * curr_size + 1] = vertex;
-                        send_buf[0] = curr_size + 1;
+                        int already_exploring = 0;
+#ifdef REMOVE_DUPS
+                        int l;
+                        for (l = 0; l < curr_size && !already_exploring; l++) {
+                            if (send_buf[1 + l].v0 == to_explore) {
+                                already_exploring = 1;
+                            }
+                        }
+#endif
 
-                        *nmessages_local = *nmessages_local + 1;
+                        if (!already_exploring) {
+                            assert(1 + curr_size + 1 <= MAILBOX_SIZE);
+
+                            write_edge(&send_buf[1 + curr_size], to_explore, vertex);
+                            write_edge(&send_buf[0], curr_size + 1, 0);
+
+                            *nmessages_local = *nmessages_local + 1;
+                        }
                     }
                 }
             }
         }
 
-        int *out = filling[pe];
+        packed_edge *out = filling[pe];
         for (i = 0; i < npes; i++) {
-            int *send_buf = send_bufs[i];
+            packed_edge *send_buf = send_bufs[i];
 
-            if (i == pe) {
-                memcpy(out, send_buf, sizeof(int) * (1 + 2 * send_buf[0]));
-            } else {
-                shmem_int_put_nbi(out, send_buf, 1 + 2 * send_buf[0], i);
-            }
+            shmem_char_put_nbi((char *)out, (const char *)send_buf,
+                    sizeof(packed_edge) * (1 + get_v0_from_edge(&send_buf[0])), i);
         }
 
         shmem_int_sum_to_all(nmessages_global, nmessages_local, 1, 0, 0, npes,
@@ -373,14 +383,14 @@ int main(int argc, char **argv) {
             break;
         }
 
-        int **tmp = reading;
+        packed_edge **tmp = reading;
         reading = filling;
         filling = tmp;
 
         shmem_barrier_all();
 
         for (i = 0; i < npes; i++) {
-            send_bufs[i][0] = 0;
+            write_edge(&(send_bufs[i][0]), 0, 0);
         }
     }
 
