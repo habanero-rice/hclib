@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:01:00
-#PBS -l nodes=32
+#PBS -l nodes=1
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -36,4 +36,4 @@ export OMP_NUM_THREADS=1
 
 # aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 
-aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem $GRAPH_SIZE 16
+aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-mailbox $GRAPH_SIZE 16
