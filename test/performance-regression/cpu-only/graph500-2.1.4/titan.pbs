@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:10:00
-#PBS -l nodes=2
+#PBS -l nodes=128
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -53,7 +53,7 @@ NODES=$PBS_NUM_NODES
 # For GRAPH_SIZE=26, one-sided only succeeds without OOM with NODES>=128
 # For GRAPH_SIZE=29, one-sided only succeeds without OOM with NODES>=1024
 # Anything beyond that requires an exceesive amount of nodes on Titan
-export GRAPH_SIZE=26
+export GRAPH_SIZE=29
 export OMP_NUM_THREADS=1
 for NODES in $PBS_NUM_NODES; do
     echo Running $(($NODES * 16)) ranks on $NODES nodes
