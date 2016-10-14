@@ -18,7 +18,7 @@
 #define SEND_CHUNKING 2048
 
 // #define VERBOSE
-#define PROFILE
+// #define PROFILE
 
 static int pe = -1;
 static int npes = -1;
@@ -63,8 +63,6 @@ static void make_mrg_seed(uint64_t userseed1, uint64_t userseed2,
 
 static inline void send_new_vertices(packed_edge *send_buf,
         const int size, const int target_pe, packed_edge *filling, int *filling_incr) {
-    assert(size > 0);
-
     const int remote_offset = shmem_int_fadd(filling_incr, size, target_pe);
     assert(remote_offset + size <= INCOMING_MAILBOX_SIZE);
     shmem_char_put_nbi((char *)(filling + remote_offset),
@@ -404,7 +402,7 @@ int main(int argc, char **argv) {
         for (i = 0; i < npes; i++) {
             const int target = (pe + i) % npes;
             packed_edge *send_buf = send_bufs[target];
-            const unsigned send_size = send_bufs_size[target] /* - send_offset */ ;
+            const unsigned send_size = send_bufs_size[target];
 
             if (send_size > 0) {
 #ifdef VERBOSE
@@ -412,6 +410,7 @@ int main(int argc, char **argv) {
 #endif
                 send_new_vertices(send_buf, send_size, target,
                         filling, filling_incr);
+                send_bufs_size[target] = 0;
             }
         }
 
@@ -441,8 +440,6 @@ int main(int argc, char **argv) {
         filling_incr = tmp_incr;
 
         shmem_barrier_all();
-
-        memset(send_bufs_size, 0x00, npes * sizeof(unsigned));
 
         iter++;
     }
