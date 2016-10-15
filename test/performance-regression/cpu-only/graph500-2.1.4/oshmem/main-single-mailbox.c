@@ -15,7 +15,7 @@
 #define INCOMING_MAILBOX_SIZE 33554432
 #define OUTGOING_MAILBOX_SIZE 2097152
 
-#define SEND_CHUNKING 2048
+#define BITS_PER_INT 32
 
 // #define VERBOSE
 // #define PROFILE
@@ -27,6 +27,7 @@ volatile long long n_local_edges = 0;
 volatile long long max_n_local_edges;
 long long pWrk[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 short pWrk_short[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
+int pWrk_int[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 long pSync[SHMEM_REDUCE_SYNC_SIZE];
 
 static uint64_t get_vertices_per_pe(uint64_t nvertices) {
@@ -48,6 +49,25 @@ static uint64_t get_ending_vertex_for_pe(int pe, uint64_t nvertices) {
 static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     uint64_t vertices_per_pe = get_vertices_per_pe(nvertices);
     return vertex / vertices_per_pe;
+}
+
+static inline void set_visited(const uint64_t vertex, int *visited) {
+    const int word_index = vertex / BITS_PER_INT;
+    const int bit_index = vertex % BITS_PER_INT;
+    const int mask = (1 << bit_index);
+    visited[word_index] |= mask;
+}
+
+static inline int is_visited(const uint64_t vertex, const int *visited) {
+    const int word_index = vertex / BITS_PER_INT;
+    const int bit_index = vertex % BITS_PER_INT;
+    const int mask = (1 << bit_index);
+
+    if ((visited[word_index] & mask) > 0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 /* Spread the two 64-bit numbers into five nonzero values in the correct
@@ -74,7 +94,7 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
         packed_edge *reading, const unsigned *local_vertex_offsets,
         const uint64_t *neighbors, const uint64_t vertices_per_pe,
         packed_edge **send_bufs, unsigned *send_bufs_size,
-        short *nmessages_local,
+        short *nmessages_local, int *visited,
         const uint64_t local_min_vertex, const uint64_t local_max_vertex) {
     int i;
     assert(vertex >= local_min_vertex && vertex < local_max_vertex);
@@ -92,12 +112,15 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
             const uint64_t to_explore = neighbors[k];
 
             // Don't go backwards to the parent or follow self-loops
-            if (to_explore != parent && to_explore != vertex) {
+            if (to_explore != parent && to_explore != vertex &&
+                    !is_visited(to_explore, visited)) {
                 const int target_pe = to_explore / vertices_per_pe;
                 packed_edge *send_buf = send_bufs[target_pe];
                 const int curr_size = send_bufs_size[target_pe];
 
                 assert(curr_size < OUTGOING_MAILBOX_SIZE);
+
+                set_visited(to_explore, visited);
 
                 write_edge(&send_buf[curr_size], to_explore, vertex);
                 send_bufs_size[target_pe] = curr_size + 1;
@@ -157,6 +180,14 @@ int main(int argc, char **argv) {
                 "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts, nglobaledges, npes,
                 edges_per_pe, get_vertices_per_pe(nglobalverts));
     }
+
+    const size_t visited_bytes = ((nglobalverts + BITS_PER_INT - 1) /
+            BITS_PER_INT) * sizeof(int);
+    int *visited = (int *)shmem_malloc(visited_bytes);
+    assert(visited);
+    int *next_visited = (int *)shmem_malloc(visited_bytes);
+    assert(next_visited);
+    memset(visited, 0x00, visited_bytes);
 
     uint64_t i;
 
@@ -362,6 +393,7 @@ int main(int argc, char **argv) {
          * Signal that this PE has received 1 item in its inbox, setting the
          * parent for vertex 0 to 0.
          */
+        set_visited(0, visited);
         write_edge(&(reading[0]), 0, 0);
         *reading_incr = 1;
     }
@@ -391,7 +423,8 @@ int main(int argc, char **argv) {
 
             handle_new_vertex(vertex, preds, reading, local_vertex_offsets,
                     neighbors, vertices_per_pe, send_bufs, send_bufs_size,
-                    nmessages_local, local_min_vertex, local_max_vertex);
+                    nmessages_local, visited, local_min_vertex,
+                    local_max_vertex);
         }
 
 #ifdef PROFILE
@@ -406,7 +439,9 @@ int main(int argc, char **argv) {
 
             if (send_size > 0) {
 #ifdef VERBOSE
-                fprintf(stderr, "On iter %d sending %d from %d to %d\n", iter, send_size, pe, target);
+                fprintf(stderr, "On iter %d, PE %d sending %d entries to %d "
+                        "(%d vertices per PE)\n", iter, pe, send_size, target,
+                        get_vertices_per_pe(nglobalverts));
 #endif
                 send_new_vertices(send_buf, send_size, target,
                         filling, filling_incr);
@@ -430,6 +465,13 @@ int main(int argc, char **argv) {
         if (*nmessages_global == 0) {
             break;
         }
+
+        shmem_int_or_to_all(next_visited, visited, 1, 0, 0, npes, pWrk_int,
+                pSync);
+
+        int *tmp_visited = visited;
+        visited = next_visited;
+        next_visited = visited;
 
         packed_edge *tmp = reading;
         reading = filling;
