@@ -100,8 +100,12 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
     assert(vertex >= local_min_vertex && vertex < local_max_vertex);
     const int local_vertex_id = vertex - local_min_vertex;
 
+    const int parent = get_v1_from_edge(&reading[i]);
+
+    set_visited(vertex, visited);
+    set_visited(parent, visited);
+
     if (preds[local_vertex_id] == 0) {
-        const int parent = get_v1_from_edge(&reading[i]);
         preds[local_vertex_id] = parent + 1;
 
         const int neighbor_start = local_vertex_offsets[local_vertex_id];
@@ -181,8 +185,9 @@ int main(int argc, char **argv) {
                 edges_per_pe, get_vertices_per_pe(nglobalverts));
     }
 
-    const size_t visited_bytes = ((nglobalverts + BITS_PER_INT - 1) /
-            BITS_PER_INT) * sizeof(int);
+    const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
+            BITS_PER_INT);
+    const size_t visited_bytes = visited_ints * sizeof(int);
     int *visited = (int *)shmem_malloc(visited_bytes);
     assert(visited);
     int *next_visited = (int *)shmem_malloc(visited_bytes);
@@ -466,8 +471,11 @@ int main(int argc, char **argv) {
             break;
         }
 
-        shmem_int_or_to_all(next_visited, visited, 1, 0, 0, npes, pWrk_int,
-                pSync);
+        // assert(npes % 2 == 0); // For simplicity, just assert we can pair up all PEs
+        // shmem_int_or_to_all(next_visited, visited, visited_ints, 2 * (pe / 2), 0, 2,
+        //         pWrk_int, pSync);
+        // shmem_int_or_to_all(next_visited, visited, visited_ints, 0, 0, npes,
+        //         pWrk_int, pSync);
 
         int *tmp_visited = visited;
         visited = next_visited;
