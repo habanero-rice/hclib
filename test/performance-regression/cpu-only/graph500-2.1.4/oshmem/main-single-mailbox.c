@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
     const uint64_t scale = atoi(argv[1]);
     const uint64_t edgefactor = atoi(argv[2]);
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
-    const uint64_t nglobalverts = (uint64_t)(1 << scale);
+    const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
 
     shmem_init();
 
@@ -184,15 +184,6 @@ int main(int argc, char **argv) {
                 "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts, nglobaledges, npes,
                 edges_per_pe, get_vertices_per_pe(nglobalverts));
     }
-
-    const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
-            BITS_PER_INT);
-    const size_t visited_bytes = visited_ints * sizeof(int);
-    int *visited = (int *)shmem_malloc(visited_bytes);
-    assert(visited);
-    int *next_visited = (int *)shmem_malloc(visited_bytes);
-    assert(next_visited);
-    memset(visited, 0x00, visited_bytes);
 
     uint64_t i;
 
@@ -393,6 +384,15 @@ int main(int argc, char **argv) {
     short *nmessages_global = (short *)shmem_malloc(sizeof(short));
     assert(nmessages_local && nmessages_global);
 
+    const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
+            BITS_PER_INT);
+    const size_t visited_bytes = visited_ints * sizeof(int);
+    int *visited = (int *)shmem_malloc(visited_bytes);
+    assert(visited);
+    // int *next_visited = (int *)shmem_malloc(visited_bytes);
+    // assert(next_visited);
+    memset(visited, 0x00, visited_bytes);
+
     if (get_owner_pe(0, nglobalverts) == pe) {
         /*
          * Signal that this PE has received 1 item in its inbox, setting the
@@ -404,6 +404,9 @@ int main(int argc, char **argv) {
     }
 
     shmem_barrier_all();
+    if (pe == 0) {
+        fprintf(stderr, "Starting BFS\n");
+    }
     const unsigned long long start_bfs = current_time_ns();
     int iter = 0;
     const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
@@ -477,9 +480,9 @@ int main(int argc, char **argv) {
         // shmem_int_or_to_all(next_visited, visited, visited_ints, 0, 0, npes,
         //         pWrk_int, pSync);
 
-        int *tmp_visited = visited;
-        visited = next_visited;
-        next_visited = visited;
+        // int *tmp_visited = visited;
+        // visited = next_visited;
+        // next_visited = visited;
 
         packed_edge *tmp = reading;
         reading = filling;
