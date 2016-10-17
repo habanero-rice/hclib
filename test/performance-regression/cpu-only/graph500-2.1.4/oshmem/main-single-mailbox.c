@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    uint64_t total = 0;
+    uint64_t total_endpoints = 0;
     uint64_t duplicates = 0;
     for (i = 0; i < n_local_vertices; i++) {
         const int start = local_vertex_offsets[i];
@@ -395,19 +395,19 @@ int main(int argc, char **argv) {
                 neighbors[writing_index] = neighbors[index];
                 index++;
                 writing_index++;
-                total++;
+                total_endpoints++;
             }
         }
 
         local_vertex_offsets[i] = new_start;
     }
-    local_vertex_offsets[n_local_vertices] = total;
-    neighbors = (uint64_t *)realloc(neighbors, total * sizeof(uint64_t));
+    local_vertex_offsets[n_local_vertices] = total_endpoints;
+    neighbors = (uint64_t *)realloc(neighbors, total_endpoints * sizeof(uint64_t));
     assert(neighbors);
 
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d found %llu duplicate edges, total = %llu\n", pe,
-            duplicates, total);
+    fprintf(stderr, "PE %d found %llu duplicate edges, total endpoints = %llu\n", pe,
+            duplicates, total_endpoints);
 #endif
 
     shmem_free(local_edges);
@@ -568,8 +568,8 @@ int main(int argc, char **argv) {
             count_preds, n_local_vertices, accum_time / 1000000,
             send_time / 1000000, reduce_time / 1000000);
 #else
-    fprintf(stderr, "PE %d found preds for %d / %d local vertices\n", pe,
-            count_preds, n_local_vertices);
+    fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu "
+            "endpoints\n", pe, count_preds, n_local_vertices, total_endpoints);
 #endif
 
     shmem_finalize();
