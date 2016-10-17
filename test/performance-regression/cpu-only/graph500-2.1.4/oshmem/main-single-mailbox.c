@@ -6,6 +6,7 @@
 #include <shmem.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdlib.h>
 
 #include "mrg.h"
 #include "packed_edge.h"
@@ -79,6 +80,19 @@ static void make_mrg_seed(uint64_t userseed1, uint64_t userseed2,
   seed[2] = (userseed2 & 0x3FFFFFFF) + 1;
   seed[3] = ((userseed2 >> 30) & 0x3FFFFFFF) + 1;
   seed[4] = ((userseed2 >> 60) << 4) + (userseed1 >> 60) + 1;
+}
+
+static int compare_uint64_t(const void *a, const void *b) {
+    const uint64_t *aa = (const uint64_t *)a;
+    const uint64_t *bb = (const uint64_t *)b;
+
+    if (*aa < *bb) {
+        return -1;
+    } else if (*aa == *bb) {
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 static inline void send_new_vertices(packed_edge *send_buf,
@@ -354,6 +368,48 @@ int main(int argc, char **argv) {
         }
     }
 
+    uint64_t total = 0;
+    uint64_t duplicates = 0;
+    for (i = 0; i < n_local_vertices; i++) {
+        const int start = local_vertex_offsets[i];
+        const int end = local_vertex_offsets[i + 1];
+        assert(start <= end);
+
+        const int new_start = start - duplicates;
+        assert(new_start >= 0);
+
+        qsort(neighbors + start, end - start, sizeof(*neighbors),
+                compare_uint64_t);
+
+        uint64_t curr = neighbors[start];
+        int index = start + 1;
+        int writing_index = start + 1;
+        while (index < end) {
+            if (neighbors[index] == curr) {
+                // A duplicate of an already seen value
+                duplicates++;
+                index++;
+            } else {
+                // Not a duplicate
+                curr = neighbors[index];
+                neighbors[writing_index] = neighbors[index];
+                index++;
+                writing_index++;
+                total++;
+            }
+        }
+
+        local_vertex_offsets[i] = new_start;
+    }
+    local_vertex_offsets[n_local_vertices] = total;
+    neighbors = (uint64_t *)realloc(neighbors, total * sizeof(uint64_t));
+    assert(neighbors);
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d found %llu duplicate edges, total = %llu\n", pe,
+            duplicates, total);
+#endif
+
     shmem_free(local_edges);
 
     // Inbox and outbox
@@ -370,7 +426,8 @@ int main(int argc, char **argv) {
     *filling_incr = 0;
 
     // Buffers to use to transmit next wave to each other PE, output only
-    packed_edge **send_bufs = (packed_edge **)malloc(npes * sizeof(packed_edge *));
+    packed_edge **send_bufs = (packed_edge **)malloc(npes *
+            sizeof(packed_edge *));
     assert(send_bufs);
     unsigned *send_bufs_size = (unsigned *)calloc(npes, sizeof(unsigned));
     assert(send_bufs_size /* && send_bufs_offset */ );
@@ -404,9 +461,6 @@ int main(int argc, char **argv) {
     }
 
     shmem_barrier_all();
-    if (pe == 0) {
-        fprintf(stderr, "Starting BFS\n");
-    }
     const unsigned long long start_bfs = current_time_ns();
     int iter = 0;
     const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
