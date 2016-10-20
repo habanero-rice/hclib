@@ -102,8 +102,8 @@ int main(int argc, char** argv) {
   /* Make the raw graph edges. */
   /* Get roots for BFS runs, plus maximum vertex with non-zero degree (used by
    * validator). */
-  // int num_bfs_roots = 64;
-  int num_bfs_roots = 1;
+  int num_bfs_roots = 64;
+  // int num_bfs_roots = 1;
   int64_t* bfs_roots = (int64_t*)xmalloc(num_bfs_roots * sizeof(int64_t));
   int64_t max_used_vertex = 0;
 
@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
   for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
     int64_t root = bfs_roots[bfs_root_idx];
 
-    if (rank == 0) fprintf(stderr, "Running BFS %d\n", bfs_root_idx);
+    if (rank == 0) fprintf(stderr, "Running BFS %d on root = %ld\n", bfs_root_idx, root);
 
     /* Clear the pred array. */
     memset(pred, 0, nlocalverts * sizeof(int64_t));

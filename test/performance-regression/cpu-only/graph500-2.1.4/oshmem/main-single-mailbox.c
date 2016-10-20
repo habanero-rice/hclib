@@ -24,6 +24,17 @@
 static int pe = -1;
 static int npes = -1;
 
+uint64_t bfs_roots[] = {240425174, 115565041, 66063943, 180487911, 11178951,
+    123935973, 231036167, 373595937, 363787030, 85801485, 108275987, 69071368,
+    514373733, 251500048, 140103887, 506907254, 39995468, 195903646, 21863341,
+    390997409, 470978452, 372755572, 449581394, 461086083, 357027875, 355651295,
+    18628407, 427844427, 273604491, 372475785, 427329960, 465597328, 78313325,
+    90706091, 457847627, 430362844, 178489195, 374418701, 7644678, 154891942,
+    353689376, 56388509, 191747720, 264370699, 20638787, 421731131, 14127289,
+    411537113, 397525451, 189929616, 140277533, 221845716, 135921328, 141538717,
+    264336150, 267866811, 413698500, 263044574, 490922152, 81101617, 415841963,
+    132009584, 67293842, 148419562};
+
 volatile long long n_local_edges = 0;
 volatile long long max_n_local_edges;
 long long pWrk[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -150,7 +161,6 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
 }
 
 int main(int argc, char **argv) {
-    int num_bfs_roots = 64;
     if (argc < 3) {
         fprintf(stderr, "usage: %s scale edgefactor [num-bfs-roots]\n",
                 argv[0]);
@@ -292,6 +302,8 @@ int main(int argc, char **argv) {
                 sizeof(packed_edge), v1_pe);
         remote_offsets[v1_pe]++;
     }
+
+    free(remote_offsets);
 
     shmem_barrier_all();
 
@@ -446,131 +458,143 @@ int main(int argc, char **argv) {
     const size_t visited_bytes = visited_ints * sizeof(int);
     int *visited = (int *)shmem_malloc(visited_bytes);
     assert(visited);
-    // int *next_visited = (int *)shmem_malloc(visited_bytes);
-    // assert(next_visited);
-    memset(visited, 0x00, visited_bytes);
 
-    if (get_owner_pe(0, nglobalverts) == pe) {
-        /*
-         * Signal that this PE has received 1 item in its inbox, setting the
-         * parent for vertex 0 to 0.
-         */
-        set_visited(0, visited);
-        write_edge(&(reading[0]), 0, 0);
-        *reading_incr = 1;
-    }
+    const unsigned num_bfs_roots = 64;
+    assert(num_bfs_roots == sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
-    shmem_barrier_all();
-    const unsigned long long start_bfs = current_time_ns();
-    int iter = 0;
-    const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
+    unsigned run;
+    for (run = 0; run < num_bfs_roots; run++) {
+        memset(visited, 0x00, visited_bytes);
+        memset(preds, 0x00, n_local_vertices * sizeof(uint64_t));
+        memset(send_bufs_size, 0x00, npes * sizeof(unsigned));
 
-#ifdef PROFILE
-    unsigned long long accum_time = 0;
-    unsigned long long send_time = 0;
-    unsigned long long reduce_time = 0;
-#endif
+        uint64_t root = bfs_roots[run];
 
-    while (1) {
-#ifdef PROFILE
-        const unsigned long long start_accum = current_time_ns();
-#endif
-        *nmessages_local = 0;
-
-        const int N = *reading_incr;
-        *reading_incr = 0;
-
-        for (i = 0; i < N; i++) {
-            const int vertex = get_v0_from_edge(&reading[i]);
-
-            handle_new_vertex(vertex, preds, reading, local_vertex_offsets,
-                    neighbors, vertices_per_pe, send_bufs, send_bufs_size,
-                    nmessages_local, visited, local_min_vertex,
-                    local_max_vertex);
+        if (get_owner_pe(root, nglobalverts) == pe) {
+            /*
+             * Signal that this PE has received 1 item in its inbox, setting the
+             * parent for vertex 0 to 0.
+             */
+            set_visited(root, visited);
+            write_edge(&(reading[0]), root, root);
+            *reading_incr = 1;
         }
-
-#ifdef PROFILE
-        const unsigned long long start_sends = current_time_ns();
-        accum_time += (start_sends - start_accum);
-#endif
-
-        for (i = 0; i < npes; i++) {
-            const int target = (pe + i) % npes;
-            packed_edge *send_buf = send_bufs[target];
-            const unsigned send_size = send_bufs_size[target];
-
-            if (send_size > 0) {
-#ifdef VERBOSE
-                fprintf(stderr, "On iter %d, PE %d sending %d entries to %d "
-                        "(%d vertices per PE)\n", iter, pe, send_size, target,
-                        get_vertices_per_pe(nglobalverts));
-#endif
-                send_new_vertices(send_buf, send_size, target,
-                        filling, filling_incr);
-                send_bufs_size[target] = 0;
-            }
-        }
-
-#ifdef PROFILE
-        const unsigned long long start_reduce = current_time_ns();
-        send_time += (start_reduce - start_sends);
-#endif
-
-        shmem_short_max_to_all(nmessages_global, nmessages_local, 1, 0, 0, npes,
-                pWrk_short, pSync);
-
-#ifdef PROFILE
-        const unsigned long long end_all = current_time_ns();
-        reduce_time += (end_all - start_reduce);
-#endif
-
-        if (*nmessages_global == 0) {
-            break;
-        }
-
-        // assert(npes % 2 == 0); // For simplicity, just assert we can pair up all PEs
-        // shmem_int_or_to_all(next_visited, visited, visited_ints, 2 * (pe / 2), 0, 2,
-        //         pWrk_int, pSync);
-        // shmem_int_or_to_all(next_visited, visited, visited_ints, 0, 0, npes,
-        //         pWrk_int, pSync);
-
-        // int *tmp_visited = visited;
-        // visited = next_visited;
-        // next_visited = visited;
-
-        packed_edge *tmp = reading;
-        reading = filling;
-        filling = tmp;
-
-        int *tmp_incr = reading_incr;
-        reading_incr = filling_incr;
-        filling_incr = tmp_incr;
 
         shmem_barrier_all();
+        const unsigned long long start_bfs = current_time_ns();
+        int iter = 0;
+        const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
 
-        iter++;
-    }
-
-    shmem_barrier_all();
-    const unsigned long long end_bfs = current_time_ns();
-    if (pe == 0) {
-        fprintf(stderr, "BFS took %f ms, %d iters\n",
-                (double)(end_bfs - start_bfs) / 1000000.0, iter + 1);
-    }
-
-    int count_preds = 0;
-    for (i = 0; i < n_local_vertices; i++) {
-        if (preds[i] > 0) count_preds++;
-    }
 #ifdef PROFILE
-    fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu ms "
-            "accumulating, %llu ms sending, %llu ms reducing\n", pe,
-            count_preds, n_local_vertices, accum_time / 1000000,
-            send_time / 1000000, reduce_time / 1000000);
-#else
-    fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu "
-            "endpoints\n", pe, count_preds, n_local_vertices, total_endpoints);
+        unsigned long long accum_time = 0;
+        unsigned long long send_time = 0;
+        unsigned long long reduce_time = 0;
 #endif
+
+        while (1) {
+#ifdef PROFILE
+            const unsigned long long start_accum = current_time_ns();
+#endif
+            *nmessages_local = 0;
+
+            const int N = *reading_incr;
+            *reading_incr = 0;
+
+            for (i = 0; i < N; i++) {
+                const int vertex = get_v0_from_edge(&reading[i]);
+
+                handle_new_vertex(vertex, preds, reading, local_vertex_offsets,
+                        neighbors, vertices_per_pe, send_bufs, send_bufs_size,
+                        nmessages_local, visited, local_min_vertex,
+                        local_max_vertex);
+            }
+
+#ifdef PROFILE
+            const unsigned long long start_sends = current_time_ns();
+            accum_time += (start_sends - start_accum);
+#endif
+
+            for (i = 0; i < npes; i++) {
+                const int target = (pe + i) % npes;
+                packed_edge *send_buf = send_bufs[target];
+                const unsigned send_size = send_bufs_size[target];
+
+                if (send_size > 0) {
+#ifdef VERBOSE
+                    fprintf(stderr, "On iter %d, PE %d sending %d entries to %d "
+                            "(%d vertices per PE)\n", iter, pe, send_size, target,
+                            get_vertices_per_pe(nglobalverts));
+#endif
+                    send_new_vertices(send_buf, send_size, target,
+                            filling, filling_incr);
+                    send_bufs_size[target] = 0;
+                }
+            }
+
+#ifdef PROFILE
+            const unsigned long long start_reduce = current_time_ns();
+            send_time += (start_reduce - start_sends);
+#endif
+
+            shmem_short_max_to_all(nmessages_global, nmessages_local, 1, 0, 0, npes,
+                    pWrk_short, pSync);
+
+#ifdef PROFILE
+            const unsigned long long end_all = current_time_ns();
+            reduce_time += (end_all - start_reduce);
+#endif
+
+            if (*nmessages_global == 0) {
+                break;
+            }
+
+            // assert(npes % 2 == 0); // For simplicity, just assert we can pair up all PEs
+            // shmem_int_or_to_all(next_visited, visited, visited_ints, 2 * (pe / 2), 0, 2,
+            //         pWrk_int, pSync);
+            // shmem_int_or_to_all(next_visited, visited, visited_ints, 0, 0, npes,
+            //         pWrk_int, pSync);
+
+            // int *tmp_visited = visited;
+            // visited = next_visited;
+            // next_visited = visited;
+
+            packed_edge *tmp = reading;
+            reading = filling;
+            filling = tmp;
+
+            int *tmp_incr = reading_incr;
+            reading_incr = filling_incr;
+            filling_incr = tmp_incr;
+
+            shmem_barrier_all();
+
+            iter++;
+        }
+
+        shmem_barrier_all();
+        const unsigned long long end_bfs = current_time_ns();
+        if (pe == 0) {
+            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters\n",
+                    run, root, (double)(end_bfs - start_bfs) / 1000000.0,
+                    iter + 1);
+        }
+
+        int count_preds = 0;
+        for (i = 0; i < n_local_vertices; i++) {
+            if (preds[i] > 0) count_preds++;
+        }
+#ifdef VERBOSE
+#ifdef PROFILE
+        fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu ms "
+                "accumulating, %llu ms sending, %llu ms reducing\n", pe,
+                count_preds, n_local_vertices, accum_time / 1000000,
+                send_time / 1000000, reduce_time / 1000000);
+#else
+        fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu "
+                "endpoints\n", pe, count_preds, n_local_vertices, total_endpoints);
+#endif
+#endif
+    }
 
     shmem_finalize();
 

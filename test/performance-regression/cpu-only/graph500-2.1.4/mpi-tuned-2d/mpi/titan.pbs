@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -A csc205
-#PBS -N G500
+#PBS -N G500-tuned
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:03:00
-#PBS -l nodes=32
+#PBS -l walltime=00:10:00
+#PBS -l nodes=256
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -16,26 +16,28 @@
 # HUGE - 42
 
 # export GASNET_MAX_SEGSIZE='512MB'
-cd $PBS_O_WORKDIR
+# cd $PBS_O_WORKDIR
+cd $HCLIB_HOME/test/performance-regression/cpu-only/graph500-2.1.4/mpi-tuned-2d/mpi
 export LD_LIBRARY_PATH=/opt/gcc/4.9.0/snos/lib64:$LD_LIBRARY_PATH
 
 export LD_LIBRARY_PATH=$PROJ_DIR/hclib/modules/openshmem/lib:$LD_LIBRARY_PATH
 export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
 export GASNET_BACKTRACE=1
-# export SMA_SYMMETRIC_SIZE=1073741824
-# export GASNET_PHYSMEM_MAX=1073741824
 export SMA_SYMMETRIC_SIZE=1073741824
-export GASNET_PHYSMEM_MAX=1073741824
+export GASNET_PHYSMEM_MAX=1G
 export LD_PRELOAD=/lustre/atlas/sw/tbb/43/sles11.3_gnu4.8.2/source/build/linux_intel64_gcc_cc4.8.2_libc2.11.3_kernel3.0.101_release/libtbbmalloc_proxy.so.2
+export MPICH_MAX_THREAD_SAFETY=multiple
 ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
+TOTAL_PES=$(($PBS_NUM_NODES * 16))
 
 export GRAPH_SIZE=29
 export OMP_NUM_THREADS=1
+export EXE_NAME=graph500_mpi_custom_${TOTAL_PES}
 
-# aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
-# 
-# aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
+if [[ ! -f $EXE_NAME ]]; then
+    echo Missing tuned Graph 500 executable for $TOTAL_PES nodes
+fi
 
-aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
+aprun -n $TOTAL_PES -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./$EXE_NAME $GRAPH_SIZE

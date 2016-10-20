@@ -6,13 +6,7 @@
 #define INITIATOR_BC_NUMERATOR 1900
 #define INITIATOR_DENOMINATOR 10000
 
-static void mrg_seed(mrg_state* st, const uint_fast32_t seed[5]) {
-  st->z1 = seed[0];
-  st->z2 = seed[1];
-  st->z3 = seed[2];
-  st->z4 = seed[3];
-  st->z5 = seed[4];
-}
+extern void mrg_seed(mrg_state* st, const uint_fast32_t seed[5]);
 
 static inline uint64_t bitreverse(uint64_t x) {
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
