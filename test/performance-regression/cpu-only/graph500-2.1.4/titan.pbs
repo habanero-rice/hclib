@@ -53,16 +53,16 @@ NODES=$PBS_NUM_NODES
 # For GRAPH_SIZE=26, one-sided only succeeds without OOM with NODES>=128
 # For GRAPH_SIZE=29, one-sided only succeeds without OOM with NODES>=1024
 # Anything beyond that requires an exceesive amount of nodes on Titan
-export GRAPH_SIZE=29
+export GRAPH_SIZE=20
 export OMP_NUM_THREADS=1
 
 NRUNS=1
 
 # aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_one_sided $GRAPH_SIZE 16
 
-for I in $(seq $NRUNS); do
-    aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_simple $GRAPH_SIZE 16
-done
+# for I in $(seq $NRUNS); do
+#     aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_simple $GRAPH_SIZE 16
+# done
 
 # for I in $(seq $NRUNS); do
 #     aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_replicated $GRAPH_SIZE 16
@@ -72,9 +72,9 @@ done
 #     aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 # done
 # 
-# for I in $(seq $NRUNS); do
-#     aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_one_sided $GRAPH_SIZE 16
-# done
+for I in $(seq $NRUNS); do
+    aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./mpi/graph500_mpi_one_sided $GRAPH_SIZE 16
+done
 
 # for I in $(seq $NRUNS); do
 #     aprun -n $(($PBS_NUM_NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./oshmem/bfs_oshmem-single-mailbox $GRAPH_SIZE 16

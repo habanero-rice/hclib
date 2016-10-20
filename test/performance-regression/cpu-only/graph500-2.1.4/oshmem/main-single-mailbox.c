@@ -144,17 +144,24 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
             if (to_explore != parent && to_explore != vertex &&
                     !is_visited(to_explore, visited)) {
                 const int target_pe = to_explore / vertices_per_pe;
-                packed_edge *send_buf = send_bufs[target_pe];
-                const int curr_size = send_bufs_size[target_pe];
+                if (target_pe == pe) {
+                    handle_new_vertex(to_explore, preds, reading,
+                            local_vertex_offsets, neighbors, vertices_per_pe,
+                            send_bufs, send_bufs_size, nmessages_local, visited,
+                            local_min_vertex, local_max_vertex);
+                } else {
+                    packed_edge *send_buf = send_bufs[target_pe];
+                    const int curr_size = send_bufs_size[target_pe];
 
-                assert(curr_size < OUTGOING_MAILBOX_SIZE);
+                    assert(curr_size < OUTGOING_MAILBOX_SIZE);
 
-                set_visited(to_explore, visited);
+                    set_visited(to_explore, visited);
 
-                write_edge(&send_buf[curr_size], to_explore, vertex);
-                send_bufs_size[target_pe] = curr_size + 1;
+                    write_edge(&send_buf[curr_size], to_explore, vertex);
+                    send_bufs_size[target_pe] = curr_size + 1;
 
-                *nmessages_local = 1;
+                    *nmessages_local = 1;
+                }
             }
         }
     }
@@ -459,8 +466,8 @@ int main(int argc, char **argv) {
     int *visited = (int *)shmem_malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 64;
-    assert(num_bfs_roots == sizeof(bfs_roots) / sizeof(bfs_roots[0]));
+    const unsigned num_bfs_roots = 3;
+    assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
     for (run = 0; run < num_bfs_roots; run++) {
