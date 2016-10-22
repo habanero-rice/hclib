@@ -16,8 +16,6 @@
 #define INCOMING_MAILBOX_SIZE 33554432
 #define OUTGOING_MAILBOX_SIZE 2097152
 
-#define COALESCING 8192
-
 #define BITS_PER_INT 32
 
 // #define VERBOSE
@@ -44,26 +42,8 @@ short pWrk_short[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 int pWrk_int[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 long pSync[SHMEM_REDUCE_SYNC_SIZE];
 
-static uint64_t get_vertices_per_pe(uint64_t nvertices) {
-    return (nvertices + npes - 1) / npes;
-}
-
-static uint64_t get_starting_vertex_for_pe(int pe, uint64_t nvertices) {
-    uint64_t vertices_per_pe = get_vertices_per_pe(nvertices);
-    return pe * vertices_per_pe;
-}
-
-static uint64_t get_ending_vertex_for_pe(int pe, uint64_t nvertices) {
-    uint64_t vertices_per_pe = get_vertices_per_pe(nvertices);
-    uint64_t limit = (pe + 1) * vertices_per_pe;
-    if (limit > nvertices) limit = nvertices;
-    return limit;
-}
-
-static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
-    uint64_t vertices_per_pe = get_vertices_per_pe(nvertices);
-    return vertex / vertices_per_pe;
-}
+#define GET_OWNER_PE(vertex) ((vertex) % npes)
+#define GET_LOCAL_VERT_ID(global_vertex_id) ((global_vertex_id) / npes)
 
 static inline void set_visited(const uint64_t vertex, int *visited) {
     const int word_index = vertex / BITS_PER_INT;
@@ -119,13 +99,12 @@ static inline void send_new_vertices(packed_edge *send_buf,
 
 static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
         packed_edge *reading, const unsigned *local_vertex_offsets,
-        const uint64_t *neighbors, const uint64_t vertices_per_pe,
+        const uint64_t *neighbors,
         packed_edge **send_bufs, unsigned *send_bufs_size,
-        short *nmessages_local, int *visited,
-        const uint64_t local_min_vertex, const uint64_t local_max_vertex) {
+        short *nmessages_local, int *visited) {
     int i;
-    assert(vertex >= local_min_vertex && vertex < local_max_vertex);
-    const int local_vertex_id = vertex - local_min_vertex;
+    assert(GET_OWNER_PE(vertex) == pe);
+    const int local_vertex_id = GET_LOCAL_VERT_ID(vertex);
 
     const int parent = get_v1_from_edge(&reading[i]);
 
@@ -145,7 +124,7 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
             // Don't go backwards to the parent or follow self-loops
             if (to_explore != parent && to_explore != vertex &&
                     !is_visited(to_explore, visited)) {
-                const int target_pe = to_explore / vertices_per_pe;
+                const int target_pe = GET_OWNER_PE(to_explore);
                 packed_edge *send_buf = send_bufs[target_pe];
                 int curr_size = send_bufs_size[target_pe];
 
@@ -208,8 +187,8 @@ int main(int argc, char **argv) {
 
     if (pe == 0) {
         fprintf(stderr, "%llu: %lu total vertices, %lu total edges, %d PEs, ~%lu edges per "
-                "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts, nglobaledges, npes,
-                edges_per_pe, get_vertices_per_pe(nglobalverts));
+                "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts,
+                nglobaledges, npes, edges_per_pe);
     }
 
     uint64_t i;
@@ -234,8 +213,8 @@ int main(int argc, char **argv) {
     for (i = 0; i < nedges_this_pe; i++) {
         int64_t v0 = get_v0_from_edge(actual_buf + i);
         int64_t v1 = get_v1_from_edge(actual_buf + i);
-        int v0_pe = get_owner_pe(v0, nglobalverts);
-        int v1_pe = get_owner_pe(v1, nglobalverts);
+        int v0_pe = GET_OWNER_PE(v0);
+        int v1_pe = GET_OWNER_PE(v1);
         count_edges_shared_with_pe[v0_pe] += 1;
         count_edges_shared_with_pe[v1_pe] += 1;
     }
@@ -266,14 +245,8 @@ int main(int argc, char **argv) {
                 max_n_local_edges);
     }
 
-    uint64_t local_min_vertex = get_starting_vertex_for_pe(pe, nglobalverts);
-    uint64_t local_max_vertex = get_ending_vertex_for_pe(pe, nglobalverts);
-    uint64_t n_local_vertices;
-    if (local_min_vertex >= local_max_vertex) {
-        n_local_vertices = 0;
-    } else {
-        n_local_vertices = local_max_vertex - local_min_vertex;
-    }
+    assert(nglobalverts > 0 && nglobalverts % npes == 0);
+    const uint64_t n_local_vertices = nglobalverts / npes;
 
     // Contains parent-id + 1 for each local vertex
     uint64_t *preds = (uint64_t *)calloc(n_local_vertices, sizeof(uint64_t));
@@ -296,8 +269,8 @@ int main(int argc, char **argv) {
     for (i = 0; i < nedges_this_pe; i++) {
         int64_t v0 = get_v0_from_edge(actual_buf + i);
         int64_t v1 = get_v1_from_edge(actual_buf + i);
-        int v0_pe = get_owner_pe(v0, nglobalverts);
-        int v1_pe = get_owner_pe(v1, nglobalverts);
+        int v0_pe = GET_OWNER_PE(v0);
+        int v1_pe = GET_OWNER_PE(v1);
         shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
                 sizeof(packed_edge), v0_pe);
         remote_offsets[v0_pe]++;
@@ -325,14 +298,13 @@ int main(int argc, char **argv) {
         packed_edge *edge = local_edges + i;
         int64_t v0 = get_v0_from_edge(edge);
         int64_t v1 = get_v1_from_edge(edge);
-        assert(get_owner_pe(v0, nglobalverts) == pe ||
-                get_owner_pe(v1, nglobalverts) == pe);
+        assert(GET_OWNER_PE(v0) == pe || GET_OWNER_PE(v1) == pe);
 
-        if (get_owner_pe(v0, nglobalverts) == pe) {
-            local_vertex_offsets[v0 - local_min_vertex]++;
+        if (GET_OWNER_PE(v0) == pe) {
+            local_vertex_offsets[GET_LOCAL_VERT_ID(v0)]++;
         }
-        if (get_owner_pe(v1, nglobalverts) == pe) {
-            local_vertex_offsets[v1 - local_min_vertex]++;
+        if (GET_OWNER_PE(v1) == pe) {
+            local_vertex_offsets[GET_LOCAL_VERT_ID(v1)]++;
         }
     }
 
@@ -373,13 +345,13 @@ int main(int argc, char **argv) {
         int64_t v0 = get_v0_from_edge(edge);
         int64_t v1 = get_v1_from_edge(edge);
 
-        if (get_owner_pe(v0, nglobalverts) == pe) {
-            neighbors[local_vertex_offsets[v0 - local_min_vertex] - 1] = v1;
-            local_vertex_offsets[v0 - local_min_vertex]--;
+        if (GET_OWNER_PE(v0) == pe) {
+            neighbors[local_vertex_offsets[GET_LOCAL_VERT_ID(v0)] - 1] = v1;
+            local_vertex_offsets[GET_LOCAL_VERT_ID(v0)]--;
         }
-        if (get_owner_pe(v1, nglobalverts) == pe) {
-            neighbors[local_vertex_offsets[v1 - local_min_vertex] - 1] = v0;
-            local_vertex_offsets[v1 - local_min_vertex]--;
+        if (GET_OWNER_PE(v1) == pe) {
+            neighbors[local_vertex_offsets[GET_LOCAL_VERT_ID(v1)] - 1] = v0;
+            local_vertex_offsets[GET_LOCAL_VERT_ID(v1)]--;
         }
     }
 
@@ -473,12 +445,12 @@ int main(int argc, char **argv) {
 
         uint64_t root = bfs_roots[run];
 
-        if (get_owner_pe(root, nglobalverts) == pe) {
+        set_visited(root, visited);
+        if (GET_OWNER_PE(root) == pe) {
             /*
              * Signal that this PE has received 1 item in its inbox, setting the
              * parent for vertex 0 to 0.
              */
-            set_visited(root, visited);
             write_edge(&(reading[0]), root, root);
             *reading_incr = 1;
         }
@@ -486,7 +458,6 @@ int main(int argc, char **argv) {
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
-        const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
 
 #ifdef PROFILE
         unsigned long long accum_time = 0;
@@ -507,9 +478,8 @@ int main(int argc, char **argv) {
                 const int vertex = get_v0_from_edge(&reading[i]);
 
                 handle_new_vertex(vertex, preds, reading, local_vertex_offsets,
-                        neighbors, vertices_per_pe, send_bufs, send_bufs_size,
-                        nmessages_local, visited, local_min_vertex,
-                        local_max_vertex);
+                        neighbors, send_bufs, send_bufs_size,
+                        nmessages_local, visited);
             }
 
 #ifdef PROFILE
@@ -524,9 +494,8 @@ int main(int argc, char **argv) {
 
                 if (send_size > 0) {
 #ifdef VERBOSE
-                    fprintf(stderr, "On iter %d, PE %d sending %d entries to %d "
-                            "(%d vertices per PE)\n", iter, pe, send_size, target,
-                            get_vertices_per_pe(nglobalverts));
+                    fprintf(stderr, "On iter %d, PE %d sending %d entries to "
+                            "%d\n", iter, pe, send_size, target);
 #endif
                     send_new_vertices(send_buf, send_size, target,
                             filling, filling_incr);
@@ -571,12 +540,12 @@ int main(int argc, char **argv) {
                     run, root, (double)(end_bfs - start_bfs) / 1000000.0,
                     iter + 1);
         }
+#ifdef VERBOSE
 
         int count_preds = 0;
         for (i = 0; i < n_local_vertices; i++) {
             if (preds[i] > 0) count_preds++;
         }
-#ifdef VERBOSE
 #ifdef PROFILE
         fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu ms "
                 "accumulating, %llu ms sending, %llu ms reducing\n", pe,
