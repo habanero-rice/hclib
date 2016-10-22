@@ -144,24 +144,17 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
             if (to_explore != parent && to_explore != vertex &&
                     !is_visited(to_explore, visited)) {
                 const int target_pe = to_explore / vertices_per_pe;
-                if (target_pe == pe) {
-                    handle_new_vertex(to_explore, preds, reading,
-                            local_vertex_offsets, neighbors, vertices_per_pe,
-                            send_bufs, send_bufs_size, nmessages_local, visited,
-                            local_min_vertex, local_max_vertex);
-                } else {
-                    packed_edge *send_buf = send_bufs[target_pe];
-                    const int curr_size = send_bufs_size[target_pe];
+                packed_edge *send_buf = send_bufs[target_pe];
+                const int curr_size = send_bufs_size[target_pe];
 
-                    assert(curr_size < OUTGOING_MAILBOX_SIZE);
+                assert(curr_size < OUTGOING_MAILBOX_SIZE);
 
-                    set_visited(to_explore, visited);
+                set_visited(to_explore, visited);
 
-                    write_edge(&send_buf[curr_size], to_explore, vertex);
-                    send_bufs_size[target_pe] = curr_size + 1;
+                write_edge(&send_buf[curr_size], to_explore, vertex);
+                send_bufs_size[target_pe] = curr_size + 1;
 
-                    *nmessages_local = 1;
-                }
+                *nmessages_local = 1;
             }
         }
     }
@@ -554,16 +547,6 @@ int main(int argc, char **argv) {
             if (*nmessages_global == 0) {
                 break;
             }
-
-            // assert(npes % 2 == 0); // For simplicity, just assert we can pair up all PEs
-            // shmem_int_or_to_all(next_visited, visited, visited_ints, 2 * (pe / 2), 0, 2,
-            //         pWrk_int, pSync);
-            // shmem_int_or_to_all(next_visited, visited, visited_ints, 0, 0, npes,
-            //         pWrk_int, pSync);
-
-            // int *tmp_visited = visited;
-            // visited = next_visited;
-            // next_visited = visited;
 
             packed_edge *tmp = reading;
             reading = filling;
