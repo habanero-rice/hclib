@@ -16,6 +16,8 @@
 #define INCOMING_MAILBOX_SIZE 33554432
 #define OUTGOING_MAILBOX_SIZE 2097152
 
+#define COALESCING 8192
+
 #define BITS_PER_INT 32
 
 // #define VERBOSE
@@ -145,15 +147,16 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
                     !is_visited(to_explore, visited)) {
                 const int target_pe = to_explore / vertices_per_pe;
                 packed_edge *send_buf = send_bufs[target_pe];
-                const int curr_size = send_bufs_size[target_pe];
+                int curr_size = send_bufs_size[target_pe];
 
                 assert(curr_size < OUTGOING_MAILBOX_SIZE);
 
                 set_visited(to_explore, visited);
 
                 write_edge(&send_buf[curr_size], to_explore, vertex);
-                send_bufs_size[target_pe] = curr_size + 1;
 
+                curr_size++;
+                send_bufs_size[target_pe] = curr_size;
                 *nmessages_local = 1;
             }
         }
@@ -442,7 +445,7 @@ int main(int argc, char **argv) {
             sizeof(packed_edge *));
     assert(send_bufs);
     unsigned *send_bufs_size = (unsigned *)calloc(npes, sizeof(unsigned));
-    assert(send_bufs_size /* && send_bufs_offset */ );
+    assert(send_bufs_size);
     for (i = 0; i < npes; i++) {
         send_bufs[i] = (packed_edge *)malloc(
                 OUTGOING_MAILBOX_SIZE * sizeof(packed_edge));
@@ -459,7 +462,7 @@ int main(int argc, char **argv) {
     int *visited = (int *)shmem_malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 3;
+    const unsigned num_bfs_roots = 1;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;

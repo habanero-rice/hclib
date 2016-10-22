@@ -15,7 +15,7 @@
 #include "../generator/graph_generator.h"
 #include "mpi_workarounds.h"
 
-#define SIZE_MUST_BE_A_POWER_OF_TWO
+// #define SIZE_MUST_BE_A_POWER_OF_TWO
 
 extern int rank, size;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
