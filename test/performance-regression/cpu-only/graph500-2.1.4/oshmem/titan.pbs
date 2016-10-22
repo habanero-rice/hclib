@@ -3,8 +3,8 @@
 #PBS -N G500
 #PBS -j oe
 #PBS -q debug
-#PBS -l walltime=00:03:00
-#PBS -l nodes=32
+#PBS -l walltime=00:10:00
+#PBS -l nodes=128
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -24,20 +24,39 @@ export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
 export GASNET_BACKTRACE=1
 # export SMA_SYMMETRIC_SIZE=1073741824
 # export GASNET_PHYSMEM_MAX=1073741824
-export SMA_SYMMETRIC_SIZE=1073741824
-export GASNET_PHYSMEM_MAX=1073741824
+export SMA_SYMMETRIC_SIZE=4294967296
+export GASNET_PHYSMEM_MAX=4294967296
 export LD_PRELOAD=/lustre/atlas/sw/tbb/43/sles11.3_gnu4.8.2/source/build/linux_intel64_gcc_cc4.8.2_libc2.11.3_kernel3.0.101_release/libtbbmalloc_proxy.so.2
 ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
 export GRAPH_SIZE=29
-export OMP_NUM_THREADS=1
 
 # aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
 # 
 # aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 
+export SMA_SYMMETRIC_SIZE=1073741824
+export GASNET_PHYSMEM_MAX=1073741824
+export OMP_NUM_THREADS=1
 aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
+aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
+aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 
-# aprun -n $(($NODES * 2)) -S 1 -d 8 -N 2 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
+# aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-replicated $GRAPH_SIZE 16
+
+# export SMA_SYMMETRIC_SIZE=1073741824
+# export GASNET_PHYSMEM_MAX=1073741824
+# export OMP_NUM_THREADS=1
+# aprun -n $(($NODES * 16)) -S 8 -d $OMP_NUM_THREADS -N 16 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
+
+# export SMA_SYMMETRIC_SIZE=3221225472
+# export GASNET_PHYSMEM_MAX=3221225472
+# export OMP_NUM_THREADS=2
+# aprun -n $(($NODES * 8)) -S 4 -d $OMP_NUM_THREADS -N 8 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
+# 
+# export SMA_SYMMETRIC_SIZE=3221225472
+# export GASNET_PHYSMEM_MAX=3221225472
+# export OMP_NUM_THREADS=4
+# aprun -n $(($NODES * 4)) -S 2 -d $OMP_NUM_THREADS -N 4 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
