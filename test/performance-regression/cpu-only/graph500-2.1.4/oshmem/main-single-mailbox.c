@@ -65,14 +65,14 @@ static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     return vertex / vertices_per_pe;
 }
 
-static inline void set_visited(const uint64_t vertex, int *visited) {
+static inline void set_visited(const uint64_t vertex, unsigned *visited) {
     const int word_index = vertex / BITS_PER_INT;
     const int bit_index = vertex % BITS_PER_INT;
     const int mask = (1 << bit_index);
     visited[word_index] |= mask;
 }
 
-static inline int is_visited(const uint64_t vertex, const int *visited) {
+static inline int is_visited(const uint64_t vertex, const unsigned *visited) {
     const int word_index = vertex / BITS_PER_INT;
     const int bit_index = vertex % BITS_PER_INT;
     const int mask = (1 << bit_index);
@@ -121,7 +121,7 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
         packed_edge *reading, const unsigned *local_vertex_offsets,
         const uint64_t *neighbors, const uint64_t vertices_per_pe,
         packed_edge **send_bufs, unsigned *send_bufs_size,
-        short *nmessages_local, int *visited,
+        short *nmessages_local, unsigned *visited,
         const uint64_t local_min_vertex, const uint64_t local_max_vertex) {
     int i;
     assert(vertex >= local_min_vertex && vertex < local_max_vertex);
@@ -459,7 +459,7 @@ int main(int argc, char **argv) {
     const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
             BITS_PER_INT);
     const size_t visited_bytes = visited_ints * sizeof(int);
-    int *visited = (int *)shmem_malloc(visited_bytes);
+    unsigned *visited = (unsigned *)shmem_malloc(visited_bytes);
     assert(visited);
 
     const unsigned num_bfs_roots = 5;

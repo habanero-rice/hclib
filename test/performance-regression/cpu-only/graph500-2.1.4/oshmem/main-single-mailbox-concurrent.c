@@ -18,12 +18,18 @@
 #define QUEUE_SIZE 1048576
 
 #define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
-// #define OUTGOING_MAILBOX_SIZE_IN_BYTES 8388608
 
-#define COALESCING 4096
-#define SEND_BUFFER_SIZE (sizeof(int) + sizeof(int) + COALESCING * sizeof(packed_edge))
+/*
+ * Header format:
+ *
+ *   4 bytes - HEADER
+ *   4 bytes - # edges in buffer
+ */
+#define COALESCING 512
+#define SEND_HEADER_SIZE (2 * sizeof(int))
+#define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
-#define BITS_PER_INT 32
+#define BITS_PER_INT (sizeof(unsigned) * 8)
 
 typedef struct _send_buf {
     unsigned char *buf;
@@ -31,10 +37,6 @@ typedef struct _send_buf {
 } send_buf;
 
 // Save two spots at the start, one for the header and one for the size of the buffer
-#define ADD_HEADER(ptr) { \
-    *((int *)(ptr)) = HEADER; (ptr) = (void *)(((int *)(ptr)) + 2); \
-}
-
 #define GET_SEND_BUF(my_target_pe) { \
     assert(send_bufs[my_target_pe] == NULL); \
     send_buf *gotten = pre_allocated_send_bufs; \
@@ -43,24 +45,24 @@ typedef struct _send_buf {
     gotten->next = NULL; \
     *((int *)(gotten->buf)) = HEADER; \
     send_bufs[my_target_pe] = gotten; \
-    send_bufs_size[my_target_pe] = 2 * sizeof(int); \
+    send_bufs_size[my_target_pe] = SEND_HEADER_SIZE; \
 }
 
 #define SEND_PACKET(my_target_pe) { \
     assert(send_bufs[my_target_pe]); \
-    assert((send_bufs_size[my_target_pe] - (2 * sizeof(int))) % sizeof(packed_edge) == 0); \
-    *((int *)(send_bufs[my_target_pe]->buf + sizeof(int))) = (send_bufs_size[my_target_pe] - (2 * sizeof(int))) / sizeof(packed_edge); \
+    assert((send_bufs_size[my_target_pe] - SEND_HEADER_SIZE) % sizeof(packed_edge) == 0); \
+    const unsigned nedges = (send_bufs_size[my_target_pe] - SEND_HEADER_SIZE) / sizeof(packed_edge); \
+    *((int *)(send_bufs[my_target_pe]->buf + 1 * sizeof(int))) = nedges; \
     *nmessages_local += 1; \
 \
-    fprintf(stderr, "Sending message from %d to %d with size %llu\n", pe, my_target_pe, send_bufs_size[my_target_pe]); \
     const int remote_offset = shmem_int_fadd( \
             recv_buf_index, send_bufs_size[my_target_pe], \
             my_target_pe); \
-    shmem_char_put(recv_buf + remote_offset + sizeof(int), \
+    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
             send_bufs[my_target_pe]->buf + sizeof(int), \
             send_bufs_size[my_target_pe] - sizeof(int), my_target_pe); \
     shmem_fence(); \
-    shmem_char_put(recv_buf + remote_offset, \
+    shmem_char_put_nbi(recv_buf + remote_offset, \
             send_bufs[my_target_pe]->buf, sizeof(int), \
             my_target_pe); \
 \
@@ -72,12 +74,12 @@ typedef struct _send_buf {
 
 #define SEND_EMPTY_PACKET(my_target_pe) { \
     const int remote_offset = shmem_int_fadd( \
-            recv_buf_index, 2 * sizeof(int), \
+            recv_buf_index, SEND_HEADER_SIZE, \
             my_target_pe); \
-    shmem_char_put(recv_buf + remote_offset + sizeof(int), \
-            (char *)(empty_packet + 1), sizeof(int), my_target_pe); \
+    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
+            (char *)(empty_packet + 1), 1 * sizeof(int), my_target_pe); \
     shmem_fence(); \
-    shmem_char_put(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
+    shmem_char_put_nbi(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
 }
 
 // #define VERBOSE
@@ -125,14 +127,14 @@ static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     return vertex / vertices_per_pe;
 }
 
-static inline void set_visited(const uint64_t vertex, int *visited) {
+static inline void set_visited(const uint64_t vertex, unsigned *visited) {
     const int word_index = vertex / BITS_PER_INT;
     const int bit_index = vertex % BITS_PER_INT;
     const int mask = (1 << bit_index);
     visited[word_index] |= mask;
 }
 
-static inline int is_visited(const uint64_t vertex, const int *visited) {
+static inline int is_visited(const uint64_t vertex, const unsigned *visited) {
     const int word_index = vertex / BITS_PER_INT;
     const int bit_index = vertex % BITS_PER_INT;
     const int mask = (1 << bit_index);
@@ -165,6 +167,50 @@ static int compare_uint64_t(const void *a, const void *b) {
         return 0;
     } else {
         return 1;
+    }
+}
+
+static inline void check_for_receives(unsigned char **iter_buf, int *ndone,
+        const uint64_t nglobalverts, unsigned *visited,
+        const uint64_t local_min_vertex, uint64_t *next_q,
+        unsigned *next_q_size, uint64_t *preds) {
+    volatile int *check_for_header = (volatile int *)*iter_buf;
+    if (*check_for_header == HEADER) {
+        *check_for_header = 0;
+
+        volatile unsigned *buf_size_ptr = check_for_header + 1;
+        const unsigned buf_size = *buf_size_ptr;
+
+        if (buf_size == 0) {
+            *ndone = *ndone + 1;
+        }
+
+        unsigned char *local_iter_buf = (unsigned char *)(buf_size_ptr + 1);
+
+        int i;
+        for (i = 0; i < buf_size; i++) {
+            packed_edge *edge = (packed_edge *)local_iter_buf;
+            uint64_t to_explore = get_v0_from_edge(edge);
+            uint64_t parent = get_v1_from_edge(edge);
+
+            if (get_owner_pe(to_explore, nglobalverts) != pe) {
+                fprintf(stderr, "Bad vertex %llu received at pe %d, "
+                        "buf_size=%u, parent=%llu\n", to_explore, pe,
+                        buf_size, parent);
+                assert(0);
+            }
+
+            if (!is_visited(to_explore, visited)) {
+                preds[to_explore - local_min_vertex] = parent;
+                set_visited(to_explore, visited);
+                next_q[*next_q_size] = to_explore;
+                *next_q_size = *next_q_size + 1;
+            }
+
+            local_iter_buf += sizeof(packed_edge);
+        }
+
+        *iter_buf = local_iter_buf;
     }
 }
 
@@ -435,7 +481,7 @@ int main(int argc, char **argv) {
 
     unsigned char *recv_buf = (unsigned char *)shmem_malloc(INCOMING_MAILBOX_SIZE_IN_BYTES);
     assert(recv_buf);
-    unsigned *recv_buf_index = (unsigned *)shmem_malloc(sizeof(unsigned));
+    int *recv_buf_index = (int *)shmem_malloc(sizeof(int));
     assert(recv_buf_index);
     *recv_buf_index = 0;
 
@@ -477,10 +523,10 @@ int main(int argc, char **argv) {
     const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
             BITS_PER_INT);
     const size_t visited_bytes = visited_ints * sizeof(int);
-    int *visited = (int *)malloc(visited_bytes);
+    unsigned *visited = (unsigned *)malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 3;
+    const unsigned num_bfs_roots = 1;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
@@ -489,6 +535,10 @@ int main(int argc, char **argv) {
         memset(preds, 0x00, n_local_vertices * sizeof(uint64_t));
         memset(send_bufs, 0x00, npes * sizeof(send_buf *));
         memset(send_bufs_size, 0x00, npes * sizeof(unsigned));
+        *recv_buf_index = 0;
+        memset(recv_buf, 0x00, INCOMING_MAILBOX_SIZE_IN_BYTES);
+        curr_q_size = 0;
+        next_q_size = 0;
 
         // uint64_t root = bfs_roots[run];
         uint64_t root = 0;
@@ -520,7 +570,13 @@ int main(int argc, char **argv) {
 #endif
             *nmessages_local = 0;
 
+            unsigned ndone = 0;
+            unsigned char *iter_buf = recv_buf;
+
             for (i = 0; i < curr_q_size; i++) {
+                check_for_receives(&iter_buf, &ndone, nglobalverts, visited,
+                        local_min_vertex, next_q, &next_q_size, preds);
+
                 uint64_t vertex = curr_q[i];
 
                 const int neighbor_start = local_vertex_offsets[vertex - local_min_vertex];
@@ -549,6 +605,7 @@ int main(int argc, char **argv) {
                                     vertex);
                             send_bufs_size[target_pe] += sizeof(packed_edge);
 
+                            assert(send_bufs_size[target_pe] <= SEND_BUFFER_SIZE);
                             if (send_bufs_size[target_pe] == SEND_BUFFER_SIZE) {
                                 // Send
                                 SEND_PACKET(target_pe)
@@ -559,6 +616,9 @@ int main(int argc, char **argv) {
             }
 
             for (i = 1; i < npes; i++) {
+                check_for_receives(&iter_buf, &ndone, nglobalverts, visited,
+                        local_min_vertex, next_q, &next_q_size, preds);
+
                 const int target = (pe + i) % npes;
                 if (send_bufs[target]) {
                     // Send any remainders
@@ -573,52 +633,17 @@ int main(int argc, char **argv) {
                 SEND_EMPTY_PACKET(target)
             }
 
-            fprintf(stderr, "PE %d run %d iter %d done sending packets\n", pe, run, iter);
-
-            unsigned ndone = 0;
-            volatile unsigned char *iter_buf = recv_buf;
-
             while (ndone < npes - 1) {
-                while (*((volatile int *)iter_buf) != HEADER) ;
-                *((volatile int *)iter_buf) = 0;
-                iter_buf += sizeof(int);
-
-                unsigned buf_size = *((volatile unsigned *)iter_buf);
-                iter_buf += sizeof(unsigned);
-
-                if (buf_size == 0) ndone++;
-
-                for (i = 0; i < buf_size; i++) {
-                    packed_edge *edge = (packed_edge *)iter_buf;
-                    uint64_t to_explore = get_v0_from_edge(edge);
-                    uint64_t parent = get_v1_from_edge(edge);
-
-                    if (get_owner_pe(to_explore, nglobalverts) != pe) {
-                        fprintf(stderr, "Bad vertex %llu received at pe %d, "
-                                "buf_size=%u, parent=%llu\n", to_explore, pe,
-                                buf_size, parent);
-                        assert(0);
-                    }
-
-                    set_visited(parent, visited);
-                    if (!is_visited(to_explore, visited)) {
-                        preds[to_explore - local_min_vertex] = parent;
-                        set_visited(to_explore, visited);
-                        next_q[next_q_size++] = to_explore;
-                    }
-
-                    iter_buf += sizeof(packed_edge);
-                }
+                check_for_receives(&iter_buf, &ndone, nglobalverts, visited,
+                        local_min_vertex, next_q, &next_q_size, preds);
             }
 
             shmem_quiet();
-            shmem_barrier_all();
-            break;
-
-            shmem_barrier_all();
-            // shmem_quiet();
 
             *recv_buf_index = 0;
+            // const int nbytes = iter_buf - recv_buf;
+            // const int old = shmem_int_cswap(recv_buf_index, nbytes, 0, pe);
+            // assert(old == nbytes);
 
             uint64_t *tmp_q = curr_q;
             curr_q = next_q;
@@ -627,14 +652,6 @@ int main(int argc, char **argv) {
             const unsigned tmp_q_size = curr_q_size;
             curr_q_size = next_q_size;
             next_q_size = tmp_q_size;
-
-            // Restore all send buffers to unused
-            while (used_send_bufs) {
-                send_buf *save = used_send_bufs->next;
-                used_send_bufs->next = pre_allocated_send_bufs;
-                pre_allocated_send_bufs = used_send_bufs;
-                used_send_bufs = save;
-            }
 
             shmem_short_max_to_all(nmessages_global, nmessages_local, 1, 0, 0,
                     npes, pWrk_short, pSync);
@@ -646,6 +663,14 @@ int main(int argc, char **argv) {
 
             if (*nmessages_global == 0) {
                 break;
+            }
+
+            // Restore all send buffers to unused
+            while (used_send_bufs) {
+                send_buf *save = used_send_bufs->next;
+                used_send_bufs->next = pre_allocated_send_bufs;
+                pre_allocated_send_bufs = used_send_bufs;
+                used_send_bufs = save;
             }
 
             iter++;

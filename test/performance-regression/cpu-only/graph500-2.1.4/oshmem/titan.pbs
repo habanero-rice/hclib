@@ -2,9 +2,9 @@
 #PBS -A csc205
 #PBS -N G500
 #PBS -j oe
-#PBS -q batch
-#PBS -l walltime=00:03:00
-#PBS -l nodes=4
+#PBS -q debug
+#PBS -l walltime=00:02:00
+#PBS -l nodes=128
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -31,7 +31,7 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
-export GRAPH_SIZE=10
+export GRAPH_SIZE=29
 
 # aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
 # 
