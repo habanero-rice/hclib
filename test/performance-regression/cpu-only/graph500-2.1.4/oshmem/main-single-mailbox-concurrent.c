@@ -480,7 +480,7 @@ int main(int argc, char **argv) {
     int *visited = (int *)malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 1;
+    const unsigned num_bfs_roots = 3;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
@@ -573,6 +573,8 @@ int main(int argc, char **argv) {
                 SEND_EMPTY_PACKET(target)
             }
 
+            fprintf(stderr, "PE %d run %d iter %d done sending packets\n", pe, run, iter);
+
             unsigned ndone = 0;
             volatile unsigned char *iter_buf = recv_buf;
 
@@ -608,6 +610,10 @@ int main(int argc, char **argv) {
                     iter_buf += sizeof(packed_edge);
                 }
             }
+
+            shmem_quiet();
+            shmem_barrier_all();
+            break;
 
             shmem_barrier_all();
             // shmem_quiet();
