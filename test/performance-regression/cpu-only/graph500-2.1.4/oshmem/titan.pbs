@@ -3,8 +3,8 @@
 #PBS -N G500
 #PBS -j oe
 #PBS -q batch
-#PBS -l walltime=00:10:00
-#PBS -l nodes=128
+#PBS -l walltime=00:03:00
+#PBS -l nodes=4
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -31,7 +31,7 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
-export GRAPH_SIZE=29
+export GRAPH_SIZE=17
 
 # aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
 # 
@@ -47,8 +47,9 @@ export GASNET_PHYSMEM_MAX=1073741824
 # aprun -n $(($NODES * 2)) -d $OMP_NUM_THREADS -S 1 -N 2 -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 
 export OMP_NUM_THREADS=1
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-strided $GRAPH_SIZE 16
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-strided $GRAPH_SIZE 16
+aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
 
 # aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-replicated $GRAPH_SIZE 16
 

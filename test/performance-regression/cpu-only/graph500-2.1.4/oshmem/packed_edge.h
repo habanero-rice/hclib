@@ -19,6 +19,14 @@ static inline int64_t get_v1_from_edge(const packed_edge* p) {
   return (p->v1_low | ((int64_t)((int16_t)(p->high >> 16)) << 32));
 }
 
+static inline int64_t get_v0_from_edge_volatile(const volatile packed_edge* p) {
+  return (p->v0_low | ((int64_t)((int16_t)(p->high & 0xFFFF)) << 32));
+}
+
+static inline int64_t get_v1_from_edge_volatile(const volatile packed_edge* p) {
+  return (p->v1_low | ((int64_t)((int16_t)(p->high >> 16)) << 32));
+}
+
 static inline void write_edge(packed_edge* p, int64_t v0, int64_t v1) {
   p->v0_low = (uint32_t)v0;
   p->v1_low = (uint32_t)v1;
