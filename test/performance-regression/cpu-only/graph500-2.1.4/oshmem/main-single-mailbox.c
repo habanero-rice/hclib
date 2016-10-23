@@ -16,8 +16,6 @@
 #define INCOMING_MAILBOX_SIZE 33554432
 #define OUTGOING_MAILBOX_SIZE 2097152
 
-#define COALESCING 8192
-
 #define BITS_PER_INT 32
 
 // #define VERBOSE
@@ -462,7 +460,7 @@ int main(int argc, char **argv) {
     unsigned *visited = (unsigned *)shmem_malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 5;
+    const unsigned num_bfs_roots = 3;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
