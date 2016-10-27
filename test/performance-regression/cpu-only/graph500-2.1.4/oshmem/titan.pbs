@@ -2,9 +2,9 @@
 #PBS -A csc205
 #PBS -N G500
 #PBS -j oe
-#PBS -q debug
-#PBS -l walltime=00:10:00
-#PBS -l nodes=512
+#PBS -q batch
+#PBS -l walltime=00:04:00
+#PBS -l nodes=32
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -31,35 +31,19 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
-export GRAPH_SIZE=29
+export GRAPH_SIZE=28
 
 export SMA_SYMMETRIC_SIZE=1073741824
 export GASNET_PHYSMEM_MAX=1073741824
 
-export OMP_NUM_THREADS=8
-aprun -n $(($NODES * 2)) -d $OMP_NUM_THREADS -S 1 -N 2 -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=$OMP_NUM_THREADS
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
 
-export OMP_NUM_THREADS=8
-aprun -n $(($NODES * 2)) -d $OMP_NUM_THREADS -S 1 -N 2 -cc 0,1,2,3,4,5,6,7:8,9,10,11,12,13,14,15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=$OMP_NUM_THREADS
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
 
 export OMP_NUM_THREADS=1
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
-# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-strided $GRAPH_SIZE 16
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
-
-# aprun -n $(($NODES * 16)) -d 1 -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-replicated $GRAPH_SIZE 16
-
-# export SMA_SYMMETRIC_SIZE=1073741824
-# export GASNET_PHYSMEM_MAX=1073741824
-# export OMP_NUM_THREADS=1
-# aprun -n $(($NODES * 16)) -S 8 -d $OMP_NUM_THREADS -N 16 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
-
-# export SMA_SYMMETRIC_SIZE=3221225472
-# export GASNET_PHYSMEM_MAX=3221225472
-# export OMP_NUM_THREADS=2
-# aprun -n $(($NODES * 8)) -S 4 -d $OMP_NUM_THREADS -N 8 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
-# 
-# export SMA_SYMMETRIC_SIZE=3221225472
-# export GASNET_PHYSMEM_MAX=3221225472
-# export OMP_NUM_THREADS=4
-# aprun -n $(($NODES * 4)) -S 2 -d $OMP_NUM_THREADS -N 4 ./bfs_oshmem-single-mailbox-omp $GRAPH_SIZE 16
+export HCLIB_WORKERS=$OMP_NUM_THREADS
+aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -S 8 -N 16 -cc 0:1:2:3:4:5:6:7:8:9:10:11:12:13:14:15 ./bfs_oshmem-single-mailbox-hiper $GRAPH_SIZE 16

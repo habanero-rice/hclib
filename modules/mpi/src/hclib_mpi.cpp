@@ -10,8 +10,10 @@ const char *MPI_FUNC_NAMES[N_MPI_FUNCS] = {
     "MPI_Isend",
     "MPI_Irecv",
     "MPI_Allreduce",
+    "MPI_Allreduce_future",
     "MPI_Bcast",
-    "MPI_Barrier"
+    "MPI_Barrier",
+    "MPI_Allgather"
 };
 #endif
 
@@ -182,6 +184,35 @@ void hclib::MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
             CHECK_MPI(::MPI_Allreduce(sendbuf, recvbuf, count, datatype, op,
                     comm));
             MPI_END_PROFILE(MPI_Allreduce);
+        }, nic);
+    });
+}
+
+hclib::future_t *hclib::MPI_Allreduce_future(const void *sendbuf, void *recvbuf,
+        int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+    MPI_START_LATENCY;
+
+    return hclib::async_nb_future_at([=] {
+        MPI_END_LATENCY(MPI_Allreduce_future);
+        MPI_START_PROFILE;
+        CHECK_MPI(::MPI_Allreduce(sendbuf, recvbuf, count, datatype, op,
+                comm));
+        MPI_END_PROFILE(MPI_Allreduce_future);
+    }, nic);
+}
+
+void hclib::MPI_Allgather(const void *sendbuf, int sendcount,
+        MPI_Datatype sendtype, void *recvbuf, int recvcount,
+        MPI_Datatype recvtype, MPI_Comm comm) {
+    MPI_START_LATENCY;
+
+    hclib::finish([&] {
+        hclib::async_nb_at([&] {
+            MPI_END_LATENCY(MPI_Allgather);
+            MPI_START_PROFILE;
+            CHECK_MPI(::MPI_Allgather(sendbuf, sendcount, sendtype, recvbuf,
+                    recvcount, recvtype, comm));
+            MPI_END_PROFILE(MPI_Allgather);
         }, nic);
     });
 }

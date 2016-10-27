@@ -3,7 +3,7 @@ CFLAGS = -L$(MPI_HOME)/lib -lmpich -I$(MPI_HOME)/include -fopenmp -g -Wall -Dres
 LDFLAGS = -fopenmp -g # -g -pg
 MPICC = gcc
 
-all: graph500_mpi_simple graph500_mpi_one_sided graph500_mpi_replicated graph500_mpi_replicated_csc graph500_mpi_custom
+all: graph500_mpi_simple graph500_mpi_one_sided graph500_mpi_replicated graph500_mpi_replicated_csc graph500_mpi_custom graph500_mpi_replicated_hiper
 
 GENERATOR_SOURCES = ../generator/graph_generator.c ../generator/make_graph.c ../generator/splittable_mrg.c ../generator/utils.c
 SOURCES = main.c oned_csr.c oned_csc.c utils.c validate.c onesided.c onesided_emul.c
@@ -17,6 +17,9 @@ graph500_mpi_one_sided: bfs_one_sided.c $(SOURCES) $(HEADERS) $(GENERATOR_SOURCE
 
 graph500_mpi_replicated: bfs_replicated.c $(SOURCES) $(HEADERS) $(GENERATOR_SOURCES)
 	$(MPICC) $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated bfs_replicated.c $(SOURCES) $(GENERATOR_SOURCES) -lm
+
+graph500_mpi_replicated_hiper: bfs_replicated_hiper.c $(SOURCES) $(HEADERS) $(GENERATOR_SOURCES)
+	g++ -std=c++11 $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated_hiper bfs_replicated_hiper.c $(SOURCES) $(GENERATOR_SOURCES) -lm -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/mpi/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/mpi/lib -lhclib -lhclib_mpi $(JSMN_HOME)/jsmn.c
 
 graph500_mpi_replicated_csc: bfs_replicated_csc.c $(SOURCES) $(HEADERS) $(GENERATOR_SOURCES)
 	$(MPICC) $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated_csc bfs_replicated_csc.c $(SOURCES) $(GENERATOR_SOURCES) -lm

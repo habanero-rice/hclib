@@ -568,7 +568,7 @@ void spawn_await(hclib_task_t *task, hclib_future_t *future1,
 static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
         const int on_fresh_ctx, volatile int *flag, const int flag_val) {
     hclib_task_t *task = locale_pop_task(ws);
-    // volatile int *flag = &(hc_context->done_flags[ws->id].flag);
+
     if (!task) {
         while (*flag != flag_val) {
             // try to steal
@@ -721,7 +721,6 @@ void *hclib_future_wait(hclib_future_t *future) {
     hclib_task_t *need_to_swap_ctx = NULL;
     while (future->owner->satisfied == 0 &&
             need_to_swap_ctx == NULL) {
-        // This is a bit hacky...
         need_to_swap_ctx = find_and_run_task(ws, 0,
                 &(future->owner->satisfied), 1);
     }
@@ -778,10 +777,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      */
     spawn_escaping((hclib_task_t *)task, finish->finish_dep);
 
-    /*
-     * The main thread is now exiting the finish (albeit in a separate context),
-     * so check it out.
-     */
+    // The task that is the body of the finish is now complete, so check it out.
     check_out_finish(finish);
 
     // keep workstealing until this context gets swapped out and destroyed
@@ -842,9 +838,55 @@ void help_finish(finish_t *finish) {
     }
 }
 
+static void yield_helper(LiteCtx *ctx) {
+    hclib_task_t *starting_task = ctx->arg1;
+    HASSERT(starting_task);
+
+    hclib_task_t *continuation = (hclib_task_t *)calloc(1,
+            sizeof(hclib_task_t));
+    HASSERT(continuation);
+    continuation->_fp = _finish_ctx_resume;
+    continuation->args = ctx->prev;
+
+    spawn_escaping(continuation, NULL);
+
+    core_work_loop(starting_task);
+    HASSERT(0);
+}
+
 /*
  * =================== INTERFACE TO USER FUNCTIONS ==========================
  */
+
+void hclib_yield() {
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    hclib_task_t *task = locale_pop_task(ws);
+    if (!task) {
+        task = locale_steal_task(ws);
+    }
+
+    finish_t *old_finish = ws->current_finish;
+
+    if (task) {
+        if (task->non_blocking) {
+            execute_task(task);
+        } else {
+            LiteCtx *currentCtx = get_curr_lite_ctx();
+            HASSERT(currentCtx);
+            LiteCtx *newCtx = LiteCtx_create(yield_helper);
+            newCtx->arg1 = task;
+#ifdef HCLIB_STATS
+        worker_stats[ws->id].count_ctx_creates++;
+#endif
+
+            ctx_swap(currentCtx, newCtx, __func__);
+
+            LiteCtx_destroy(currentCtx->prev);
+        }
+    }
+
+    ws->current_finish = old_finish;
+}
 
 void hclib_start_finish() {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;

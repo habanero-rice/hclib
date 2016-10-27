@@ -78,6 +78,11 @@ class loop_domain_1d {
             loop.stride = 1; loop.tile = default_tile_size(high - low, nchunks);
         }
 
+        loop_domain_1d(int low, int high, int nchunks, int stride) {
+            loop.low = low; loop.high = high;
+            loop.stride = stride; loop.tile = default_tile_size(high - low, nchunks);
+        }
+
         hclib_loop_domain_t *get_internal() { return &loop; }
 };
 

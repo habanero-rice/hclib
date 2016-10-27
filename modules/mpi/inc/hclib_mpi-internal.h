@@ -25,8 +25,10 @@ enum MPI_FUNC_LABELS {
     MPI_Isend_lbl,
     MPI_Irecv_lbl,
     MPI_Allreduce_lbl,
+    MPI_Allreduce_future_lbl,
     MPI_Bcast_lbl,
     MPI_Barrier_lbl,
+    MPI_Allgather_lbl,
     N_MPI_FUNCS
 };
 #endif
@@ -85,6 +87,10 @@ void MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
 void MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
         MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+hclib::future_t *MPI_Allreduce_future(const void *sendbuf, void *recvbuf,
+        int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+void MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+        void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm);
 void MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root, 
         MPI_Comm comm);
 int MPI_Barrier(MPI_Comm comm);

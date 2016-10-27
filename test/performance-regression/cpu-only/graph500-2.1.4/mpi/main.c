@@ -30,6 +30,11 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include "hclib_cpp.h"
+#include "hclib_atomic.h"
+#include "hclib_system.h"
+#include "hclib_mpi.h"
+
 static int compare_doubles(const void* a, const void* b) {
   double aa = *(const double*)a;
   double bb = *(const double*)b;
@@ -65,7 +70,11 @@ static void get_statistics(const double x[], int n, double r[s_LAST]) {
 }
 
 int main(int argc, char** argv) {
-  MPI_Init(&argc, &argv);
+  // MPI_Init(&argc, &argv);
+
+  const char *deps[] = {"system", "mpi"};
+
+  hclib::launch(deps, 2, [argc, argv] {
 
   setup_globals();
 
@@ -187,23 +196,23 @@ int main(int argc, char** argv) {
                   MPI_File_write_at(tg.edgefile, start_edge_index, actual_buf, edge_count, packed_edge_mpi_type, MPI_STATUS_IGNORE);
               }
               ptrdiff_t i;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel for
+// #endif
               for (i = 0; i < edge_count; ++i) {
                   int64_t src = get_v0_from_edge(&actual_buf[i]);
                   int64_t tgt = get_v1_from_edge(&actual_buf[i]);
                   if (src == tgt) continue;
                   if (src / bitmap_size_in_bytes / CHAR_BIT == my_col) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
+// #ifdef _OPENMP
+// #pragma omp atomic
+// #endif
                       has_edge[(src / CHAR_BIT) % bitmap_size_in_bytes] |= (1 << (src % CHAR_BIT));
                   }
                   if (tgt / bitmap_size_in_bytes / CHAR_BIT == my_col) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
+// #ifdef _OPENMP
+// #pragma omp atomic
+// #endif
                       has_edge[(tgt / CHAR_BIT) % bitmap_size_in_bytes] |= (1 << (tgt % CHAR_BIT));
                   }
               }
@@ -415,6 +424,7 @@ int main(int argc, char** argv) {
   free(validate_times);
 
   cleanup_globals();
-  MPI_Finalize();
+  });
+  // MPI_Finalize();
   return 0;
 }

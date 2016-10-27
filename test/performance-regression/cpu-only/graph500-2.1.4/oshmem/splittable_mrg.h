@@ -22,9 +22,9 @@
 /* See notes at top of splittable_mrg.c for information on this          */
 /* implementation.                                                       */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
 
 typedef struct mrg_state {
   uint_fast32_t z1, z2, z3, z4, z5;
@@ -47,8 +47,8 @@ void mrg_skip(mrg_state* state,
               uint_least64_t exponent_middle,
               uint_least64_t exponent_low);
 
-#ifdef __cplusplus
-}
-#endif
+// #ifdef __cplusplus
+// }
+// #endif
 
 #endif /* SPLITTABLE_MRG_H */

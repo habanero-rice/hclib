@@ -1,4 +1,4 @@
-TARGET=bfs_oshmem bfs_oshmem-mailbox bfs_oshmem-single-mailbox bfs_oshmem-single-mailbox-omp bfs_oshmem-single-mailbox-replicated bfs_oshmem-single-mailbox-strided bfs_oshmem-single-mailbox-concurrent
+TARGET=bfs_oshmem bfs_oshmem-mailbox bfs_oshmem-single-mailbox bfs_oshmem-single-mailbox-omp bfs_oshmem-single-mailbox-replicated bfs_oshmem-single-mailbox-strided bfs_oshmem-single-mailbox-concurrent bfs_oshmem-single-mailbox-hiper
 
 all: $(TARGET)
 
@@ -10,6 +10,9 @@ bfs_oshmem-mailbox: main-mailbox.c utilities.c mrg.c generator.c splittable_mrg.
 
 bfs_oshmem-single-mailbox: main-single-mailbox.c utilities.c mrg.c splittable_mrg.c generator.c
 	gcc -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE
+
+bfs_oshmem-single-mailbox-hiper: main-single-mailbox-hiper.c utilities.c mrg.c splittable_mrg.c generator.c
+	g++ -std=c++11 -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/openshmem/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/openshmem/lib -lhclib -lhclib_openshmem
 
 bfs_oshmem-single-mailbox-concurrent: main-single-mailbox-concurrent.c utilities.c mrg.c splittable_mrg.c generator.c
 	gcc -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE

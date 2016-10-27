@@ -8,17 +8,23 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+#include "hclib_cpp.h"
+#include "hclib_atomic.h"
+#include "hclib_system.h"
+#include "hclib_openshmem.h"
+
 #include "mrg.h"
 #include "packed_edge.h"
 #include "utilities.h"
 #include "generator.h"
 
 #define HEADER 0xbbbb
-#define EMPTY_HEADER 0xcccc
 
 #define QUEUE_SIZE 1048576
 
 #define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
+
+int count_asyncs = 0;
 
 /*
  * Header format:
@@ -26,9 +32,11 @@
  *   4 bytes - HEADER
  *   4 bytes - # edges in buffer
  */
-#define COALESCING 512
+#define MAX_COALESCING 512
 #define SEND_HEADER_SIZE (2 * sizeof(int))
-#define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
+#define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + MAX_COALESCING * sizeof(packed_edge))
+
+static unsigned coalescing = 32;
 
 #define BITS_PER_INT (sizeof(unsigned) * 8)
 
@@ -36,6 +44,8 @@ typedef struct _send_buf {
     unsigned char *buf;
     struct _send_buf *next;
 } send_buf;
+
+#define SEND_BUF_SIZE_TO_NEDGES(my_send_buf_size) (((my_send_buf_size) - SEND_HEADER_SIZE) / sizeof(packed_edge))
 
 // Save two spots at the start, one for the header and one for the size of the buffer
 #define GET_SEND_BUF(my_target_pe) { \
@@ -52,18 +62,20 @@ typedef struct _send_buf {
 #define SEND_PACKET(my_target_pe) { \
     assert(send_bufs[my_target_pe]); \
     assert((send_bufs_size[my_target_pe] - SEND_HEADER_SIZE) % sizeof(packed_edge) == 0); \
-    const unsigned nedges = (send_bufs_size[my_target_pe] - SEND_HEADER_SIZE) / sizeof(packed_edge); \
+    assert(send_bufs_size[my_target_pe] <= SEND_BUFFER_SIZE); \
+    const unsigned nedges = SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[my_target_pe]); \
     *((int *)(send_bufs[my_target_pe]->buf + sizeof(int))) = nedges; \
 \
-    const int remote_offset = shmem_int_fadd( \
+    const int remote_offset = hclib::shmem_int_fadd( \
             recv_buf_index, send_bufs_size[my_target_pe], \
             my_target_pe); \
-    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
-            send_bufs[my_target_pe]->buf + sizeof(int), \
+    assert(remote_offset + send_bufs_size[my_target_pe] <= INCOMING_MAILBOX_SIZE_IN_BYTES); \
+    hclib::shmem_char_put_nbi((char *)(recv_buf + remote_offset + sizeof(int)), \
+            (char *)(send_bufs[my_target_pe]->buf + sizeof(int)), \
             send_bufs_size[my_target_pe] - sizeof(int), my_target_pe); \
-    shmem_fence(); \
-    shmem_char_put_nbi(recv_buf + remote_offset, \
-            send_bufs[my_target_pe]->buf, sizeof(int), \
+    hclib::shmem_fence(); \
+    hclib::shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+            (char *)(send_bufs[my_target_pe]->buf), sizeof(int), \
             my_target_pe); \
 \
     send_bufs[my_target_pe]->next = used_send_bufs; \
@@ -76,23 +88,25 @@ typedef struct _send_buf {
     assert(send_bufs[my_target_pe]); \
     const unsigned send_buf_size = send_bufs_size[my_target_pe]; \
     assert((send_buf_size - SEND_HEADER_SIZE) % sizeof(packed_edge) == 0); \
-    const unsigned nedges = (send_bufs_size[my_target_pe] - SEND_HEADER_SIZE) / sizeof(packed_edge); \
+    assert(send_bufs_size[my_target_pe] <= SEND_BUFFER_SIZE); \
+    const unsigned nedges = SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[my_target_pe]); \
     *((int *)(send_bufs[my_target_pe]->buf + 1 * sizeof(int))) = nedges; \
 \
     unsigned char *my_buf_iter = send_bufs[my_target_pe]->buf + send_bufs_size[my_target_pe]; \
-    *((int *)my_buf_iter) = EMPTY_HEADER; \
-    *(((int *)my_buf_iter) + 1) = nmessages_local; \
+    *((int *)my_buf_iter) = HEADER; \
+    *(((int *)my_buf_iter) + 1) = (nmessages_local ? -1 * nmessages_local : 0); \
     send_bufs_size[my_target_pe] += 2 * sizeof(int); \
 \
-    const int remote_offset = shmem_int_fadd( \
+    const int remote_offset = hclib::shmem_int_fadd( \
             recv_buf_index, send_bufs_size[my_target_pe], \
             my_target_pe); \
-    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
-            send_bufs[my_target_pe]->buf + sizeof(int), \
+    assert(remote_offset + send_bufs_size[my_target_pe] <= INCOMING_MAILBOX_SIZE_IN_BYTES); \
+    hclib::shmem_char_put_nbi((char *)(recv_buf + remote_offset + sizeof(int)), \
+            (char *)(send_bufs[my_target_pe]->buf + sizeof(int)), \
             send_bufs_size[my_target_pe] - sizeof(int), my_target_pe); \
-    shmem_fence(); \
-    shmem_char_put_nbi(recv_buf + remote_offset, \
-            send_bufs[my_target_pe]->buf, sizeof(int), \
+    hclib::shmem_fence(); \
+    hclib::shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+            (char *)(send_bufs[my_target_pe]->buf), sizeof(int), \
             my_target_pe); \
 \
     send_bufs[my_target_pe]->next = used_send_bufs; \
@@ -102,14 +116,15 @@ typedef struct _send_buf {
 }
 
 #define SEND_EMPTY_PACKET(my_target_pe) { \
-    const int remote_offset = shmem_int_fadd( \
+    const int remote_offset = hclib::shmem_int_fadd( \
             recv_buf_index, SEND_HEADER_SIZE, \
             my_target_pe); \
-    empty_packet[1] = nmessages_local; \
-    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
+    assert(remote_offset + SEND_HEADER_SIZE <= INCOMING_MAILBOX_SIZE_IN_BYTES); \
+    empty_packet[1] = (nmessages_local ? -1 * nmessages_local : 0); \
+    hclib::shmem_char_put_nbi((char *)(recv_buf + remote_offset + sizeof(int)), \
             (char *)(empty_packet + 1), 1 * sizeof(int), my_target_pe); \
-    shmem_fence(); \
-    shmem_char_put_nbi(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
+    hclib::shmem_fence(); \
+    hclib::shmem_char_put_nbi((char *)(recv_buf + remote_offset), (char *)empty_packet, sizeof(int), my_target_pe); \
 }
 
 // #define VERBOSE
@@ -167,8 +182,8 @@ static inline void set_visited(const uint64_t global_vertex_id,
     const int bit_index = global_vertex_id % BITS_PER_INT;
     const int mask = (1 << bit_index);
 
-    // __sync_fetch_and_or(visited + word_index, mask);
-    visited[word_index] |= mask;
+    __sync_fetch_and_or(visited + word_index, mask);
+    // visited[word_index] |= mask;
 }
 
 static inline int is_visited(const uint64_t global_vertex_id,
@@ -212,22 +227,24 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
-static inline unsigned check_for_receives(unsigned char **iter_buf, int *ndone,
+static inline void recursively_check_for_receives(unsigned char *iter_buf, unsigned *ndone,
         const uint64_t nglobalverts, unsigned *visited,
         const uint64_t local_min_vertex, uint64_t *next_q,
-        unsigned *next_q_size, uint64_t *preds, const size_t visited_ints) {
-    unsigned count_messages = 0;
-    volatile int *check_for_header = (volatile int *)*iter_buf;
+        unsigned *next_q_size, uint64_t *preds, unsigned *count_messages,
+        const unsigned visited_ints) {
+    volatile int *check_for_header = (volatile int *)iter_buf;
     int header = *check_for_header;
 
-    while (header == HEADER || header == EMPTY_HEADER) {
-        if (header == HEADER) {
-            *check_for_header = 0;
+    count_asyncs++;
 
-            volatile unsigned *buf_size_ptr = check_for_header + 1;
-            const unsigned buf_size = *buf_size_ptr;
-            assert(buf_size > 0);
+    if (header == HEADER) {
+    // while (header == HEADER) {
+        *check_for_header = 0;
 
+        volatile int *buf_size_ptr = (volatile int *)(check_for_header + 1);
+        const int buf_size = *buf_size_ptr;
+
+        if (buf_size > 0) {
             unsigned char *local_iter_buf = (unsigned char *)(buf_size_ptr + 1);
 
             int i;
@@ -246,31 +263,37 @@ static inline unsigned check_for_receives(unsigned char **iter_buf, int *ndone,
                 if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
                     preds[to_explore - local_min_vertex] = parent;
                     set_visited(to_explore, visited, visited_ints, local_min_vertex);
-                    const unsigned q_index = *next_q_size;
+                    const unsigned q_index = __sync_fetch_and_add(next_q_size, 1);
                     assert(q_index < QUEUE_SIZE);
                     next_q[q_index] = to_explore;
-                    *next_q_size = q_index + 1;
                 }
 
                 local_iter_buf += sizeof(packed_edge);
             }
 
-            *iter_buf = local_iter_buf;
-        } else if (header == EMPTY_HEADER) {
-            *check_for_header = 0;
-
-            volatile unsigned *nmessages_ptr = check_for_header + 1;
-            count_messages += *nmessages_ptr;
+            iter_buf = local_iter_buf;
+        } else {
+            if (buf_size < 0) {
+                *count_messages += (-1 * buf_size);
+            }
 
             *ndone = *ndone + 1;
-            *iter_buf = (unsigned char *)(nmessages_ptr + 1);
+            iter_buf = (unsigned char *)(buf_size_ptr + 1);
         }
 
-        check_for_header = (volatile int *)*iter_buf;
+        check_for_header = (volatile int *)iter_buf;
         header = *check_for_header;
     }
 
-    return count_messages;
+    if (*ndone == npes - 1) {
+        return;
+    } else {
+        hclib::shmem_int_async_nb_when((volatile int *)iter_buf, SHMEM_CMP_EQ, HEADER, [=] {
+            recursively_check_for_receives(iter_buf, ndone, nglobalverts,
+                visited, local_min_vertex, next_q, next_q_size, preds,
+                count_messages, visited_ints);
+        });
+    }
 }
 
 int main(int argc, char **argv) {
@@ -294,15 +317,18 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    const char *deps[] = {"system", "openshmem"};
+    hclib::launch(deps, 2, [argc, argv] {
+
     const uint64_t scale = atoi(argv[1]);
     const uint64_t edgefactor = atoi(argv[2]);
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
     const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
 
-    shmem_init();
+    // shmem_init();
 
-    pe = shmem_my_pe();
-    npes = shmem_n_pes();
+    pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+    npes = hclib::shmem_n_pes();
 
     uint_fast32_t seed[5];
     uint64_t seed1 = 2, seed2 = 3;
@@ -357,18 +383,18 @@ int main(int argc, char **argv) {
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
     assert(remote_offsets);
     for (i = 0; i < npes; i++) {
-        remote_offsets[i] = shmem_longlong_fadd((long long int *)&n_local_edges,
+        remote_offsets[i] = hclib::shmem_longlong_fadd((long long int *)&n_local_edges,
                 count_edges_shared_with_pe[i], i);
     }
     free(count_edges_shared_with_pe);
 
-    shmem_barrier_all();
+    hclib::shmem_barrier_all();
 
     // Just for fun, find maximum # edges each PE will have
     for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
         pSync[i] = SHMEM_SYNC_VALUE;
     }
-    shmem_longlong_max_to_all((long long int *)&max_n_local_edges,
+    hclib::shmem_longlong_max_to_all((long long int *)&max_n_local_edges,
             (long long int *)&n_local_edges, 1, 0, 0, npes, pWrk, pSync);
 
     if (pe == 0) {
@@ -394,7 +420,7 @@ int main(int argc, char **argv) {
      * of the vertices of the edge is handled by this PE. This information will
      * be provided by other PEs.
      */
-    packed_edge *local_edges = (packed_edge *)shmem_malloc(
+    packed_edge *local_edges = (packed_edge *)hclib::shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
     assert(local_edges);
 
@@ -408,17 +434,17 @@ int main(int argc, char **argv) {
         int64_t v1 = get_v1_from_edge(actual_buf + i);
         int v0_pe = get_owner_pe(v0, nglobalverts);
         int v1_pe = get_owner_pe(v1, nglobalverts);
-        shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
+        hclib::shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
                 sizeof(packed_edge), v0_pe);
         remote_offsets[v0_pe]++;
-        shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
+        hclib::shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
                 sizeof(packed_edge), v1_pe);
         remote_offsets[v1_pe]++;
     }
 
     free(remote_offsets);
 
-    shmem_barrier_all();
+    hclib::shmem_barrier_all();
 
     free(actual_buf);
 
@@ -520,47 +546,34 @@ int main(int argc, char **argv) {
             sizeof(uint64_t));
     assert(neighbors);
 
-    // Just some double checking
-    for (i = 0; i < n_local_vertices; i++) {
-        const unsigned neighbors_start = local_vertex_offsets[i];
-        const unsigned neighbors_end = local_vertex_offsets[i + 1];
-
-        int j;
-        for (j = neighbors_start; j < neighbors_end; j++) {
-            if (neighbors[j] >= nglobalverts) {
-                fprintf(stderr, "Invalid neighbor at i = %llu / %llu, j = %u "
-                        "(%u -> %u)\n", i,
-                        n_local_vertices, j, neighbors_start, neighbors_end);
-                assert(0);
-            }
-        }
-    }
-
 #ifdef VERBOSE
     fprintf(stderr, "PE %d found %llu duplicate edges, total endpoints = %llu\n", pe,
             duplicates, total_endpoints);
 #endif
 
-    shmem_free(local_edges);
+    hclib::shmem_free(local_edges);
 
-    unsigned char *recv_buf = (unsigned char *)shmem_malloc(INCOMING_MAILBOX_SIZE_IN_BYTES);
-    unsigned char *inactive_recv_buf = (unsigned char *)shmem_malloc(
+    unsigned char *recv_buf = (unsigned char *)hclib::shmem_malloc(INCOMING_MAILBOX_SIZE_IN_BYTES);
+    unsigned char *inactive_recv_buf = (unsigned char *)hclib::shmem_malloc(
             INCOMING_MAILBOX_SIZE_IN_BYTES);
     assert(recv_buf && inactive_recv_buf);
-    int *recv_buf_index = (int *)shmem_malloc(sizeof(int));
-    int *inactive_recv_buf_index = (int *)shmem_malloc(sizeof(int));
+    int *recv_buf_index = (int *)hclib::shmem_malloc(sizeof(int));
+    int *inactive_recv_buf_index = (int *)hclib::shmem_malloc(sizeof(int));
     assert(recv_buf_index && inactive_recv_buf_index);
 
     uint64_t *curr_q = (uint64_t *)malloc(QUEUE_SIZE * sizeof(uint64_t));
     assert(curr_q);
-    unsigned curr_q_size = 0;
     uint64_t *next_q = (uint64_t *)malloc(QUEUE_SIZE * sizeof(uint64_t));
     assert(next_q);
-    unsigned next_q_size = 0;
+    unsigned *curr_q_size = (unsigned *)malloc(sizeof(unsigned));
+    unsigned *next_q_size = (unsigned *)malloc(sizeof(unsigned));
+    assert(curr_q_size && next_q_size);
+    *curr_q_size = 0;
+    *next_q_size = 0;
 
-    int *empty_packet = (int *)shmem_malloc(2 * sizeof(int));
+    int *empty_packet = (int *)hclib::shmem_malloc(2 * sizeof(int));
     assert(empty_packet);
-    empty_packet[0] = EMPTY_HEADER;
+    empty_packet[0] = HEADER;
     empty_packet[1] = 0;
 
     // Buffers to use to transmit next wave to each other PE, output only
@@ -568,7 +581,7 @@ int main(int argc, char **argv) {
     send_buf *used_send_bufs = NULL;
     unsigned count_pre_allocated = 0;
     while (1) {
-        unsigned char *buf = (unsigned char *)shmem_malloc(SEND_BUFFER_SIZE + 2 * sizeof(int));
+        unsigned char *buf = (unsigned char *)hclib::shmem_malloc(SEND_BUFFER_SIZE + 2 * sizeof(int));
         if (!buf) break;
         send_buf *new_send_buf = (send_buf *)malloc(sizeof(send_buf));
         new_send_buf->buf = buf;
@@ -600,8 +613,8 @@ int main(int argc, char **argv) {
         *recv_buf_index = 0;
         *inactive_recv_buf_index = 0;
         memset(recv_buf, 0x00, INCOMING_MAILBOX_SIZE_IN_BYTES);
-        curr_q_size = 0;
-        next_q_size = 0;
+        *curr_q_size = 0;
+        *next_q_size = 0;
 
         // uint64_t root = bfs_roots[run];
         uint64_t root = 0;
@@ -613,10 +626,14 @@ int main(int argc, char **argv) {
              * parent for vertex 0 to 0.
              */
             curr_q[0] = root;
-            curr_q_size = 1;
+            *curr_q_size = 1;
         }
 
-        shmem_barrier_all();
+        unsigned *ndone = (unsigned *)malloc(sizeof(unsigned));
+        unsigned *nmessages_global = (unsigned *)malloc(sizeof(unsigned));
+        assert(ndone && nmessages_global);
+
+        hclib::shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
         const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
@@ -631,82 +648,86 @@ int main(int argc, char **argv) {
 #ifdef PROFILE
             const unsigned long long start_accum = current_time_ns();
 #endif
-            unsigned nmessages_global = 0;
             unsigned nmessages_local = 0;
-            next_q_size = 0;
 
-            unsigned ndone = 0;
+            *ndone = 0;
+            *nmessages_global = 0;
+            *next_q_size = 0;
+
             unsigned char *iter_buf = recv_buf;
 
-            for (i = 0; i < curr_q_size; i++) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone, nglobalverts, visited,
-                        local_min_vertex, next_q, &next_q_size, preds, visited_ints);
+            hclib::finish([&] {
+                for (i = 0; i < *curr_q_size; i++) {
+                    uint64_t vertex = curr_q[i];
 
-                uint64_t vertex = curr_q[i];
+                    const int neighbor_start = local_vertex_offsets[vertex - local_min_vertex];
+                    const int neighbor_end = local_vertex_offsets[vertex - local_min_vertex + 1];
 
-                const int neighbor_start = local_vertex_offsets[vertex - local_min_vertex];
-                const int neighbor_end = local_vertex_offsets[vertex - local_min_vertex + 1];
+                    int j;
+                    for (j = neighbor_start; j < neighbor_end; j++) {
+                        const uint64_t to_explore = neighbors[j];
 
-                int j;
-                for (j = neighbor_start; j < neighbor_end; j++) {
-                    const uint64_t to_explore = neighbors[j];
+                        if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
+                            const int target_pe = get_owner_pe(to_explore,
+                                    nglobalverts);
+                            set_visited(to_explore, visited, visited_ints, local_min_vertex);
 
-                    if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
-                        const int target_pe = get_owner_pe(to_explore,
-                                nglobalverts);
-                        set_visited(to_explore, visited, visited_ints, local_min_vertex);
+                            nmessages_local++;
 
-                        nmessages_local++;
+                            if (target_pe == pe) {
+                                preds[to_explore - local_min_vertex] = vertex;
+                                const unsigned q_index = __sync_fetch_and_add(next_q_size, 1);
+                                assert(q_index < QUEUE_SIZE);
+                                next_q[q_index] = to_explore;
+                            } else {
+                                if (send_bufs[target_pe] == NULL) {
+                                    GET_SEND_BUF(target_pe)
+                                }
 
-                        if (target_pe == pe) {
-                            preds[to_explore - local_min_vertex] = vertex;
-                            assert(next_q_size < QUEUE_SIZE);
-                            next_q[next_q_size++] = to_explore;
-                        } else {
-                            if (send_bufs[target_pe] == NULL) {
-                                GET_SEND_BUF(target_pe)
-                            }
+                                unsigned char *write_at =
+                                    send_bufs[target_pe]->buf +
+                                    send_bufs_size[target_pe];
+                                write_edge((packed_edge *)write_at, to_explore,
+                                        vertex);
+                                send_bufs_size[target_pe] += sizeof(packed_edge);
 
-                            unsigned char *write_at =
-                                send_bufs[target_pe]->buf +
-                                send_bufs_size[target_pe];
-                            write_edge((packed_edge *)write_at, to_explore,
-                                    vertex);
-                            send_bufs_size[target_pe] += sizeof(packed_edge);
-
-                            assert(send_bufs_size[target_pe] <= SEND_BUFFER_SIZE);
-                            if (send_bufs_size[target_pe] == SEND_BUFFER_SIZE) {
-                                // Send
-                                SEND_PACKET(target_pe)
+                                assert(send_bufs_size[target_pe] <= SEND_BUFFER_SIZE);
+                                if (SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[target_pe]) == coalescing) {
+                                    // Send
+                                    SEND_PACKET(target_pe)
+                                    coalescing *= 2;
+                                    if (coalescing > MAX_COALESCING) coalescing = MAX_COALESCING;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // unsigned handled_in_middle = 0;
-            for (i = 1; i < npes; i++) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone, nglobalverts,
-                        visited, local_min_vertex, next_q, &next_q_size, preds, visited_ints);
+                hclib::shmem_int_async_nb_when((volatile int *)recv_buf,
+                        SHMEM_CMP_EQ, HEADER, [=] {
+                    recursively_check_for_receives(recv_buf, ndone, nglobalverts,
+                        visited, local_min_vertex, next_q, next_q_size, preds,
+                        nmessages_global, visited_ints);
+                });
 
-                const int target = (pe + i) % npes;
-                if (send_bufs[target]) {
-                    // Send any remainders
-                    SEND_WITH_EMPTY_PACKET(target)
-                } else {
-                    /*
-                     * Send 0-length packet to signify this PE is done sending to
-                     * target.
-                     */
-                    SEND_EMPTY_PACKET(target)
+                // unsigned handled_in_middle = 0;
+                for (i = 1; i < npes; i++) {
+                    const int target = (pe + i) % npes;
+                    if (send_bufs[target]) {
+                        // Send any remainders
+                        SEND_WITH_EMPTY_PACKET(target)
+                    } else {
+                        /*
+                         * Send 0-length packet to signify this PE is done sending to
+                         * target.
+                         */
+                        SEND_EMPTY_PACKET(target)
+                    }
                 }
-            }
 
-            while (ndone < npes - 1) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone,
-                        nglobalverts, visited, local_min_vertex, next_q,
-                        &next_q_size, preds, visited_ints);
-            }
+                if (pe == 0) fprintf(stderr, "At end, async count is %d\n", count_asyncs);
+            });
+
 
             *recv_buf_index = 0;
             int *tmp_recv_buf_index = recv_buf_index;
@@ -721,7 +742,7 @@ int main(int argc, char **argv) {
             curr_q = next_q;
             next_q = tmp_q;
 
-            const unsigned tmp_q_size = curr_q_size;
+            unsigned *tmp_q_size = curr_q_size;
             curr_q_size = next_q_size;
             next_q_size = tmp_q_size;
 
@@ -739,7 +760,7 @@ int main(int argc, char **argv) {
             reduce_time += (end_all - start_reduce);
 #endif
 
-            if (nmessages_local + nmessages_global == 0) {
+            if (nmessages_local + *nmessages_global == 0) {
                 break;
             }
 
@@ -754,12 +775,12 @@ int main(int argc, char **argv) {
             iter++;
         }
 
-        shmem_barrier_all();
+        hclib::shmem_barrier_all();
         const unsigned long long end_bfs = current_time_ns();
         if (pe == 0) {
-            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters\n",
+            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters, %d asyncs\n",
                     run, root, (double)(end_bfs - start_bfs) / 1000000.0,
-                    iter + 1);
+                    iter + 1, count_asyncs);
         }
 
 #ifdef VERBOSE
@@ -779,7 +800,8 @@ int main(int argc, char **argv) {
 #endif
     }
 
-    shmem_finalize();
+    });
+    // shmem_finalize();
 
     return 0;
 }

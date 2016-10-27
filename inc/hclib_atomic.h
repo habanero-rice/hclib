@@ -88,6 +88,23 @@ class atomic_max_t : private atomic_t<T> {
         }
 };
 
+template <class T>
+class atomic_or_t : private atomic_t<T> {
+    public:
+        atomic_or_t(T set_default_value) : atomic_t<T>(set_default_value) {
+        }
+
+        atomic_or_t& operator|=(T other) {
+            atomic_t<T>::update([&other] (T curr) { return curr || other; });
+            return *this;
+        }
+
+        T get() {
+            return atomic_t<T>::gather([] (T a, T b) { return a || b; });
+        }
+};
+
+
 }
 
 #endif

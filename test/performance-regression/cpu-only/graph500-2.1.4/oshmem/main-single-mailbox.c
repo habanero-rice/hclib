@@ -63,16 +63,28 @@ static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     return vertex / vertices_per_pe;
 }
 
-static inline void set_visited(const uint64_t vertex, unsigned *visited) {
-    const int word_index = vertex / BITS_PER_INT;
-    const int bit_index = vertex % BITS_PER_INT;
+static inline void set_visited(const uint64_t global_vertex_id,
+        unsigned *visited, const unsigned visited_length,
+        const uint64_t local_min_vertex) {
+    // const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
+
+    const int word_index = global_vertex_id / BITS_PER_INT;
+    assert(word_index < visited_length);
+    const int bit_index = global_vertex_id % BITS_PER_INT;
     const int mask = (1 << bit_index);
+
+    // __sync_fetch_and_or(visited + word_index, mask);
     visited[word_index] |= mask;
 }
 
-static inline int is_visited(const uint64_t vertex, const unsigned *visited) {
-    const int word_index = vertex / BITS_PER_INT;
-    const int bit_index = vertex % BITS_PER_INT;
+static inline int is_visited(const uint64_t global_vertex_id,
+        const unsigned *visited, const size_t visited_length,
+        const uint64_t local_min_vertex) {
+    // const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
+
+    const unsigned word_index = global_vertex_id / BITS_PER_INT;
+    assert(word_index < visited_length);
+    const int bit_index = global_vertex_id % BITS_PER_INT;
     const int mask = (1 << bit_index);
 
     if ((visited[word_index] & mask) > 0) {
@@ -120,15 +132,16 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
         const uint64_t *neighbors, const uint64_t vertices_per_pe,
         packed_edge **send_bufs, unsigned *send_bufs_size,
         short *nmessages_local, unsigned *visited,
-        const uint64_t local_min_vertex, const uint64_t local_max_vertex) {
+        const uint64_t local_min_vertex, const uint64_t local_max_vertex,
+        const size_t visited_ints) {
     int i;
     assert(vertex >= local_min_vertex && vertex < local_max_vertex);
     const int local_vertex_id = vertex - local_min_vertex;
 
     const int parent = get_v1_from_edge(&reading[i]);
 
-    set_visited(vertex, visited);
-    set_visited(parent, visited);
+    set_visited(vertex, visited, visited_ints, local_min_vertex);
+    set_visited(parent, visited, visited_ints, local_min_vertex);
 
     if (preds[local_vertex_id] == 0) {
         preds[local_vertex_id] = parent + 1;
@@ -142,14 +155,14 @@ static inline void handle_new_vertex(const uint64_t vertex, uint64_t *preds,
 
             // Don't go backwards to the parent or follow self-loops
             if (to_explore != parent && to_explore != vertex &&
-                    !is_visited(to_explore, visited)) {
+                    !is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
                 const int target_pe = to_explore / vertices_per_pe;
                 packed_edge *send_buf = send_bufs[target_pe];
                 int curr_size = send_bufs_size[target_pe];
 
                 assert(curr_size < OUTGOING_MAILBOX_SIZE);
 
-                set_visited(to_explore, visited);
+                set_visited(to_explore, visited, visited_ints, local_min_vertex);
 
                 write_edge(&send_buf[curr_size], to_explore, vertex);
 
@@ -381,42 +394,48 @@ int main(int argc, char **argv) {
         }
     }
 
-    uint64_t total_endpoints = 0;
-    uint64_t duplicates = 0;
+    // Remove duplicate edges
+    uint64_t writing_index = 0;
     for (i = 0; i < n_local_vertices; i++) {
-        const int start = local_vertex_offsets[i];
-        const int end = local_vertex_offsets[i + 1];
+        const unsigned start = local_vertex_offsets[i];
+        const unsigned end = local_vertex_offsets[i + 1];
         assert(start <= end);
 
-        const int new_start = start - duplicates;
-        assert(new_start >= 0);
+        local_vertex_offsets[i] = writing_index;
 
         qsort(neighbors + start, end - start, sizeof(*neighbors),
                 compare_uint64_t);
 
-        uint64_t curr = neighbors[start];
-        int index = start + 1;
-        int writing_index = start + 1;
-        while (index < end) {
-            if (neighbors[index] == curr) {
-                // A duplicate of an already seen value
-                duplicates++;
-                index++;
-            } else {
-                // Not a duplicate
-                curr = neighbors[index];
-                neighbors[writing_index] = neighbors[index];
-                index++;
-                writing_index++;
-                total_endpoints++;
+        uint64_t reading_index = start;
+        while (reading_index < end) {
+            unsigned j = reading_index + 1;
+            while (j < end && neighbors[j] == neighbors[reading_index]) {
+                j++;
+            }
+            neighbors[writing_index++] = neighbors[reading_index];
+            reading_index = j;
+        }
+    }
+    local_vertex_offsets[n_local_vertices] = writing_index;
+    neighbors = (uint64_t *)realloc(neighbors, writing_index *
+            sizeof(uint64_t));
+    assert(neighbors);
+
+    // Just some double checking
+    for (i = 0; i < n_local_vertices; i++) {
+        const unsigned neighbors_start = local_vertex_offsets[i];
+        const unsigned neighbors_end = local_vertex_offsets[i + 1];
+
+        int j;
+        for (j = neighbors_start; j < neighbors_end; j++) {
+            if (neighbors[j] >= nglobalverts) {
+                fprintf(stderr, "Invalid neighbor at i = %llu / %llu, j = %u "
+                        "(%u -> %u)\n", i,
+                        n_local_vertices, j, neighbors_start, neighbors_end);
+                assert(0);
             }
         }
-
-        local_vertex_offsets[i] = new_start;
     }
-    local_vertex_offsets[n_local_vertices] = total_endpoints;
-    neighbors = (uint64_t *)realloc(neighbors, total_endpoints * sizeof(uint64_t));
-    assert(neighbors);
 
 #ifdef VERBOSE
     fprintf(stderr, "PE %d found %llu duplicate edges, total endpoints = %llu\n", pe,
@@ -456,8 +475,8 @@ int main(int argc, char **argv) {
 
     const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
             BITS_PER_INT);
-    const size_t visited_bytes = visited_ints * sizeof(int);
-    unsigned *visited = (unsigned *)shmem_malloc(visited_bytes);
+    const size_t visited_bytes = visited_ints * sizeof(unsigned);
+    unsigned *visited = (unsigned *)malloc(visited_bytes);
     assert(visited);
 
     const unsigned num_bfs_roots = 3;
@@ -476,7 +495,7 @@ int main(int argc, char **argv) {
              * Signal that this PE has received 1 item in its inbox, setting the
              * parent for vertex 0 to 0.
              */
-            set_visited(root, visited);
+            set_visited(root, visited, visited_ints, local_min_vertex);
             write_edge(&(reading[0]), root, root);
             *reading_incr = 1;
         }
@@ -507,7 +526,7 @@ int main(int argc, char **argv) {
                 handle_new_vertex(vertex, preds, reading, local_vertex_offsets,
                         neighbors, vertices_per_pe, send_bufs, send_bufs_size,
                         nmessages_local, visited, local_min_vertex,
-                        local_max_vertex);
+                        local_max_vertex, visited_ints);
             }
 
 #ifdef PROFILE

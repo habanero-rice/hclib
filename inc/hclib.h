@@ -214,6 +214,18 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event);
 void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
         hclib_locale_t *locale, int n_in, int n_out, ...);
 
+/*
+ * This API yields the current thread to another task. This API guarantees that
+ * if there is currently a task in the pop or steal path of the current thread,
+ * it will be found and its execution will start before we return from this
+ * yield call. This API does not guarantee that the calling task will be blocked
+ * until any tasks yielded to complete, nor are there any guarantees on the
+ * number of tasks run during a yield beyond the first one. We do guarantee that
+ * we will return to the current task at some point in the future, and that the
+ * program will not terminate before this task starts.
+ */
+void hclib_yield();
+
 /**
  * @}
  */

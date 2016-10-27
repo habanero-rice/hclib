@@ -12,6 +12,9 @@
 
 namespace hclib {
 
+uint64_t nspawned = 0;
+uint64_t nrun = 0;
+
 enum wait_type {
     integer
 };
@@ -32,6 +35,8 @@ typedef struct _wait_set_t {
     int ninfos;
     hclib_promise_t *signal;
     hclib_task_t *task;
+
+    struct _wait_set_t *next;
 } wait_set_t;
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize);
@@ -43,6 +48,7 @@ int shmem_n_pes();
 void *shmem_malloc(size_t size);
 void shmem_free(void *ptr);
 void shmem_barrier_all();
+void shmem_fence();
 void shmem_put64(void *dest, const void *source, size_t nelems, int pe);
 void shmem_broadcast64(void *dest, const void *source, size_t nelems,
         int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync);
@@ -55,6 +61,9 @@ void shmem_int_put(int *dest, const int *source, size_t nelems, int pe);
 void shmem_longlong_put(long long *dest, const long long *src,
                         size_t nelems, int pe);
 void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
+void shmem_putmem(void *dest, const void *source, size_t nelems, int pe);
+
+void shmem_char_put_nbi(char *dest, const char *source, size_t nelems, int pe);
 
 void shmem_longlong_p(long long *addr, long long value, int pe);
 
@@ -69,6 +78,10 @@ void shmem_int_sum_to_all(int *target, int *source, int nreduce,
                           int PE_start, int logPE_stride,
                           int PE_size, int *pWrk, long *pSync);
 void shmem_longlong_sum_to_all(long long *target, long long *source,
+                               int nreduce, int PE_start,
+                               int logPE_stride, int PE_size,
+                               long long *pWrk, long *pSync);
+void shmem_longlong_max_to_all(long long *target, long long *source,
                                int nreduce, int PE_start,
                                int logPE_stride, int PE_size,
                                long long *pWrk, long *pSync);
@@ -114,7 +127,18 @@ void enqueue_wait_set(wait_set_t *wait_set);
 template <typename T>
 void shmem_int_async_when(volatile int *ivar, int cmp,
         int cmp_value, T lambda) {
-    hclib_task_t *task = _allocate_async_hclib(lambda, false);
+    hclib_task_t *task = _allocate_async(lambda, false);
+
+    hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
+            &cmp_value, 1, integer, i, task);
+    HASSERT(promise == NULL);
+}
+
+template <typename T>
+void shmem_int_async_nb_when(volatile int *ivar, int cmp,
+        int cmp_value, T lambda) {
+    hclib_task_t *task = _allocate_async(lambda, false);
+    task->non_blocking = 1;
 
     hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
             &cmp_value, 1, integer, i, task);
@@ -124,7 +148,7 @@ void shmem_int_async_when(volatile int *ivar, int cmp,
 template <typename T>
 void shmem_int_async_when_any(volatile int **ivars, int cmp,
         int *cmp_values, int nwaits, T lambda) {
-    hclib_task_t *task = _allocate_async_hclib(lambda, false);
+    hclib_task_t *task = _allocate_async(lambda, false);
 
     hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
             cmp_values, nwaits, integer, i, task);

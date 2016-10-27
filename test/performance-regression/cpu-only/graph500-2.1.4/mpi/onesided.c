@@ -127,7 +127,7 @@ scatter* init_scatter(void* array, size_t array_count, size_t elt_size, size_t n
   sc->elt_size = elt_size;
   sc->request_count = 0;
   sc->nrequests_max = nrequests_max;
-  sc->send_data = xmalloc(nrequests_max * elt_size);
+  sc->send_data = (char *)xmalloc(nrequests_max * elt_size);
   sc->datatype = dt;
   sc->valid = 0;
   MPI_Win_create(array, array_count * elt_size, elt_size, MPI_INFO_NULL, MPI_COMM_WORLD, &sc->win);

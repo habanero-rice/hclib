@@ -343,6 +343,10 @@ inline hclib::future_t *nonblocking_finish(std::function<void()> lambda) {
     return event->get_future();
 }
 
+inline void yield() {
+    hclib_yield();
+}
+
 }
 
 #endif /* HCLIB_ASYNC_H_ */
