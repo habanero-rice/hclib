@@ -51,7 +51,6 @@ typedef struct _send_buf {
     send_buf *gotten = pre_allocated_send_bufs; \
     assert(gotten); \
     pre_allocated_send_bufs = gotten->next; \
-    gotten->next = NULL; \
     *((int *)(gotten->buf)) = HEADER; \
     send_bufs[my_target_pe] = gotten; \
     send_bufs_size[my_target_pe] = SEND_HEADER_SIZE; \
@@ -74,8 +73,6 @@ typedef struct _send_buf {
             (char *)(recv_buf + remote_offset), (char *)(send_bufs[my_target_pe]->buf), sizeof(int), \
             my_target_pe); \
 \
-    send_bufs[my_target_pe]->next = used_send_bufs; \
-    used_send_bufs = send_bufs[my_target_pe]; \
     send_bufs[my_target_pe] = NULL; \
     send_bufs_size[my_target_pe] = 0; \
 }
@@ -105,8 +102,6 @@ typedef struct _send_buf {
             (char *)(send_bufs[my_target_pe]->buf), sizeof(int), \
             my_target_pe); \
 \
-    send_bufs[my_target_pe]->next = used_send_bufs; \
-    used_send_bufs = send_bufs[my_target_pe]; \
     send_bufs[my_target_pe] = NULL; \
     send_bufs_size[my_target_pe] = 0; \
 }
@@ -565,7 +560,6 @@ int main(int argc, char **argv) {
 
     // Buffers to use to transmit next wave to each other PE, output only
     send_buf *pre_allocated_send_bufs = NULL;
-    send_buf *used_send_bufs = NULL;
     unsigned count_pre_allocated = 0;
     while (1) {
         unsigned char *buf = (unsigned char *)hclib::shmem_malloc(SEND_BUFFER_SIZE + 2 * sizeof(int));
@@ -576,6 +570,7 @@ int main(int argc, char **argv) {
         pre_allocated_send_bufs = new_send_buf;
         count_pre_allocated++;
     }
+    const send_buf * const save_pre_allocated_send_bufs = pre_allocated_send_bufs;
 
     send_buf **send_bufs = (send_buf **)malloc(npes * sizeof(send_buf *));
     assert(send_bufs);
@@ -744,12 +739,7 @@ int main(int argc, char **argv) {
             }
 
             // Restore all send buffers to unused
-            while (used_send_bufs) {
-                send_buf *save = used_send_bufs->next;
-                used_send_bufs->next = pre_allocated_send_bufs;
-                pre_allocated_send_bufs = used_send_bufs;
-                used_send_bufs = save;
-            }
+            pre_allocated_send_bufs = (send_buf *)save_pre_allocated_send_bufs;
 
             iter++;
         }
