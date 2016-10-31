@@ -344,7 +344,11 @@ inline hclib::future_t *nonblocking_finish(std::function<void()> lambda) {
 }
 
 inline void yield() {
-    hclib_yield();
+    hclib_yield(NULL);
+}
+
+inline void yield_at(hclib_locale_t *locale) {
+    hclib_yield(locale);
 }
 
 }

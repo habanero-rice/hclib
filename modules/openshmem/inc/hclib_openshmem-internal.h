@@ -12,9 +12,6 @@
 
 namespace hclib {
 
-uint64_t nspawned = 0;
-uint64_t nrun = 0;
-
 enum wait_type {
     integer
 };
@@ -64,6 +61,9 @@ void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
 void shmem_putmem(void *dest, const void *source, size_t nelems, int pe);
 
 void shmem_char_put_nbi(char *dest, const char *source, size_t nelems, int pe);
+void shmem_char_put_signal_nbi(char *dest, const char *source,
+        size_t nelems, char *signal_dest, const char *signal_source,
+        size_t signal_nelems, int pe);
 
 void shmem_longlong_p(long long *addr, long long value, int pe);
 

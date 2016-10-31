@@ -3,8 +3,8 @@
 #PBS -N G500
 #PBS -j oe
 #PBS -q batch
-#PBS -l walltime=00:04:00
-#PBS -l nodes=32
+#PBS -l walltime=00:05:00
+#PBS -l nodes=128
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -31,7 +31,7 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
-export GRAPH_SIZE=28
+export GRAPH_SIZE=29
 
 export SMA_SYMMETRIC_SIZE=1073741824
 export GASNET_PHYSMEM_MAX=1073741824

@@ -1,7 +1,7 @@
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
 
-DEFINES=-DHC_ASSERTION_CHECK
+DEFINES=-DHC_ASSERTION_CHECK -DPROFILE
 # DEFINES=-DVERBOSE
 
 OBJS=obj/hclib_openshmem.o

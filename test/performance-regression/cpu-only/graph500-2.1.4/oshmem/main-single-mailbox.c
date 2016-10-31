@@ -80,18 +80,12 @@ static inline void set_visited(const uint64_t global_vertex_id,
 static inline int is_visited(const uint64_t global_vertex_id,
         const unsigned *visited, const size_t visited_length,
         const uint64_t local_min_vertex) {
-    // const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
-
     const unsigned word_index = global_vertex_id / BITS_PER_INT;
     assert(word_index < visited_length);
     const int bit_index = global_vertex_id % BITS_PER_INT;
     const int mask = (1 << bit_index);
 
-    if ((visited[word_index] & mask) > 0) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return (((visited[word_index] & mask) > 0) ? 1 : 0);
 }
 
 /* Spread the two 64-bit numbers into five nonzero values in the correct

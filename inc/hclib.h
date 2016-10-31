@@ -223,8 +223,12 @@ void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
  * number of tasks run during a yield beyond the first one. We do guarantee that
  * we will return to the current task at some point in the future, and that the
  * program will not terminate before this task starts.
+ *
+ * The optional locale argument indicates where the continuation of the current
+ * task should be placed if suspended. If set to NULL, this is up to the
+ * runtime.
  */
-void hclib_yield();
+void hclib_yield(hclib_locale_t *locale);
 
 /**
  * @}

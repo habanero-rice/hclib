@@ -195,7 +195,9 @@ static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
                                 const char *lbl) {
     // switching to new context
     set_curr_lite_ctx(next);
+
     LiteCtx_swap(current, next, lbl);
+
     // switched back to this context
     set_curr_lite_ctx(current);
 }
@@ -512,12 +514,12 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     HASSERT(task);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    if (!escaping) {
-        check_in_finish(ws->current_finish);
-        set_current_finish(task, ws->current_finish);
-    } else {
+    if (escaping) {
         // If escaping task, don't register with current finish
         set_current_finish(task, NULL);
+    } else {
+        check_in_finish(ws->current_finish);
+        set_current_finish(task, ws->current_finish);
     }
 
     if (locale) {
@@ -602,7 +604,6 @@ static void _hclib_finalize_ctx(LiteCtx *ctx) {
 }
 
 static void core_work_loop(hclib_task_t *starting_task) {
-
     if (starting_task) {
         execute_task(starting_task);
     }
@@ -680,8 +681,6 @@ static void _finish_ctx_resume(void *arg) {
             "finishCtx=%p\n", currentCtx, finishCtx);
     HASSERT(0);
 }
-
-void crt_work_loop(LiteCtx *ctx);
 
 /*
  * Based on _help_finish_ctx, _help_wait is called to swap out the current
@@ -841,6 +840,7 @@ void help_finish(finish_t *finish) {
 static void yield_helper(LiteCtx *ctx) {
     hclib_task_t *starting_task = ctx->arg1;
     HASSERT(starting_task);
+    hclib_locale_t *locale = ctx->arg2;
 
     hclib_task_t *continuation = (hclib_task_t *)calloc(1,
             sizeof(hclib_task_t));
@@ -848,7 +848,7 @@ static void yield_helper(LiteCtx *ctx) {
     continuation->_fp = _finish_ctx_resume;
     continuation->args = ctx->prev;
 
-    spawn_escaping(continuation, NULL);
+    spawn_escaping_at(locale, continuation, NULL);
 
     core_work_loop(starting_task);
     HASSERT(0);
@@ -858,34 +858,49 @@ static void yield_helper(LiteCtx *ctx) {
  * =================== INTERFACE TO USER FUNCTIONS ==========================
  */
 
-void hclib_yield() {
+void hclib_yield(hclib_locale_t *locale) {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    hclib_task_t *task = locale_pop_task(ws);
-    if (!task) {
-        task = locale_steal_task(ws);
-    }
-
     finish_t *old_finish = ws->current_finish;
 
-    if (task) {
-        if (task->non_blocking) {
-            execute_task(task);
-        } else {
-            LiteCtx *currentCtx = get_curr_lite_ctx();
-            HASSERT(currentCtx);
-            LiteCtx *newCtx = LiteCtx_create(yield_helper);
-            newCtx->arg1 = task;
-#ifdef HCLIB_STATS
-        worker_stats[ws->id].count_ctx_creates++;
-#endif
-
-            ctx_swap(currentCtx, newCtx, __func__);
-
-            LiteCtx_destroy(currentCtx->prev);
+    hclib_task_t *task;
+    do {
+        ws = CURRENT_WS_INTERNAL;
+        task = locale_pop_task(ws);
+        if (!task) {
+            task = locale_steal_task(ws);
         }
-    }
 
-    ws->current_finish = old_finish;
+        if (task) {
+            if (task->non_blocking) {
+                execute_task(task);
+            } else {
+                LiteCtx *currentCtx = get_curr_lite_ctx();
+                HASSERT(currentCtx);
+                LiteCtx *newCtx = LiteCtx_create(yield_helper);
+                newCtx->arg1 = task;
+                newCtx->arg2 = locale;
+#ifdef HCLIB_STATS
+                worker_stats[ws->id].count_ctx_creates++;
+#endif
+                ctx_swap(currentCtx, newCtx, __func__);
+
+                LiteCtx_destroy(currentCtx->prev);
+
+                /*
+                 * This break is necessary to prevent infinite loops. If there
+                 * is only a single, yielding, blocking task eligible in the
+                 * system you can run into situations where the yield picks it
+                 * up, switches contexts, creates a continuation task, executes
+                 * the picked-up task, which eventually yields, repeats the
+                 * above, and runs this continuation, which then loops back up,
+                 * calls the other continuation, and leads to an infinite loop.
+                 */
+                break;
+            }
+        }
+    } while (task);
+
+    CURRENT_WS_INTERNAL->current_finish = old_finish;
 }
 
 void hclib_start_finish() {
