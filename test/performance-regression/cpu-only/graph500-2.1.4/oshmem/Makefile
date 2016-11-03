@@ -17,6 +17,9 @@ bfs_oshmem-single-mailbox-hiper: main-single-mailbox-hiper.c utilities.c mrg.c s
 bfs_oshmem-single-mailbox-concurrent: main-single-mailbox-concurrent.c utilities.c mrg.c splittable_mrg.c generator.c
 	gcc -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE
 
+# bfs_oshmem-single-mailbox-concurrent-crc: main-single-mailbox-concurrent-crc.c crc/crc.c utilities.c mrg.c splittable_mrg.c generator.c
+# 	gcc -DCRC32 -Icrc -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE
+
 bfs_oshmem-single-mailbox-strided: main-single-mailbox-strided.c utilities.c mrg.c splittable_mrg.c generator.c
 	gcc -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE
 

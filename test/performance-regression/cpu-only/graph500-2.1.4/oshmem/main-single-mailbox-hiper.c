@@ -20,11 +20,9 @@
 
 #define HEADER 0xbbbb
 
-#define QUEUE_SIZE 1048576
+#define QUEUE_SIZE 2097152
 
 #define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
-
-int count_asyncs = 0;
 
 /*
  * Header format:
@@ -32,9 +30,9 @@ int count_asyncs = 0;
  *   4 bytes - HEADER
  *   4 bytes - # edges in buffer
  */
-#define MAX_COALESCING 512
+#define COALESCING 512
 #define SEND_HEADER_SIZE (2 * sizeof(int))
-#define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + MAX_COALESCING * sizeof(packed_edge))
+#define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
 #define BITS_PER_INT (sizeof(unsigned) * 8)
 
@@ -120,6 +118,10 @@ typedef struct _send_buf {
 
 // #define VERBOSE
 // #define PROFILE
+
+#ifdef PROFILE
+int count_asyncs = 0;
+#endif
 
 static int pe = -1;
 static int npes = -1;
@@ -217,8 +219,9 @@ static inline void recursively_check_for_receives(unsigned char *iter_buf, unsig
         const unsigned visited_ints) {
     volatile int *check_for_header = (volatile int *)iter_buf;
     int header = *check_for_header;
-
+#ifdef PROFILE
     count_asyncs++;
+#endif
 
     // if (header == HEADER) {
     while (header == HEADER) {
@@ -371,7 +374,6 @@ int main(int argc, char **argv) {
 
     hclib::shmem_barrier_all();
 
-    // Just for fun, find maximum # edges each PE will have
     for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
         pSync[i] = SHMEM_SYNC_VALUE;
     }
@@ -527,6 +529,22 @@ int main(int argc, char **argv) {
             sizeof(uint64_t));
     assert(neighbors);
 
+    // Just some double checking
+    for (i = 0; i < n_local_vertices; i++) {
+        const unsigned neighbors_start = local_vertex_offsets[i];
+        const unsigned neighbors_end = local_vertex_offsets[i + 1];
+
+        int j;
+        for (j = neighbors_start; j < neighbors_end; j++) {
+            if (neighbors[j] >= nglobalverts) {
+                fprintf(stderr, "Invalid neighbor at i = %llu / %llu, j = %u "
+                        "(%u -> %u)\n", i,
+                        n_local_vertices, j, neighbors_start, neighbors_end);
+                assert(0);
+            }
+        }
+    }
+
 #ifdef VERBOSE
     fprintf(stderr, "PE %d found %llu duplicate edges, total endpoints = %llu\n", pe,
             duplicates, total_endpoints);
@@ -583,7 +601,7 @@ int main(int argc, char **argv) {
     unsigned *visited = (unsigned *)malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 1;
+    const unsigned num_bfs_roots = 3;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
@@ -626,6 +644,7 @@ int main(int argc, char **argv) {
         unsigned long long accum_time = 0;
         unsigned long long send_time = 0;
         unsigned long long reduce_time = 0;
+        count_asyncs = 0;
 #endif
 
         while (1) {
@@ -651,8 +670,10 @@ int main(int argc, char **argv) {
                 for (i = 0; i < *curr_q_size; i++) {
                     uint64_t vertex = curr_q[i];
 
-                    const int neighbor_start = local_vertex_offsets[vertex - local_min_vertex];
-                    const int neighbor_end = local_vertex_offsets[vertex - local_min_vertex + 1];
+                    const int neighbor_start = local_vertex_offsets[vertex -
+                        local_min_vertex];
+                    const int neighbor_end = local_vertex_offsets[vertex -
+                        local_min_vertex + 1];
 
                     int j;
                     for (j = neighbor_start; j < neighbor_end; j++) {
@@ -685,7 +706,7 @@ int main(int argc, char **argv) {
                                 send_bufs_size[target_pe] += sizeof(packed_edge);
 
                                 assert(send_bufs_size[target_pe] <= SEND_BUFFER_SIZE);
-                                if (SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[target_pe]) == MAX_COALESCING) {
+                                if (SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[target_pe]) == COALESCING) {
                                     // Send
                                     SEND_PACKET(target_pe)
                                 }
@@ -747,9 +768,15 @@ int main(int argc, char **argv) {
         hclib::shmem_barrier_all();
         const unsigned long long end_bfs = current_time_ns();
         if (pe == 0) {
+#ifdef PROFILE
             fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters, %d asyncs\n",
                     run, root, (double)(end_bfs - start_bfs) / 1000000.0,
                     iter + 1, count_asyncs);
+#else
+            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters\n",
+                    run, root, (double)(end_bfs - start_bfs) / 1000000.0,
+                    iter + 1);
+#endif
         }
 
 #ifdef VERBOSE

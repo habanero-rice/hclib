@@ -7,7 +7,7 @@
 #  Authors: Jeremiah Willcock                                             
 #           Andrew Lumsdaine                                              
 
-CFLAGS_COMMON = -g -Ofast -march=native -DNDEBUG -fopenmp -Wall -Wextra -Wno-unused -Drestrict=__restrict__ -DGRAPH_GENERATOR_MPI -DMPICH_SKIP_MPICXX -DOMPI_SKIP_MPICXX -I$(MPI_HOME)/include
+CFLAGS_COMMON = -g -Ofast -fopenmp -march=native -DNDEBUG -Wall -Wextra -Wno-unused -Drestrict=__restrict__ -DGRAPH_GENERATOR_MPI -DMPICH_SKIP_MPICXX -DOMPI_SKIP_MPICXX -I$(MPI_HOME)/include
 CFLAGS = $(CFLAGS_COMMON)
 CXXFLAGS = $(CFLAGS_COMMON)
 LDFLAGS = -Ofast -fopenmp -lhugetlbfs -L$(MPI_HOME)/lib -lmpich

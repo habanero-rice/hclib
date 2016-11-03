@@ -4,7 +4,7 @@
 #PBS -j oe
 #PBS -q debug
 #PBS -l walltime=00:10:00
-#PBS -l nodes=256
+#PBS -l nodes=128
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 

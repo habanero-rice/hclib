@@ -161,7 +161,8 @@ int main(int argc, char** argv) {
   /* Make the raw graph edges. */
   /* Get roots for BFS runs, plus maximum vertex with non-zero degree (used by
    * validator). */
-  unsigned int num_bfs_roots = 64;
+  // unsigned int num_bfs_roots = 64;
+  unsigned int num_bfs_roots = 3;
 
   do_trace("Before graph_generation\n");
 
@@ -308,7 +309,7 @@ int main(int argc, char** argv) {
 
   const bfs_settings settings[] = {
     // {2, num_bfs_roots, false, false, true, default_bcast_step_size},
-    {3, 1, false, true, false, 4},
+    {3, num_bfs_roots, false, true, false, 4} /* ,
     {3, 1, false, true, false, 6},
     {3, 1, false, true, false, 8},
     {3, 1, false, true, false, 12},
@@ -322,7 +323,7 @@ int main(int argc, char** argv) {
     {3, 1, false, true, false, 192},
     {3, 1, false, true, false, 256},
     {3, num_bfs_roots, false, false, true, -1},
-    {3, 1, true, true, false, -1},
+    {3, 1, true, true, false, -1}, */
     // {2, 1, false, false, false, -1},
     // {1, 1, false, true, false, -1},
     // {0, 1, false, true, false, -1},

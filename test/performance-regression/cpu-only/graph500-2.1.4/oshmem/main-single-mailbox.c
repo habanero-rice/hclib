@@ -66,8 +66,6 @@ static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
 static inline void set_visited(const uint64_t global_vertex_id,
         unsigned *visited, const unsigned visited_length,
         const uint64_t local_min_vertex) {
-    // const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
-
     const int word_index = global_vertex_id / BITS_PER_INT;
     assert(word_index < visited_length);
     const int bit_index = global_vertex_id % BITS_PER_INT;
