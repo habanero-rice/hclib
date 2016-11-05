@@ -144,7 +144,7 @@ typedef struct _send_buf {
 // }
 
 // #define VERBOSE
-#define PROFILE
+// #define PROFILE
 
 #ifdef PROFILE
 unsigned long long hash_time = 0;
@@ -154,6 +154,11 @@ unsigned long long total_packets_received = 0;
 unsigned long long n_packets_wasted = 0;
 unsigned long long total_elements_received = 0;
 unsigned long long n_elements_wasted = 0;
+#ifdef DETAILED_PROFILE
+unsigned *wavefront_visited = NULL;
+unsigned long long duplicates_in_same_wavefront = 0;
+unsigned long long duplicates_in_same_wavefront_total = 0;
+#endif
 #endif
 
 static inline crc hash(const unsigned char * const data, const size_t len) {
@@ -297,7 +302,9 @@ static inline unsigned check_for_receives(unsigned char **iter_buf,
                     length_in_bytes - SEND_HEADER_SIZE);
 
             if (calculated_body_crc != body_crc) {
+#ifdef PROFILE
                 wasted_hashes++;
+#endif
                 break;
             }
 
@@ -322,6 +329,11 @@ static inline unsigned check_for_receives(unsigned char **iter_buf,
 #endif
                 if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
                     preds[to_explore - local_min_vertex] = parent;
+#ifdef PROFILE
+#ifdef DETAILED_PROFILE
+                    set_visited(to_explore, wavefront_visited, visited_ints, local_min_vertex);
+#endif
+#endif
                     set_visited(to_explore, visited, visited_ints, local_min_vertex);
                     const unsigned q_index = *next_q_size;
                     *next_q_size = q_index + 1;
@@ -329,6 +341,13 @@ static inline unsigned check_for_receives(unsigned char **iter_buf,
                     next_q[q_index] = to_explore;
                 } else {
 #ifdef PROFILE
+#ifdef DETAILED_PROFILE
+                    if (is_visited(to_explore, wavefront_visited, visited_ints,
+                                local_min_vertex)) {
+                        duplicates_in_same_wavefront++;
+                        duplicates_in_same_wavefront_total++;
+                    }
+#endif
                     local_elements_wasted++;
 #endif
                 }
@@ -463,9 +482,11 @@ int main(int argc, char **argv) {
     shmem_barrier_all();
 
     long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
-    assert(pSync);
+    long *pSync2 = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
+    assert(pSync && pSync2);
     for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
         pSync[i] = SHMEM_SYNC_VALUE;
+        pSync2[i] = SHMEM_SYNC_VALUE;
     }
     shmem_longlong_max_to_all((long long int *)&max_n_local_edges,
             (long long int *)&n_local_edges, 1, 0, 0, npes, pWrk, pSync);
@@ -671,7 +692,21 @@ int main(int argc, char **argv) {
     int *nmessages_global = (int *)shmem_malloc(sizeof(int));
     assert(nmessages_local && nmessages_global);
     int *pWrk_int = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(int));
-    assert(pWrk_int);
+    int *pWrk_int2 = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(int));
+    assert(pWrk_int && pWrk_int2);
+
+    const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
+            BITS_PER_INT);
+    const size_t visited_bytes = visited_ints * sizeof(unsigned);
+    unsigned *visited = (unsigned *)shmem_malloc(visited_bytes);
+    unsigned *next_visited = (unsigned *)shmem_malloc(visited_bytes);
+    assert(visited && next_visited);
+#ifdef PROFILE
+#ifdef DETAILED_PROFILE
+    wavefront_visited = (unsigned *)malloc(visited_bytes);
+    assert(wavefront_visited);
+#endif
+#endif
 
     // Buffers to use to transmit next wave to each other PE, output only
     send_buf *pre_allocated_send_bufs = NULL;
@@ -694,13 +729,7 @@ int main(int argc, char **argv) {
     unsigned *send_bufs_size = (unsigned *)malloc(npes * sizeof(unsigned));
     assert(send_bufs_size);
 
-    const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
-            BITS_PER_INT);
-    const size_t visited_bytes = visited_ints * sizeof(unsigned);
-    unsigned *visited = (unsigned *)malloc(visited_bytes);
-    assert(visited);
-
-    const unsigned num_bfs_roots = 1;
+    const unsigned num_bfs_roots = 3;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
@@ -742,6 +771,10 @@ int main(int argc, char **argv) {
 
         while (1) {
 #ifdef PROFILE
+#ifdef DETAILED_PROFILE
+            memset(wavefront_visited, 0x00, visited_bytes);
+            duplicates_in_same_wavefront = 0;
+#endif
             const unsigned long long start_accum = current_time_ns();
 #endif
             *nmessages_local = 0;
@@ -838,6 +871,8 @@ int main(int argc, char **argv) {
 
             shmem_int_sum_to_all(nmessages_global, nmessages_local, 1, 0, 0,
                     npes, pWrk_int, pSync);
+            // shmem_int_or_to_all((int *)next_visited, (int *)visited,
+            //         visited_ints, 0, 0, npes, pWrk_int2, pSync2);
             shmem_barrier_all();
 
             /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
@@ -867,10 +902,16 @@ int main(int argc, char **argv) {
             curr_q_size = next_q_size;
             next_q_size = tmp_q_size;
 
+            // unsigned *tmp_visited = visited;
+            // visited = next_visited;
+            // next_visited = tmp_visited;
+
             // shmem_quiet();
 #ifdef PROFILE
             const unsigned long long end_all = current_time_ns();
             reduce_time += (end_all - end_send);
+//             fprintf(stderr, "PE %d iter %d duplicates %llu\n",
+//                     pe, iter, duplicates_in_same_wavefront);
 #endif
 
             if (*nmessages_global == 0) {
@@ -896,13 +937,22 @@ int main(int argc, char **argv) {
         fprintf(stderr, "PE %d : %llu ms accumulating, %llu ms sending, %llu "
                 "ms reducing, %llu ms hashing for %llu calls (%llu wasted), "
                 "%llu total packets received (%llu wasted, %f%%), %llu total "
-                "elements received (%llu wasted, %f%%)\n",
+                "elements received (%llu wasted, %f%%)"
+#ifdef DETAILED_PROFILE
+                ", %llu duplicates found in same wavefront (%f%% of total wasted elements)"
+#endif
+                "\n",
                 pe, accum_time / 1000000, send_time / 1000000,
                 reduce_time / 1000000, hash_time / 1000000, hash_calls,
                 wasted_hashes, total_packets_received, n_packets_wasted,
                 ((double)n_packets_wasted / (double)total_packets_received) * 100.0,
                 total_elements_received, n_elements_wasted,
-                ((double)n_elements_wasted / (double)total_elements_received) * 100.0);
+                ((double)n_elements_wasted / (double)total_elements_received) * 100.0
+#ifdef DETAILED_PROFILE
+                , duplicates_in_same_wavefront_total,
+                ((double)duplicates_in_same_wavefront_total / (double)n_elements_wasted) * 100.0
+#endif
+                );
 #endif
     }
 
