@@ -10,21 +10,23 @@
 
 #ifdef USE_CRC
 #include "crc.h"
+typedef int32_t size_type;
 #elif USE_MURMUR
 #include "MurmurHash3.h"
 typedef uint32_t crc;
+typedef int32_t size_type;
 #elif USE_CITY32
 #include "city.h"
 typedef uint32_t crc;
-// typedef uint64_t crc;
+typedef int32_t size_type;
 #elif USE_CITY64
 #include "city.h"
 typedef uint64_t crc;
+typedef int64_t size_type;
 #else
 #error No hashing algorithm specific
 #endif
 
-typedef int64_t size_type;
 
 #include "mrg.h"
 #include "packed_edge.h"
