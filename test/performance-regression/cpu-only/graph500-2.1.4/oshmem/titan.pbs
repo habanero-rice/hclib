@@ -73,11 +73,11 @@ export GRAPH_SIZE=29
 # export HCLIB_WORKERS=$OMP_NUM_THREADS
 # aprun -n $(($NODES * 1)) -d $OMP_NUM_THREADS -N 1 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
 
-export SMA_SYMMETRIC_SIZE=1073741824
-export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
-export OMP_NUM_THREADS=1
-export HCLIB_WORKERS=$OMP_NUM_THREADS
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
+# export SMA_SYMMETRIC_SIZE=1073741824
+# export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=$OMP_NUM_THREADS
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
 
 export SMA_SYMMETRIC_SIZE=1073741824
 export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE

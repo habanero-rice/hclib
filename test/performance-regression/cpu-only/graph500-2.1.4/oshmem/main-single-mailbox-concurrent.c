@@ -160,7 +160,7 @@ static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
 }
 
 static inline void set_visited(const uint64_t global_vertex_id,
-        unsigned *visited, const unsigned visited_length,
+        unsigned * restrict visited, const unsigned visited_length,
         const uint64_t local_min_vertex) {
     const int word_index = global_vertex_id / BITS_PER_INT;
     assert(word_index < visited_length);
@@ -172,7 +172,7 @@ static inline void set_visited(const uint64_t global_vertex_id,
 }
 
 static inline int is_visited(const uint64_t global_vertex_id,
-        const unsigned *visited, const size_t visited_length,
+        const unsigned * restrict visited, const size_t visited_length,
         const uint64_t local_min_vertex) {
     const unsigned word_index = global_vertex_id / BITS_PER_INT;
     assert(word_index < visited_length);
@@ -206,11 +206,11 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
-static inline unsigned check_for_receives(unsigned char **iter_buf, unsigned *ndone,
-        const uint64_t nglobalverts, unsigned *visited,
-        const uint64_t local_min_vertex, uint64_t *next_q,
-        unsigned *next_q_size, uint64_t *preds,
-        const size_t visited_ints) {
+static inline unsigned check_for_receives(unsigned char ** restrict iter_buf,
+        unsigned * restrict ndone, const uint64_t nglobalverts,
+        unsigned * restrict visited, const uint64_t local_min_vertex,
+        uint64_t * restrict next_q, unsigned * restrict next_q_size,
+        uint64_t * restrict preds, const size_t visited_ints) {
     unsigned count_messages = 0;
     volatile int *check_for_header = (volatile int *)*iter_buf;
     int header = *check_for_header;
@@ -373,7 +373,7 @@ int main(int argc, char **argv) {
     }
 
     // Contains parent-id + 1 for each local vertex
-    uint64_t *preds = (uint64_t *)calloc(n_local_vertices, sizeof(uint64_t));
+    uint64_t * restrict preds = (uint64_t *)calloc(n_local_vertices, sizeof(uint64_t));
     assert(preds);
 
     /*
@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
 
     free(actual_buf);
 
-    unsigned *local_vertex_offsets = (unsigned *)calloc(
+    unsigned * restrict local_vertex_offsets = (unsigned *)calloc(
             (n_local_vertices + 1), sizeof(unsigned));
     assert(local_vertex_offsets);
 
@@ -463,7 +463,7 @@ int main(int argc, char **argv) {
      *     - the list of global vertix IDs it is attached to by edges starts at
      *       local_vertex_offsets[i] and ends at local_vertex_offsets[i + 1]
      */
-    uint64_t *neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
+    uint64_t * restrict neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
     assert(neighbors);
     for (i = 0; i < n_local_edges; i++) {
         packed_edge *edge = local_edges + i;
@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
     unsigned curr_q_size = 0;
     unsigned next_q_size = 0;
 
-    int *empty_packet = (int *)shmem_malloc(2 * sizeof(int));
+    int * restrict empty_packet = (int *)shmem_malloc(2 * sizeof(int));
     assert(empty_packet);
     empty_packet[0] = HEADER;
     empty_packet[1] = 0;
@@ -555,7 +555,8 @@ int main(int argc, char **argv) {
     send_buf *pre_allocated_send_bufs = NULL;
     unsigned count_pre_allocated = 0;
     while (1) {
-        unsigned char *buf = (unsigned char *)shmem_malloc(SEND_BUFFER_SIZE + 2 * sizeof(int));
+        unsigned char *buf = (unsigned char *)shmem_malloc(
+                SEND_BUFFER_SIZE + SEND_HEADER_SIZE);
         if (!buf) break;
         send_buf *new_send_buf = (send_buf *)malloc(sizeof(send_buf));
         new_send_buf->buf = buf;
@@ -563,7 +564,8 @@ int main(int argc, char **argv) {
         pre_allocated_send_bufs = new_send_buf;
         count_pre_allocated++;
     }
-    const send_buf * const save_pre_allocated_send_bufs = pre_allocated_send_bufs;
+    const send_buf * const save_pre_allocated_send_bufs =
+        pre_allocated_send_bufs;
 
     send_buf **send_bufs = (send_buf **)malloc(npes * sizeof(send_buf *));
     assert(send_bufs);
@@ -573,7 +575,7 @@ int main(int argc, char **argv) {
     const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
             BITS_PER_INT);
     const size_t visited_bytes = visited_ints * sizeof(unsigned);
-    unsigned *visited = (unsigned *)malloc(visited_bytes);
+    unsigned * restrict visited = (unsigned *)malloc(visited_bytes);
     assert(visited);
 
     const unsigned num_bfs_roots = 3;
@@ -680,8 +682,9 @@ int main(int argc, char **argv) {
 
             // unsigned handled_in_middle = 0;
             for (i = 1; i < npes; i++) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone, nglobalverts,
-                        visited, local_min_vertex, next_q, &next_q_size, preds, visited_ints);
+                nmessages_global += check_for_receives(&iter_buf, &ndone,
+                        nglobalverts, visited, local_min_vertex, next_q,
+                        &next_q_size, preds, visited_ints);
 
                 const int target = (pe + i) % npes;
                 if (send_bufs[target]) {

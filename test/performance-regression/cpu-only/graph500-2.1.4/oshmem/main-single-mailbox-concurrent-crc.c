@@ -27,23 +27,23 @@ typedef int64_t size_type;
 #error No hashing algorithm specific
 #endif
 
-
 #include "mrg.h"
 #include "packed_edge.h"
 #include "utilities.h"
 #include "generator.h"
 
-#define QUEUE_SIZE 1572864
+// #define QUEUE_SIZE 1572864
+#define QUEUE_SIZE 1048576
 
 #define INCOMING_MAILBOX_SIZE_IN_BYTES 100663296
 
 /*
  * Header format:
  *
- *   4 bytes : CRC32 header checksum
- *   4 bytes : Length of whole packet in bytes (N)
- *   4 bytes : CRC32 body checksum
- *   N - 12 bytes : Body
+ *   sizeof(crc) bytes                                       : header checksum
+ *   sizeof(size_type) bytes                                 : Length of whole packet in bytes (N)
+ *   sizeof(crc) bytes                                       : CRC32 body checksum
+ *   N - sizeof(crc) - sizeof(size_type) - sizeof(crc) bytes : Body
  */
 #define COALESCING 256
 #define SEND_HEADER_SIZE (sizeof(crc) + sizeof(size_type) + sizeof(crc))
@@ -101,65 +101,85 @@ typedef struct _send_buf {
     send_bufs_size[my_target_pe] = 0; \
 }
 
-#define SEND_WITH_EMPTY_PACKET(my_target_pe) { \
-    PREPARE_PACKET(my_target_pe) \
-\
-    unsigned send_buf_size = send_bufs_size[my_target_pe]; \
-    unsigned char *send_buf = send_bufs[my_target_pe]->buf; \
-    unsigned char *my_buf_iter = send_buf + send_buf_size; \
-    crc *header_crc_ptr = (crc *)my_buf_iter; \
-    size_type *size_ptr = (size_type *)(my_buf_iter + sizeof(crc)); \
-    crc *body_crc_ptr = (crc *)(my_buf_iter + sizeof(crc) + sizeof(size_type)); \
-    *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
-    *body_crc_ptr = 0; \
-    *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : hash( \
-            (const unsigned char *)(my_buf_iter + sizeof(crc)), \
-            SEND_HEADER_SIZE - sizeof(crc))); \
-    send_buf_size += SEND_HEADER_SIZE; \
-\
-    const int remote_offset = shmem_int_fadd(recv_buf_index, send_buf_size, \
-            my_target_pe); \
-    assert(remote_offset + send_buf_size < INCOMING_MAILBOX_SIZE_IN_BYTES); \
-    shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
-            (const char *)send_buf, send_buf_size, my_target_pe); \
-\
-    send_bufs[my_target_pe] = NULL; \
-    send_bufs_size[my_target_pe] = 0; \
-}
+// #define SEND_WITH_EMPTY_PACKET(my_target_pe) { \
+//     PREPARE_PACKET(my_target_pe) \
+// \
+//     unsigned send_buf_size = send_bufs_size[my_target_pe]; \
+//     unsigned char *send_buf = send_bufs[my_target_pe]->buf; \
+//     unsigned char *my_buf_iter = send_buf + send_buf_size; \
+//     crc *header_crc_ptr = (crc *)my_buf_iter; \
+//     size_type *size_ptr = (size_type *)(my_buf_iter + sizeof(crc)); \
+//     crc *body_crc_ptr = (crc *)(my_buf_iter + sizeof(crc) + sizeof(size_type)); \
+//     *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
+//     *body_crc_ptr = 0; \
+//     *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : hash( \
+//             (const unsigned char *)(my_buf_iter + sizeof(crc)), \
+//             SEND_HEADER_SIZE - sizeof(crc))); \
+//     send_buf_size += SEND_HEADER_SIZE; \
+// \
+//     const int remote_offset = shmem_int_fadd(recv_buf_index, send_buf_size, \
+//             my_target_pe); \
+//     assert(remote_offset + send_buf_size < INCOMING_MAILBOX_SIZE_IN_BYTES); \
+//     shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+//             (const char *)send_buf, send_buf_size, my_target_pe); \
+// \
+//     send_bufs[my_target_pe] = NULL; \
+//     send_bufs_size[my_target_pe] = 0; \
+// }
 
-#define SEND_EMPTY_PACKET(my_target_pe) { \
-    const int remote_offset = shmem_int_fadd(recv_buf_index, SEND_HEADER_SIZE, \
-            my_target_pe); \
-    assert(remote_offset + SEND_HEADER_SIZE < INCOMING_MAILBOX_SIZE_IN_BYTES); \
-    crc *header_crc_ptr = (crc *)empty_packet; \
-    size_type *size_ptr = (size_type *)(header_crc_ptr + 1); \
-    crc *body_crc_ptr = (crc *)(size_ptr + 1); \
-    *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
-    *body_crc_ptr = 0; \
-    *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : \
-            hash((const unsigned char *)(empty_packet + sizeof(crc)), \
-            SEND_HEADER_SIZE - sizeof(crc))); \
-    shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
-            (const char *)empty_packet, SEND_HEADER_SIZE, my_target_pe); \
-}
+// #define SEND_EMPTY_PACKET(my_target_pe) { \
+//     const int remote_offset = shmem_int_fadd(recv_buf_index, SEND_HEADER_SIZE, \
+//             my_target_pe); \
+//     assert(remote_offset + SEND_HEADER_SIZE < INCOMING_MAILBOX_SIZE_IN_BYTES); \
+//     crc *header_crc_ptr = (crc *)empty_packet; \
+//     size_type *size_ptr = (size_type *)(header_crc_ptr + 1); \
+//     crc *body_crc_ptr = (crc *)(size_ptr + 1); \
+//     *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
+//     *body_crc_ptr = 0; \
+//     *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : \
+//             hash((const unsigned char *)(empty_packet + sizeof(crc)), \
+//             SEND_HEADER_SIZE - sizeof(crc))); \
+//     shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+//             (const char *)empty_packet, SEND_HEADER_SIZE, my_target_pe); \
+// }
 
 // #define VERBOSE
-// #define PROFILE
+#define PROFILE
+
+#ifdef PROFILE
+unsigned long long hash_time = 0;
+unsigned long long hash_calls = 0;
+unsigned long long wasted_hashes = 0;
+unsigned long long total_packets_received = 0;
+unsigned long long n_packets_wasted = 0;
+unsigned long long total_elements_received = 0;
+unsigned long long n_elements_wasted = 0;
+#endif
 
 static inline crc hash(const unsigned char * const data, const size_t len) {
+#ifdef PROFILE
+    const unsigned long long start_time = current_time_ns();
+#endif
+
+    crc result;
 #ifdef USE_CRC
-    return crcFast(data, len);
+    result = crcFast(data, len);
 #elif USE_MURMUR
-    uint32_t h;
-    MurmurHash3_x86_32(data, len, 12345, &h);
-    return h;
+    MurmurHash3_x86_32(data, len, 12345, &result);
 #elif USE_CITY32
-    return CityHash32((const char *)data, len);
+    result = CityHash32((const char *)data, len);
 #elif USE_CITY64
-    return CityHash64((const char *)data, len);
+    result = CityHash64((const char *)data, len);
 #else
 #error No hashing algorithm specified
 #endif
+
+#ifdef PROFILE
+    hash_time += (current_time_ns() - start_time);
+    hash_calls++;
+#endif
+
+    return result;
 }
 
 static int pe = -1;
@@ -180,8 +200,6 @@ volatile long long n_local_edges = 0;
 volatile long long max_n_local_edges;
 long long pWrk[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 short pWrk_short[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
-int pWrk_int[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
-long pSync[SHMEM_REDUCE_SYNC_SIZE];
 
 static uint64_t get_vertices_per_pe(uint64_t nvertices) {
     return (nvertices + npes - 1) / npes;
@@ -252,10 +270,10 @@ static int compare_uint64_t(const void *a, const void *b) {
 }
 
 static inline unsigned check_for_receives(unsigned char **iter_buf,
-        unsigned *ndone, const uint64_t nglobalverts, unsigned *visited,
-        const uint64_t local_min_vertex, uint64_t *next_q,
-        unsigned *next_q_size, uint64_t *preds,
-        const size_t visited_ints) {
+        unsigned *ndone, const uint64_t nglobalverts,
+        unsigned *visited, const uint64_t local_min_vertex,
+        uint64_t *next_q, unsigned *next_q_size,
+        uint64_t *preds, const size_t visited_ints) {
     unsigned count_messages = 0;
 
     unsigned char *local_iter_buf = *iter_buf;
@@ -272,13 +290,21 @@ static inline unsigned check_for_receives(unsigned char **iter_buf,
         const crc body_crc = *body_crc_ptr;
         unsigned char *body = (unsigned char *)(body_crc_ptr + 1);
 
-        if (length_in_bytes > 0) {
+        assert(length_in_bytes > 0);
+
+        // if (length_in_bytes > 0) {
             crc calculated_body_crc = hash((const unsigned char *)body,
                     length_in_bytes - SEND_HEADER_SIZE);
 
             if (calculated_body_crc != body_crc) {
+                wasted_hashes++;
                 break;
             }
+
+#ifdef PROFILE
+            total_packets_received++;
+            unsigned local_elements_wasted = 0;
+#endif
 
             // Intact body!
             const unsigned nelements = SEND_BUF_SIZE_TO_NEDGES(length_in_bytes);
@@ -291,6 +317,9 @@ static inline unsigned check_for_receives(unsigned char **iter_buf,
 
                 assert(get_owner_pe(to_explore, nglobalverts) == pe);
 
+#ifdef PROFILE
+                total_elements_received++;
+#endif
                 if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
                     preds[to_explore - local_min_vertex] = parent;
                     set_visited(to_explore, visited, visited_ints, local_min_vertex);
@@ -298,19 +327,28 @@ static inline unsigned check_for_receives(unsigned char **iter_buf,
                     *next_q_size = q_index + 1;
                     assert(q_index < QUEUE_SIZE);
                     next_q[q_index] = to_explore;
+                } else {
+#ifdef PROFILE
+                    local_elements_wasted++;
+#endif
                 }
 
                 local_iter_buf += sizeof(packed_edge);
             }
-        } else {
-            assert(body_crc == 0);
-            if (length_in_bytes < 0) {
-                count_messages += (-1 * length_in_bytes);
-            }
 
-            *ndone = *ndone + 1;
-            local_iter_buf = body;
-        }
+#ifdef PROFILE
+            n_elements_wasted += local_elements_wasted;
+            if (local_elements_wasted == nelements) n_packets_wasted++;
+#endif
+        // } else {
+        //     assert(body_crc == 0);
+        //     if (length_in_bytes < 0) {
+        //         count_messages += (-1 * length_in_bytes);
+        //     }
+
+        //     *ndone = *ndone + 1;
+        //     local_iter_buf = body;
+        // }
 
         /*
          * Just in case some common patterns (e.g. an empty message with no
@@ -424,6 +462,8 @@ int main(int argc, char **argv) {
 
     shmem_barrier_all();
 
+    long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
+    assert(pSync);
     for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
         pSync[i] = SHMEM_SYNC_VALUE;
     }
@@ -627,6 +667,12 @@ int main(int argc, char **argv) {
             (const unsigned char * const)(empty_packet + sizeof(crc)),
             SEND_HEADER_SIZE - sizeof(crc));
 
+    int *nmessages_local = (int *)shmem_malloc(sizeof(int));
+    int *nmessages_global = (int *)shmem_malloc(sizeof(int));
+    assert(nmessages_local && nmessages_global);
+    int *pWrk_int = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(int));
+    assert(pWrk_int);
+
     // Buffers to use to transmit next wave to each other PE, output only
     send_buf *pre_allocated_send_bufs = NULL;
     unsigned count_pre_allocated = 0;
@@ -654,7 +700,7 @@ int main(int argc, char **argv) {
     unsigned *visited = (unsigned *)malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 3;
+    const unsigned num_bfs_roots = 1;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;
@@ -698,17 +744,19 @@ int main(int argc, char **argv) {
 #ifdef PROFILE
             const unsigned long long start_accum = current_time_ns();
 #endif
-            int nmessages_local = 0;
+            *nmessages_local = 0;
+            // int nmessages_local = 0;
 
             unsigned ndone = 0;
-            unsigned nmessages_global = 0;
+            *nmessages_global = 0;
+            // unsigned nmessages_global = 0;
             next_q_size = 0;
 
             unsigned char *iter_buf = recv_buf;
             for (i = 0; i < curr_q_size; i++) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone,
+                /* check_for_receives(&iter_buf, &ndone,
                         nglobalverts, visited, local_min_vertex, next_q,
-                        &next_q_size, preds, visited_ints);
+                        &next_q_size, preds, visited_ints); */
 
                 uint64_t vertex = curr_q[i];
 
@@ -726,7 +774,7 @@ int main(int argc, char **argv) {
                                 nglobalverts);
                         set_visited(to_explore, visited, visited_ints, local_min_vertex);
 
-                        nmessages_local++;
+                        *nmessages_local = *nmessages_local + 1;
 
                         if (target_pe == pe) {
                             preds[to_explore - local_min_vertex] = vertex;
@@ -756,30 +804,51 @@ int main(int argc, char **argv) {
                 }
             }
 
+#ifdef PROFILE
+            const unsigned long long end_accum = current_time_ns();
+            accum_time += (end_accum - start_accum);
+#endif
+
             // unsigned handled_in_middle = 0;
             for (i = 1; i < npes; i++) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone,
+                /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
                         nglobalverts, visited, local_min_vertex, next_q,
                         &next_q_size, preds, visited_ints);
 
                 const int target = (pe + i) % npes;
                 if (send_bufs[target]) {
-                    // Send any remainders
-                    SEND_WITH_EMPTY_PACKET(target)
-                } else {
-                    /*
-                     * Send 0-length packet to signify this PE is done sending to
-                     * target.
-                     */
-                    SEND_EMPTY_PACKET(target)
+                    SEND_PACKET(target)
                 }
+                // if (send_bufs[target]) {
+                //     // Send any remainders
+                //     SEND_WITH_EMPTY_PACKET(target)
+                // } else {
+                //     /*
+                //      * Send 0-length packet to signify this PE is done sending to
+                //      * target.
+                //      */
+                //     SEND_EMPTY_PACKET(target)
+                // }
             }
 
-            while (ndone < npes - 1) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone,
-                        nglobalverts, visited, local_min_vertex, next_q,
-                        &next_q_size, preds, visited_ints);
-            }
+#ifdef PROFILE
+            const unsigned long long end_send = current_time_ns();
+            send_time += (end_send - end_accum);
+#endif
+
+            shmem_int_sum_to_all(nmessages_global, nmessages_local, 1, 0, 0,
+                    npes, pWrk_int, pSync);
+            shmem_barrier_all();
+
+            /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
+                    nglobalverts, visited, local_min_vertex, next_q,
+                    &next_q_size, preds, visited_ints);
+
+            // while (ndone < npes - 1) {
+            //     nmessages_global += check_for_receives(&iter_buf, &ndone,
+            //             nglobalverts, visited, local_min_vertex, next_q,
+            //             &next_q_size, preds, visited_ints);
+            // }
 
             *recv_buf_index = 0;
             int *tmp_recv_buf_index = recv_buf_index;
@@ -798,13 +867,14 @@ int main(int argc, char **argv) {
             curr_q_size = next_q_size;
             next_q_size = tmp_q_size;
 
-            shmem_quiet();
+            // shmem_quiet();
 #ifdef PROFILE
             const unsigned long long end_all = current_time_ns();
-            reduce_time += (end_all - start_reduce);
+            reduce_time += (end_all - end_send);
 #endif
 
-            if (nmessages_local + nmessages_global == 0) {
+            if (*nmessages_global == 0) {
+            // if (nmessages_local + nmessages_global == 0) {
                 break;
             }
 
@@ -822,20 +892,17 @@ int main(int argc, char **argv) {
                     iter + 1);
         }
 
-#ifdef VERBOSE
-        int count_preds = 0;
-        for (i = 0; i < n_local_vertices; i++) {
-            if (preds[i] > 0) count_preds++;
-        }
 #ifdef PROFILE
-        fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu ms "
-                "accumulating, %llu ms sending, %llu ms reducing\n", pe,
-                count_preds, n_local_vertices, accum_time / 1000000,
-                send_time / 1000000, reduce_time / 1000000);
-#else
-        fprintf(stderr, "PE %d found preds for %d / %d local vertices, %llu "
-                "endpoints\n", pe, count_preds, n_local_vertices, total_endpoints);
-#endif
+        fprintf(stderr, "PE %d : %llu ms accumulating, %llu ms sending, %llu "
+                "ms reducing, %llu ms hashing for %llu calls (%llu wasted), "
+                "%llu total packets received (%llu wasted, %f%%), %llu total "
+                "elements received (%llu wasted, %f%%)\n",
+                pe, accum_time / 1000000, send_time / 1000000,
+                reduce_time / 1000000, hash_time / 1000000, hash_calls,
+                wasted_hashes, total_packets_received, n_packets_wasted,
+                ((double)n_packets_wasted / (double)total_packets_received) * 100.0,
+                total_elements_received, n_elements_wasted,
+                ((double)n_elements_wasted / (double)total_elements_received) * 100.0);
 #endif
     }
 
