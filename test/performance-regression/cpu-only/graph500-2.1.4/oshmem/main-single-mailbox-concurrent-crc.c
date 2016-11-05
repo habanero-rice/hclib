@@ -8,25 +8,43 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+#ifdef USE_CRC
+#include "crc.h"
+#elif USE_MURMUR
+#include "MurmurHash3.h"
+typedef uint32_t crc;
+#elif USE_CITY32
+#include "city.h"
+typedef uint32_t crc;
+// typedef uint64_t crc;
+#elif USE_CITY64
+#include "city.h"
+typedef uint64_t crc;
+#else
+#error No hashing algorithm specific
+#endif
+
+typedef int64_t size_type;
+
 #include "mrg.h"
 #include "packed_edge.h"
 #include "utilities.h"
 #include "generator.h"
 
-#define HEADER 0xbbbb
+#define QUEUE_SIZE 1572864
 
-#define QUEUE_SIZE 2097152
-
-#define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
+#define INCOMING_MAILBOX_SIZE_IN_BYTES 100663296
 
 /*
  * Header format:
  *
- *   4 bytes - HEADER
- *   4 bytes - # edges in buffer
+ *   4 bytes : CRC32 header checksum
+ *   4 bytes : Length of whole packet in bytes (N)
+ *   4 bytes : CRC32 body checksum
+ *   N - 12 bytes : Body
  */
-#define COALESCING 512
-#define SEND_HEADER_SIZE (2 * sizeof(int))
+#define COALESCING 256
+#define SEND_HEADER_SIZE (sizeof(crc) + sizeof(size_type) + sizeof(crc))
 #define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
 #define BITS_PER_INT (sizeof(unsigned) * 8)
@@ -38,84 +56,109 @@ typedef struct _send_buf {
 
 #define SEND_BUF_SIZE_TO_NEDGES(my_send_buf_size) (((my_send_buf_size) - SEND_HEADER_SIZE) / sizeof(packed_edge))
 
-// Save two spots at the start, one for the header and one for the size of the buffer
 #define GET_SEND_BUF(my_target_pe) { \
     assert(send_bufs[my_target_pe] == NULL); \
     send_buf *gotten = pre_allocated_send_bufs; \
     assert(gotten); \
     pre_allocated_send_bufs = gotten->next; \
-    *((int *)(gotten->buf)) = HEADER; \
     send_bufs[my_target_pe] = gotten; \
     send_bufs_size[my_target_pe] = SEND_HEADER_SIZE; \
 }
 
-#define SEND_PACKET(my_target_pe) { \
+#define PREPARE_PACKET(my_target_pe) { \
     assert(send_bufs[my_target_pe]); \
-    assert((send_bufs_size[my_target_pe] - SEND_HEADER_SIZE) % sizeof(packed_edge) == 0); \
-    assert(send_bufs_size[my_target_pe] <= SEND_BUFFER_SIZE); \
-    const unsigned nedges = SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[my_target_pe]); \
-    *((int *)(send_bufs[my_target_pe]->buf + sizeof(int))) = nedges; \
+    const unsigned send_buf_size = send_bufs_size[my_target_pe]; \
+    assert((send_buf_size - SEND_HEADER_SIZE) % sizeof(packed_edge) == 0); \
+    assert(send_buf_size <= SEND_BUFFER_SIZE); \
+    const unsigned nedges = SEND_BUF_SIZE_TO_NEDGES(send_buf_size); \
+    unsigned char *send_buf = send_bufs[my_target_pe]->buf; \
+    /* Save the total size of this packet */ \
+    *((size_type *)(send_buf + sizeof(crc))) = send_buf_size; \
+    /* Save the CRC of the body of this packet */ \
+    *((crc *)(send_buf + sizeof(crc) + sizeof(size_type))) = hash( \
+            (const unsigned char *)(send_buf + SEND_HEADER_SIZE), \
+            send_buf_size - SEND_HEADER_SIZE); \
+    /* Save the CRC of the header of this packet */ \
+    *((crc *)send_buf) = hash( \
+            (const unsigned char *)(send_buf + sizeof(crc)), \
+            SEND_HEADER_SIZE - sizeof(crc)); \
+}
+
+#define SEND_PACKET(my_target_pe) { \
+    PREPARE_PACKET(my_target_pe) \
 \
     const int remote_offset = shmem_int_fadd( \
             recv_buf_index, send_bufs_size[my_target_pe], \
             my_target_pe); \
-    assert(remote_offset + send_bufs_size[my_target_pe] <= INCOMING_MAILBOX_SIZE_IN_BYTES); \
-    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
-            send_bufs[my_target_pe]->buf + sizeof(int), \
-            send_bufs_size[my_target_pe] - sizeof(int), my_target_pe); \
-    shmem_fence(); \
-    shmem_char_put_nbi(recv_buf + remote_offset, \
-            send_bufs[my_target_pe]->buf, sizeof(int), \
-            my_target_pe); \
+    assert(remote_offset + send_bufs_size[my_target_pe] < INCOMING_MAILBOX_SIZE_IN_BYTES); \
+    shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+            (const char *)send_bufs[my_target_pe]->buf, \
+            send_bufs_size[my_target_pe], my_target_pe); \
 \
     send_bufs[my_target_pe] = NULL; \
     send_bufs_size[my_target_pe] = 0; \
 }
 
 #define SEND_WITH_EMPTY_PACKET(my_target_pe) { \
-    assert(send_bufs[my_target_pe]); \
-    const unsigned send_buf_size = send_bufs_size[my_target_pe]; \
-    assert((send_buf_size - SEND_HEADER_SIZE) % sizeof(packed_edge) == 0); \
-    assert(send_buf_size <= SEND_BUFFER_SIZE); \
-    const unsigned nedges = SEND_BUF_SIZE_TO_NEDGES(send_buf_size); \
-    *((int *)(send_bufs[my_target_pe]->buf + 1 * sizeof(int))) = nedges; \
+    PREPARE_PACKET(my_target_pe) \
 \
-    unsigned char *my_buf_iter = send_bufs[my_target_pe]->buf + send_buf_size; \
-    *((int *)my_buf_iter) = HEADER; \
-    *(((int *)my_buf_iter) + 1) = (nmessages_local ? -1 * nmessages_local : 0); \
-    send_bufs_size[my_target_pe] += SEND_HEADER_SIZE; \
+    unsigned send_buf_size = send_bufs_size[my_target_pe]; \
+    unsigned char *send_buf = send_bufs[my_target_pe]->buf; \
+    unsigned char *my_buf_iter = send_buf + send_buf_size; \
+    crc *header_crc_ptr = (crc *)my_buf_iter; \
+    size_type *size_ptr = (size_type *)(my_buf_iter + sizeof(crc)); \
+    crc *body_crc_ptr = (crc *)(my_buf_iter + sizeof(crc) + sizeof(size_type)); \
+    *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
+    *body_crc_ptr = 0; \
+    *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : hash( \
+            (const unsigned char *)(my_buf_iter + sizeof(crc)), \
+            SEND_HEADER_SIZE - sizeof(crc))); \
+    send_buf_size += SEND_HEADER_SIZE; \
 \
-    const int remote_offset = shmem_int_fadd( \
-            recv_buf_index, send_bufs_size[my_target_pe], \
+    const int remote_offset = shmem_int_fadd(recv_buf_index, send_buf_size, \
             my_target_pe); \
-    assert(remote_offset + send_bufs_size[my_target_pe] < \
-            INCOMING_MAILBOX_SIZE_IN_BYTES); \
-    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
-            send_bufs[my_target_pe]->buf + sizeof(int), \
-            send_bufs_size[my_target_pe] - sizeof(int), my_target_pe); \
-    shmem_fence(); \
-    shmem_char_put_nbi(recv_buf + remote_offset, \
-            send_bufs[my_target_pe]->buf, sizeof(int), \
-            my_target_pe); \
+    assert(remote_offset + send_buf_size < INCOMING_MAILBOX_SIZE_IN_BYTES); \
+    shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+            (const char *)send_buf, send_buf_size, my_target_pe); \
 \
     send_bufs[my_target_pe] = NULL; \
     send_bufs_size[my_target_pe] = 0; \
 }
 
 #define SEND_EMPTY_PACKET(my_target_pe) { \
-    const int remote_offset = shmem_int_fadd( \
-            recv_buf_index, SEND_HEADER_SIZE, \
+    const int remote_offset = shmem_int_fadd(recv_buf_index, SEND_HEADER_SIZE, \
             my_target_pe); \
     assert(remote_offset + SEND_HEADER_SIZE < INCOMING_MAILBOX_SIZE_IN_BYTES); \
-    empty_packet[1] = (nmessages_local ? -1 * nmessages_local : 0); \
-    shmem_char_put_nbi(recv_buf + remote_offset + sizeof(int), \
-            (char *)(empty_packet + 1), 1 * sizeof(int), my_target_pe); \
-    shmem_fence(); \
-    shmem_char_put_nbi(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
+    crc *header_crc_ptr = (crc *)empty_packet; \
+    size_type *size_ptr = (size_type *)(header_crc_ptr + 1); \
+    crc *body_crc_ptr = (crc *)(size_ptr + 1); \
+    *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
+    *body_crc_ptr = 0; \
+    *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : \
+            hash((const unsigned char *)(empty_packet + sizeof(crc)), \
+            SEND_HEADER_SIZE - sizeof(crc))); \
+    shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
+            (const char *)empty_packet, SEND_HEADER_SIZE, my_target_pe); \
 }
 
 // #define VERBOSE
 // #define PROFILE
+
+static inline crc hash(const unsigned char * const data, const size_t len) {
+#ifdef USE_CRC
+    return crcFast(data, len);
+#elif USE_MURMUR
+    uint32_t h;
+    MurmurHash3_x86_32(data, len, 12345, &h);
+    return h;
+#elif USE_CITY32
+    return CityHash32((const char *)data, len);
+#elif USE_CITY64
+    return CityHash64((const char *)data, len);
+#else
+#error No hashing algorithm specified
+#endif
+}
 
 static int pe = -1;
 static int npes = -1;
@@ -206,26 +249,40 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
-static inline unsigned check_for_receives(unsigned char **iter_buf, unsigned *ndone,
-        const uint64_t nglobalverts, unsigned *visited,
+static inline unsigned check_for_receives(unsigned char **iter_buf,
+        unsigned *ndone, const uint64_t nglobalverts, unsigned *visited,
         const uint64_t local_min_vertex, uint64_t *next_q,
         unsigned *next_q_size, uint64_t *preds,
         const size_t visited_ints) {
     unsigned count_messages = 0;
-    volatile int *check_for_header = (volatile int *)*iter_buf;
-    int header = *check_for_header;
 
-    while (header == HEADER) {
-        *check_for_header = 0;
+    unsigned char *local_iter_buf = *iter_buf;
+    volatile crc *crc_ptr = (volatile crc *)local_iter_buf;
+    crc checksum = *crc_ptr;
+    crc calculated_checksum = hash(
+            (const unsigned char *)(local_iter_buf + sizeof(crc)),
+            SEND_HEADER_SIZE - sizeof(crc));
+    while (checksum == calculated_checksum) {
+        // At this point we can assume the header is intact, but not the body
+        volatile size_type *length_in_bytes_ptr = (volatile size_type *)(crc_ptr + 1);
+        const size_type length_in_bytes = *length_in_bytes_ptr;
+        volatile crc *body_crc_ptr = (volatile crc *)(length_in_bytes_ptr + 1);
+        const crc body_crc = *body_crc_ptr;
+        unsigned char *body = (unsigned char *)(body_crc_ptr + 1);
 
-        volatile int *buf_size_ptr = (volatile int *)(check_for_header + 1);
-        const int buf_size = *buf_size_ptr;
+        if (length_in_bytes > 0) {
+            crc calculated_body_crc = hash((const unsigned char *)body,
+                    length_in_bytes - SEND_HEADER_SIZE);
 
-        if (buf_size > 0) {
-            unsigned char *local_iter_buf = (unsigned char *)(buf_size_ptr + 1);
+            if (calculated_body_crc != body_crc) {
+                break;
+            }
 
+            // Intact body!
+            const unsigned nelements = SEND_BUF_SIZE_TO_NEDGES(length_in_bytes);
+            local_iter_buf = body;
             int i;
-            for (i = 0; i < buf_size; i++) {
+            for (i = 0; i < nelements; i++) {
                 packed_edge *edge = (packed_edge *)local_iter_buf;
                 const uint64_t to_explore = get_v0_from_edge(edge);
                 const uint64_t parent = get_v1_from_edge(edge);
@@ -243,25 +300,38 @@ static inline unsigned check_for_receives(unsigned char **iter_buf, unsigned *nd
 
                 local_iter_buf += sizeof(packed_edge);
             }
-
-            *iter_buf = local_iter_buf;
         } else {
-            if (buf_size < 0) {
-                count_messages += (-1 * buf_size);
+            assert(body_crc == 0);
+            if (length_in_bytes < 0) {
+                count_messages += (-1 * length_in_bytes);
             }
 
             *ndone = *ndone + 1;
-            *iter_buf = (unsigned char *)(buf_size_ptr + 1);
+            local_iter_buf = body;
         }
 
-        check_for_header = (volatile int *)*iter_buf;
-        header = *check_for_header;
+        /*
+         * Just in case some common patterns (e.g. an empty message with no
+         * messages to report) might cause a false positive.
+         */
+        *crc_ptr = ~checksum;
+
+        crc_ptr = (volatile crc *)local_iter_buf;
+        checksum = *crc_ptr;
+        calculated_checksum = hash(
+                (const unsigned char *)(local_iter_buf + sizeof(crc)),
+                SEND_HEADER_SIZE - sizeof(crc));
     }
 
+    *iter_buf = local_iter_buf;
     return count_messages;
 }
 
 int main(int argc, char **argv) {
+#ifdef USE_CRC
+    crcInit();
+#endif
+
     if (argc < 3) {
         fprintf(stderr, "usage: %s scale edgefactor [num-bfs-roots]\n",
                 argv[0]);
@@ -546,16 +616,21 @@ int main(int argc, char **argv) {
     unsigned curr_q_size = 0;
     unsigned next_q_size = 0;
 
-    int *empty_packet = (int *)shmem_malloc(2 * sizeof(int));
+    unsigned char *empty_packet = (unsigned char *)shmem_malloc(
+            SEND_HEADER_SIZE);
     assert(empty_packet);
-    empty_packet[0] = HEADER;
-    empty_packet[1] = 0;
+    *((size_type *)(empty_packet + sizeof(crc))) = 0;
+    *((crc *)(empty_packet + sizeof(crc) + sizeof(size_type))) = 0;
+    const crc empty_packet_hash = hash(
+            (const unsigned char * const)(empty_packet + sizeof(crc)),
+            SEND_HEADER_SIZE - sizeof(crc));
 
     // Buffers to use to transmit next wave to each other PE, output only
     send_buf *pre_allocated_send_bufs = NULL;
     unsigned count_pre_allocated = 0;
     while (1) {
-        unsigned char *buf = (unsigned char *)shmem_malloc(SEND_BUFFER_SIZE + 2 * sizeof(int));
+        unsigned char *buf = (unsigned char *)shmem_malloc(
+                SEND_BUFFER_SIZE + SEND_HEADER_SIZE);
         if (!buf) break;
         send_buf *new_send_buf = (send_buf *)malloc(sizeof(send_buf));
         new_send_buf->buf = buf;
@@ -563,7 +638,8 @@ int main(int argc, char **argv) {
         pre_allocated_send_bufs = new_send_buf;
         count_pre_allocated++;
     }
-    const send_buf * const save_pre_allocated_send_bufs = pre_allocated_send_bufs;
+    const send_buf * const save_pre_allocated_send_bufs =
+        pre_allocated_send_bufs;
 
     send_buf **send_bufs = (send_buf **)malloc(npes * sizeof(send_buf *));
     assert(send_bufs);
@@ -680,8 +756,9 @@ int main(int argc, char **argv) {
 
             // unsigned handled_in_middle = 0;
             for (i = 1; i < npes; i++) {
-                nmessages_global += check_for_receives(&iter_buf, &ndone, nglobalverts,
-                        visited, local_min_vertex, next_q, &next_q_size, preds, visited_ints);
+                nmessages_global += check_for_receives(&iter_buf, &ndone,
+                        nglobalverts, visited, local_min_vertex, next_q,
+                        &next_q_size, preds, visited_ints);
 
                 const int target = (pe + i) % npes;
                 if (send_bufs[target]) {

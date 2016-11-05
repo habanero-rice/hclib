@@ -1,5 +1,9 @@
 #include <assert.h>
 
+#ifdef __cplusplus
+#include <cstdint>
+#endif
+
 #include "generator.h"
 
 #define INITIATOR_A_NUMERATOR 5700
