@@ -3,8 +3,8 @@
 #PBS -N G500
 #PBS -j oe
 #PBS -q batch
-#PBS -l walltime=00:04:00
-#PBS -l nodes=128
+#PBS -l walltime=00:20:00
+#PBS -l nodes=256
 #PBS -l gres=atlas1%atlas2
 #PBS -V
 
@@ -31,6 +31,9 @@ ulimit -c unlimited
 
 NODES=$PBS_NUM_NODES
 
+for NODES in 32 64 128 256; do
+    echo Running with NODES=$NODES
+
 export GRAPH_SIZE=29
 
 # export SMA_SYMMETRIC_SIZE=1073741824
@@ -44,19 +47,19 @@ export GRAPH_SIZE=29
 # export OMP_NUM_THREADS=16
 # aprun -n $(($NODES)) -d $OMP_NUM_THREADS -N 1 -cc 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 ../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 
-# for THREADS_PER_PE in 1 2 4 8 16; do
-#     export OMP_NUM_THREADS=$THREADS_PER_PE
-#     PES_PER_NODE=$((16 / $THREADS_PER_PE))
-#     TOTAL_PES=$(($PES_PER_NODE * $NODES))
-#     CC=$(python generate_cc.py $PES_PER_NODE)
-# 
-#     PARAMS="-n $TOTAL_PES -d $THREADS_PER_PE -N $PES_PER_NODE -cc $CC"
-#     echo $THREADS_PER_PE threads per pe, $PES_PER_NODE PEs per node, $TOTAL_PES PEs in total, $PARAMS
-# 
-#     export SMA_SYMMETRIC_SIZE=1073741824
-#     export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
-#     aprun $PARAMS ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
-# 
+for THREADS_PER_PE in 16; do
+    export OMP_NUM_THREADS=$THREADS_PER_PE
+    PES_PER_NODE=$((16 / $THREADS_PER_PE))
+    TOTAL_PES=$(($PES_PER_NODE * $NODES))
+    CC=$(python generate_cc.py $PES_PER_NODE)
+
+    PARAMS="-n $TOTAL_PES -d $THREADS_PER_PE -N $PES_PER_NODE -cc $CC"
+    echo $THREADS_PER_PE threads per pe, $PES_PER_NODE PEs per node, $TOTAL_PES PEs in total, $PARAMS
+
+    export SMA_SYMMETRIC_SIZE=1073741824
+    export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
+    aprun $PARAMS ../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
+
 #     TUNED_EXE=../mpi-tuned-2d/mpi/graph500_mpi_custom_${TOTAL_PES}
 #     if [[ -f $TUNED_EXE ]]; then
 #         export SMA_SYMMETRIC_SIZE=1073741824
@@ -64,7 +67,7 @@ export GRAPH_SIZE=29
 #         export MPICH_MAX_THREAD_SAFETY=multiple
 #         aprun $PARAMS $TUNED_EXE $GRAPH_SIZE
 #     fi
-# done
+done
 
 # THIS SEEMS TO BE BUGGY
 # export SMA_SYMMETRIC_SIZE=3221225472
@@ -73,20 +76,28 @@ export GRAPH_SIZE=29
 # export HCLIB_WORKERS=$OMP_NUM_THREADS
 # aprun -n $(($NODES * 1)) -d $OMP_NUM_THREADS -N 1 ./bfs_oshmem-single-mailbox $GRAPH_SIZE 16
 
-export SMA_SYMMETRIC_SIZE=1073741824
-export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
-export OMP_NUM_THREADS=1
-export HCLIB_WORKERS=$OMP_NUM_THREADS
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
+# export SMA_SYMMETRIC_SIZE=1073741824
+# export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=$OMP_NUM_THREADS
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
 
-export SMA_SYMMETRIC_SIZE=1073741824
-export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
-export OMP_NUM_THREADS=1
-export HCLIB_WORKERS=$OMP_NUM_THREADS
-aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
+# export SMA_SYMMETRIC_SIZE=1073741824
+# export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=$OMP_NUM_THREADS
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
+
+# export SMA_SYMMETRIC_SIZE=1073741824
+# export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
+# export OMP_NUM_THREADS=1
+# export HCLIB_WORKERS=$OMP_NUM_THREADS
+# aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-bitvector $GRAPH_SIZE 16
 
 # export SMA_SYMMETRIC_SIZE=1073741824
 # export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
 # export OMP_NUM_THREADS=1
 # export HCLIB_WORKERS=$OMP_NUM_THREADS
 # aprun -n $(($NODES * 16)) -d $OMP_NUM_THREADS -N 16 -cc $(python generate_cc.py 1) ./bfs_oshmem-single-mailbox-hiper $GRAPH_SIZE 16
+
+done

@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -A csc205
+#PBS -N allgather
+#PBS -j oe
+#PBS -q debug
+#PBS -l walltime=00:10:00
+#PBS -l nodes=32
+#PBS -l gres=atlas1%atlas2
+#PBS -V
+
+# export GASNET_MAX_SEGSIZE='512MB'
+cd $PBS_O_WORKDIR
+export LD_LIBRARY_PATH=/opt/gcc/4.9.0/snos/lib64:$LD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH=$PROJ_DIR/hclib/modules/openshmem/lib:$LD_LIBRARY_PATH
+export HCLIB_LOCALITY_FILE=$PROJ_DIR/hclib/locality_graphs/titan.no_gpu.json
+export GASNET_BACKTRACE=1
+# export SMA_SYMMETRIC_SIZE=1073741824
+# export GASNET_PHYSMEM_MAX=1073741824
+export SMA_SYMMETRIC_SIZE=4294967296
+export GASNET_PHYSMEM_MAX=4294967296
+export LD_PRELOAD=/lustre/atlas/sw/tbb/43/sles11.3_gnu4.8.2/source/build/linux_intel64_gcc_cc4.8.2_libc2.11.3_kernel3.0.101_release/libtbbmalloc_proxy.so.2
+ulimit -c unlimited
+
+NODES=$PBS_NUM_NODES
+
+export SMA_SYMMETRIC_SIZE=1073741824
+export GASNET_PHYSMEM_MAX=$SMA_SYMMETRIC_SIZE
+
+export THREADS_PER_PE=1
+export PES_PER_NODE=$((16 / $THREADS_PER_PE))
+export TOTAL_PES=$(($PES_PER_NODE * $NODES))
+export CC=$(python generate_cc.py $PES_PER_NODE)
+export PARAMS="-n $TOTAL_PES -d $THREADS_PER_PE -N $PES_PER_NODE -cc $CC"
+
+for BUF_SIZE in 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576; do
+    echo MPI $BUF_SIZE
+    aprun $PARAMS ./mpi_allgather $BUF_SIZE 10
+    echo OpenSHMEM $BUF_SIZE
+    aprun $PARAMS ./oshmem_allgather $BUF_SIZE 10
+done
