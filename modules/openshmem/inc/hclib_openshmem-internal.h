@@ -46,6 +46,7 @@ void *shmem_malloc(size_t size);
 void shmem_free(void *ptr);
 void shmem_barrier_all();
 void shmem_fence();
+void shmem_quiet();
 void shmem_put64(void *dest, const void *source, size_t nelems, int pe);
 void shmem_broadcast64(void *dest, const void *source, size_t nelems,
         int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync);

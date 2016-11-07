@@ -1,4 +1,4 @@
-TARGET=bfs_oshmem bfs_oshmem-mailbox bfs_oshmem-single-mailbox bfs_oshmem-single-mailbox-omp bfs_oshmem-single-mailbox-replicated bfs_oshmem-single-mailbox-strided bfs_oshmem-single-mailbox-concurrent bfs_oshmem-single-mailbox-hiper bfs_oshmem-single-mailbox-concurrent-crc bfs_oshmem-bitvector
+TARGET=bfs_oshmem bfs_oshmem-mailbox bfs_oshmem-single-mailbox bfs_oshmem-single-mailbox-omp bfs_oshmem-single-mailbox-replicated bfs_oshmem-single-mailbox-strided bfs_oshmem-single-mailbox-concurrent bfs_oshmem-single-mailbox-hiper bfs_oshmem-single-mailbox-concurrent-crc bfs_oshmem-bitvector bfs_oshmem-single-mailbox-concurrent-crc-hiper
 
 FLAGS=-DNDEBUG -ffast-math -O3
 
@@ -24,6 +24,10 @@ bfs_oshmem-bitvector: main-bitvector.c utilities.c mrg.c splittable_mrg.c genera
 
 bfs_oshmem-single-mailbox-concurrent-crc: main-single-mailbox-concurrent-crc.c crc/crc.c smhasher/src/MurmurHash3.c cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
 	g++ -std=c++11 $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE
+
+bfs_oshmem-single-mailbox-concurrent-crc-hiper: main-single-mailbox-concurrent-crc-hiper.c crc/crc.c smhasher/src/MurmurHash3.c cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
+	g++ -std=c++11 $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/openshmem/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/openshmem/lib -lhclib -lhclib_openshmem
+
 
 bfs_oshmem-single-mailbox-strided: main-single-mailbox-strided.c utilities.c mrg.c splittable_mrg.c generator.c
 	gcc -I$(OPENSHMEM_INSTALL)/include -L$(OPENSHMEM_INSTALL)/lib64 -lsma -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE

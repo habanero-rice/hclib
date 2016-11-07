@@ -35,6 +35,7 @@ enum FUNC_LABELS {
     shmem_free_lbl,
     shmem_barrier_all_lbl,
     shmem_fence_lbl,
+    shmem_quiet_lbl,
     shmem_put64_lbl,
     shmem_broadcast64_lbl,
     shmem_set_lock_lbl,
@@ -67,6 +68,7 @@ const char *FUNC_NAMES[N_FUNCS] = {
     "shmem_free",
     "shmem_barrier_all",
     "shmem_fence",
+    "shmem_quiet",
     "shmem_put64",
     "shmem_broadcast64",
     "shmem_set_lock",
@@ -241,6 +243,16 @@ void hclib::shmem_fence() {
             START_PROFILE
             ::shmem_fence();
             END_PROFILE(shmem_fence)
+        }, nic);
+    });
+}
+
+void hclib::shmem_quiet() {
+    hclib::finish([] {
+        hclib::async_nb_at([] {
+            START_PROFILE
+            ::shmem_quiet();
+            END_PROFILE(shmem_quiet)
         }, nic);
     });
 }
@@ -680,7 +692,21 @@ static void poll_on_waits() {
                                 exit(1);
                         }
                         break; // SHMEM_CMP_EQ
-               
+              
+                    case SHMEM_CMP_NE:
+                        switch (wait_info->type) {
+                            case hclib::integer:
+                                if (*((volatile int *)wait_info->var) != wait_info->cmp_value.i) {
+                                    any_complete = true;
+                                }
+                                break; // integer
+
+                            default:
+                                std::cerr << "Unsupported wait type " << wait_info->type << std::endl;
+                                exit(1);
+                        }
+                        break; // SHMEM_CMP_NE
+
                     default:
                         std::cerr << "Unsupported cmp type " << wait_info->cmp << std::endl;
                         exit(1);
