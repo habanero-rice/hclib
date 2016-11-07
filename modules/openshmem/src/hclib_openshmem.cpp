@@ -13,14 +13,15 @@
 // #define TRACING
 
 #ifdef PROFILE
-bool disable_profiling = false;
+static bool disable_profiling = false;
 
 #define START_PROFILE const unsigned long long __start_time = hclib_current_time_ns();
 
 #if defined(TRACING)
+static FILE *trace_fp = NULL;
 #define END_PROFILE(funcname) { \
     if (!disable_profiling) { \
-        printf("TRACE %d : %s : %llu : %llu\n", ::shmem_my_pe(), \
+        fprintf(trace_fp, "TRACE %d : %s : %llu : %llu\n", ::shmem_my_pe(), \
                 FUNC_NAMES[funcname##_lbl], __start_time, \
                 hclib_current_time_ns()); \
     } \
@@ -146,7 +147,7 @@ void hclib::disable_oshmem_profiling() {
 
 void hclib::enable_oshmem_profiling() {
 #ifdef PROFILE
-    disable_profiling = true;
+    disable_profiling = false;
 #endif
 }
 
@@ -181,6 +182,17 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize) {
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
     ::shmem_init();
 
+#ifdef PROFILE
+#ifdef TRACING
+    const char *trace_dir = getenv("HIPER_TRACE_DIR");
+    assert(trace_dir);
+    char pe_filename[1024];
+    sprintf(pe_filename, "%s/%d.trace", trace_dir, ::shmem_my_pe());
+    trace_fp = fopen(pe_filename, "w");
+    assert(trace_fp);
+#endif
+#endif
+
     int n_nics;
     hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
             &n_nics);
@@ -191,6 +203,11 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize) {
+#ifdef PROFILE
+#ifdef TRACING
+    fclose(trace_fp);
+#endif
+#endif
     ::shmem_finalize();
 }
 
