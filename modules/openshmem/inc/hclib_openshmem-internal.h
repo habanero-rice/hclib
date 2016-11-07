@@ -98,6 +98,8 @@ void shmem_int_wait_until_any(volatile int **ivars, int cmp,
 
 void reset_oshmem_profiling_data();
 void print_oshmem_profiling_data();
+void enable_oshmem_profiling();
+void disable_oshmem_profiling();
 
 #define construct_and_insert_wait_set(vars, cmp, cmp_values, nwaits, wait_type, fieldname, dependent_task) ({ \
     wait_info_t *infos = (wait_info_t *)malloc((nwaits) * sizeof(wait_info_t)); \

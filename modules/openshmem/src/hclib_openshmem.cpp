@@ -10,23 +10,38 @@
 // #define TRACE
 // #define PROFILE
 // #define DETAILED_PROFILING
+// #define TRACING
 
 #ifdef PROFILE
+bool disable_profiling = false;
+
 #define START_PROFILE const unsigned long long __start_time = hclib_current_time_ns();
 
-#ifdef DETAILED_PROFILING
+#if defined(TRACING)
 #define END_PROFILE(funcname) { \
-    const unsigned long long __end_time = hclib_current_time_ns(); \
-    func_counters[funcname##_lbl]++; \
-    func_times[funcname##_lbl] += (__end_time - __start_time); \
-    printf("%s: %llu ns\n", FUNC_NAMES[funcname##_lbl], \
-            (__end_time - __start_time)); \
+    if (!disable_profiling) { \
+        printf("TRACE %d : %s : %llu : %llu\n", ::shmem_my_pe(), \
+                FUNC_NAMES[funcname##_lbl], __start_time, \
+                hclib_current_time_ns()); \
+    } \
+}
+#elif defined(DETAILED_PROFILING)
+#define END_PROFILE(funcname) { \
+    if (!disable_profiling) { \
+        const unsigned long long __end_time = hclib_current_time_ns(); \
+        func_counters[funcname##_lbl]++; \
+        func_times[funcname##_lbl] += (__end_time - __start_time); \
+        printf("%s: %llu ns\n", FUNC_NAMES[funcname##_lbl], \
+                (__end_time - __start_time)); \
+    } \
 }
 #else
 #define END_PROFILE(funcname) { \
-    const unsigned long long __end_time = hclib_current_time_ns(); \
-    func_counters[funcname##_lbl]++; \
-    func_times[funcname##_lbl] += (__end_time - __start_time); \
+    if (!disable_profiling) { \
+        const unsigned long long __end_time = hclib_current_time_ns(); \
+        func_counters[funcname##_lbl]++; \
+        func_times[funcname##_lbl] += (__end_time - __start_time); \
+    } \
 }
 #endif
 
@@ -121,6 +136,18 @@ static int pe_to_locale_id(int pe) {
 static int locale_id_to_pe(int locale_id) {
     HASSERT(locale_id < 0);
     return (locale_id + 1) * -1;
+}
+
+void hclib::disable_oshmem_profiling() {
+#ifdef PROFILE
+    disable_profiling = true;
+#endif
+}
+
+void hclib::enable_oshmem_profiling() {
+#ifdef PROFILE
+    disable_profiling = true;
+#endif
 }
 
 void hclib::reset_oshmem_profiling_data() {

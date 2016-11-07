@@ -390,6 +390,8 @@ int main(int argc, char **argv) {
     const char *deps[] = {"system", "openshmem"};
     hclib::launch(deps, 2, [argc, argv] {
 
+    hclib::disable_oshmem_profiling();
+
     const uint64_t scale = atoi(argv[1]);
     const uint64_t edgefactor = atoi(argv[2]);
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
@@ -709,6 +711,8 @@ int main(int argc, char **argv) {
 
     const unsigned num_bfs_roots = 3;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
+
+    hclib::enable_oshmem_profiling();
 
     unsigned run;
     for (run = 0; run < num_bfs_roots; run++) {
