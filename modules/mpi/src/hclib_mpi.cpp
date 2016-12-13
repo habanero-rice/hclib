@@ -13,7 +13,9 @@ const char *MPI_FUNC_NAMES[N_MPI_FUNCS] = {
     "MPI_Allreduce_future",
     "MPI_Bcast",
     "MPI_Barrier",
-    "MPI_Allgather"
+    "MPI_Allgather",
+    "MPI_Reduce",
+    "MPI_Waitall"
 };
 #endif
 
@@ -30,16 +32,6 @@ unsigned long long mpi_profile_times[N_MPI_FUNCS];
 static int nic_locale_id;
 static hclib::locale_t *nic = NULL;
 
-static int mpi_rank_to_locale_id(int mpi_rank) {
-    HASSERT(mpi_rank >= 0);
-    return -1 * mpi_rank - 1;
-}
-
-static int locale_id_to_mpi_rank(int locale_id) {
-    HASSERT(locale_id < 0);
-    return (locale_id + 1) * -1;
-}
-
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize) {
     nic_locale_id = hclib_add_known_locale_type("Interconnect");
 
@@ -52,8 +44,15 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize) {
     memset(mpi_profile_counters, 0x00, N_MPI_FUNCS * sizeof(unsigned long long));
     memset(mpi_profile_times, 0x00, N_MPI_FUNCS * sizeof(unsigned long long));
 #endif
-
 }
+
+typedef struct _pending_mpi_op {
+    MPI_Request req;
+    hclib::promise_t *prom;
+    struct _pending_mpi_op *next;
+} pending_mpi_op;
+
+pending_mpi_op *pending = NULL;
 
 HCLIB_MODULE_INITIALIZATION_FUNC(mpi_post_initialize) {
     int provided;
@@ -76,26 +75,6 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_finalize) {
     MPI_Finalize();
 }
 
-static hclib::locale_t *get_locale_for_rank(int rank, MPI_Comm comm) {
-    char name_buf[256];
-    sprintf(name_buf, "mpi-rank-%d", rank);
-
-    hclib::locale_t *new_locale = (hclib::locale_t *)malloc(
-            sizeof(hclib::locale_t));
-    /*
-     * make the rank negative, and then subtract one so that even rank 0 has a
-     * negative rank.
-     */
-    new_locale->id = mpi_rank_to_locale_id(rank);
-    new_locale->type = nic_locale_id;
-    new_locale->lbl = (char *)malloc(strlen(name_buf) + 1);
-    memcpy((void *)new_locale->lbl, name_buf, strlen(name_buf) + 1);
-    new_locale->metadata = malloc(sizeof(MPI_Comm));
-    *((MPI_Comm *)new_locale->metadata) = comm;
-    new_locale->deques = NULL;
-    return new_locale;
-}
-
 void hclib::MPI_Comm_rank(MPI_Comm comm, int *rank) {
     CHECK_MPI(::MPI_Comm_rank(comm, rank));
 }
@@ -104,11 +83,7 @@ void hclib::MPI_Comm_size(MPI_Comm comm, int *size) {
     CHECK_MPI(::MPI_Comm_size(comm, size));
 }
 
-int hclib::integer_rank_for_locale(locale_t *locale) {
-    return locale_id_to_mpi_rank(locale->id);
-}
-
-void hclib::MPI_Send(void *buf, int count, MPI_Datatype datatype, hclib::locale_t *dest,
+void hclib::MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest,
         int tag, MPI_Comm comm) {
     MPI_START_LATENCY;
 
@@ -116,53 +91,171 @@ void hclib::MPI_Send(void *buf, int count, MPI_Datatype datatype, hclib::locale_
         hclib::async_nb_at([&] {
             MPI_END_LATENCY(MPI_Send);
             MPI_START_PROFILE;
-            CHECK_MPI(::MPI_Send(buf, count, datatype,
-                    locale_id_to_mpi_rank(dest->id), tag, comm));
+            CHECK_MPI(::MPI_Send(buf, count, datatype, dest, tag, comm));
             MPI_END_PROFILE(MPI_Send);
         }, nic);
     });
 }
 
-void hclib::MPI_Recv(void *buf, int count, MPI_Datatype datatype, hclib::locale_t *source, int tag,
-        MPI_Comm comm, MPI_Status *status) {
+void hclib::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
+        int tag, MPI_Comm comm, MPI_Status *status) {
     MPI_START_LATENCY;
 
     hclib::finish([&] {
         hclib::async_nb_at([&] {
             MPI_END_LATENCY(MPI_Recv);
             MPI_START_PROFILE;
-            CHECK_MPI(::MPI_Recv(buf, count, datatype,
-                    locale_id_to_mpi_rank(source->id), tag, comm, status));
+            CHECK_MPI(::MPI_Recv(buf, count, datatype, source, tag, comm,
+                    status));
             MPI_END_PROFILE(MPI_Recv);
         }, nic);
     });
 }
 
-hclib::future_t *hclib::MPI_Isend(void *buf, int count, MPI_Datatype datatype,
-        hclib::locale_t *dest, int tag, MPI_Comm comm) {
+static void poll_on_pending() {
+    do {
+        int pending_list_non_empty = 1;
+
+        pending_mpi_op *prev = NULL;
+        pending_mpi_op *op = pending;
+
+        assert(op != NULL);
+
+        while (op) {
+            pending_mpi_op *next = op->next;
+
+            int complete;
+            CHECK_MPI(::MPI_Test(&op->req, &complete, MPI_STATUS_IGNORE));
+
+            if (complete) {
+                // Remove from singly linked list
+                if (prev == NULL) {
+                    /*
+                     * If previous is NULL, we *may* be looking at the front of
+                     * the list. It is also possible that another thread in the
+                     * meantime came along and added an entry to the front of
+                     * this singly-linked wait list, in which case we need to
+                     * ensure we update its next rather than updating the list
+                     * head. We do this by first trying to automatically update
+                     * the list head to be the next of wait_set, and if we fail
+                     * then we know we have a new head whose next points to
+                     * wait_set and which should be updated.
+                     */
+                    pending_mpi_op *old_head = __sync_val_compare_and_swap(
+                            &pending, op, op->next);
+                    if (old_head != op) {
+                        // Failed, someone else added a different head
+                        assert(old_head->next == op);
+                        old_head->next = op->next;
+                        prev = old_head;
+                    } else {
+                        /*
+                         * Success, new head is now wait_set->next. We want this
+                         * polling task to exit if we just set the head to NULL.
+                         * It is the responsibility of future async_when calls
+                         * to restart it upon discovering a null head.
+                         */
+                        pending_list_non_empty = (op->next != NULL);
+                    }
+                } else {
+                    /*
+                     * If previous is non-null, we just adjust its next link to
+                     * jump over the current node.
+                     */
+                    assert(prev->next == op);
+                    prev->next = op->next;
+                }
+
+                op->prom->put(NULL);
+                free(op);
+            } else {
+                prev = op;
+            }
+
+            op = next;
+        }
+
+        if (pending_list_non_empty) {
+            hclib::yield_at(nic);
+        } else {
+            // Empty list
+            break;
+        }
+    } while (true);
+}
+
+static void append_to_pending(pending_mpi_op *op) {
+    op->next = pending;
+
+    pending_mpi_op *old_head;
+    while (1) {
+        old_head = __sync_val_compare_and_swap(&pending, op->next, op);
+        if (old_head != op->next) {
+            op->next = old_head;
+        } else {
+            break;
+        }
+    }
+
+    if (old_head == NULL) {
+        hclib::async_at([] {
+            poll_on_pending();
+        }, nic);
+    }
+}
+
+void hclib::MPI_Waitall(int count, hclib::future_t *array_of_requests[]) {
     MPI_START_LATENCY;
 
-    return hclib::async_nb_future_at([=] {
+    for (int i = 0; i < count; i++) {
+        array_of_requests[i]->wait();
+    }
+}
+
+hclib::future_t *hclib::MPI_Isend(void *buf, int count, MPI_Datatype datatype,
+        int dest, int tag, MPI_Comm comm) {
+    MPI_START_LATENCY;
+    hclib::promise_t *prom = new hclib::promise_t();
+
+    hclib::async_nb_at([=] {
         MPI_END_LATENCY(MPI_Isend);
         MPI_START_PROFILE;
-        CHECK_MPI(::MPI_Send(buf, count, datatype,
-                locale_id_to_mpi_rank(dest->id), tag, comm));
+        MPI_Request req;
+        CHECK_MPI(::MPI_Isend(buf, count, datatype, dest, tag, comm, &req));
+
+        pending_mpi_op *op = (pending_mpi_op *)malloc(sizeof(pending_mpi_op));
+        assert(op);
+        op->req = req;
+        op->prom = prom;
+        append_to_pending(op);
+
         MPI_END_PROFILE(MPI_Isend);
     }, nic);
+
+    return prom->get_future();
 }
 
 hclib::future_t *hclib::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
-        hclib::locale_t *source, int tag, MPI_Comm comm) {
+        int source, int tag, MPI_Comm comm) {
     MPI_START_LATENCY;
+    hclib::promise_t *prom = new hclib::promise_t();
 
-    return hclib::async_nb_future_at([=] {
+    hclib::async_nb_at([=] {
         MPI_END_LATENCY(MPI_Irecv);
         MPI_START_PROFILE;
-        MPI_Status status;
-        CHECK_MPI(::MPI_Recv(buf, count, datatype,
-                locale_id_to_mpi_rank(source->id), tag, comm, &status));
+        MPI_Request req;
+        CHECK_MPI(::MPI_Irecv(buf, count, datatype, source, tag, comm, &req));
+
+        pending_mpi_op *op = (pending_mpi_op *)malloc(sizeof(pending_mpi_op));
+        assert(op);
+        op->req = req;
+        op->prom = prom;
+        append_to_pending(op);
+
         MPI_END_PROFILE(MPI_Irecv);
     }, nic);
+
+    return prom->get_future();
 }
 
 void hclib::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
@@ -231,7 +324,7 @@ void hclib::MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root,
     });
 }
 
-int hclib::MPI_Barrier(MPI_Comm comm) {
+void hclib::MPI_Barrier(MPI_Comm comm) {
     MPI_START_LATENCY;
 
     hclib::finish([&] {
@@ -240,6 +333,21 @@ int hclib::MPI_Barrier(MPI_Comm comm) {
             MPI_START_PROFILE;
             CHECK_MPI(::MPI_Barrier(comm));
             MPI_END_PROFILE(MPI_Barrier);
+        }, nic);
+    });
+}
+
+void hclib::MPI_Reduce(const void *sendbuf, void *recvbuf, int count,
+        MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm) {
+    MPI_START_LATENCY;
+
+    hclib::finish([&] {
+        hclib::async_nb_at([&] {
+            MPI_END_LATENCY(MPI_Reduce);
+            MPI_START_PROFILE;
+            CHECK_MPI(::MPI_Reduce(sendbuf, recvbuf, count, datatype, op, root,
+                    comm));
+            MPI_END_PROFILE(MPI_Reduce);
         }, nic);
     });
 }

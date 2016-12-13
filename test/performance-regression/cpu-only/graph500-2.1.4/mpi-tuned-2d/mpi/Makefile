@@ -11,12 +11,12 @@ CFLAGS_COMMON = -g -Ofast -fopenmp -march=native -DNDEBUG -Wall -Wextra -Wno-unu
 CFLAGS = $(CFLAGS_COMMON)
 CXXFLAGS = $(CFLAGS_COMMON)
 LDFLAGS = -Ofast -fopenmp -lhugetlbfs -L$(MPI_HOME)/lib -lmpich
-MPICC = gcc
-MPICXX = g++
-KERNELCC = gcc
+MPICC = icc
+MPICXX = icpc
+KERNELCC = icc
 KERNELCFLAGS = -Ofast -DNDEBUG -std=gnu99 -g -march=native -DUSE_ASM_VERSIONS_FOR_MATVEC
 
-SIZES = 2 8 32 128 512 1352 2048 2592 5408 8192 10368 32768
+SIZES = 1024 2 8 32 128 512 1352 2048 2592 5408 8192 10368 32768
 EXES = $(SIZES:%=graph500_mpi_custom_%)
 all: $(EXES)
 

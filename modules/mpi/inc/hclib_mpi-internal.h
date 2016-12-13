@@ -29,6 +29,8 @@ enum MPI_FUNC_LABELS {
     MPI_Bcast_lbl,
     MPI_Barrier_lbl,
     MPI_Allgather_lbl,
+    MPI_Reduce_lbl,
+    MPI_Waitall_lbl,
     N_MPI_FUNCS
 };
 #endif
@@ -66,17 +68,18 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_finalize);
 
 void MPI_Comm_rank(MPI_Comm comm, int *rank);
 void MPI_Comm_size(MPI_Comm comm, int *size);
-int integer_rank_for_locale(locale_t *locale);
 
 void MPI_Send(void *buf, int count, MPI_Datatype datatype,
-        hclib::locale_t *dest, int tag, MPI_Comm comm);
+        int dest, int tag, MPI_Comm comm);
 void MPI_Recv(void *buf, int count, MPI_Datatype datatype,
-        hclib::locale_t *source, int tag, MPI_Comm comm, MPI_Status *status);
+        int source, int tag, MPI_Comm comm, MPI_Status *status);
 
 hclib::future_t *MPI_Isend(void *buf, int count, MPI_Datatype datatype,
-        hclib::locale_t *dest, int tag, MPI_Comm comm);
+        int dest, int tag, MPI_Comm comm);
 hclib::future_t *MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
-        hclib::locale_t *source, int tag, MPI_Comm comm);
+        int source, int tag, MPI_Comm comm);
+
+void MPI_Waitall(int count, hclib::future_t *array_of_requests[]);
 
 inline double MPI_Wtime(void) {
     return ::MPI_Wtime();
@@ -93,7 +96,11 @@ void MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
         void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm);
 void MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root, 
         MPI_Comm comm);
-int MPI_Barrier(MPI_Comm comm);
+void MPI_Barrier(MPI_Comm comm);
+
+void MPI_Reduce(const void *sendbuf, void *recvbuf, int count,
+        MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
+
 
 void print_mpi_profiling_data();
 

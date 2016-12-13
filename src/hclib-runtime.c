@@ -1119,7 +1119,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg, const char **deps,
     if (profile_launch_body) {
         start_time = current_time_ns();
     }
-    hclib_async(fct_ptr, arg, NO_FUTURE, ANY_PLACE);
+    hclib_async(fct_ptr, arg, NO_FUTURE, hclib_get_closest_locale());
     hclib_finalize();
     if (profile_launch_body) {
         end_time = current_time_ns();

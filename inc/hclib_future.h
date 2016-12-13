@@ -20,6 +20,10 @@ class future_t {
             return hclib_future_wait(internal);
         }
 
+        void *wait_and_get() {
+            return hclib_future_wait_and_get(internal);
+        }
+
         bool test() {
             return hclib_future_is_satisfied(internal);
         }
