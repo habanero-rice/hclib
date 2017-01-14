@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-cuda.h>
 #include <hclib-locality-graph.h>
 #include <hclib-module.h>
+#include <hclib-instrument.h>
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -297,7 +298,7 @@ static void load_dependencies(const char **module_dependencies,
 }
 
 static void hclib_entrypoint(const char **module_dependencies,
-        int n_module_dependencies) {
+        const int n_module_dependencies, const int instrument) {
     /*
      * Assert that the completion flag structures are each on separate cache
      * lines.
@@ -319,8 +320,12 @@ static void hclib_entrypoint(const char **module_dependencies,
      */
     hclib_global_init();
 
-    // init timer stats, TODO make this account for resource management threads
+    // init timer stats
     hclib_init_stats(0, hc_context->nworkers);
+
+    if (instrument) {
+        initialize_instrumentation(hc_context->nworkers);
+    }
 
     /* Create key to store per thread worker_state */
     if (pthread_key_create(&ws_key, NULL) != 0) {
@@ -1004,12 +1009,12 @@ void hclib_user_harness_timer(double dur) {
  * the user program before any HC actions are performed.
  */
 static void hclib_init(const char **module_dependencies,
-        int n_module_dependencies) {
+        int n_module_dependencies, const int instrument) {
     if (getenv("HCLIB_PROFILE_LAUNCH_BODY")) {
         profile_launch_body = 1;
     }
 
-    hclib_entrypoint(module_dependencies, n_module_dependencies);
+    hclib_entrypoint(module_dependencies, n_module_dependencies, instrument);
 }
 
 
@@ -1046,7 +1051,7 @@ size_t hclib_current_worker_backlog() {
     return workers_backlog(ws);
 }
 
-static void hclib_finalize() {
+static void hclib_finalize(const int instrument) {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
 #ifdef HCLIB_STATS
@@ -1085,6 +1090,10 @@ static void hclib_finalize() {
     free(worker_stats);
 #endif
 
+    if (instrument) {
+        finalize_instrumentation();
+    }
+
     hclib_cleanup();
 }
 
@@ -1114,13 +1123,15 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg, const char **deps,
     unsigned long long start_time = 0;
     unsigned long long end_time;
 
-    hclib_init(deps, ndeps);
+    const int instrument = (getenv("HCLIB_INSTRUMENT") != NULL);
+
+    hclib_init(deps, ndeps, instrument);
 
     if (profile_launch_body) {
         start_time = current_time_ns();
     }
     hclib_async(fct_ptr, arg, NO_FUTURE, hclib_get_closest_locale());
-    hclib_finalize();
+    hclib_finalize(instrument);
     if (profile_launch_body) {
         end_time = current_time_ns();
         printf("\nHCLIB TIME %llu ns\n", end_time - start_time);

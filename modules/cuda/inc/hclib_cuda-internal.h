@@ -19,6 +19,44 @@
     } \
 }
 
+#ifdef HCLIB_INSTRUMENT
+#include "hclib-instrument.h"
+
+enum CUDA_FUNC_LABELS {
+    TO_DEVICE_lbl = 0,
+    FROM_DEVICE_lbl,
+    BETWEEN_DEVICE_lbl,
+    KERNEL_lbl,
+    MEMSET_lbl,
+    ALLOC_lbl,
+    FREE_lbl,
+    N_CUDA_FUNCS
+};
+
+const char *CUDA_FUNC_NAMES[N_CUDA_FUNCS] = {
+    "TO_DEVICE",
+    "FROM_DEVICE",
+    "BETWEEN_DEVICE",
+    "KERNEL",
+    "MEMSET",
+    "ALLOC",
+    "FREE"
+};
+
+static int event_ids[N_CUDA_FUNCS];
+
+#define CUDA_START_OP(funcname) \
+    const unsigned _event_id = hclib_register_event(event_ids[funcname##_lbl], \
+            START, -1)
+#define CUDA_END_OP(funcname) \
+    hclib_register_event(event_ids[funcname##_lbl], END, _event_id)
+
+#else
+#define CUDA_START_OP(funcname)
+#define CUDA_END_OP(funcname)
+#endif
+
+
 namespace hclib {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(cuda_pre_initialize);

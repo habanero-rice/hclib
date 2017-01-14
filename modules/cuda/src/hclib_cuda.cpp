@@ -10,23 +10,36 @@ int hclib::get_cuda_device_id(hclib_locale_t *locale) {
 }
 
 static void *allocation_func(size_t nbytes, hclib_locale_t *locale) {
+    CUDA_START_OP(ALLOC);
+
     assert(locale->type == gpu_locale_id);
     CHECK_CUDA(cudaSetDevice(hclib::get_cuda_device_id(locale)));
 
     void *ptr;
     CHECK_CUDA(cudaMalloc((void **)&ptr, nbytes));
+
+    CUDA_END_OP(ALLOC);
+
     return ptr;
 }
 
 static void free_func(void *ptr, hclib_locale_t *locale) {
+    CUDA_START_OP(FREE);
+
     assert(locale->type == gpu_locale_id);
     CHECK_CUDA(cudaFree(ptr));
+
+    CUDA_END_OP(FREE);
 }
 
 static void memset_func(void *ptr, int val, size_t nbytes,
         hclib_locale_t *locale) {
+    CUDA_START_OP(MEMSET);
+
     assert(locale->type == gpu_locale_id);
     CHECK_CUDA(cudaMemset(ptr, val, nbytes));
+
+    CUDA_END_OP(MEMSET);
 }
 
 static void copy_func(hclib::locale_t *dst_locale, void *dst,
@@ -34,15 +47,37 @@ static void copy_func(hclib::locale_t *dst_locale, void *dst,
     cudaMemcpyKind kind;
     if (dst_locale->type == gpu_locale_id &&
             src_locale->type == gpu_locale_id) {
+        CUDA_START_OP(BETWEEN_DEVICE);
         kind = cudaMemcpyDeviceToDevice;
     } else if (dst_locale->type == gpu_locale_id) {
+        CUDA_START_OP(TO_DEVICE);
         kind = cudaMemcpyHostToDevice;
     } else if (src_locale->type == gpu_locale_id) {
+        CUDA_START_OP(FROM_DEVICE);
         kind = cudaMemcpyDeviceToHost;
     } else {
         HASSERT(false); // no CUDA device involved
     }
-    CHECK_CUDA(cudaMemcpy(dst, src, nbytes, kind));
+
+    const cudaError_t err = cudaMemcpy(dst, src, nbytes, kind);
+    if (err != cudaSuccess) {
+        fprintf(stderr, "ERROR cudaMemcpy(dst=%p, src=%p, nbytes=%llu, "
+                "kind=%s) - %s\n", dst, src, nbytes,
+                (kind == cudaMemcpyDeviceToHost ? "cudaMemcpyDeviceToHost" :
+                 (kind == cudaMemcpyHostToDevice ? "cudaMemcpyHostToDevice" :
+                  "Unknown")), cudaGetErrorString(err));
+        exit(1);
+    }
+
+#ifdef HCLIB_INSTRUMENT
+    if (kind == cudaMemcpyDeviceToDevice) {
+        CUDA_START_OP(BETWEEN_DEVICE);
+    } else if (kind == cudaMemcpyHostToDevice) {
+        CUDA_START_OP(TO_DEVICE);
+    } else if (kind == cudaMemcpyDeviceToHost) {
+        CUDA_START_OP(FROM_DEVICE);
+    }
+#endif
 }
 
 static size_t metadata_size() {
