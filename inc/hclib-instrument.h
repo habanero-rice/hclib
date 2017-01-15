@@ -6,6 +6,15 @@ extern "C" {
 #endif
 
 /*
+ * Defines state transitions that an event can go through and that are tracked
+ * by this instrumentation.
+ */
+typedef enum _event_transition {
+    START,
+    END
+} event_transition;
+
+/*
  * A class representing a single event in the HClib runtime.
  */
 typedef struct _hclib_instrument_event {
@@ -14,6 +23,9 @@ typedef struct _hclib_instrument_event {
 
     // The type of event, e.g. MPI_SEND_START, MPI_ISEND_START
     unsigned event_type;
+
+    // The transition type this event represents
+    event_transition transition;
 
     // A thread-local unique ID for this event
     unsigned event_id;
@@ -32,11 +44,6 @@ typedef struct _hclib_event_type_info {
     // Human-readable name for this event
     char *name;
 } hclib_event_type_info;
-
-typedef enum _event_transition {
-    START,
-    END
-} event_transition;
 
 /*
  * Register a single event type (e.g. MPI_SEND_START) with the HClib runtime,

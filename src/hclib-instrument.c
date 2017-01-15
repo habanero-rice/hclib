@@ -57,11 +57,11 @@ static void flush_events(const int tid) {
     if (buf_size > 0) {
         flushing_cb.aio_fildes = fd;
         flushing_cb.aio_offset = dump_file_offsets[tid];
-        dump_file_offsets[tid] += buf_size;
         flushing_cb.aio_buf = active_thread_buffers[tid];
         flushing_cb.aio_nbytes = buf_size;
         aio_write(&flushing_cb);
 
+        dump_file_offsets[tid] += buf_size;
         hclib_instrument_event *tmp = active_thread_buffers[tid];
         active_thread_buffers[tid] = flushing_thread_buffers[tid];
         flushing_thread_buffers[tid] = tmp;
@@ -88,6 +88,10 @@ int register_event_type(char *event_name) {
 static void write_dump_file_header(FILE *fp, const unsigned tid) {
     char buf[1024];
     int i;
+
+    sprintf(buf, "%d\n", n_event_types);
+    fprintf(fp, "%s", buf);
+    dump_file_offsets[tid] += strlen(buf);
 
     for (i = 0; i < n_event_types; i++) {
         hclib_event_type_info *type = event_types + i;
@@ -208,6 +212,7 @@ unsigned hclib_register_event(const unsigned event_type,
     hclib_instrument_event *event_buf = active_thread_buffers[tid];
     event_buf[buf_index].timestamp_ns = timestamp;
     event_buf[buf_index].event_type = event_type;
+    event_buf[buf_index].transition = transition;
 
     int my_event_id;
     if (transition == START) {
