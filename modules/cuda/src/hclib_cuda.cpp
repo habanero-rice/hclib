@@ -2,6 +2,41 @@
 
 #include <iostream>
 
+#ifdef HCLIB_INSTRUMENT
+enum CUDA_FUNC_LABELS {
+    TO_DEVICE_lbl = 0,
+    FROM_DEVICE_lbl,
+    BETWEEN_DEVICE_lbl,
+    KERNEL_lbl,
+    MEMSET_lbl,
+    ALLOC_lbl,
+    FREE_lbl,
+    N_CUDA_FUNCS
+};
+
+const char *CUDA_FUNC_NAMES[N_CUDA_FUNCS] = {
+    "TO_DEVICE",
+    "FROM_DEVICE",
+    "BETWEEN_DEVICE",
+    "KERNEL",
+    "MEMSET",
+    "ALLOC",
+    "FREE"
+};
+
+static int event_ids[N_CUDA_FUNCS];
+
+#define CUDA_START_OP(funcname) \
+    const unsigned _event_id = hclib_register_event(event_ids[funcname##_lbl], \
+            START, -1)
+#define CUDA_END_OP(funcname) \
+    hclib_register_event(event_ids[funcname##_lbl], END, _event_id)
+
+#else
+#define CUDA_START_OP(funcname)
+#define CUDA_END_OP(funcname)
+#endif
+
 static int gpu_locale_id;
 static int gpus_so_far = 0;
 
@@ -93,6 +128,13 @@ HCLIB_MODULE_INITIALIZATION_FUNC(cuda_pre_initialize) {
     gpu_locale_id = hclib_add_known_locale_type("GPU");
     hclib_add_locale_metadata_functions(gpu_locale_id, metadata_size,
             metadata_populate);
+
+#ifdef HCLIB_INSTRUMENT
+    int i;
+    for (i = 0; i < N_CUDA_FUNCS; i++) {
+        event_ids[i] = register_event_type((char *)CUDA_FUNC_NAMES[i]);
+    }
+#endif
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(cuda_post_initialize) {
@@ -126,5 +168,11 @@ std::string hclib::get_gpu_name(hclib::locale_t *locale) {
 int hclib::get_num_gpu_locales() {
     return hclib_get_num_locales_of_type(gpu_locale_id);
 }
+
+#ifdef HCLIB_INSTRUMENT
+int hclib::get_cuda_kernel_event_id() {
+    return event_ids[KERNEL_lbl];
+}
+#endif
 
 HCLIB_REGISTER_MODULE("cuda", cuda_pre_initialize, cuda_post_initialize, cuda_finalize)

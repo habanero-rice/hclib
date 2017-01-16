@@ -56,7 +56,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @file User Interface to HCLIB's futures and promises.
  */
 
-#define MAX_NUM_WAITS 2
+/*
+ * The maximum number of future objects a task can wait on.
+ */
+#define MAX_NUM_WAITS 4
 
 /**
  * @brief Opaque type for promises.
@@ -81,7 +84,7 @@ typedef void (*pre_wait_callback)(hclib_future_t *fut);
  */
 typedef struct hclib_triggered_task_st {
     // NULL-terminated list of futures this task is registered on
-    hclib_future_t *waiting_on[MAX_NUM_WAITS];
+    hclib_future_t *waiting_on[MAX_NUM_WAITS + 1];
     int waiting_on_index;
     /*
      * This allows us to chain all dependent tasks waiting on a same promise.
@@ -181,6 +184,6 @@ int hclib_future_is_satisfied(hclib_future_t *future);
  * Some extras
  */
 void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_future_t *waiting_future_0, hclib_future_t *waiting_future_1);
+        hclib_future_t **futures, const int nfutures);
 
 #endif /* HCLIB_PROMISE_H_ */

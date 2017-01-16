@@ -97,7 +97,7 @@ struct hclib_promise_st;
  * @param[in] property          Flag to pass information to the runtime
  */
 void hclib_async(generic_frame_ptr fp, void *arg,
-        hclib_future_t *singleton_future_0,
+        hclib_future_t **futures, const int nfutures,
         hclib_locale_t *locale);
 
 /**
@@ -123,7 +123,7 @@ hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes,
 void hclib_free_at(void *ptr, hclib_locale_t *locale);
 hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
         hclib_locale_t *src_locale, void *src, size_t nbytes,
-        hclib_future_t *future);
+        hclib_future_t **futures, const int nfutures);
 
 
 /*

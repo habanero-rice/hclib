@@ -42,13 +42,26 @@ hclib::future_t *memset_at(void *ptr, int pattern, size_t nbytes,
 inline hclib::future_t *async_copy_await(hclib::locale_t *dst_locale, void *dst,
         hclib::locale_t *src_locale, void *src, size_t nbytes, hclib::future_t *future) {
     return new hclib::future_t(hclib_async_copy(dst_locale, dst, src_locale,
-                src, nbytes, future->internal));
+                src, nbytes, future ? &future->internal : NULL, future ? 1 : 0));
 }
+
+inline hclib::future_t *async_copy_await_all(hclib::locale_t *dst_locale,
+        void *dst, hclib::locale_t *src_locale, void *src, size_t nbytes,
+        hclib::future_t **futures, const int nfutures) {
+    hclib_future_t *futures_arr[nfutures];
+    for (int i = 0; i < nfutures; i++) {
+        futures_arr[i] = futures[i]->internal;
+    }
+
+    return new hclib::future_t(hclib_async_copy(dst_locale, dst, src_locale,
+                src, nbytes, futures_arr, nfutures));
+}
+
 
 inline hclib::future_t *async_copy(hclib::locale_t *dst_locale, void *dst,
         hclib::locale_t *src_locale, void *src, size_t nbytes) {
     return new hclib::future_t(hclib_async_copy(dst_locale, dst, src_locale,
-                src, nbytes, NULL));
+                src, nbytes, NULL, 0));
 }
 
 

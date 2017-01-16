@@ -27,8 +27,7 @@ typedef struct _hclib_task_t {
     void *args;
     struct finish_t *current_finish;
     generic_frame_ptr _fp;
-    hclib_future_t *singleton_future_0;
-    hclib_future_t *singleton_future_1;
+    hclib_future_t *futures[MAX_NUM_WAITS];
     hclib_locale_t *locale;
     int non_blocking;
 } hclib_task_t;

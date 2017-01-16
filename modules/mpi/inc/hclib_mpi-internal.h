@@ -34,8 +34,12 @@ void MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 
 hclib::future_t *MPI_Isend(void *buf, int count, MPI_Datatype datatype,
         int dest, int tag, MPI_Comm comm);
+hclib::future_t *MPI_Isend_await(void *buf, int count, MPI_Datatype datatype,
+        int dest, int tag, MPI_Comm comm, hclib::future_t *fut);
 hclib::future_t *MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         int source, int tag, MPI_Comm comm);
+hclib::future_t *MPI_Irecv_await(void *buf, int count, MPI_Datatype datatype,
+        int source, int tag, MPI_Comm comm, hclib::future_t *fut);
 
 void MPI_Waitall(int count, hclib::future_t *array_of_requests[]);
 

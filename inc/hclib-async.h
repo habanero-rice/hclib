@@ -160,7 +160,7 @@ inline void async_nb_await(T lambda, hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
     task->non_blocking = 1;
-	spawn_await(task, future ? future->internal : NULL, NULL);
+	spawn_await(task, future ? &future->internal : NULL, future ? 1 : 0);
 }
 
 template <typename T>
@@ -169,7 +169,7 @@ inline void async_nb_await_at(T lambda, hclib::future_t *fut,
     MARK_OVH(current_ws()->id);
     hclib_task_t *task = _allocate_async<T>(lambda, true);
     task->non_blocking = 1;
-    spawn_await_at(task, fut ? fut->internal : NULL, NULL, locale);
+    spawn_await_at(task, fut ? &fut->internal : NULL, fut ? 1 : 0, locale);
 }
 
 inline int _count_futures() {
@@ -211,7 +211,7 @@ template <typename T>
 inline void async_await(T lambda, hclib::future_t *future) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future ? future->internal : NULL, NULL);
+	spawn_await(task, future ? &future->internal : NULL, future ? 1 : 0);
 }
 
 template <typename T>
@@ -219,8 +219,17 @@ inline void async_await(T lambda, hclib::future_t *future1,
         hclib::future_t *future2) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await(task, future1 ? future1->internal : NULL,
-            future2 ? future2->internal : NULL);
+
+    int nfutures = 0;
+    hclib_future_t *futures[2];
+    if (future1) {
+        futures[nfutures++] = future1->internal;
+    }
+    if (future2) {
+        futures[nfutures++] = future2->internal;
+    }
+
+	spawn_await(task, futures, nfutures);
 }
 
 template <typename T>
@@ -228,7 +237,8 @@ inline void async_await_at(T lambda, hclib::future_t *future,
         hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, future ? future->internal : NULL, NULL, locale);
+	spawn_await_at(task, future ? &future->internal : NULL, future ? 1 : 0,
+            locale);
 }
 
 template <typename T>
@@ -236,8 +246,17 @@ inline void async_await_at(T lambda, hclib::future_t *future1,
         hclib::future_t *future2, hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
 	hclib_task_t* task = _allocate_async<T>(lambda, true);
-	spawn_await_at(task, future1 ? future1->internal : NULL,
-            future2 ? future2->internal : NULL, locale);
+
+    int nfutures = 0;
+    hclib_future_t *futures[2];
+    if (future1) {
+        futures[nfutures++] = future1->internal;
+    }
+    if (future2) {
+        futures[nfutures++] = future2->internal;
+    }
+
+	spawn_await_at(task, futures, nfutures, locale);
 }
 
 
@@ -274,7 +293,7 @@ hclib::future_t *async_future_await(T lambda, hclib::future_t *future) {
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await(task, future->internal, NULL);
+    spawn_await(task, future ? &future->internal : NULL, future ? 1 : 0);
     return event->get_future();
 }
 
@@ -295,7 +314,7 @@ hclib::future_t *async_future_at_helper(T lambda, hclib_locale_t *locale,
 
     hclib_task_t* task = _allocate_async(wrapper, true);
     if (nb) task->non_blocking = 1;
-    spawn_await_at(task, NULL, NULL, locale);
+    spawn_await_at(task, NULL, 0, locale);
     return event->get_future();
 }
 
@@ -325,7 +344,8 @@ hclib::future_t *async_future_await_at(T lambda, hclib::future_t *future,
     };
 
     hclib_task_t* task = _allocate_async(wrapper, true);
-    spawn_await_at(task, future->internal, NULL, locale);
+    spawn_await_at(task, future ? &future->internal : NULL, future ? 1 : 0,
+            locale);
     return event->get_future();
 }
 

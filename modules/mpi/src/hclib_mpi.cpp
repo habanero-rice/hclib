@@ -66,6 +66,10 @@ typedef struct _pending_mpi_op {
     MPI_Request req;
     hclib::promise_t *prom;
     struct _pending_mpi_op *next;
+#ifdef HCLIB_INSTRUMENT
+    int event_type;
+    int event_id;
+#endif
 } pending_mpi_op;
 
 pending_mpi_op *pending = NULL;
@@ -175,6 +179,10 @@ static void poll_on_pending() {
                     prev->next = op->next;
                 }
 
+#ifdef HCLIB_INSTRUMENT
+                hclib_register_event(op->event_type, END, op->event_id);
+#endif
+
                 op->prom->put(NULL);
                 free(op);
             } else {
@@ -221,11 +229,12 @@ void hclib::MPI_Waitall(int count, hclib::future_t *array_of_requests[]) {
     MPI_END_OP(MPI_Waitall);
 }
 
-hclib::future_t *hclib::MPI_Isend(void *buf, int count, MPI_Datatype datatype,
-        int dest, int tag, MPI_Comm comm) {
+hclib::future_t *hclib::MPI_Isend_await(void *buf, int count,
+        MPI_Datatype datatype, int dest, int tag, MPI_Comm comm,
+        hclib::future_t *fut) {
     hclib::promise_t *prom = new hclib::promise_t();
 
-    hclib::async_nb_at([=] {
+    hclib::async_nb_await_at([=] {
         MPI_START_OP(MPI_Isend);
 
         MPI_Request req;
@@ -235,19 +244,27 @@ hclib::future_t *hclib::MPI_Isend(void *buf, int count, MPI_Datatype datatype,
         assert(op);
         op->req = req;
         op->prom = prom;
+#ifdef HCLIB_INSTRUMENT
+        op->event_type = event_ids[MPI_Isend_lbl];
+        op->event_id = _event_id;
+#endif
         append_to_pending(op);
-
-        MPI_END_OP(MPI_Isend);
-    }, nic);
+    }, fut, nic);
 
     return prom->get_future();
 }
 
-hclib::future_t *hclib::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
-        int source, int tag, MPI_Comm comm) {
+hclib::future_t *hclib::MPI_Isend(void *buf, int count,
+        MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
+    return hclib::MPI_Isend_await(buf, count, datatype, dest, tag, comm, NULL);
+}
+
+hclib::future_t *hclib::MPI_Irecv_await(void *buf, int count,
+        MPI_Datatype datatype, int source, int tag, MPI_Comm comm,
+        hclib::future_t *fut) {
     hclib::promise_t *prom = new hclib::promise_t();
 
-    hclib::async_nb_at([=] {
+    hclib::async_nb_await_at([=] {
         MPI_START_OP(MPI_Irecv);
         MPI_Request req;
         CHECK_MPI(::MPI_Irecv(buf, count, datatype, source, tag, comm, &req));
@@ -256,12 +273,19 @@ hclib::future_t *hclib::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
         assert(op);
         op->req = req;
         op->prom = prom;
+#ifdef HCLIB_INSTRUMENT
+        op->event_type = event_ids[MPI_Irecv_lbl];
+        op->event_id = _event_id;
+#endif
         append_to_pending(op);
-
-        MPI_END_OP(MPI_Irecv);
-    }, nic);
+    }, fut, nic);
 
     return prom->get_future();
+}
+
+hclib::future_t *hclib::MPI_Irecv(void *buf, int count,
+        MPI_Datatype datatype, int source, int tag, MPI_Comm comm) {
+    return hclib::MPI_Irecv_await(buf, count, datatype, source, tag, comm, NULL);
 }
 
 void hclib::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {

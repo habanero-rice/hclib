@@ -57,9 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Associate a triggered task to a promise list.
  */
 void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_future_t *waiting_future_0, hclib_future_t *waiting_future_1) {
-    task->waiting_on[0] = waiting_future_0;
-    task->waiting_on[1] = waiting_future_1;
+        hclib_future_t **futures, const int nfutures) {
+    memcpy(task->waiting_on, futures, nfutures * sizeof(hclib_future_t *));
     task->waiting_on_index = -1;
     task->next_waiting_on_same_future = NULL;
 }

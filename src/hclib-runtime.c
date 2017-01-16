@@ -490,7 +490,8 @@ static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
     fprintf(stderr, "is_eligible_to_schedule: async_task=%p singleton_future_0=%p\n",
             async_task, async_task->singleton_future_0);
 #endif
-    if (async_task->singleton_future_0 || async_task->singleton_future_1) {
+    // If any futures are non-null, the first must be non-null
+    if (async_task->futures[0]) {
         hclib_triggered_task_t *triggered_task = (hclib_triggered_task_t *)
                 rt_async_task_to_triggered_task(async_task);
         return register_on_all_promise_dependencies(triggered_task);
@@ -514,8 +515,7 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 }
 
 void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
-        hclib_future_t *singleton_future_0, hclib_future_t *singleton_future_1,
-        const int escaping) {
+        hclib_future_t **futures, const int nfutures, const int escaping) {
     HASSERT(task);
 
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
@@ -531,11 +531,15 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
         task->locale = locale;
     }
 
-    if (singleton_future_0) {
-        task->singleton_future_0 = singleton_future_0;
-        task->singleton_future_1 = singleton_future_1;
+    if (nfutures > 0) {
+        if (nfutures > MAX_NUM_WAITS) {
+            fprintf(stderr, "Number of dependent futures (%d) exceeds limit of "
+                    "%d\n", nfutures, MAX_NUM_WAITS);
+            exit(1);
+        }
+        memcpy(task->futures, futures, nfutures * sizeof(hclib_future_t *));
         hclib_dependent_task_t *t = (hclib_dependent_task_t *) task;
-        hclib_triggered_task_init(&(t->deps), singleton_future_0, singleton_future_1);
+        hclib_triggered_task_init(&(t->deps), futures, nfutures);
     }
 
 #ifdef VERBOSE
@@ -546,30 +550,30 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
 }
 
 void spawn_at(hclib_task_t *task, hclib_locale_t *locale) {
-    spawn_handler(task, locale, NULL, NULL, 0);
+    spawn_handler(task, locale, NULL, 0, 0);
 }
 
 void spawn(hclib_task_t *task) {
-    spawn_handler(task, NULL, NULL, NULL, 0);
+    spawn_handler(task, NULL, NULL, 0, 0);
 }
 
 void spawn_escaping(hclib_task_t *task, hclib_future_t *future) {
-    spawn_handler(task, NULL, future, NULL, 1);
+    spawn_handler(task, NULL, &future, 1, 1);
 }
 
 void spawn_escaping_at(hclib_locale_t *locale, hclib_task_t *task,
         hclib_future_t *future) {
-    spawn_handler(task, locale, future, NULL, 1);
+    spawn_handler(task, locale, &future, 1, 1);
 }
 
-void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
-        hclib_future_t *future2, hclib_locale_t *locale) {
-    spawn_handler(task, locale, future1, future2, 0);
+void spawn_await_at(hclib_task_t *task, hclib_future_t **futures,
+        const int nfutures, hclib_locale_t *locale) {
+    spawn_handler(task, locale, futures, nfutures, 0);
 }
 
-void spawn_await(hclib_task_t *task, hclib_future_t *future1,
-        hclib_future_t *future2) {
-    spawn_await_at(task, future1, future2, NULL);
+void spawn_await(hclib_task_t *task, hclib_future_t **futures,
+        const int nfutures) {
+    spawn_await_at(task, futures, nfutures, NULL);
 }
 
 static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
@@ -1130,7 +1134,7 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg, const char **deps,
     if (profile_launch_body) {
         start_time = current_time_ns();
     }
-    hclib_async(fct_ptr, arg, NO_FUTURE, hclib_get_closest_locale());
+    hclib_async(fct_ptr, arg, NULL, 0, hclib_get_closest_locale());
     hclib_finalize(instrument);
     if (profile_launch_body) {
         end_time = current_time_ns();

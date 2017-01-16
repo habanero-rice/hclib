@@ -22,7 +22,10 @@ inline hclib::future_t *forasync_cuda(const int blocks_per_gridx,
     auto lambda = [locale, functor, blocks_per_gridx, blocks_per_gridy,
             blocks_per_gridz, threads_per_blockx, threads_per_blocky,
             threads_per_blockz, shared_mem] {
-        CUDA_START_OP(KERNEL);
+#ifdef HCLIB_INSTRUMENT
+    const unsigned _event_id = hclib_register_event(get_cuda_kernel_event_id(),
+            START, -1);
+#endif
 
         CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
@@ -34,7 +37,9 @@ inline hclib::future_t *forasync_cuda(const int blocks_per_gridx,
         driver_kernel<<<blocks_per_grid, threads_per_block, shared_mem>>>(functor);
         CHECK_CUDA(cudaDeviceSynchronize());
 
-        CUDA_END_OP(KERNEL);
+#ifdef HCLIB_INSTRUMENT
+        hclib_register_event(get_cuda_kernel_event_id(), END, _event_id);
+#endif
     };
 
     if (future) {

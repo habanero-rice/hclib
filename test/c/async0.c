@@ -49,7 +49,7 @@ void entrypoint(void *arg) {
     fprintf(stderr, "Hello\n");
 
     hclib_start_finish();
-    hclib_async(async_fct, NULL, NO_FUTURE, ANY_PLACE);
+    hclib_async(async_fct, NULL, NO_FUTURE, 0, ANY_PLACE);
     hclib_end_finish();
 
     assert(ran == 1);

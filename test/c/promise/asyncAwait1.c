@@ -50,8 +50,8 @@ void entrypoint(void *arg) {
         *((int *)argv[0]) = index;
         argv[1] = (void *)hclib_get_future_for_promise(promise_list[index - 1]);
         argv[2] = (void *)promise_list[index];
-        hclib_async(async_fct, argv, hclib_get_future_for_promise(promise_list[index - 1]),
-                ANY_PLACE);
+        hclib_future_t *fut = hclib_get_future_for_promise(promise_list[index - 1]);
+        hclib_async(async_fct, argv, &fut, 1, ANY_PLACE);
     }
 
     int * value = (int *) malloc(sizeof(int));

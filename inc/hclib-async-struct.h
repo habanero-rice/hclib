@@ -47,11 +47,11 @@ extern "C" {
 #endif
 
 extern void spawn(hclib_task_t * task);
-extern void spawn_await_at(hclib_task_t *task, hclib_future_t *future1,
-        hclib_future_t *future2, hclib_locale_t *locale);
+extern void spawn_await_at(hclib_task_t *task, hclib_future_t **futures,
+        const int nfutures, hclib_locale_t *locale);
 extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale);
-extern void spawn_await(hclib_task_t *task, hclib_future_t *future,
-        hclib_future_t *future2);
+extern void spawn_await(hclib_task_t *task, hclib_future_t **futures,
+        const int nfutures);
 
 #ifdef __cplusplus
 }

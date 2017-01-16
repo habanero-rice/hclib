@@ -51,12 +51,12 @@ void body2(void *arg) {
 void entrypoint(void *arg) {
     assert(global == 3);
 
-    hclib_async(body, NULL, NO_FUTURE, ANY_PLACE);
-    hclib_yield();
+    hclib_async(body, NULL, NO_FUTURE, 0, ANY_PLACE);
+    hclib_yield(NULL);
     assert(global == 42);
 
     hclib_async_nb(body2, NULL, ANY_PLACE);
-    hclib_yield();
+    hclib_yield(NULL);
     assert(global == 84);
 }
 

@@ -31,17 +31,17 @@ loop_dist_func hclib_lookup_dist_func(unsigned id) {
 
 /*** START ASYNC IMPLEMENTATION ***/
 
-void hclib_async(generic_frame_ptr fp, void *arg,
-        hclib_future_t *singleton_future_0, hclib_locale_t *locale) {
+void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **futures,
+        const int nfutures, hclib_locale_t *locale) {
 
-    if (singleton_future_0) {
+    if (nfutures > 0) {
         hclib_dependent_task_t *task = calloc(1,
                 sizeof(hclib_dependent_task_t));
         task->async_task._fp = fp;
         task->async_task.args = arg;
 
         // locale may be NULL, in which case this is equivalent to spawn_await
-        spawn_await_at((hclib_task_t *)task, singleton_future_0, NULL, locale);
+        spawn_await_at((hclib_task_t *)task, futures, nfutures, locale);
     } else {
         hclib_task_t *task = calloc(1, sizeof(hclib_task_t));
         task->_fp = fp;
@@ -78,7 +78,7 @@ hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, future, locale);
+    hclib_async(future_caller, wrapper, &future, 1, locale);
 
     return hclib_get_future_for_promise(&wrapper->event);
 }
