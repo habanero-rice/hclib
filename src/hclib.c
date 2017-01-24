@@ -177,7 +177,7 @@ void forasync1D_recursive(void *forasync_arg) {
 
     //split the range into two, spawn a new task for the first half and recurse on the rest
     if((high0-low0) > tile0) {
-        int mid = (high0+low0)/2;
+        int mid = low0 + (high0-low0)/2;
         // upper-half
         forasync1D_task_t *new_forasync_task = allocate_forasync1D_task();
         new_forasync_task->forasync_task._fp = forasync1D_recursive;
@@ -215,7 +215,7 @@ void forasync2D_recursive(void *forasync_arg) {
     //split the range into two, spawn a new task for the first half and recurse on the rest
     forasync2D_task_t *new_forasync_task = NULL;
     if((high0-low0) > tile0) {
-        int mid = (high0+low0)/2;
+        int mid = low0 + (high0-low0)/2;
         // upper-half
         new_forasync_task = allocate_forasync2D_task();
         new_forasync_task->forasync_task._fp = forasync2D_recursive;
@@ -228,7 +228,7 @@ void forasync2D_recursive(void *forasync_arg) {
         // update lower-half
         forasync->loop0.high = mid;
     } else if((high1-low1) > tile1) {
-        int mid = (high1+low1)/2;
+        int mid = low1 + (high1-low1)/2;
         // upper-half
         new_forasync_task = allocate_forasync2D_task();
         new_forasync_task->forasync_task._fp = forasync2D_recursive;
@@ -274,7 +274,7 @@ void forasync3D_recursive(void *forasync_arg) {
     //split the range into two, spawn a new task for the first half and recurse on the rest
     forasync3D_task_t *new_forasync_task = NULL;
     if((high0-low0) > tile0) {
-        int mid = (high0+low0)/2;
+        int mid = low0 + (high0-low0)/2;
         // upper-half
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
@@ -288,7 +288,7 @@ void forasync3D_recursive(void *forasync_arg) {
         // update lower-half
         forasync->loop0.high = mid;
     } else if((high1-low1) > tile1) {
-        int mid = (high1+low1)/2;
+        int mid = low1 + (high1-low1)/2;
         // upper-half
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
@@ -302,7 +302,7 @@ void forasync3D_recursive(void *forasync_arg) {
         // update lower-half
         forasync->loop1.high = mid;
     } else if((high2-low2) > tile2) {
-        int mid = (high2+low2)/2;
+        int mid = low2 + (high2-low2)/2;
         // upper-half
         new_forasync_task = allocate_forasync3D_task();
         new_forasync_task->forasync_task._fp = forasync3D_recursive;
