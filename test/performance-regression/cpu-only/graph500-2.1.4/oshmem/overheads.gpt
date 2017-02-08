@@ -1,4 +1,4 @@
-set term pngcairo size 1280,960 enhanced font 'Verdana,14'
+set term pngcairo size 1280,960 enhanced font 'Verdana,20'
 set output 'overheads.png'
 
 set xlabel "Implementation"
