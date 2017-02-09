@@ -1,14 +1,18 @@
 #include "hclib.h"
-#include "task_wait_flat.h"
 
 #include <omp.h>
 #include <stdio.h>
+#include "fan_out.h"
 
-/**
- * Calculate micro-statistics on how quickly we can wait on flat task
- * completion.
+/*
+ * Calculate micro-statistics:
+ *
+ *   1) Rate at which we can spawn empty tasks.
+ *   2) Rate at which we can schedule and execute empty tasks.
  */
 int main(int argc, char **argv) {
+    int i;
+
     int nthreads;
 #pragma omp parallel
 #pragma omp master
@@ -20,22 +24,21 @@ int main(int argc, char **argv) {
 #pragma omp parallel
 #pragma omp master
     {
-        int i;
+        int dep_arr[1];
 
         const unsigned long long start_time = hclib_current_time_ns();
-        for (i = 0; i < N_FLAT_TASK_WAITS; i++) {
 
-            int incr = 0;
-#pragma omp task firstprivate(incr)
+        int incr = 0;
+
+        int nlaunched = 0;
+        for (i = 0; i < FAN_OUT; i++) {
+#pragma omp task firstprivate(incr) depend(in:dep_arr[0])
             {
                 incr = incr + 1;
             }
-
-#pragma omp taskwait
         }
-
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("Synchronized on OpenMP tasks at a rate of %f tasks per us\n",
-                (double)N_FLAT_TASK_WAITS / ((double)(end_time - start_time) / 1000.0));
+        printf("Handled %d-wide OpenMP fan out in %llu ns\n", FAN_OUT,
+                end_time - start_time);
     }
 }

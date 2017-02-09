@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
         recursive_task(0);
         const unsigned long long end_time = hclib_current_time_ns();
         printf("Synchronized on recursive tasks at a rate of %f task-waits per "
-                "ns\n", (double)N_RECURSIVE_TASK_WAITS / (double)(end_time -
-                    start_time));
+                "us\n", (double)N_RECURSIVE_TASK_WAITS / ((double)(end_time -
+                    start_time) / 1000.0));
     }
 }

@@ -37,8 +37,8 @@ void entrypoint(void *arg) {
         } while (nlaunched < NFUTURES);
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("Generated futures at a rate of %f futures per ns\n",
-                (double)NFUTURES / (double)(end_time - start_time));
+        printf("Generated futures at a rate of %f futures per us\n",
+                (double)NFUTURES / ((double)(end_time - start_time) / 1000.0));
     }
     hclib_end_finish();
 
@@ -54,8 +54,8 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("Scheduled futures at a rate of %f futures per ns\n",
-            (double)NFUTURES / (double)(end_time - start_time));
+    printf("Scheduled futures at a rate of %f futures per us\n",
+            (double)NFUTURES / ((double)(end_time - start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {

@@ -31,8 +31,8 @@ void entrypoint(void *arg) {
     }
     const unsigned long long nb_end_time = hclib_current_time_ns();
     printf("Synchronized on non-blocking tasks at a rate of %f task-waits per "
-            "ns\n", (double)N_FLAT_TASK_WAITS / (double)(nb_end_time -
-                nb_start_time));
+            "us\n", (double)N_FLAT_TASK_WAITS / ((double)(nb_end_time -
+                nb_start_time) / 1000.0));
 
     const unsigned long long blocking_start_time = hclib_current_time_ns();
     for (i = 0; i < N_FLAT_TASK_WAITS; i++) {
@@ -43,9 +43,9 @@ void entrypoint(void *arg) {
         hclib_end_finish();
     }
     const unsigned long long blocking_end_time = hclib_current_time_ns();
-    printf("Synchronized on blocking tasks at a rate of %f task-waits per ns\n",
-            (double)N_FLAT_TASK_WAITS / (double)(blocking_end_time -
-                blocking_start_time));
+    printf("Synchronized on blocking tasks at a rate of %f task-waits per us\n",
+            (double)N_FLAT_TASK_WAITS / ((double)(blocking_end_time -
+                blocking_start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {

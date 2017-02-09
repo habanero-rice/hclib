@@ -14,3 +14,5 @@ future_spawn_hclib
 future_spawn_hclib.dSYM
 future_spawn_omp
 future_spawn_omp.dSYM
+fan_out_hclib
+fan_out_omp

@@ -39,8 +39,9 @@ int main(int argc, char **argv) {
         } while (nlaunched < NTASKS);
 
         const unsigned long long spawn_end_time = hclib_current_time_ns();
-        printf("Generated tasks at a rate of %f tasks per ns\n",
-                (double)NTASKS / (double)(spawn_end_time - spawn_start_time));
+        printf("Generated tasks at a rate of %f tasks per us\n",
+                (double)NTASKS / ((double)(spawn_end_time -
+                        spawn_start_time) / 1000.0));
 
 #pragma omp taskwait
 
@@ -57,8 +58,8 @@ int main(int argc, char **argv) {
 #pragma omp taskwait
 
         const unsigned long long schedule_end_time = hclib_current_time_ns();
-        printf("Scheduled tasks at a rate of %f tasks per ns\n",
-                (double)NTASKS / (double)(schedule_end_time -
-                    schedule_start_time));
+        printf("Scheduled tasks at a rate of %f tasks per us\n",
+                (double)NTASKS / ((double)(schedule_end_time -
+                    schedule_start_time) / 1000.0));
     }
 }

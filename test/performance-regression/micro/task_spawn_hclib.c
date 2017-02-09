@@ -36,8 +36,8 @@ void entrypoint(void *arg) {
         } while (nlaunched < NTASKS);
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("Generated tasks at a rate of %f tasks per ns\n",
-                (double)NTASKS / (double)(end_time - start_time));
+        printf("Generated tasks at a rate of %f tasks per us\n",
+                (double)NTASKS / ((double)(end_time - start_time) / 1000.0));
     }
     hclib_end_finish();
 
@@ -53,8 +53,8 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("Scheduled tasks at a rate of %f tasks per ns\n",
-            (double)NTASKS / (double)(end_time - start_time));
+    printf("Scheduled tasks at a rate of %f tasks per us\n",
+            (double)NTASKS / ((double)(end_time - start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
