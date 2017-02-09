@@ -2,7 +2,7 @@
 
 #include <omp.h>
 #include <stdio.h>
-#include "task_spawn_rate.h"
+#include "task_spawn.h"
 
 /*
  * Calculate micro-statistics:

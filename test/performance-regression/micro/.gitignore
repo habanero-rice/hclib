@@ -1,4 +1,12 @@
-task_spawn_rate_hclib
-task_spawn_rate_hclib.dSYM
-task_spawn_rate_omp
-task_spawn_rate_omp.dSYM
+task_spawn_hclib
+task_spawn_hclib.dSYM
+task_spawn_omp
+task_spawn_omp.dSYM
+task_wait_flat_hclib
+task_wait_flat_hclib.dSYM
+task_wait_flat_omp
+task_wait_flat_omp.dSYM
+task_wait_recursive_hclib
+task_wait_recursive_hclib.dSYM
+task_wait_recursive_omp
+task_wait_recursive_omp.dSYM

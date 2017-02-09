@@ -1,7 +1,14 @@
 #include "hclib.h"
 
 #include <stdio.h>
-#include "task_spawn_rate.h"
+#include "task_spawn.h"
+
+/*
+ * Calculate micro-statistics:
+ *
+ *   1) Rate at which we can spawn empty tasks.
+ *   2) Rate at which we can schedule and execute empty tasks.
+ */
 
 void empty_task(void *arg) {
     /*
@@ -50,12 +57,6 @@ void entrypoint(void *arg) {
             (double)NTASKS / (double)(end_time - start_time));
 }
 
-/*
- * Calculate micro-statistics:
- *
- *   1) Rate at which we can spawn empty tasks.
- *   2) Rate at which we can schedule and execute empty tasks.
- */
 int main(int argc, char **argv) {
     int i;
 
