@@ -63,6 +63,9 @@ size_t hclib_current_worker_backlog();
 void hclib_launch(async_fct_t fct_ptr, void * arg, const char **deps,
         int ndeps);
 
+/**
+ * Time keeping utilities.
+ */
 unsigned long long hclib_current_time_ns();
 unsigned long long hclib_current_time_ms();
 
