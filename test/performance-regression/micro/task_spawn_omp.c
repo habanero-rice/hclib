@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
 
             nlaunched++;
         } while (nlaunched < NTASKS);
+#pragma omp taskwait
 
         const unsigned long long schedule_end_time = hclib_current_time_ns();
         printf("Scheduled tasks at a rate of %f tasks per ns\n",

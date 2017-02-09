@@ -10,3 +10,7 @@ task_wait_recursive_hclib
 task_wait_recursive_hclib.dSYM
 task_wait_recursive_omp
 task_wait_recursive_omp.dSYM
+future_spawn_hclib
+future_spawn_hclib.dSYM
+future_spawn_omp
+future_spawn_omp.dSYM
