@@ -16,3 +16,13 @@ future_spawn_omp
 future_spawn_omp.dSYM
 fan_out_hclib
 fan_out_omp
+fan_out_and_in_hclib
+fan_out_and_in_hclib.dSYM
+fan_out_and_in_omp
+fan_out_and_in_omp.dSYM
+fan_out_hclib.dSYM
+fan_out_omp.dSYM
+bin_fan_out_hclib
+bin_fan_out_hclib.dSYM
+bin_fan_out_omp
+bin_fan_out_omp.dSYM

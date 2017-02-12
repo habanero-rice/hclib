@@ -24,11 +24,15 @@ int main(int argc, char **argv) {
 #pragma omp parallel
 #pragma omp master
     {
-        int dep_arr[1];
+        int dep_arr[0];
 
         const unsigned long long start_time = hclib_current_time_ns();
 
         int incr = 0;
+
+#pragma omp task depend(out:dep_arr[0])
+        {
+        }
 
         int nlaunched = 0;
         for (i = 0; i < FAN_OUT; i++) {
@@ -37,6 +41,9 @@ int main(int argc, char **argv) {
                 incr = incr + 1;
             }
         }
+
+#pragma omp taskwait
+
         const unsigned long long end_time = hclib_current_time_ns();
         printf("Handled %d-wide OpenMP fan out in %llu ns\n", FAN_OUT,
                 end_time - start_time);

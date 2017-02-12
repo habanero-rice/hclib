@@ -113,7 +113,7 @@ void hclib_async_nb(generic_frame_ptr fp, void *arg, hclib_locale_t *locale);
  * Spawn an async that automatically puts a promise on termination.
  */
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t *future, hclib_locale_t *locale);
+        hclib_future_t **futures, const int nfutures, hclib_locale_t *locale);
 
 /*
  * Locale-aware memory management functions.

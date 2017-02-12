@@ -32,7 +32,7 @@ void entrypoint(void *arg) {
         hclib_future_t *prev = NULL;
         int nlaunched = 0;
         do {
-            prev = hclib_async_future(empty_task, NULL, prev, NULL);
+            prev = hclib_async_future(empty_task, NULL, &prev, 1, NULL);
             nlaunched++;
         } while (nlaunched < NFUTURES);
 
@@ -48,7 +48,7 @@ void entrypoint(void *arg) {
         hclib_future_t *prev = NULL;
         int nlaunched = 0;
         do {
-            prev = hclib_async_future(empty_task, NULL, prev, NULL);
+            prev = hclib_async_future(empty_task, NULL, &prev, 1, NULL);
             nlaunched++;
         } while (nlaunched < NFUTURES);
     }
