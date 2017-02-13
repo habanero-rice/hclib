@@ -4,13 +4,25 @@
 #include <omp.h>
 #include <stdio.h>
 
-void recursive_task(const size_t depth) {
+static void recursive_wait_task(const size_t depth) {
     if (depth < N_RECURSIVE_TASK_WAITS) {
-#pragma omp task firstprivate(depth)
+#pragma omp task default(none) firstprivate(depth)
         {
-            recursive_task(depth + 1);
+            recursive_wait_task(depth + 1);
         }
 #pragma omp taskwait
+    }
+}
+
+static void recursive_group_task(const size_t depth) {
+    if (depth < N_RECURSIVE_TASK_WAITS) {
+#pragma omp taskgroup
+        {
+#pragma omp task default(none) firstprivate(depth)
+            {
+                recursive_group_task(depth + 1);
+            }
+        }
     }
 }
 
@@ -20,23 +32,29 @@ void recursive_task(const size_t depth) {
  */
 int main(int argc, char **argv) {
     int nthreads;
-#pragma omp parallel
+#pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
     {
         nthreads = omp_get_num_threads();
     }
     printf("Using %d OpenMP threads\n", nthreads);
 
-#pragma omp parallel
+#pragma omp parallel default(none)
 #pragma omp master
     {
-        int i;
+        const unsigned long long group_start_time = hclib_current_time_ns();
+        recursive_group_task(0);
+        const unsigned long long group_end_time = hclib_current_time_ns();
+        printf("Synchronized on recursive grouped tasks at a rate of %f "
+                "task-waits per us\n", (double)N_RECURSIVE_TASK_WAITS /
+                ((double)(group_end_time - group_start_time) / 1000.0));
 
-        const unsigned long long start_time = hclib_current_time_ns();
-        recursive_task(0);
-        const unsigned long long end_time = hclib_current_time_ns();
-        printf("Synchronized on recursive tasks at a rate of %f task-waits per "
-                "us\n", (double)N_RECURSIVE_TASK_WAITS / ((double)(end_time -
-                    start_time) / 1000.0));
+        const unsigned long long wait_start_time = hclib_current_time_ns();
+        recursive_wait_task(0);
+        const unsigned long long wait_end_time = hclib_current_time_ns();
+        printf("Synchronized on recursive wait tasks at a rate of %f "
+                "task-waits per us\n", (double)N_RECURSIVE_TASK_WAITS /
+                ((double)(wait_end_time - wait_start_time) / 1000.0));
+
     }
 }

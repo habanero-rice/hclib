@@ -11,38 +11,38 @@
  *   2) Rate at which we can schedule and execute empty tasks.
  */
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
-#pragma omp parallel
+#pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
     {
         nthreads = omp_get_num_threads();
     }
     printf("Using %d OpenMP threads\n", nthreads);
 
-#pragma omp parallel
+#pragma omp parallel default(none)
 #pragma omp master
     {
         int dep_arr[0];
 
         const unsigned long long start_time = hclib_current_time_ns();
 
-        int incr = 0;
-
-#pragma omp task depend(out:dep_arr[0])
+#pragma omp taskgroup
         {
-        }
+            int incr = 0;
 
-        int nlaunched = 0;
-        for (i = 0; i < FAN_OUT; i++) {
-#pragma omp task firstprivate(incr) depend(in:dep_arr[0])
+#pragma omp task default(none) depend(out:dep_arr[0])
             {
-                incr = incr + 1;
+            }
+
+            int nlaunched = 0;
+            int i;
+            for (i = 0; i < FAN_OUT; i++) {
+#pragma omp task default(none) firstprivate(incr) depend(in:dep_arr[0])
+                {
+                    incr = incr + 1;
+                }
             }
         }
-
-#pragma omp taskwait
 
         const unsigned long long end_time = hclib_current_time_ns();
         printf("Handled %d-wide OpenMP fan out in %llu ns\n", FAN_OUT,

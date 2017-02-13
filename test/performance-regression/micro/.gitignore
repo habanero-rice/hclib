@@ -38,3 +38,7 @@ reduce_var_hclib
 reduce_var_hclib.dSYM
 reduce_var_omp
 reduce_var_omp.dSYM
+unbalanced_bin_fan_out_hclib
+unbalanced_bin_fan_out_hclib.dSYM
+unbalanced_bin_fan_out_omp
+unbalanced_bin_fan_out_omp.dSYM
