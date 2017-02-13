@@ -26,3 +26,11 @@ bin_fan_out_hclib
 bin_fan_out_hclib.dSYM
 bin_fan_out_omp
 bin_fan_out_omp.dSYM
+parallel_loop_hclib
+parallel_loop_hclib.dSYM
+parallel_loop_omp
+parallel_loop_omp.dSYM
+prod_cons_hclib
+prod_cons_hclib.dSYM
+prod_cons_omp
+prod_cons_omp.dSYM
