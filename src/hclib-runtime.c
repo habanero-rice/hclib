@@ -994,7 +994,7 @@ hclib_future_t *hclib_end_finish_nonblocking() {
     return &event->future;
 }
 
-int hclib_num_workers() {
+int hclib_get_num_workers() {
     return hc_context->nworkers;
 }
 

@@ -27,7 +27,7 @@ class atomic_t {
     public:
         atomic_t(T set_default_value) {
             default_value = set_default_value;
-            nthreads = hclib_num_workers();
+            nthreads = hclib_get_num_workers();
 
             vals = (padded_val_t *)malloc(nthreads * sizeof(padded_val_t));
             for (unsigned i = 0; i < nthreads; i++) {

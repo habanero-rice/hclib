@@ -2,15 +2,10 @@
 // #define __USE_POSIX199309 1
 #define _GNU_SOURCE
 
-// #include <stdlib.h>
-// #include <stdio.h>
 #include <signal.h>
-// #include <unistd.h>
 #include <errno.h>
 #include <aio.h>
-// #include <errno.h>
-// #include <string.h>
-// #include <assert.h>
+#include <sys/stat.h>
 
 #include "hclib.h"
 #include "hclib-instrument.h"

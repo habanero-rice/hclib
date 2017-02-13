@@ -24,7 +24,7 @@ promise_t **promise_create_n(size_t nb_promises, int null_terminated);
 
 extern hclib_worker_state *current_ws();
 int get_current_worker();
-int num_workers();
+int get_num_workers();
 
 int get_num_locales();
 hclib_locale_t *get_closest_locale();

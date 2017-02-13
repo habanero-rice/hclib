@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
     hclib::launch(deps, 1, [] {
         hclib::finish([] {
 
-            int numWorkers = hclib::num_workers();
+            int numWorkers = hclib::get_num_workers();
             cout << "Total Workers: " << numWorkers << endl;
 
             int num_locales = hclib::get_num_locales();

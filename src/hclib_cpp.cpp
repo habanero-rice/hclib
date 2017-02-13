@@ -24,8 +24,8 @@ int hclib::get_current_worker() {
     return hclib_get_current_worker();
 }
 
-int hclib::num_workers() {
-    return hclib_num_workers();
+int hclib::get_num_workers() {
+    return hclib_get_num_workers();
 }
 
 int hclib::get_num_locales() {
