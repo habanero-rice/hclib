@@ -453,11 +453,12 @@ static void forasync_internal(void *user_fct_ptr, void *user_arg,
 
 void hclib_forasync(void *forasync_fct, void *argv, int dim,
                     hclib_loop_domain_t *domain, forasync_mode_t mode) {
-    const int nworkers = hclib_num_workers();
+    const int nworkers = hclib_get_num_workers();
     int i;
     for (i = 0; i < dim; i++) {
         if (domain[i].tile == -1) {
-            domain[i].tile = ((domain[i].high - domain[i].low) + nworkers - 1) / nworkers;
+            domain[i].tile = ((domain[i].high - domain[i].low) + nworkers - 1) /
+                nworkers;
         }
     }
 

@@ -20,7 +20,7 @@ void recurse(void *arg) {
 }
 
 void entrypoint(void *arg) {
-    int nworkers = hclib_num_workers();
+    int nworkers = hclib_get_num_workers();
 
     printf("Using %d HClib workers\n", nworkers);
 

@@ -19,7 +19,7 @@ void recursive_task(void *arg) {
 
 void entrypoint(void *arg) {
     int i;
-    int nworkers = hclib_num_workers();
+    int nworkers = hclib_get_num_workers();
 
     printf("Using %d HClib workers\n", nworkers);
 

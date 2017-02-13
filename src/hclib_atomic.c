@@ -17,7 +17,7 @@ void hclib_atomic_init(hclib_atomic_t *atomic, const size_t ele_size,
     assert(init);
     assert(ele_size > 0);
 
-    atomic->nthreads = hclib_num_workers();
+    atomic->nthreads = hclib_get_num_workers();
     atomic->val_size = ele_size;
     size_t padded_ele_size = CACHE_LINE_LEN_IN_BYTES -
         (ele_size % CACHE_LINE_LEN_IN_BYTES);

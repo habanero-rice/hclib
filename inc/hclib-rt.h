@@ -100,7 +100,7 @@ typedef void (*generic_frame_ptr)(void*);
 #include "hclib-timer.h"
 #include "hclib-promise.h"
 
-int  hclib_num_workers();
+int  hclib_get_num_workers();
 void hclib_start_finish();
 void hclib_end_finish();
 void hclib_user_harness_timer(double dur);
