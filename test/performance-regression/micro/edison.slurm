@@ -14,7 +14,9 @@ export HCLIB_WORKERS=24
 
 cd $HOME/hclib/test/performance-regression/micro
 
-for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out fan_out_and_in bin_fan_out parallel_loop; do
+for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out \
+        fan_out_and_in bin_fan_out parallel_loop prod_cons reduce_var \
+        unbalanced_bin_fan_out; do
     echo "========== Testing ${TEST} =========="
     echo
 
