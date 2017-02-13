@@ -2,17 +2,27 @@
 #include <assert.h>
 #include <unistd.h>
 
-static int arr[10];
+#define ARR_DIM 10
+
+static int arr[ARR_DIM];
 
 void *write_arr(void *arg) {
     size_t index = (size_t)arg;
     sleep(1);
-    assert(arr[index] == 0);
+
+    fprintf(stderr, "Running task w/ index = %d\n", index);
+
+    const int curr_val = arr[index];
+    if (curr_val != 0) {
+        fprintf(stderr, "Expected 0 at index %d but saw %d\n", index, curr_val);
+        assert(false);
+    }
+
     arr[index] = 1;
 }
 
 void entrypoint(void *arg) {
-    int i;
+    int i = 0;
     assert(arg == NULL);
 
     hclib_start_finish();
@@ -21,7 +31,7 @@ void entrypoint(void *arg) {
     hclib_emulate_omp_task(write_arr, (void *)((size_t)i), NULL, 0, 1, arr + 0,
             0);
 
-    for (i = 1; i < 10; i++) {
+    for (i = 1; i < ARR_DIM; i++) {
     fprintf(stderr, "Task %d putting on %p, waiting on %p\n", i, arr + i,
             arr + (i - 1));
         hclib_emulate_omp_task(write_arr, (void *)((size_t)i), NULL, 1, 1,
@@ -32,7 +42,7 @@ void entrypoint(void *arg) {
 }
 
 int main(int argc, char **argv) {
-    memset(arr, 0x00, 10 * sizeof(int));
+    memset(arr, 0x00, ARR_DIM * sizeof(int));
 
     char const *deps[] = { "system" };
     hclib_launch(entrypoint, NULL, deps, 1);

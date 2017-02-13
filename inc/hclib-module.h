@@ -55,7 +55,7 @@ typedef void (*hclib_module_copy_impl_func_type)(hclib_locale_t *, void *,
 namespace hclib {
 #endif
 
-    // TODO user-faceing C++ APIs?
+    // TODO user-facing C++ APIs?
 
 #ifdef __cplusplus
 }

@@ -6,7 +6,8 @@ TARGETS=task_spawn_hclib task_spawn_omp task_wait_flat_hclib \
 		task_wait_flat_omp task_wait_recursive_hclib task_wait_recursive_omp \
 		future_spawn_hclib future_spawn_omp fan_out_hclib fan_out_omp \
 		fan_out_and_in_hclib fan_out_and_in_omp bin_fan_out_hclib bin_fan_out_omp \
-		parallel_loop_hclib parallel_loop_omp prod_cons_omp prod_cons_hclib
+		parallel_loop_hclib parallel_loop_omp prod_cons_omp prod_cons_hclib \
+		reduce_var_omp reduce_var_hclib
 
 CC?=g++
 FLAGS=-g -O3
@@ -38,6 +39,9 @@ parallel_loop_omp: parallel_loop_omp.c
 	$(CC) -fopenmp $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 prod_cons_omp: prod_cons_omp.c
+	$(CC) -fopenmp $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
+
+reduce_var_omp: reduce_var_omp.c
 	$(CC) -fopenmp $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS)
 
 %: %.c
