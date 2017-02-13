@@ -34,3 +34,7 @@ prod_cons_hclib
 prod_cons_hclib.dSYM
 prod_cons_omp
 prod_cons_omp.dSYM
+reduce_var_hclib
+reduce_var_hclib.dSYM
+reduce_var_omp
+reduce_var_omp.dSYM
