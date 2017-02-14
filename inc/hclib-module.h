@@ -37,6 +37,12 @@ typedef void (*hclib_module_finalize_func_type)();
 typedef void (*hclib_state_adder)(void *state, void *user_data);
 
 /*
+ * Type for callback to release module-specific state stored in worker state
+ * objects.
+ */
+typedef void (*hclib_state_releaser)(void *state, void *user_data);
+
+/*
  * Callbacks on locale creation to allow for insertion of module-specific
  * metadata.
  */
@@ -95,6 +101,8 @@ void hclib_call_finalize_functions();
 unsigned hclib_add_per_worker_module_state(size_t state_size,
         hclib_state_adder cb, void *user_data);
 void *hclib_get_curr_worker_module_state(const unsigned state_id);
+void hclib_release_per_worker_module_state(const unsigned state_id,
+        hclib_state_releaser cb, void *user_data);
 #ifdef __cplusplus
 }
 #endif

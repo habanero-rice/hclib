@@ -127,6 +127,18 @@ void *hclib_get_curr_worker_module_state(const unsigned state_id) {
     return ws->module_state + state_id;
 }
 
+// Normally called from a module's finalize function
+void hclib_release_per_worker_module_state(const unsigned state_id,
+        hclib_state_releaser cb, void *user_data) {
+    int i;
+
+    for (i = 0; i < hc_context->nworkers; i++) {
+        hclib_worker_state *ws = hc_context->workers[i];
+        char *state = ws->module_state + state_id;
+        cb(state, user_data);
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

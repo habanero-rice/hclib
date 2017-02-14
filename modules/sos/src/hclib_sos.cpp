@@ -2,6 +2,10 @@
 
 #include "hclib-locality-graph.h"
 
+extern "C" {
+#include "shmemx.h"
+}
+
 #include <map>
 #include <vector>
 #include <iostream>
@@ -11,6 +15,8 @@
 // #define PROFILE
 // #define DETAILED_PROFILING
 // #define TRACING
+
+static unsigned domain_ctx_id = 0;
 
 #ifdef PROFILE
 static bool disable_profiling = false;
@@ -122,7 +128,6 @@ typedef struct _lock_context_t {
     hclib_promise_t * volatile live;
 } lock_context_t;
 
-static int nic_locale_id;
 static hclib::locale_t *nic = NULL;
 static std::map<long *, lock_context_t *> lock_info;
 static pthread_mutex_t lock_info_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -171,16 +176,39 @@ void hclib::print_oshmem_profiling_data() {
 #endif
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize) {
-    nic_locale_id = hclib_add_known_locale_type("Interconnect");
+HCLIB_MODULE_INITIALIZATION_FUNC(sos_pre_initialize) {
 #ifdef PROFILE
     memset(func_counters, 0x00, sizeof(func_counters));
     memset(func_times, 0x00, sizeof(func_times));
 #endif
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
-    ::shmem_init();
+static void init_sos_state(void *state, void *user_data) {
+    assert(user_data == NULL);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    int err = ::shmemx_domain_create(SHMEMX_THREAD_SINGLE, 1, domain);
+    assert(err == 0); 
+
+    err = ::shmemx_ctx_create(*domain, ctx);
+    assert(err == 0);
+}
+
+static void release_sos_state(void *state, void *user_data) {
+    assert(user_data == NULL);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    shmemx_ctx_destroy(*ctx);
+    shmemx_domain_destroy(1, domain);
+}
+
+HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
+    int provided_thread_safety;
+    const int desired_thread_safety = SHMEMX_THREAD_SINGLE;
+    ::shmemx_init_thread(desired_thread_safety, &provided_thread_safety);
+    assert(provided_thread_safety == desired_thread_safety);
 
 #ifdef PROFILE
 #ifdef TRACING
@@ -192,42 +220,25 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize) {
     assert(trace_fp);
 #endif
 #endif
-
-    int n_nics;
-    hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
-            &n_nics);
-    HASSERT(n_nics == 1);
-    HASSERT(nics);
-    HASSERT(nic == NULL);
-    nic = nics[0];
+    domain_ctx_id = hclib_add_per_worker_module_state(
+            sizeof(shmemx_domain_t) + sizeof(shmemx_ctx_t), init_sos_state,
+            NULL);
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize) {
+HCLIB_MODULE_INITIALIZATION_FUNC(sos_finalize) {
 #ifdef PROFILE
 #ifdef TRACING
     fclose(trace_fp);
 #endif
 #endif
+
+    hclib_release_per_worker_module_state(domain_ctx_id, release_sos_state,
+            NULL);
     ::shmem_finalize();
 }
 
-static hclib::locale_t *get_locale_for_pe(int pe) {
-    char name_buf[256];
-    sprintf(name_buf, "openshmem-pe-%d", pe);
-
-    hclib::locale_t *new_locale = (hclib::locale_t *)malloc(
-            sizeof(hclib::locale_t));
-    new_locale->id = pe_to_locale_id(pe);
-    new_locale->type = nic_locale_id;
-    new_locale->lbl = (char *)malloc(strlen(name_buf) + 1);
-    memcpy((void *)new_locale->lbl, name_buf, strlen(name_buf) + 1);
-    new_locale->metadata = NULL;
-    new_locale->deques = NULL;
-    return new_locale;
-}
-
-hclib::locale_t *hclib::shmem_my_pe() {
-    return get_locale_for_pe(::shmem_my_pe());
+int hclib::shmem_my_pe() {
+    return ::shmem_my_pe();
 }
 
 int hclib::shmem_n_pes() {
@@ -333,14 +344,6 @@ void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
             END_PROFILE(shmem_broadcast64)
         }, nic);
     });
-}
-
-hclib::locale_t *hclib::shmem_remote_pe(int pe) {
-    return get_locale_for_pe(pe);
-}
-
-int hclib::pe_for_locale(hclib::locale_t *locale) {
-    return locale_id_to_pe(locale->id);
 }
 
 static void *shmem_set_lock_impl(void *arg) {
@@ -872,4 +875,4 @@ void hclib::enqueue_wait_set(hclib::wait_set_t *wait_set) {
     END_PROFILE(enqueue_wait_set)
 }
 
-HCLIB_REGISTER_MODULE("openshmem", openshmem_pre_initialize, openshmem_post_initialize, openshmem_finalize)
+HCLIB_REGISTER_MODULE("openshmem", sos_pre_initialize, sos_post_initialize, sos_finalize)
