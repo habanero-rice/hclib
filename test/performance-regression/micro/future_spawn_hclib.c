@@ -15,7 +15,7 @@ void *empty_task(void *arg) {
      * Unfortunately need to put something here to compare against OpenMP tasks,
      * otherwise some OpenMP compilers will make the task a no-op.
      */
-    int incr;
+    int incr = 0;
     incr = incr + 1;
     return NULL;
 }
@@ -37,7 +37,7 @@ void entrypoint(void *arg) {
         } while (nlaunched < NFUTURES);
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("Generated futures at a rate of %f futures per us\n",
+        printf("METRIC future_create %d %f\n", NFUTURES,
                 (double)NFUTURES / ((double)(end_time - start_time) / 1000.0));
     }
     hclib_end_finish();
@@ -54,12 +54,10 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("Scheduled futures at a rate of %f futures per us\n",
+    printf("METRIC future_run %d %f\n", NFUTURES,
             (double)NFUTURES / ((double)(end_time - start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

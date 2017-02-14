@@ -5,8 +5,6 @@
 #include "parallel_loop.h"
 
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
 #pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
@@ -25,7 +23,13 @@ int main(int argc, char **argv) {
         for (i = 0; i < PARALLEL_LOOP_RANGE; i++) {
         }
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("OMP parallel loop ran at %f iters/ms\n",
+
+        printf("METRIC recursive_parallel_iters %d %f\n",
+                PARALLEL_LOOP_RANGE,
+                (double)PARALLEL_LOOP_RANGE / ((double)(end_time -
+                        start_time) / 1000.0));
+        printf("METRIC flat_parallel_iters %d %f\n",
+                PARALLEL_LOOP_RANGE,
                 (double)PARALLEL_LOOP_RANGE / ((double)(end_time -
                         start_time) / 1000.0));
     }

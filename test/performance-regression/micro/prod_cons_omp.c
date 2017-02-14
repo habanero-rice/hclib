@@ -5,8 +5,6 @@
 #include "prod_cons.h"
 
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
 #pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
@@ -50,7 +48,7 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("OpenMP producer-consumer at rate of %f tasks per us\n",
+        printf("METRIC producer_consumer %d %f\n", PROD_CONS_MSGS,
                 (double)PROD_CONS_MSGS / ((double)(end_time - start_time) /
                     1000.0));
     }

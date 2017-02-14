@@ -6,12 +6,12 @@
 
 void recurse(const int depth) {
     if (depth < BIN_FAN_OUT_DEPTH) {
-#pragma omp task default(none)
+#pragma omp task default(none) firstprivate(depth)
         {
             recurse(depth + 1);
         }
 
-#pragma omp task default(none)
+#pragma omp task default(none) firstprivate(depth)
         {
             recurse(depth + 1);
         }
@@ -19,8 +19,6 @@ void recurse(const int depth) {
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
 #pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
@@ -35,10 +33,13 @@ int main(int argc, char **argv) {
         const unsigned long long start_time = hclib_current_time_ns();
 
 #pragma omp taskgroup
-        recurse(0);
+        {
+            recurse(0);
+        }
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("Did binary fan out of depth %d in OpenMP in %llu ns\n",
-                BIN_FAN_OUT_DEPTH, end_time - start_time);
+        printf("METRIC binary_fan_out %d %f\n", BIN_FAN_OUT_DEPTH,
+                (double)(1 << BIN_FAN_OUT_DEPTH) /
+                ((double)(end_time - start_time) / 1000.0));
     }
 }

@@ -31,7 +31,7 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long recursive_end_time = hclib_current_time_ns();
-    printf("HClib recursive parallel loop ran at %f iters/ms\n",
+    printf("METRIC recursive_parallel_iters %d %f\n", PARALLEL_LOOP_RANGE,
             (double)PARALLEL_LOOP_RANGE / ((double)(recursive_end_time -
                     recursive_start_time) / 1000.0));
 
@@ -42,13 +42,11 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long flat_end_time = hclib_current_time_ns();
-    printf("HClib flat parallel loop ran at %f iters/ms\n",
+    printf("METRIC flat_parallel_iters %d %f\n", PARALLEL_LOOP_RANGE,
             (double)PARALLEL_LOOP_RANGE / ((double)(flat_end_time -
                     flat_start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

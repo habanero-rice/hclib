@@ -31,12 +31,11 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("Did binary fan out of depth %d in HClib in %llu ns\n",
-            BIN_FAN_OUT_DEPTH, end_time - start_time);
+    printf("METRIC binary_fan_out %d %f\n", BIN_FAN_OUT_DEPTH,
+            (double)(1 << BIN_FAN_OUT_DEPTH) /
+            ((double)(end_time - start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

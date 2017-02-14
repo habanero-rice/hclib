@@ -11,8 +11,6 @@
  *   2) Rate at which we can schedule and execute empty tasks.
  */
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
 #pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
@@ -30,6 +28,8 @@ int main(int argc, char **argv) {
             int dep_arr[3];
             int incr = 0;
             int nlaunched = 0;
+            dep_arr[1] = dep_arr[0]; // To disable unused variable warnings
+
             const unsigned long long spawn_start_time = hclib_current_time_ns();
 
             do {
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
             } while (nlaunched < NFUTURES);
 
             const unsigned long long spawn_end_time = hclib_current_time_ns();
-            printf("Generated futures at a rate of %f futures per us\n",
+            printf("METRIC future_create %d %f\n", NFUTURES,
                     (double)NFUTURES / ((double)(spawn_end_time - spawn_start_time) / 1000.0));
         }
 
@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
             int dep_arr[3];
             int incr = 0;
             int nlaunched = 0;
+            dep_arr[1] = dep_arr[0]; // To disable unused variable warnings
 
             do {
                 if (nlaunched == 0) {
@@ -82,8 +83,7 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long schedule_end_time = hclib_current_time_ns();
-        printf("Scheduled futures at a rate of %f futures per us\n",
-                (double)NFUTURES / ((double)(schedule_end_time -
-                    schedule_start_time) / 1000.0));
+        printf("METRIC future_run %d %f\n", NFUTURES,
+                (double)NFUTURES / ((double)(schedule_end_time - schedule_start_time) / 1000.0));
     }
 }

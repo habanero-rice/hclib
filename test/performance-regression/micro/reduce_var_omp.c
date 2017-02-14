@@ -5,8 +5,6 @@
 #include "reduce_var.h"
 
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
 #pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
@@ -22,7 +20,7 @@ int main(int argc, char **argv) {
 
         unsigned sum = 0;
         const unsigned long long start_time = hclib_current_time_ns();
-#pragma omp taskloop default(none) private(i) reduction(+:sum)
+#pragma omp parallel for default(none) private(i) reduction(+:sum)
         for (i = 0; i < NREDUCERS; i++) {
             sum += 1;
         }
@@ -30,7 +28,10 @@ int main(int argc, char **argv) {
 
         assert(sum == NREDUCERS);
 
-        printf("OpenMP reductions at a rate of %f reducers/ms\n",
+        printf("METRIC recursive_reduction %d %f\n", NREDUCERS,
+                (double)NREDUCERS / ((double)(end_time -
+                        start_time) / 1000.0));
+        printf("METRIC flat_reduction %d %f\n", NREDUCERS,
                 (double)NREDUCERS / ((double)(end_time -
                         start_time) / 1000.0));
     }

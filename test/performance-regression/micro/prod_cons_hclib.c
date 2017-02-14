@@ -15,7 +15,7 @@ void empty_task(void *arg) {
      * Unfortunately need to put something here to compare against OpenMP tasks,
      * otherwise some OpenMP compilers will make the task a no-op.
      */
-    int incr;
+    int incr = 0;
     incr = incr + 1;
 }
 
@@ -47,13 +47,11 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("HClib producer-consumer at rate of %f tasks per us\n",
+    printf("METRIC producer_consumer %d %f\n", PROD_CONS_MSGS,
             (double)PROD_CONS_MSGS / ((double)(end_time - start_time) /
                 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

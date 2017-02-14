@@ -10,47 +10,59 @@
  *   2) Rate at which we can schedule and execute empty tasks.
  */
 
-void recurse(void *arg) {
-    const int depth = ((size_t)arg) & 0xffffffff;
-    const int branch = ((size_t)arg) >> 32;
+static size_t pack(const int depth, const int branch) {
+    size_t next = branch;
+    next = next << 32; 
+    next = next | depth;
+    return next;
+}
+
+static int unpack_depth(const size_t packed) {
+    return (packed & 0xffffffff);
+}
+
+static int unpack_branch(const size_t packed) {
+    int branch = packed >> 32; 
+    return branch;
+}
+
+static void recurse(void *arg) {
+    const int depth = unpack_depth((size_t)arg);
+    const int branch = unpack_branch((size_t)arg);
     const int depth_limit = branch * BIN_FAN_OUT_DEPTH_MULTIPLIER;
 
     if (depth < depth_limit) {
-        size_t next = branch;
-        next = next << 32;
-        next = next | depth;
+        size_t next = pack(depth + 1, branch);
 
         hclib_async(recurse, (void *)next, NULL, 0, NULL);
         hclib_async(recurse, (void *)next, NULL, 0, NULL);
     }
 }
 
-void entrypoint(void *arg) {
+static void entrypoint(void *arg) {
     int nworkers = hclib_get_num_workers();
 
     printf("Using %d HClib workers\n", nworkers);
 
+    unsigned ntasks = 0;
     const unsigned long long start_time = hclib_current_time_ns();
     hclib_start_finish();
     {
         int i;
         for (i = 0; i < N_BRANCHES; i++) {
-            size_t next = i;
-            next = next << 32;
-            next = next | (int)0;
+            ntasks += (1 << (i * BIN_FAN_OUT_DEPTH_MULTIPLIER));
+            size_t next = pack(0, i);
 
             recurse((void *)next);
         }
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("HClib did unbalanced binary fan out w/ %d branches and depth "
-            "multiplier %d in %llu ns\n", N_BRANCHES,
-            BIN_FAN_OUT_DEPTH_MULTIPLIER, end_time - start_time);
+    printf("METRIC unbalanced_bin_fan_out %d|%d %f\n", N_BRANCHES,
+            BIN_FAN_OUT_DEPTH_MULTIPLIER,
+            (double)ntasks / ((double)(end_time - start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

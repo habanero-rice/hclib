@@ -15,7 +15,7 @@ void empty_task(void *arg) {
      * Unfortunately need to put something here to compare against OpenMP tasks,
      * otherwise some OpenMP compilers will make the task a no-op.
      */
-    int incr;
+    int incr = 0;
     incr = incr + 1;
 }
 
@@ -42,12 +42,10 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("Handled %d-wide HClib fan out in %llu ns\n", FAN_OUT,
-            end_time - start_time);
+    printf("METRIC fan_out %d %f\n", FAN_OUT,
+            (double)FAN_OUT / ((double)(end_time - start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

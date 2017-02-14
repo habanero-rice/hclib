@@ -11,7 +11,7 @@ TARGETS=task_spawn_hclib task_spawn_omp task_wait_flat_hclib \
 		unbalanced_bin_fan_out_hclib
 
 CC?=g++
-FLAGS=-g -O3
+FLAGS=-g -O3 -Wall -Werror
 
 all: $(TARGETS)
 

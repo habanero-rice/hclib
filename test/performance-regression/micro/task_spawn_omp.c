@@ -11,8 +11,6 @@
  *   2) Rate at which we can schedule and execute empty tasks.
  */
 int main(int argc, char **argv) {
-    int i;
-
     int nthreads;
 #pragma omp parallel default(none) shared(nthreads)
 #pragma omp master
@@ -41,7 +39,7 @@ int main(int argc, char **argv) {
             } while (nlaunched < NTASKS);
 
             const unsigned long long spawn_end_time = hclib_current_time_ns();
-            printf("Generated tasks at a rate of %f tasks per us\n",
+            printf("METRIC task_create %d %f\n", NTASKS,
                     (double)NTASKS / ((double)(spawn_end_time -
                             spawn_start_time) / 1000.0));
         }
@@ -63,8 +61,8 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long schedule_end_time = hclib_current_time_ns();
-        printf("Scheduled tasks at a rate of %f tasks per us\n",
+        printf("METRIC task_run %d %f\n", NTASKS,
                 (double)NTASKS / ((double)(schedule_end_time -
-                    schedule_start_time) / 1000.0));
+                        schedule_start_time) / 1000.0));
     }
 }

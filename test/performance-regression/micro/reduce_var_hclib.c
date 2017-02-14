@@ -57,7 +57,7 @@ void entrypoint(void *arg) {
 
     assert(*final_val == NREDUCERS);
 
-    printf("HClib recursive reductions ran at %f iters/ms\n",
+    printf("METRIC recursive_reduction %d %f\n", NREDUCERS,
             (double)NREDUCERS / ((double)(recursive_end_time -
                     recursive_start_time) / 1000.0));
 
@@ -72,13 +72,11 @@ void entrypoint(void *arg) {
 
     assert(*final_val == NREDUCERS);
 
-    printf("HClib flat reductions ran at %f iters/ms\n",
+    printf("METRIC flat_reduction %d %f\n", NREDUCERS,
             (double)NREDUCERS / ((double)(flat_end_time -
                     flat_start_time) / 1000.0));
 }
 
 int main(int argc, char **argv) {
-    int i;
-
     hclib_launch(entrypoint, NULL, NULL, 0);
 }

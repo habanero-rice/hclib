@@ -1,3 +1,3 @@
 #pragma once
 
-#define FAN_OUT 10000
+#define FAN_OUT 100000

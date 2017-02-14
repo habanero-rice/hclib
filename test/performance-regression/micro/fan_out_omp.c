@@ -22,7 +22,8 @@ int main(int argc, char **argv) {
 #pragma omp parallel default(none)
 #pragma omp master
     {
-        int dep_arr[0];
+        int dep_arr[1];
+        dep_arr[0] = dep_arr[0]; // To disable unused variable warnings
 
         const unsigned long long start_time = hclib_current_time_ns();
 
@@ -30,11 +31,11 @@ int main(int argc, char **argv) {
         {
             int incr = 0;
 
-#pragma omp task default(none) depend(out:dep_arr[0])
+#pragma omp task default(none) firstprivate(incr) depend(out:dep_arr[0])
             {
+                incr = incr + 1;
             }
 
-            int nlaunched = 0;
             int i;
             for (i = 0; i < FAN_OUT; i++) {
 #pragma omp task default(none) firstprivate(incr) depend(in:dep_arr[0])
@@ -45,7 +46,7 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("Handled %d-wide OpenMP fan out in %llu ns\n", FAN_OUT,
-                end_time - start_time);
+        printf("METRIC fan_out %d %f\n", FAN_OUT,
+                (double)FAN_OUT / ((double)(end_time - start_time) / 1000.0));
     }
 }

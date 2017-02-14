@@ -33,17 +33,19 @@ int main(int argc, char **argv) {
 #pragma omp master
     {
         int i;
+        unsigned ntasks = 0;
 
         const unsigned long long start_time = hclib_current_time_ns();
 
 #pragma omp taskgroup
         for (i = 0; i < N_BRANCHES; i++) {
+            ntasks += (1 << (i * BIN_FAN_OUT_DEPTH_MULTIPLIER));
             recurse(0, i);
         }
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("OpenMP did unbalanced binary fan out w/ %d branches and depth "
-                "multiplier %d in %llu ns\n", N_BRANCHES,
-                BIN_FAN_OUT_DEPTH_MULTIPLIER, end_time - start_time);
+        printf("METRIC unbalanced_bin_fan_out %d|%d %f\n", N_BRANCHES,
+                BIN_FAN_OUT_DEPTH_MULTIPLIER,
+                (double)ntasks / ((double)(end_time - start_time) / 1000.0));
     }
 }

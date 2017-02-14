@@ -35,8 +35,8 @@ int main(int argc, char **argv) {
             }
         }
         const unsigned long long group_end_time = hclib_current_time_ns();
-        printf("Synchronized on grouped OpenMP tasks at a rate of %f tasks per "
-                "us\n", (double)N_FLAT_TASK_WAITS / ((double)(group_end_time -
+        printf("METRIC task_wait_flat %d %f\n", N_FLAT_TASK_WAITS,
+                (double)N_FLAT_TASK_WAITS / ((double)(group_end_time -
                         group_start_time) / 1000.0));
 
         const unsigned long long wait_start_time = hclib_current_time_ns();
@@ -50,8 +50,8 @@ int main(int argc, char **argv) {
 #pragma omp taskwait
         }
         const unsigned long long wait_end_time = hclib_current_time_ns();
-        printf("Synchronized on flat OpenMP tasks at a rate of %f tasks per "
-                "us\n", (double)N_FLAT_TASK_WAITS / ((double)(wait_end_time -
+        printf("METRIC task_wait_flat %d %f\n", N_FLAT_TASK_WAITS,
+                (double)N_FLAT_TASK_WAITS / ((double)(wait_end_time -
                         wait_start_time) / 1000.0));
     }
 }
