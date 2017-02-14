@@ -1,9 +1,13 @@
+#include "hclib-internal.h"
 #include "hclib-module.h"
 
 #include <algorithm>
 #include <assert.h>
 #include <vector>
 #include <iostream>
+
+extern hclib_context *hc_context;
+static unsigned worker_state_size = 0;
 
 static std::vector<hclib_module_pre_init_func_type> *pre_init_functions =
         NULL;
@@ -96,6 +100,31 @@ void hclib_call_finalize_functions() {
         hclib_module_finalize_func_type curr = *i;
         (*curr)();
     }
+}
+
+unsigned hclib_add_per_worker_module_state(size_t state_size,
+        hclib_state_adder cb, void *user_data) {
+    int i;
+
+    const unsigned offset = worker_state_size;
+
+    for (i = 0; i < hc_context->nworkers; i++) {
+        hclib_worker_state *ws = hc_context->workers[i];
+        ws->module_state = (char *)realloc(ws->module_state,
+                worker_state_size + state_size);
+        assert(ws->module_state);
+
+        cb(ws->module_state + offset, user_data);
+    }
+
+    worker_state_size += state_size;
+
+    return offset;
+}
+
+void *hclib_get_curr_worker_module_state(const unsigned state_id) {
+    hclib_worker_state *ws = current_ws();
+    return ws->module_state + state_id;
 }
 
 #ifdef __cplusplus

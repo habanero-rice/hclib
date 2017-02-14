@@ -106,7 +106,7 @@ typedef struct _hclib_deque_t {
     /* The actual deque, WARNING: do not move declaration !
      * Other parts of the runtime rely on it being the first one. */
     deque_t deque;
-    struct hclib_worker_state * ws;
+    struct _hclib_worker_state * ws;
     struct _hclib_deque_t *nnext;
     struct _hclib_deque_t *prev; /* the deque list of the worker */
     hclib_locale_t *locale;

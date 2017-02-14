@@ -79,6 +79,8 @@ typedef struct _hclib_worker_state {
     int id;
     // Total number of workers in this instance of the HClib runtime.
     int nworkers;
+    // Place to keep module-specific per-worker state.
+    char *module_state;
 } hclib_worker_state;
 
 #ifdef HC_ASSERTION_CHECK
