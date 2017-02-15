@@ -64,3 +64,5 @@ task_wait_recursive_gomp
 task_wait_recursive_iomp
 unbalanced_bin_fan_out_gomp
 unbalanced_bin_fan_out_iomp
+future_spawn_tbb
+task_spawn_tbb

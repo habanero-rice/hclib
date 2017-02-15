@@ -7,9 +7,11 @@
 #SBATCH --exclusive
 #SBATCH --mail-type=ALL
 
+set -e
+
 ulimit -c unlimited
 export HCLIB_WORKERS=24
-export MODELS="hclib iomp gomp"
+export MODELS="hclib iomp gomp tbb"
 
 # 2 sockets x 12-core CPUs
 
@@ -44,9 +46,11 @@ for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out \
 
     for MODEL in $MODELS; do
         EXE=${TEST}_${MODEL}
-        echo "========== $EXE =========="
-        srun --ntasks=1 --ntasks-per-node=1 --cpus-per-task=24 \
-            --cpu_bind=verbose,sockets --exclusive ./$EXE &> $MODEL
+        if [[ -f $EXE ]]; then
+            echo "========== $EXE =========="
+            srun --ntasks=1 --ntasks-per-node=1 --cpus-per-task=24 \
+                --cpu_bind=verbose,sockets --exclusive ./$EXE &> $MODEL
+        fi
     done
 
     UNIQUE_METRICS=$(cat hclib | grep "^METRIC " | awk '{ print $2 }' | sort | \
@@ -57,11 +61,23 @@ for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out \
 
         LINE="$METRIC,$DATASET"
         for MODEL in $MODELS; do
-            PERF=$(cat $MODEL | grep "^METRIC $METRIC" | \
-                awk '{ print $4 }' | sort -n -r | head -n 1)
-            LINE="$LINE,$PERF"
+            if [[ -f $MODEL ]]; then
+                PERF=$(cat $MODEL | grep "^METRIC $METRIC" | \
+                    awk '{ print $4 }' | sort -n -r | head -n 1)
+                LINE="$LINE,$PERF"
+            else
+                LINE="$LINE,"
+            fi
         done
         LINE="$LINE,,"
         echo $LINE >> $LOG_FILE
+    done
+
+    # Cleanup log files
+    for MODEL in $MODELS; do
+        EXE=${TEST}_${MODEL}
+        if [[ -f $EXE ]]; then
+            rm $MODEL
+        fi
     done
 done
