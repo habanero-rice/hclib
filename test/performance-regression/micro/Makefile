@@ -2,7 +2,7 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
-TARGETS=task_spawn_hclib task_spawn_omp task_spawn_tbb task_wait_flat_hclib \
+TARGETS=task_spawn_hclib task_spawn_omp task_spawn_tbb task_spawn_ocr task_wait_flat_hclib \
 		task_wait_flat_omp task_wait_recursive_hclib task_wait_recursive_omp \
 		future_spawn_hclib future_spawn_omp future_spawn_tbb fan_out_hclib fan_out_omp \
 		fan_out_and_in_hclib fan_out_and_in_omp bin_fan_out_hclib bin_fan_out_omp \
@@ -11,6 +11,7 @@ TARGETS=task_spawn_hclib task_spawn_omp task_spawn_tbb task_wait_flat_hclib \
 		unbalanced_bin_fan_out_hclib
 
 CC?=g++
+CXX?=g++
 FLAGS=-g -O3 -Wall -Werror
 
 all: $(TARGETS)
@@ -20,6 +21,9 @@ all: $(TARGETS)
 
 %_omp: %_omp.c
 	$(CC) -fopenmp $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -ltbbmalloc
+
+%_ocr: %_ocr.c
+	$(CXX) $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -I$(OCR_INSTALL)/include -locr_x86 -L$(OCR_INSTALL)/lib
 
 %: %.c
 	$(CC) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) -ltbbmalloc

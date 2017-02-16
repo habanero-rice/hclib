@@ -11,7 +11,9 @@ set -e
 
 ulimit -c unlimited
 export HCLIB_WORKERS=24
-export MODELS="hclib iomp gomp tbb"
+export OMP_NUM_THREADS=$HCLIB_WORKERS
+export TBB_NUM_THREADS=$HCLIB_WORKERS
+export MODELS="hclib iomp gomp tbb ocr"
 
 # 2 sockets x 12-core CPUs
 
@@ -20,15 +22,16 @@ cd $HCLIB_HOME/test/performance-regression/micro
 rm -f *_gomp *_iomp
 
 make clean
-CC=gcc make -j
+CXX=g++ CC=gcc make -j
 for F in $(ls *_omp); do mv $F ${F:0:$((${#F} - 4))}_gomp; done
 
 make clean
-CC=icc make -j
+CXX=icpc CC=icc make -j
 for F in $(ls *_omp); do mv $F ${F:0:$((${#F} - 4))}_iomp; done
 
 LOG_FILE=metrics.csv
 rm -f $LOG_FILE
+
 
 LINE="metric,dataset"
 for MODEL in $MODELS; do
