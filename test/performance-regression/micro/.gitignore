@@ -66,3 +66,5 @@ unbalanced_bin_fan_out_gomp
 unbalanced_bin_fan_out_iomp
 future_spawn_tbb
 task_spawn_tbb
+task_spawn_ocr
+task_spawn_realm

@@ -49,10 +49,15 @@ for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out \
 
     for MODEL in $MODELS; do
         EXE=${TEST}_${MODEL}
+        ARGS=
+        if [[ $MODEL == 'realm' ]]; then
+            ARGS="-ll:cpu 24"
+        fi
+
         if [[ -f $EXE ]]; then
             echo "========== $EXE =========="
             srun --ntasks=1 --ntasks-per-node=1 --cpus-per-task=24 \
-                --cpu_bind=verbose,sockets --exclusive ./$EXE &> $MODEL
+                --cpu_bind=verbose,sockets --exclusive ./$EXE &> $MODEL $ARGS
         fi
     done
 
