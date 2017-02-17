@@ -13,7 +13,7 @@ ulimit -c unlimited
 export HCLIB_WORKERS=24
 export OMP_NUM_THREADS=$HCLIB_WORKERS
 export TBB_NUM_THREADS=$HCLIB_WORKERS
-export MODELS="hclib iomp gomp tbb ocr"
+export MODELS="hclib iomp gomp tbb ocr realm"
 
 # 2 sockets x 12-core CPUs
 
