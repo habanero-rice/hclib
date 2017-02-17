@@ -26,7 +26,7 @@ void entrypoint(void *arg) {
     recursive_task((void *)0);
     const unsigned long long end_time = hclib_current_time_ns();
 
-    printf("METRIC task_wait_recursive %d %f\n", N_RECURSIVE_TASK_WAITS,
+    printf("METRIC task_wait_recursive %d %.20f\n", N_RECURSIVE_TASK_WAITS,
             (double)N_RECURSIVE_TASK_WAITS / ((double)(end_time -
                     start_time) / 1000.0));
 }

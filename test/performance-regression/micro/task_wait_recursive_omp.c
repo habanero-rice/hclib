@@ -45,14 +45,14 @@ int main(int argc, char **argv) {
         const unsigned long long group_start_time = hclib_current_time_ns();
         recursive_group_task(0);
         const unsigned long long group_end_time = hclib_current_time_ns();
-        printf("METRIC task_wait_recursive %d %f\n", N_RECURSIVE_TASK_WAITS,
+        printf("METRIC task_wait_recursive %d %.20f\n", N_RECURSIVE_TASK_WAITS,
                 (double)N_RECURSIVE_TASK_WAITS /
                 ((double)(group_end_time - group_start_time) / 1000.0));
 
         const unsigned long long wait_start_time = hclib_current_time_ns();
         recursive_wait_task(0);
         const unsigned long long wait_end_time = hclib_current_time_ns();
-        printf("METRIC task_wait_recursive %d %f\n", N_RECURSIVE_TASK_WAITS,
+        printf("METRIC task_wait_recursive %d %.20f\n", N_RECURSIVE_TASK_WAITS,
                 (double)N_RECURSIVE_TASK_WAITS /
                 ((double)(wait_end_time - wait_start_time) / 1000.0));
     }

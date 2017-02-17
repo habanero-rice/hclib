@@ -37,7 +37,7 @@ void entrypoint(void *arg) {
         } while (nlaunched < NFUTURES);
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("METRIC future_create %d %f\n", NFUTURES,
+        printf("METRIC future_create %d %.20f\n", NFUTURES,
                 (double)NFUTURES / ((double)(end_time - start_time) / 1000.0));
     }
     hclib_end_finish();
@@ -54,7 +54,7 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("METRIC future_run %d %f\n", NFUTURES,
+    printf("METRIC future_run %d %.20f\n", NFUTURES,
             (double)NFUTURES / ((double)(end_time - start_time) / 1000.0));
 }
 

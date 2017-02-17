@@ -47,7 +47,7 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("METRIC producer_consumer %d %f\n", PROD_CONS_MSGS,
+    printf("METRIC producer_consumer %d %.20f\n", PROD_CONS_MSGS,
             (double)PROD_CONS_MSGS / ((double)(end_time - start_time) /
                 1000.0));
 }

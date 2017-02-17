@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     bool success = first->try_put(0);
     assert(success);
     const unsigned long long spawn_end_time = hclib_current_time_ns();
-    printf("METRIC future_create %d %f\n", NFUTURES,
+    printf("METRIC future_create %d %.20f\n", NFUTURES,
             (double)NFUTURES / ((double)(spawn_end_time - spawn_start_time) /
                 1000.0));
     g.wait_for_all();
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     success = first->try_put(0);
     assert(success);
     const unsigned long long schedule_end_time = hclib_current_time_ns();
-    printf("METRIC future_run %d %f\n", NFUTURES,
+    printf("METRIC future_run %d %.20f\n", NFUTURES,
             (double)NFUTURES / ((double)(schedule_end_time -
                     schedule_start_time) / 1000.0));
 

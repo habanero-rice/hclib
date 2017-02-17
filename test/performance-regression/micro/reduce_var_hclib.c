@@ -57,7 +57,7 @@ void entrypoint(void *arg) {
 
     assert(*final_val == NREDUCERS);
 
-    printf("METRIC recursive_reduction %d %f\n", NREDUCERS,
+    printf("METRIC recursive_reduction %d %.20f\n", NREDUCERS,
             (double)NREDUCERS / ((double)(recursive_end_time -
                     recursive_start_time) / 1000.0));
 
@@ -72,7 +72,7 @@ void entrypoint(void *arg) {
 
     assert(*final_val == NREDUCERS);
 
-    printf("METRIC flat_reduction %d %f\n", NREDUCERS,
+    printf("METRIC flat_reduction %d %.20f\n", NREDUCERS,
             (double)NREDUCERS / ((double)(flat_end_time -
                     flat_start_time) / 1000.0));
 }

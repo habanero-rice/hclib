@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("METRIC unbalanced_bin_fan_out %d|%d %f\n", N_BRANCHES,
+        printf("METRIC unbalanced_bin_fan_out %d|%d %.20f\n", N_BRANCHES,
                 BIN_FAN_OUT_DEPTH_MULTIPLIER,
                 (double)ntasks / ((double)(end_time - start_time) / 1000.0));
     }

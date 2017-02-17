@@ -30,7 +30,7 @@ void entrypoint(void *arg) {
         hclib_end_finish();
     }
     const unsigned long long nb_end_time = hclib_current_time_ns();
-    printf("METRIC task_wait_flat %d %f\n", N_FLAT_TASK_WAITS,
+    printf("METRIC task_wait_flat %d %.20f\n", N_FLAT_TASK_WAITS,
             (double)N_FLAT_TASK_WAITS / ((double)(nb_end_time -
                     nb_start_time) / 1000.0));
 
@@ -43,7 +43,7 @@ void entrypoint(void *arg) {
         hclib_end_finish();
     }
     const unsigned long long blocking_end_time = hclib_current_time_ns();
-    printf("METRIC task_wait_flat %d %f\n", N_FLAT_TASK_WAITS,
+    printf("METRIC task_wait_flat %d %.20f\n", N_FLAT_TASK_WAITS,
             (double)N_FLAT_TASK_WAITS / ((double)(blocking_end_time -
                     blocking_start_time) / 1000.0));
 }

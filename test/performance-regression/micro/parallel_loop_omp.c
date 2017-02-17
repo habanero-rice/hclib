@@ -24,11 +24,11 @@ int main(int argc, char **argv) {
         }
         const unsigned long long end_time = hclib_current_time_ns();
 
-        printf("METRIC recursive_parallel_iters %d %f\n",
+        printf("METRIC recursive_parallel_iters %d %.20f\n",
                 PARALLEL_LOOP_RANGE,
                 (double)PARALLEL_LOOP_RANGE / ((double)(end_time -
                         start_time) / 1000.0));
-        printf("METRIC flat_parallel_iters %d %f\n",
+        printf("METRIC flat_parallel_iters %d %.20f\n",
                 PARALLEL_LOOP_RANGE,
                 (double)PARALLEL_LOOP_RANGE / ((double)(end_time -
                         start_time) / 1000.0));

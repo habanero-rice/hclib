@@ -36,7 +36,7 @@ void entrypoint(void *arg) {
         } while (nlaunched < NTASKS);
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("METRIC task_create %d %f\n", NTASKS,
+        printf("METRIC task_create %d %.20f\n", NTASKS,
                 (double)NTASKS / ((double)(end_time - start_time) / 1000.0));
     }
     hclib_end_finish();
@@ -53,7 +53,7 @@ void entrypoint(void *arg) {
     }
     hclib_end_finish();
     const unsigned long long end_time = hclib_current_time_ns();
-    printf("METRIC task_run %d %f\n", NTASKS,
+    printf("METRIC task_run %d %.20f\n", NTASKS,
             (double)NTASKS / ((double)(end_time - start_time) / 1000.0));
 }
 

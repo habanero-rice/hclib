@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
         }
 
         const unsigned long long end_time = hclib_current_time_ns();
-        printf("METRIC fan_out_and_in %d %f\n", FAN_OUT_AND_IN,
+        printf("METRIC fan_out_and_in %d %.20f\n", FAN_OUT_AND_IN,
                 (double)FAN_OUT_AND_IN / ((double)(end_time - start_time) /
                     1000.0));
     }

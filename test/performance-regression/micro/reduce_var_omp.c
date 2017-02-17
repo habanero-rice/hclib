@@ -28,10 +28,10 @@ int main(int argc, char **argv) {
 
         assert(sum == NREDUCERS);
 
-        printf("METRIC recursive_reduction %d %f\n", NREDUCERS,
+        printf("METRIC recursive_reduction %d %.20f\n", NREDUCERS,
                 (double)NREDUCERS / ((double)(end_time -
                         start_time) / 1000.0));
-        printf("METRIC flat_reduction %d %f\n", NREDUCERS,
+        printf("METRIC flat_reduction %d %.20f\n", NREDUCERS,
                 (double)NREDUCERS / ((double)(end_time -
                         start_time) / 1000.0));
     }

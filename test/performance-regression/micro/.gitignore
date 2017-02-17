@@ -68,3 +68,4 @@ future_spawn_tbb
 task_spawn_tbb
 task_spawn_ocr
 task_spawn_realm
+future_spawn_ocr
