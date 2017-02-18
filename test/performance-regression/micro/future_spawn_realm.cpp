@@ -2,7 +2,7 @@
 
 #include "realm/realm.h"
 #include <stdio.h>
-#include "task_spawn.h"
+#include "future_spawn.h"
 
 enum {
     TASK_ID = Realm::Processor::TASK_ID_FIRST_AVAILABLE + 0
@@ -46,39 +46,35 @@ int main(int argc, char **argv) {
     printf("Using %d Realm threads\n", count_cpus);
 
     {
-        std::set<Realm::Event> all_events;
         int nlaunched = 0;
         const unsigned long long spawn_start_time = hclib_current_time_ns();
+        Realm::Event prev = Realm::Event::NO_EVENT;
         do {
-            Realm::Event e = all_cpus.at(nlaunched % count_cpus).spawn(TASK_ID,
-                    NULL, 0);
-            all_events.insert(e);
+            prev = all_cpus.at(nlaunched % count_cpus).spawn(TASK_ID,
+                    NULL, 0, prev);
             nlaunched++;
-        } while (nlaunched < NTASKS);
+        } while (nlaunched < NFUTURES);
         const unsigned long long spawn_end_time = hclib_current_time_ns();
-        printf("METRIC task_create %d %.20f\n", NTASKS,
-                (double)NTASKS / ((double)(spawn_end_time -
+        printf("METRIC future_create %d %.20f\n", NFUTURES,
+                (double)NFUTURES / ((double)(spawn_end_time -
                         spawn_start_time) / 1000.0));
 
-        Realm::Event merged = Realm::Event::merge_events(all_events);
-        merged.external_wait();
+        prev.external_wait();
     }
 
     {
-        std::set<Realm::Event> all_events;
         int nlaunched = 0;
         const unsigned long long schedule_start_time = hclib_current_time_ns();
+        Realm::Event prev = Realm::Event::NO_EVENT;
         do {
-            Realm::Event e = all_cpus.at(nlaunched % count_cpus).spawn(TASK_ID,
-                    NULL, 0);
-            all_events.insert(e);
+            prev = all_cpus.at(nlaunched % count_cpus).spawn(TASK_ID,
+                    NULL, 0, prev);
             nlaunched++;
-        } while (nlaunched < NTASKS);
-        Realm::Event merged = Realm::Event::merge_events(all_events);
-        merged.external_wait();
+        } while (nlaunched < NFUTURES);
+        prev.external_wait();
         const unsigned long long schedule_end_time = hclib_current_time_ns();
-        printf("METRIC task_run %d %.20f\n", NTASKS,
-                (double)NTASKS / ((double)(schedule_end_time -
+        printf("METRIC future_run %d %.20f\n", NFUTURES,
+                (double)NFUTURES / ((double)(schedule_end_time -
                         schedule_start_time) / 1000.0));
     }
 
