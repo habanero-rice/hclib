@@ -74,3 +74,4 @@ task_wait_flat_tbb
 task_wait_recursive_tbb
 task_wait_recursive_ocr
 task_wait_recursive_realm
+fan_out_tbb

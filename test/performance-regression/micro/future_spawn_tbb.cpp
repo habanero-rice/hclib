@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     tbb::flow::function_node<int, int> *first = NULL;
     tbb::flow::function_node<int, int> *prev = NULL;
 
-    const unsigned long long spawn_start_time = hclib_current_time_ms();
+    const unsigned long long spawn_start_time = hclib_current_time_ns();
     do {
         tbb::flow::function_node<int, int> *new_node =
             new tbb::flow::function_node<int, int>(g, tbb::flow::unlimited,
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     nlaunched = 0;
     first = NULL;
     prev = NULL;
-    const unsigned long long schedule_start_time = hclib_current_time_ms();
+    const unsigned long long schedule_start_time = hclib_current_time_ns();
     do {
         tbb::flow::function_node<int, int> *new_node =
             new tbb::flow::function_node<int, int>(g, tbb::flow::unlimited,
