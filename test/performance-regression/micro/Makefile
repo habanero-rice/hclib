@@ -3,7 +3,7 @@ include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
 TARGETS=task_spawn_hclib task_spawn_omp task_spawn_tbb task_spawn_ocr task_spawn_realm task_wait_flat_hclib \
-		task_wait_flat_omp task_wait_recursive_hclib task_wait_recursive_omp \
+		task_wait_flat_omp task_wait_flat_tbb task_wait_flat_ocr task_wait_flat_realm task_wait_recursive_hclib task_wait_recursive_omp task_wait_recursive_tbb task_wait_recursive_ocr task_wait_recursive_realm \
 		future_spawn_hclib future_spawn_omp future_spawn_tbb future_spawn_ocr future_spawn_realm fan_out_hclib fan_out_omp \
 		fan_out_and_in_hclib fan_out_and_in_omp bin_fan_out_hclib bin_fan_out_omp \
 		parallel_loop_hclib parallel_loop_omp prod_cons_omp prod_cons_hclib \
