@@ -7,7 +7,7 @@ TARGETS=task_spawn_hclib task_spawn_omp task_spawn_tbb task_spawn_ocr task_spawn
 		future_spawn_hclib future_spawn_omp future_spawn_tbb future_spawn_ocr future_spawn_realm fan_out_hclib fan_out_omp fan_out_tbb fan_out_ocr fan_out_realm \
 		fan_out_and_in_hclib fan_out_and_in_omp fan_out_and_in_tbb fan_out_and_in_ocr bin_fan_out_hclib bin_fan_out_omp bin_fan_out_ocr bin_fan_out_realm \
 		parallel_loop_hclib parallel_loop_omp parallel_loop_tbb parallel_loop_ocr parallel_loop_realm prod_cons_omp prod_cons_hclib prod_cons_tbb prod_cons_ocr prod_cons_realm \
-		reduce_var_omp reduce_var_hclib unbalanced_bin_fan_out_omp \
+		reduce_var_omp reduce_var_hclib reduce_var_tbb unbalanced_bin_fan_out_omp \
 		unbalanced_bin_fan_out_hclib
 
 CC?=g++

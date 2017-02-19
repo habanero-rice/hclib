@@ -88,3 +88,5 @@ parallel_loop_realm
 prod_cons_tbb
 prod_cons_ocr
 prod_cons_realm
+reduce_var_tbb
+reduce_var_ocr
