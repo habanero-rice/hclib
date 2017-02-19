@@ -77,3 +77,8 @@ task_wait_recursive_realm
 fan_out_tbb
 fan_out_ocr
 fan_out_realm
+fan_out_and_in_ocr
+fan_out_and_in_realm
+bin_fan_out_tbb
+bin_fan_out_ocr
+bin_fan_out_realm
