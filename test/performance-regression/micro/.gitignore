@@ -82,3 +82,6 @@ fan_out_and_in_realm
 bin_fan_out_tbb
 bin_fan_out_ocr
 bin_fan_out_realm
+parallel_loop_tbb
+parallel_loop_ocr
+parallel_loop_realm
