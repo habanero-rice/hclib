@@ -15,6 +15,8 @@
  *   2) Rate at which we can schedule and execute empty tasks.
  */
 
+#define CHUNKING 100
+
 extern "C" {
 
 static unsigned long long start_time = 0;
@@ -29,16 +31,45 @@ ocrGuid_t reduceEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
         int *a = (int *)depv[0].ptr;
         int *b = (int *)depv[1].ptr;
+        int a_size = *a; a = a + 1;
+        int b_size = *b; b = b + 1;
+
+        int sum = 0;
+        int i;
+        for (i = 0; i < a_size; i++) {
+            sum += a[i];
+        }
+        for (i = 0; i < b_size; i++) {
+            sum += b[i];
+        }
 
         ocrGuid_t dbGuid;
         int *outPtr;
-        ocrDbCreate(&dbGuid, (void **)&outPtr, sizeof(int), DB_PROP_NONE, NULL,
-                NO_ALLOC);
-        *outPtr = *a + *b;
+        ocrDbCreate(&dbGuid, (void **)&outPtr, 2 * sizeof(int), DB_PROP_NONE,
+                NULL, NO_ALLOC);
+        outPtr[0] = 1;
+        outPtr[1] = sum;
 
         return dbGuid;
     } else {
-        return depv[0].guid;
+        assert(depv[0].ptr);
+
+        int *a = (int *)depv[0].ptr;
+        int a_size = *a; a = a + 1;
+        int i;
+        int sum = 0;
+        for (i = 0; i < a_size; i++) {
+            sum += a[i];
+        }
+
+        ocrGuid_t dbGuid;
+        int *outPtr;
+        ocrDbCreate(&dbGuid, (void **)&outPtr, 2 * sizeof(int), DB_PROP_NONE,
+                NULL, NO_ALLOC);
+        outPtr[0] = 1;
+        outPtr[1] = sum;
+
+        return dbGuid;
     }
 }
 
@@ -80,12 +111,19 @@ ocrGuid_t finishEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     }
     assert(nreducers == 1);
 
-    for (i = 0; i < NREDUCERS; i++) {
+    assert(NREDUCERS % CHUNKING == 0);
+
+    for (i = 0; i < NREDUCERS; i += CHUNKING) {
         ocrGuid_t dbGuid;
         int *ptr;
-        ocrDbCreate(&dbGuid, (void **)&ptr, sizeof(int), DB_PROP_NONE, NULL,
-                NO_ALLOC);
-        *ptr = 1;
+        ocrDbCreate(&dbGuid, (void **)&ptr, (CHUNKING + 1) * sizeof(int),
+                DB_PROP_NONE, NULL, NO_ALLOC);
+
+        ptr[0] = CHUNKING;
+        int j;
+        for (j = 1; j <= CHUNKING; j++) {
+            ptr[j] = 1;
+        }
 
         ocrEventSatisfy(topLevel[i], dbGuid);
     }
@@ -127,7 +165,7 @@ ocrGuid_t mainEdt ( u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     ocrEdtCreate(&finishTask, finishTemplateGuid, 1, (u64 *)&reduceTemplateGuid,
             0, NULL, EDT_PROP_NONE, NULL, &finishTaskEvent);
 
-    ocrGuid_t finalTask, finalTaskEvent;
+    ocrGuid_t finalTask;
     ocrEdtCreate(&finalTask, finalTemplateGuid, 0, NULL, 1, &finishTaskEvent,
             EDT_PROP_NONE, NULL, NULL);
 

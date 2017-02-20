@@ -2,19 +2,33 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
-TARGETS=task_spawn_hclib task_spawn_omp task_spawn_tbb task_spawn_ocr task_spawn_realm task_wait_flat_hclib \
-		task_wait_flat_omp task_wait_flat_tbb task_wait_flat_ocr task_wait_flat_realm task_wait_recursive_hclib task_wait_recursive_omp task_wait_recursive_tbb task_wait_recursive_ocr task_wait_recursive_realm \
-		future_spawn_hclib future_spawn_omp future_spawn_tbb future_spawn_ocr future_spawn_realm fan_out_hclib fan_out_omp fan_out_tbb fan_out_ocr fan_out_realm \
-		fan_out_and_in_hclib fan_out_and_in_omp fan_out_and_in_tbb fan_out_and_in_ocr bin_fan_out_hclib bin_fan_out_omp bin_fan_out_ocr bin_fan_out_realm \
-		parallel_loop_hclib parallel_loop_omp parallel_loop_tbb parallel_loop_ocr parallel_loop_realm prod_cons_omp prod_cons_hclib prod_cons_tbb prod_cons_ocr prod_cons_realm \
-		reduce_var_omp reduce_var_hclib reduce_var_tbb unbalanced_bin_fan_out_omp \
-		unbalanced_bin_fan_out_hclib
+HCLIB_TARGETS=task_spawn_hclib task_wait_flat_hclib future_spawn_hclib fan_out_hclib \
+	fan_out_and_in_hclib bin_fan_out_hclib parallel_loop_hclib prod_cons_hclib \
+	reduce_var_hclib unbalanced_bin_fan_out_hclib
+OMP_TARGETS=task_spawn_omp task_wait_flat_omp future_spawn_omp fan_out_omp \
+	fan_out_and_in_omp bin_fan_out_omp parallel_loop_omp prod_cons_omp \
+	reduce_var_omp unbalanced_bin_fan_out_omp
+TBB_TARGETS=task_spawn_tbb task_wait_flat_tbb future_spawn_tbb fan_out_tbb \
+	fan_out_and_in_tbb bin_fan_out_tbb parallel_loop_tbb prod_cons_tbb \
+	unbalanced_bin_fan_out_tbb
+OCR_TARGETS=task_spawn_ocr task_wait_flat_ocr future_spawn_ocr fan_out_ocr \
+	fan_out_and_in_ocr bin_fan_out_ocr parallel_loop_ocr prod_cons_ocr \
+	reduce_var_ocr unbalanced_bin_fan_out_ocr
+REALM_TARGETS=task_spawn_realm task_wait_flat_realm future_spawn_realm fan_out_realm \
+	fan_out_and_in_realm bin_fan_out_realm parallel_loop_realm prod_cons_realm \
+	unbalanced_bin_fan_out_realm
 
 CC?=g++
 CXX?=g++
 FLAGS=-g -O3 -Wall -Werror
 
-all: $(TARGETS)
+all: hclib omp tbb ocr realm
+
+hclib: $(HCLIB_TARGETS)
+omp: $(OMP_TARGETS)
+tbb: $(TBB_TARGETS)
+ocr: $(OCR_TARGETS)
+realm: $(REALM_TARGETS)
 
 %_tbb: %_tbb.cpp
 	$(CC) $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -I$(TBBROOT)/include -ltbb
@@ -32,4 +46,4 @@ all: $(TARGETS)
 	$(CC) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) -ltbbmalloc
 
 clean:
-	rm -f $(TARGETS)
+	rm -f $(HCLIB_TARGETS) $(OMP_TARGETS) $(TBB_TARGETS) $(OCR_TARGETS) $(REALM_TARGETS)

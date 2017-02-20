@@ -75,7 +75,6 @@ ocrGuid_t flatFinishEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
     assert(paramc == 2);
     ocrGuid_t *params = (ocrGuid_t *)paramv;
     ocrGuid_t flatTemplateGuid = params[0];
-    ocrGuid_t recurseTemplateGuid = params[1];
 
     flat_start_time = hclib_current_time_ns();
 
@@ -102,7 +101,6 @@ ocrGuid_t recursiveFinishEdt(u32 paramc, u64* paramv, u32 depc,
     assert(depc == 1);
     assert(paramc == 2);
     ocrGuid_t *params = (ocrGuid_t *)paramv;
-    ocrGuid_t flatTemplateGuid = params[0];
     ocrGuid_t recurseTemplateGuid = params[1];
 
     const unsigned long long flat_end_time = hclib_current_time_ns();

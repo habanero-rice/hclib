@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     Realm::UserEvent userEvent = Realm::UserEvent::create_user_event();
     std::vector<Realm::Event> *all_events = new std::vector<Realm::Event>();
 
-    int i;
+    unsigned i;
     for (i = 0; i < FAN_OUT_AND_IN; i++) {
         Realm::Event e = all_cpus.at(i % count_cpus).spawn(TASK_ID, NULL, 0,
                 userEvent);
@@ -62,10 +62,10 @@ int main(int argc, char **argv) {
 
         for (i = 0; i < all_events->size(); i += MAX_NUM_WAITS) {
             std::set<Realm::Event> merged;
-            int this_n_events = all_events->size() - i;
+            unsigned this_n_events = all_events->size() - i;
             if (this_n_events > MAX_NUM_WAITS) this_n_events = MAX_NUM_WAITS;
 
-            int j;
+            unsigned j;
             for (j = i; j < i + this_n_events; j++) {
                 merged.insert(all_events->at(j));
             }

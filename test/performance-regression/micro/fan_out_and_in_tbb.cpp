@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
     const unsigned long long start_time = hclib_current_time_ns();
     tbb::flow::broadcast_node<int> *root = new tbb::flow::broadcast_node<int>(g);
-    int i;
+    unsigned i;
     for (i = 0; i < FAN_OUT_AND_IN; i++) {
         tbb::flow::function_node<int, int> *new_node =
             new tbb::flow::function_node<int, int>(g, tbb::flow::unlimited,

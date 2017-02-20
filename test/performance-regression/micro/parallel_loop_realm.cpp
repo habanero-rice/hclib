@@ -57,17 +57,6 @@ static void recursiveTask(const void *args, size_t arglen, const void *userdata,
     }
 }
 
-static void recursiveTaskWrapper(const void *args, size_t arglen,
-        const void *userdata, size_t userlen, Realm::Processor p) {
-    loopChunk chunk;
-    chunk.startInclusive = 0;
-    chunk.endExclusive = PARALLEL_LOOP_RANGE;
-
-    Realm::Event e = aggregateCpu.spawn(RECURSIVE_TASK_ID, &chunk,
-            sizeof(chunk));
-    e.wait();
-}
-
 static int collect_cpus(std::vector<Realm::Processor> &all_cpus) {
     std::set<Realm::Processor> all_procs;
     Realm::Machine::get_machine().get_all_processors(all_procs);
