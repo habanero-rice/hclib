@@ -59,4 +59,5 @@ void entrypoint(void *arg) {
 
 int main(int argc, char **argv) {
     hclib_launch(entrypoint, NULL, NULL, 0);
+    return 0;
 }
