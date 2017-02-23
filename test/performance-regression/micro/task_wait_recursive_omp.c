@@ -56,4 +56,6 @@ int main(int argc, char **argv) {
                 (double)N_RECURSIVE_TASK_WAITS /
                 ((double)(wait_end_time - wait_start_time) / 1000.0));
     }
+
+    return 0;
 }

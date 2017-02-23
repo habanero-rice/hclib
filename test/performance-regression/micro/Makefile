@@ -2,7 +2,11 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 
-TBB_MALLOC_LIBDIR?=/opt/apps/intel/psxe_2017_u1/tbb/lib/intel64/gcc4.7
+ifeq ($(TBB_MALLOC_LIBDIR),)
+	TBB_FLAGS=
+else
+	TBB_FLAGS=-L$(TBB_MALLOC_LIBDIR) -ltbbmalloc
+endif
 
 HCLIB_TARGETS=task_spawn_hclib task_wait_flat_hclib future_spawn_hclib fan_out_hclib \
 	fan_out_and_in_hclib bin_fan_out_hclib parallel_loop_hclib prod_cons_hclib \
@@ -36,7 +40,7 @@ realm: $(REALM_TARGETS)
 	$(CC) -std=c++11 $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -I$(TBBROOT)/include -ltbb -L$(TBBROOT)/lib/intel64/gcc4.7
 
 %_omp: %_omp.c
-	$(CC) -fopenmp $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -L$(TBB_MALLOC_LIBDIR) -ltbbmalloc
+	$(CC) -fopenmp $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) $(TBB_FLAGS)
 
 %_ocr: %_ocr.c
 	$(CXX) $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -I$(OCR_INSTALL)/include -locr_x86 -L$(OCR_INSTALL)/lib
@@ -45,7 +49,7 @@ realm: $(REALM_TARGETS)
 	$(CXX) $(FLAGS) $(HCLIB_CFLAGS) -o $@ $^ $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) $(REALM_LIB) -I$(LG_RT_DIR)
 
 %: %.c
-	$(CC) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) -L$(TBB_MALLOC_LIBDIR) -ltbbmalloc
+	$(CC) $(FLAGS) $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(TBB_FLAGS)
 
 clean:
 	rm -f $(HCLIB_TARGETS) $(OMP_TARGETS) $(TBB_TARGETS) $(OCR_TARGETS) $(REALM_TARGETS)

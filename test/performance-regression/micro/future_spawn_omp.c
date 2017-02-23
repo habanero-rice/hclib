@@ -86,4 +86,6 @@ int main(int argc, char **argv) {
         printf("METRIC future_run %d %.20f\n", NFUTURES,
                 (double)NFUTURES / ((double)(schedule_end_time - schedule_start_time) / 1000.0));
     }
+
+    return 0;
 }

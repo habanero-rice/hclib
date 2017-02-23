@@ -49,4 +49,6 @@ int main(int argc, char **argv) {
         printf("METRIC fan_out %d %.20f\n", FAN_OUT,
                 (double)FAN_OUT / ((double)(end_time - start_time) / 1000.0));
     }
+
+    return 0;
 }

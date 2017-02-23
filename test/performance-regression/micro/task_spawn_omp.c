@@ -65,4 +65,6 @@ int main(int argc, char **argv) {
                 (double)NTASKS / ((double)(schedule_end_time -
                         schedule_start_time) / 1000.0));
     }
+
+    return 0;
 }

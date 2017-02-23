@@ -71,4 +71,6 @@ int main(int argc, char **argv) {
                 (double)FAN_OUT_AND_IN / ((double)(end_time - start_time) /
                     1000.0));
     }
+
+    return 0;
 }

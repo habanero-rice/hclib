@@ -1,16 +1,9 @@
 #!/bin/bash -l
 
-#SBATCH -p debug
-#SBATCH -N 1
-#SBATCH -t 00:20:00
-#SBATCH -J hclib-micro-apps
-#SBATCH --exclusive
-#SBATCH --mail-type=ALL
-
 set -e
 
 ulimit -c unlimited
-export HCLIB_WORKERS=24
+export HCLIB_WORKERS=64
 export OMP_NUM_THREADS=$HCLIB_WORKERS
 export TBB_NUM_THREADS=$HCLIB_WORKERS
 export MODELS="hclib iomp tbb"
@@ -46,7 +39,7 @@ for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out \
         EXE=${TEST}_${MODEL}
         ARGS=
         if [[ $MODEL == 'realm' ]]; then
-            ARGS="-ll:cpu 24"
+            ARGS="-ll:cpu 64"
         fi
 
         if [[ -f $EXE ]]; then

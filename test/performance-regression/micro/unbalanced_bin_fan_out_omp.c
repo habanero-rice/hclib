@@ -48,4 +48,6 @@ int main(int argc, char **argv) {
                 BIN_FAN_OUT_DEPTH_MULTIPLIER,
                 (double)ntasks / ((double)(end_time - start_time) / 1000.0));
     }
+
+    return 0;
 }

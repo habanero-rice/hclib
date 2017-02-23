@@ -42,4 +42,6 @@ int main(int argc, char **argv) {
                 (double)(1 << BIN_FAN_OUT_DEPTH) /
                 ((double)(end_time - start_time) / 1000.0));
     }
+
+    return 0;
 }
