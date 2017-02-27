@@ -39,34 +39,36 @@ for TEST in task_spawn future_spawn task_wait_flat task_wait_recursive fan_out \
         EXE=${TEST}_${MODEL}
         ARGS=
         if [[ $MODEL == 'realm' ]]; then
-            ARGS="-ll:cpu 64"
+            ARGS="-ll:cpu $HCLIB_WORKERS"
         fi
 
         if [[ -f $EXE ]]; then
             echo "========== $EXE =========="
-            ./$EXE $ARGS &> $MODEL
+            taskset 0xFFFFFFFFFFFFFFFF ./$EXE $ARGS &> $MODEL
         fi
     done
 
-    UNIQUE_METRICS=$(cat hclib | grep "^METRIC " | awk '{ print $2 }' | sort | \
-        uniq)
-    for METRIC in $UNIQUE_METRICS; do
-        DATASET=$(cat hclib | grep "^METRIC $METRIC " | head -n 1 | \
-            awk '{ print $3 }')
+    if [[ -f hclib ]]; then # Don't run tests if we don't even have HClib results
+        UNIQUE_METRICS=$(cat hclib | grep "^METRIC " | awk '{ print $2 }' | sort | \
+            uniq)
+        for METRIC in $UNIQUE_METRICS; do
+            DATASET=$(cat hclib | grep "^METRIC $METRIC " | head -n 1 | \
+                awk '{ print $3 }')
 
-        LINE="$METRIC,$DATASET"
-        for MODEL in $MODELS; do
-            if [[ -f $MODEL ]]; then
-                PERF=$(cat $MODEL | grep "^METRIC $METRIC" | \
-                    awk '{ print $4 }' | sort -n -r | head -n 1)
-                LINE="$LINE,$PERF"
-            else
-                LINE="$LINE,"
-            fi
+            LINE="$METRIC,$DATASET"
+            for MODEL in $MODELS; do
+                if [[ -f $MODEL ]]; then
+                    PERF=$(cat $MODEL | grep "^METRIC $METRIC" | \
+                        awk '{ print $4 }' | sort -n -r | head -n 1)
+                    LINE="$LINE,$PERF"
+                else
+                    LINE="$LINE,"
+                fi
+            done
+            LINE="$LINE,,"
+            echo $LINE >> $LOG_FILE
         done
-        LINE="$LINE,,"
-        echo $LINE >> $LOG_FILE
-    done
+    fi
 
     # Cleanup log files
     for MODEL in $MODELS; do
