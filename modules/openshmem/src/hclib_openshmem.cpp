@@ -389,7 +389,8 @@ void hclib::shmem_set_lock(volatile long *lock) {
         lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
     }
 
-    await = hclib_async_future(shmem_set_lock_impl, (void *)lock, ctx->last_lock, nic);
+    await = hclib_async_future(shmem_set_lock_impl, (void *)lock,
+            &ctx->last_lock, 1, nic);
     ctx->last_lock = hclib_get_future_for_promise(promise);
 
     err = pthread_mutex_unlock(&lock_info_mutex);
@@ -408,7 +409,7 @@ void hclib::shmem_clear_lock(long *lock) {
     HASSERT(found != lock_info.end()) // Doesn't make much sense to clear a lock that hasn't been set
 
     hclib_future_t *await = hclib_async_future(shmem_clear_lock_impl, lock,
-            NULL, nic);
+            NULL, 0, nic);
 
     err = pthread_mutex_unlock(&lock_info_mutex);
     HASSERT(err == 0);
