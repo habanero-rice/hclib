@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <aio.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "hclib.h"
 #include "hclib-instrument.h"

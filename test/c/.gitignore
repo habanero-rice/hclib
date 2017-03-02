@@ -19,3 +19,4 @@ forasync3DRec
 memory/allocate
 emulate_omp
 yield
+atomics/atomic_sum

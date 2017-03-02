@@ -73,12 +73,12 @@ static void future_caller(void *in) {
 }
 
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t *future, hclib_locale_t *locale) {
+        hclib_future_t **futures, const int nfutures, hclib_locale_t *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
     wrapper->actual_in = arg;
-    hclib_async(future_caller, wrapper, &future, 1, locale);
+    hclib_async(future_caller, wrapper, futures, nfutures, locale);
 
     return hclib_get_future_for_promise(&wrapper->event);
 }
@@ -545,7 +545,7 @@ void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
         in_future = found->future;
     }
 
-    hclib_future_t *fut = hclib_async_future(fct_ptr, arg, in_future,
+    hclib_future_t *fut = hclib_async_future(fct_ptr, arg, &in_future, 1,
             locale);
 
     depends_info *infos = (depends_info *)malloc(n_out * sizeof(depends_info));

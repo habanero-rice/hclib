@@ -1,11 +1,77 @@
 #ifndef HCLIB_ATOMIC_H
 #define HCLIB_ATOMIC_H
 
-#include <functional>
-
 #include "hclib-rt.h"
 
 #define CACHE_LINE_LEN_IN_BYTES 32
+
+// C APIs
+
+/*
+ * User-defined callback for initializing a given atomic value. Accepts a
+ * pointer to a block of memory used to store an atomic value and some optional
+ * user data.
+ */
+typedef void (*atomic_init_func)(void *atomic_ele, void *user_data);
+
+/*
+ * User-defined callback for atomically updating a given atomic value. Accepts a
+ * pointer to a block of memory used to store the atomic value and some optional
+ * user data.
+ */
+typedef void (*atomic_update_func)(void *atomic_ele, void *user_data);
+
+/*
+ * User-defined callback for atomically reducing two values. Accepts two
+ * pointers to blocks of memory used to store atomic values and some optional
+ * user data. This function should reduce the values stored at a and b into the
+ * memory pointed to by a.
+ */
+typedef void (*atomic_gather_func)(void *a, void *b, void *user_data);
+
+/*
+ * Storage for an atomic value. A partially updated copy of the final atomic
+ * value produced is kept for each thread. The stored values are padded to avoid
+ * false sharing.
+ */
+typedef struct _hclib_atomic_t {
+    char *vals;
+    size_t nthreads;
+    size_t val_size;
+    size_t padded_val_size;
+} hclib_atomic_t;
+
+/*
+ * Create an atomic variable, including allocating memory for the user.
+ */
+extern hclib_atomic_t *hclib_atomic_create(const size_t ele_size_in_bytes,
+        atomic_init_func init, void *user_data);
+
+/*
+ * Initialize pre-allocated storage with an atomic variable.
+ */
+extern void hclib_atomic_init(hclib_atomic_t *atomic,
+        const size_t ele_size_in_bytes, atomic_init_func init, void *user_data);
+
+/**
+ * Atomically update the contents of an atomic variable using the user-defined
+ * update function. The update function is passed user_data unchanged.
+ */
+extern void hclib_atomic_update(hclib_atomic_t *atomic, atomic_update_func f,
+        void *user_data);
+
+/**
+ * Atomically gather/reduce partial atomic values to produce a final atomic
+ * using the user-defined gather function. The gather function is passed
+ * user_data unchanged.
+ */
+extern void *hclib_atomic_gather(hclib_atomic_t *atomic, atomic_gather_func f,
+        void *user_data);
+
+// C++ APIs
+#ifdef __cplusplus
+
+#include <functional>
 
 namespace hclib {
 
@@ -104,7 +170,7 @@ class atomic_or_t : private atomic_t<T> {
         }
 };
 
-
 }
+#endif // __cplusplus
 
 #endif

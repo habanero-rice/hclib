@@ -63,6 +63,9 @@ size_t hclib_current_worker_backlog();
 void hclib_launch(async_fct_t fct_ptr, void * arg, const char **deps,
         int ndeps);
 
+/**
+ * Time keeping utilities.
+ */
 unsigned long long hclib_current_time_ns();
 unsigned long long hclib_current_time_ms();
 
@@ -110,7 +113,7 @@ void hclib_async_nb(generic_frame_ptr fp, void *arg, hclib_locale_t *locale);
  * Spawn an async that automatically puts a promise on termination.
  */
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t *future, hclib_locale_t *locale);
+        hclib_future_t **futures, const int nfutures, hclib_locale_t *locale);
 
 /*
  * Locale-aware memory management functions.

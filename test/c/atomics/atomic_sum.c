@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+/* Copyright (c) 2013, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -27,38 +27,65 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+*/
+
+/**
+ * DESC: Simple atomic sum test.
  */
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 
-/*
- * hclib-deque.h
- *  
- *      Author: Vivek Kumar (vivekk@rice.edu)
- *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
- */
+#include "hclib.h"
+#include "hclib_atomic.h"
 
-#ifndef HCLIB_DEQUE_H_
-#define HCLIB_DEQUE_H_
+#define N_ASYNC 100
 
-#include "hclib-task.h"
+static void sum(void *atomic, void *user_data) {
+    int *atomic_int = (int *)atomic;
+    size_t incr = (size_t)user_data;
+    *atomic_int += incr;
+}
 
-/****************************************************/
-/* DEQUE API                                        */
-/****************************************************/
+static void sum_gather(void *a, void *b, void *user_data) {
+    int *out = (int *)a;
+    int *in = (int *)b;
+    *out += *in;
+}
 
-// #define INIT_DEQUE_CAPACITY 16384
-#define INIT_DEQUE_CAPACITY 262144
+static void init_int(void *atomic, void *user_data) {
+    *((int *)atomic) = 0;
+}
 
-typedef struct deque_t {
-    volatile int head;
-    volatile int tail;
-    volatile hclib_task_t* data[INIT_DEQUE_CAPACITY];
-} deque_t;
+void async_fct(void *arg) {
+    hclib_atomic_t *atomic = (hclib_atomic_t *)arg;
 
-void deque_init(deque_t *deq, void *initValue);
-int deque_push(deque_t *deq, void *entry);
-hclib_task_t* deque_pop(deque_t *deq);
-hclib_task_t* deque_steal(deque_t *deq);
-void deque_destroy(deque_t *deq);
-unsigned deque_size(deque_t *deq);
+    hclib_atomic_update(atomic, sum, (void *)1);
+}
 
-#endif /* HCLIB_DEQUE_H_ */
+void entrypoint(void *arg) {
+    int i;
+
+    hclib_atomic_t *atomic = hclib_atomic_create(sizeof(int), init_int, NULL);
+
+    hclib_start_finish();
+
+    for (i = 0; i < N_ASYNC; i++) {
+        hclib_async(async_fct, atomic, NULL, 0, NULL);
+    }
+
+    hclib_end_finish();
+
+    int *final_val = (int *)hclib_atomic_gather(atomic, sum_gather, NULL);
+
+    assert(*final_val == N_ASYNC);
+
+    printf("Passed\n");
+}
+
+int main (int argc, char ** argv) {
+    char const *deps[] = { "system" };
+    hclib_launch(entrypoint, NULL, deps, 1);
+    fprintf(stderr, "Finished launch\n");
+    return 0;
+}

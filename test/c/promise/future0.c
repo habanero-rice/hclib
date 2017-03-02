@@ -31,9 +31,9 @@ void entrypoint(void *arg) {
     hclib_future_t *prev = NULL;
     for (i = 0; i < n_asyncs; i++) {
         if (prev) {
-            prev = hclib_async_future(async_fct, count, prev, NULL);
+            prev = hclib_async_future(async_fct, count, &prev, 1, NULL);
         } else {
-            prev = hclib_async_future(async_fct, count, NULL, NULL);
+            prev = hclib_async_future(async_fct, count, NULL, 0, NULL);
         }
     }
     hclib_end_finish();

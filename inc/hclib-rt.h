@@ -63,16 +63,24 @@ struct finish_t;
 struct _hclib_worker_paths;
 
 typedef struct _hclib_worker_state {
+    // Global context for this instance of the runtime.
     struct hclib_context *context;
+    // Pop and steal paths for this worker to traverse when looking for work.
     struct _hclib_worker_paths *paths;
-    pthread_t t; // the pthread associated
+    // The pthread associated with this worker context.
+    pthread_t t;
+    // Finish scope for the currently executing task.
     struct finish_t* current_finish;
+    // Stack frame we are currently executing on.
     LiteCtx *curr_ctx;
+    // Root context of the whole runtime instance.
     LiteCtx *root_ctx;
-    // The id, identify a worker
+    // The id, identify a worker.
     int id;
-    // Total number of workers in this instance of the HClib runtime
+    // Total number of workers in this instance of the HClib runtime.
     int nworkers;
+    // Place to keep module-specific per-worker state.
+    char *module_state;
 } hclib_worker_state;
 
 #ifdef HC_ASSERTION_CHECK
