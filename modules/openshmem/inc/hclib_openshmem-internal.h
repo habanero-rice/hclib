@@ -40,7 +40,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize);
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize);
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_finalize);
 
-locale_t *shmem_my_pe();
+int shmem_my_pe();
 int shmem_n_pes();
 void *shmem_malloc(size_t size);
 void shmem_free(void *ptr);
@@ -158,8 +158,6 @@ void shmem_int_async_when_any(volatile int **ivars, int cmp,
     HASSERT(promise == NULL);
 }
 
-locale_t *shmem_remote_pe(int pe);
-int pe_for_locale(locale_t *locale);
 std::string shmem_name();
 
 }

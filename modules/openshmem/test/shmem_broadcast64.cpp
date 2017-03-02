@@ -5,9 +5,10 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
-        hclib::locale_t *pe = hclib::shmem_my_pe();
-        std::cout << "Hello world from rank " << hclib::pe_for_locale(pe) << std::endl;
+    const char *deps[] = { "system", "openshmem" };
+    hclib::launch(deps, 2, [] {
+        const int pe = hclib::shmem_my_pe();
+        std::cout << "Hello world from rank " << pe << std::endl;
 
         uint64_t *shared_source = (uint64_t *)hclib::shmem_malloc(sizeof(uint64_t));
         uint64_t *shared_dest = (uint64_t *)hclib::shmem_malloc(sizeof(uint64_t));
@@ -15,7 +16,7 @@ int main(int argc, char **argv) {
 
         const size_t n_pes = hclib::shmem_n_pes();
         for (int root = 0; root < n_pes; root++) {
-            *shared_source = hclib::pe_for_locale(pe);
+            *shared_source = pe;
             hclib::shmem_barrier_all();
 
             for (int i = 0; i < SHMEM_BCAST_SYNC_SIZE; i++) {
@@ -24,11 +25,11 @@ int main(int argc, char **argv) {
 
             hclib::shmem_broadcast64(shared_dest, shared_source, 1, root, 0, 0, n_pes, pSync);
 
-            if (hclib::pe_for_locale(pe) != root) {
+            if (pe != root) {
                 assert(*shared_dest == root);
             }
         }
-        fprintf(stderr, "PE %d done\n", hclib::pe_for_locale(pe));
+        fprintf(stderr, "PE %d done\n", pe);
 
     });
     return 0;

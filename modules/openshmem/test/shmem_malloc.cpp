@@ -5,14 +5,14 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
-        hclib::locale_t *pe = hclib::shmem_my_pe();
-        std::cout << "Hello world from rank " << hclib::pe_for_locale(pe) << std::endl;
+    const char *deps[] = { "system", "openshmem" };
+    hclib::launch(deps, 2, [] {
+        std::cout << "Hello world from rank " << hclib::shmem_my_pe() << std::endl;
 
         int *allocated = (int *)hclib::shmem_malloc(10 * sizeof(int));
         assert(allocated);
 
-        std::cout << "Rank " << hclib::pe_for_locale(pe) << " allocated " << allocated << std::endl;
+        std::cout << "Rank " << hclib::shmem_my_pe() << " allocated " << allocated << std::endl;
 
         for (int i = 0; i < 10; i++) {
             allocated[i] = i;

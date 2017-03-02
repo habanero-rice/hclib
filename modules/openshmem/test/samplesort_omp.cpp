@@ -158,7 +158,7 @@ new_ctx->data_ptr = &(data);
 new_ctx->left_ptr = &(left);
 new_ctx->right_ptr = &(right);
 new_ctx->arg_ptr = &(arg);
-hclib_async(pragma132_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma132_hclib_async, new_ctx, NULL, 0, NULL);
  } 
         }
         if (index < right) {
@@ -175,7 +175,7 @@ new_ctx->data_ptr = &(data);
 new_ctx->left_ptr = &(left);
 new_ctx->right_ptr = &(right);
 new_ctx->arg_ptr = &(arg);
-hclib_async(pragma142_hclib_async, new_ctx, NO_FUTURE, ANY_PLACE);
+hclib_async(pragma142_hclib_async, new_ctx, NULL, 0, NULL);
  } 
         }
         } ; hclib_end_finish(); 
@@ -240,7 +240,7 @@ static void main_entrypoint(void *____arg) {
   TYPE 	     *Buckets, *BucketBuffer, *LocalBucket;
   TYPE 	     *OutputBuffer, *Output;
   
-  MyRank = hclib::pe_for_locale(hclib::shmem_my_pe ());
+  MyRank = hclib::shmem_my_pe ();
   Numprocs = hclib::shmem_n_pes ();
   NoofElements = SIZE;
 
@@ -434,10 +434,11 @@ static void main_entrypoint(void *____arg) {
 
 int main (int argc, char *argv[]) {
   /**** Initialising ****/
+  const char *deps[] = { "system", "openshmem" };
 main_entrypoint_ctx *new_ctx = (main_entrypoint_ctx *)malloc(sizeof(main_entrypoint_ctx));
 new_ctx->argc = argc;
 new_ctx->argv = argv;
-hclib_launch(main_entrypoint, new_ctx);
+hclib_launch(main_entrypoint, new_ctx, deps, 2);
 
 } 
 

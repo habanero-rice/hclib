@@ -226,8 +226,8 @@ static hclib::locale_t *get_locale_for_pe(int pe) {
     return new_locale;
 }
 
-hclib::locale_t *hclib::shmem_my_pe() {
-    return get_locale_for_pe(::shmem_my_pe());
+int hclib::shmem_my_pe() {
+    return ::shmem_my_pe();
 }
 
 int hclib::shmem_n_pes() {
@@ -333,14 +333,6 @@ void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
             END_PROFILE(shmem_broadcast64)
         }, nic);
     });
-}
-
-hclib::locale_t *hclib::shmem_remote_pe(int pe) {
-    return get_locale_for_pe(pe);
-}
-
-int hclib::pe_for_locale(hclib::locale_t *locale) {
-    return locale_id_to_pe(locale->id);
 }
 
 static void *shmem_set_lock_impl(void *arg) {

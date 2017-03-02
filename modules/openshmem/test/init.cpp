@@ -5,9 +5,9 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
-        hclib::locale_t *pe = hclib::shmem_my_pe();
-        std::cout << "Hello world from rank " << hclib::pe_for_locale(pe) << std::endl;
+    const char *deps[] = { "system", "openshmem" };
+    hclib::launch(deps, 2, [] {
+        std::cout << "Hello world from rank " << hclib::shmem_my_pe() << std::endl;
     });
     return 0;
 }

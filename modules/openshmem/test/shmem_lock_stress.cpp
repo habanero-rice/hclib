@@ -14,9 +14,10 @@ unsigned long long get_clock_gettime() {
 long lock = 0L;
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
-        hclib::locale_t *pe = hclib::shmem_my_pe();
-        std::cout << "Hello world from rank " << hclib::pe_for_locale(pe) << std::endl;
+    const char *deps[] = { "system", "openshmem" };
+    hclib::launch(deps, 2, [] {
+        const int pe = hclib::shmem_my_pe();
+        std::cout << "Hello world from rank " << pe << std::endl;
 
         hclib::finish([pe] {
             size_t nlocks = 0;
@@ -29,7 +30,7 @@ int main(int argc, char **argv) {
                 nlocks++;
                 // fprintf(stderr, "%llu\n", get_clock_gettime() - start_time);
             }
-            printf("PE %d issued %lu locks\n", hclib::pe_for_locale(pe), nlocks);
+            printf("PE %d issued %lu locks\n", pe, nlocks);
         });
 
         hclib::shmem_barrier_all();

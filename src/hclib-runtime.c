@@ -290,9 +290,8 @@ static void load_dependencies(const char **module_dependencies,
                 module_name, module_name);
         void *handle = dlopen(module_path_buf, RTLD_LAZY);
         if (handle == NULL) {
-            fprintf(stderr, "Failed dynamically loading %s for \"%s\" "
+            fprintf(stderr, "WARNING: Failed dynamically loading %s for \"%s\" "
                     "dependency\n", module_path_buf, module_name);
-            exit(1);
         }
     }
 }
