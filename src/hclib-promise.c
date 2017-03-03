@@ -44,23 +44,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Control debug statements
 #define DEBUG_PROMISE 0
 
-#define EMPTY_DATUM_ERROR_MSG "can not put sentinel value for \"uninitialized\" as a value into promise"
+// Index value indicating that all dependencies are ready
+#define FUTURE_FRONTIER_EMPTY (-1)
 
-// For 'wait_list_head' when a promise has been satisfied
-#define PROMISE_SATISFIED NULL
-
-// For waiting frontier (last element of the list)
-#define UNINITIALIZED_PROMISE_WAITLIST_PTR ((hclib_triggered_task_t *) -1)
-#define EMPTY_FUTURE_WAITLIST_PTR NULL
-
-/**
- * Associate a triggered task to a promise list.
- */
-void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_future_t **futures, const int nfutures) {
-    memcpy(task->waiting_on, futures, nfutures * sizeof(hclib_future_t *));
-    task->waiting_on_index = -1;
-    task->next_waiting_on_same_future = NULL;
+static inline hclib_task_t **_next_waiting_task(hclib_task_t *t) {
+    HASSERT(t);
+    return &t->next_waiter;
 }
 
 /**
@@ -69,7 +58,7 @@ void hclib_triggered_task_init(hclib_triggered_task_t *task,
 void hclib_promise_init(hclib_promise_t *promise) {
     promise->satisfied = 0;
     promise->datum = UNINITIALIZED_PROMISE_DATA_PTR;
-    promise->wait_list_head = UNINITIALIZED_PROMISE_WAITLIST_PTR;
+    promise->wait_list_head = SENTINEL_FUTURE_WAITLIST_PTR;
     promise->future.owner = promise;
 }
 
@@ -111,10 +100,8 @@ hclib_promise_t **hclib_promise_create_n(size_t nb_promises,
  * Note: this is concurrent with the 'put' operation.
  */
 void *hclib_future_get(hclib_future_t *future) {
-    if (!future->owner->satisfied) {
-        return NULL;
-    }
-    return (void *)future->owner->datum;
+    HASSERT(future->owner->satisfied);
+    return future->owner->datum;
 }
 
 void *hclib_future_wait_and_get(hclib_future_t *future) {
@@ -146,31 +133,33 @@ void hclib_promise_free(hclib_promise_t *promise) {
     free(promise);
 }
 
-__inline__ int __register_if_promise_not_ready(hclib_triggered_task_t *wrapper_task,
+/** Returns '1' if the task was registered and is now waiting */
+static inline int _register_if_promise_not_ready(
+        hclib_task_t *task,
         hclib_future_t *future_to_check) {
+    HASSERT(task != SENTINEL_FUTURE_WAITLIST_PTR);
+
     int success = 0;
-    hclib_triggered_task_t *wait_list_of_future =
-        (hclib_triggered_task_t *)future_to_check->owner->wait_list_head;
+    hclib_promise_t *p = future_to_check->owner;
+    hclib_task_t *current_head = p->wait_list_head;
 
-    if (wait_list_of_future != EMPTY_FUTURE_WAITLIST_PTR) {
+    if (current_head != SATISFIED_FUTURE_WAITLIST_PTR) {
 
-        while (wait_list_of_future != EMPTY_FUTURE_WAITLIST_PTR && !success) {
-            // wait_list_of_future can not be EMPTY_FUTURE_WAITLIST_PTR in here
-            wrapper_task->next_waiting_on_same_future = wait_list_of_future;
+        while (current_head != SATISFIED_FUTURE_WAITLIST_PTR && !success) {
+            // current_head can not be SATISFIED_FUTURE_WAITLIST_PTR in here
+            *_next_waiting_task(task) = current_head;
 
             success = __sync_bool_compare_and_swap(
-                          &(future_to_check->owner->wait_list_head), wait_list_of_future,
-                          wrapper_task);
+                    &p->wait_list_head, current_head, task);
 
             /*
              * may have failed because either some other task tried to be the
              * head or a put occurred.
              */
             if (!success) {
-                wait_list_of_future =
-                    (hclib_triggered_task_t *)future_to_check->owner->wait_list_head;
+                current_head = p->wait_list_head;
                 /*
-                 * if wait_list_of_future was set to EMPTY_FUTURE_WAITLIST_PTR,
+                 * if current_head was set to SATISFIED_FUTURE_WAITLIST_PTR,
                  * the loop condition will handle that if another task was
                  * added, now try to add in front of that
                  */
@@ -184,33 +173,18 @@ __inline__ int __register_if_promise_not_ready(hclib_triggered_task_t *wrapper_t
 /**
  * Returns '1' if all promise dependencies have been satisfied.
  */
-int register_on_all_promise_dependencies(hclib_triggered_task_t *wrapper_task) {
-
+int register_on_all_promise_dependencies(hclib_task_t *wrapper_task) {
     while (wrapper_task->waiting_on_index < MAX_NUM_WAITS - 1) {
         wrapper_task->waiting_on_index++;
         hclib_future_t *curr = wrapper_task->waiting_on[wrapper_task->waiting_on_index];
         if (curr) {
-            if (__register_if_promise_not_ready(wrapper_task, curr)) {
+            if (_register_if_promise_not_ready(wrapper_task, curr)) {
                 return 0;
             }
         }
     }
 
     return 1;
-}
-
-//
-// Task conversion Implementation
-//
-
-hclib_task_t *rt_triggered_task_to_async_task(hclib_triggered_task_t *task) {
-    hclib_task_t *t = &(((hclib_task_t *)task)[-1]);
-    return t;
-}
-
-hclib_triggered_task_t *rt_async_task_to_triggered_task(
-    hclib_task_t *async_task) {
-    return &(((hclib_dependent_task_t *) async_task)->deps);
 }
 
 /**
@@ -225,13 +199,12 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put,
     HASSERT(promise_to_be_put->satisfied == 0 &&
              "violated single assignment property for promises");
 
-    volatile hclib_triggered_task_t *wait_list_of_promise =
+    hclib_task_t *wait_list_of_promise =
         promise_to_be_put->wait_list_head;
-    hclib_triggered_task_t *curr_task = NULL;
-    hclib_triggered_task_t *next_task = NULL;
 
     promise_to_be_put->datum = datum_to_be_put;
     promise_to_be_put->satisfied = 1;
+
     /*
      * Loop while this CAS fails, trying to atomically grab the list of tasks
      * dependent on the future of this promise. Anyone else who comes along will
@@ -240,15 +213,15 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put,
      */
     while (!__sync_bool_compare_and_swap(&(promise_to_be_put->wait_list_head),
                                          wait_list_of_promise,
-                                         EMPTY_FUTURE_WAITLIST_PTR)) {
+                                         SATISFIED_FUTURE_WAITLIST_PTR)) {
         wait_list_of_promise = promise_to_be_put->wait_list_head;
     }
 
-    curr_task = (hclib_triggered_task_t *)wait_list_of_promise;
+    hclib_task_t *curr_task = wait_list_of_promise;
+    hclib_task_t *next_task = NULL;
+    while (curr_task != SENTINEL_FUTURE_WAITLIST_PTR) {
 
-    while (curr_task != UNINITIALIZED_PROMISE_WAITLIST_PTR) {
-
-        next_task = curr_task->next_waiting_on_same_future;
+        next_task = *_next_waiting_task(curr_task);
         /*
          * For each task that was registered on this promise, we register on the
          * next promise in its list. If there are no remaining unsatisfied
@@ -256,12 +229,7 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put,
          * scheduling.
          */
         if (register_on_all_promise_dependencies(curr_task)) {
-            hclib_task_t *async_task = rt_triggered_task_to_async_task(
-                                           curr_task);
-            if (DEBUG_PROMISE) {
-                printf("promise: async_task %p\n", async_task);
-            }
-            try_schedule_async(async_task, CURRENT_WS_INTERNAL);
+            try_schedule_async(curr_task, CURRENT_WS_INTERNAL);
         }
 
         curr_task = next_task;

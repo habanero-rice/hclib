@@ -1,21 +1,6 @@
 #include "hclib_cpp.h"
 #include "hclib_future.h"
 
-hclib::promise_t **hclib::promise_create_n(const size_t nb_promises,
-        const int null_terminated) {
-    hclib::promise_t **promises = (hclib::promise_t **)malloc(
-                                      (null_terminated ? nb_promises + 1 : nb_promises) *
-                                      sizeof(hclib::promise_t *));
-    for (unsigned i = 0; i < nb_promises; i++) {
-        promises[i] = new promise_t();
-    }
-
-    if (null_terminated) {
-        promises[nb_promises] = NULL;
-    }
-    return promises;
-}
-
 hclib_worker_state *hclib::current_ws() {
     return CURRENT_WS_INTERNAL;
 }
@@ -48,20 +33,23 @@ hclib_locale_t **hclib::get_all_locales_of_type(int type, int *out_count) {
     return hclib_get_all_locales_of_type(type, out_count);
 }
 
-hclib::future_t *hclib::allocate_at(size_t nbytes, hclib::locale_t *locale) {
-    return new hclib::future_t(hclib_allocate_at(nbytes, locale));
+hclib::future_t<void*> *hclib::allocate_at(size_t nbytes, hclib::locale_t *locale) {
+    hclib_future_t *actual = hclib_allocate_at(nbytes, locale);
+    return (hclib::future_t<void*> *)actual;
 }
 
-hclib::future_t *hclib::reallocate_at(void *ptr, size_t nbytes,
+hclib::future_t<void*> *hclib::reallocate_at(void *ptr, size_t nbytes,
         hclib::locale_t *locale) {
-    return new hclib::future_t(hclib_reallocate_at(ptr, nbytes, locale));
+    hclib_future_t *actual = hclib_reallocate_at(ptr, nbytes, locale);
+    return (hclib::future_t<void*> *)actual;
 }
 
 void hclib::free_at(void *ptr, hclib::locale_t *locale) {
     hclib_free_at(ptr, locale);
 }
 
-hclib::future_t *hclib::memset_at(void *ptr, int pattern, size_t nbytes,
+hclib::future_t<void*> *hclib::memset_at(void *ptr, int pattern, size_t nbytes,
         hclib::locale_t *locale) {
-    return new hclib::future_t(hclib_memset_at(ptr, pattern, nbytes, locale));
+    hclib_future_t *actual = hclib_memset_at(ptr, pattern, nbytes, locale);
+    return (hclib::future_t<void*> *)actual;
 }

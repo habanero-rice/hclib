@@ -33,27 +33,23 @@ loop_dist_func hclib_lookup_dist_func(unsigned id) {
 
 void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **futures,
         const int nfutures, hclib_locale_t *locale) {
+    hclib_task_t *task = calloc(1, sizeof(*task));
+    HASSERT(task);
+
+    task->_fp = fp;
+    task->args = arg;
 
     if (nfutures > 0) {
-        hclib_dependent_task_t *task = calloc(1,
-                sizeof(hclib_dependent_task_t));
-        task->async_task._fp = fp;
-        task->async_task.args = arg;
-
         // locale may be NULL, in which case this is equivalent to spawn_await
-        spawn_await_at((hclib_task_t *)task, futures, nfutures, locale);
+        spawn_await_at(task, futures, nfutures, locale);
     } else {
-        hclib_task_t *task = calloc(1, sizeof(hclib_task_t));
-        task->_fp = fp;
-        task->args = arg;
-
         // locale may be NULL, in which case this is equivalent to spawn
         spawn_at(task, locale);
     }
 }
 
 void hclib_async_nb(generic_frame_ptr fp, void *arg, hclib_locale_t *locale) {
-    hclib_task_t *task = calloc(1, sizeof(hclib_task_t));
+    hclib_task_t *task = calloc(1, sizeof(*task));
     task->_fp = fp;
     task->args = arg;
     task->non_blocking = 1;
@@ -73,7 +69,8 @@ static void future_caller(void *in) {
 }
 
 hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
-        hclib_future_t **futures, const int nfutures, hclib_locale_t *locale) {
+                                   hclib_future_t **futures, const int nfutures,
+                                   hclib_locale_t *locale) {
     future_args_wrapper *wrapper = malloc(sizeof(future_args_wrapper));
     hclib_promise_init(&wrapper->event);
     wrapper->fp = fp;
@@ -91,21 +88,21 @@ hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
 
 inline forasync1D_task_t *allocate_forasync1D_task() {
     forasync1D_task_t *forasync_task = (forasync1D_task_t *)calloc(1,
-            sizeof(forasync1D_task_t));
+            sizeof(*forasync_task));
     HASSERT(forasync_task && "malloc failed");
     return forasync_task;
 }
 
 inline forasync2D_task_t *allocate_forasync2D_task() {
     forasync2D_task_t *forasync_task = (forasync2D_task_t *)calloc(1,
-            sizeof(forasync2D_task_t));
+            sizeof(*forasync_task));
     HASSERT(forasync_task && "malloc failed");
     return forasync_task;
 }
 
 inline forasync3D_task_t *allocate_forasync3D_task() {
     forasync3D_task_t *forasync_task = (forasync3D_task_t *)calloc(1,
-            sizeof(forasync3D_task_t));
+            sizeof(*forasync_task));
     HASSERT(forasync_task && "malloc failed");
     return forasync_task;
 }
@@ -419,11 +416,12 @@ void forasync3D_flat(void *forasync_arg) {
 }
 
 static void forasync_internal(void *user_fct_ptr, void *user_arg,
-                              int dim, hclib_loop_domain_t *loop_domain, forasync_mode_t mode) {
+                              int dim, const hclib_loop_domain_t *loop_domain,
+                              forasync_mode_t mode) {
     // All the sub-asyncs share async_def
 
     // The user loop code to execute
-    hclib_task_t *user_def = (hclib_task_t *)calloc(1, sizeof(hclib_task_t));
+    hclib_task_t *user_def = (hclib_task_t *)calloc(1, sizeof(*user_def));
     HASSERT(user_def);
     user_def->_fp = user_fct_ptr;
     user_def->args = user_arg;

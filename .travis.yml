@@ -1,0 +1,23 @@
+# Use Ubuntu 14.04 Trusty for GCC 4.8
+sudo: required
+dist: trusty
+language: cpp
+
+branches:
+  only:
+  - master
+
+matrix:
+  include:
+  - compiler: gcc
+  - compiler: clang
+
+before_install:
+- sudo apt-get update -qq
+- sudo apt-get install -y libxml2-dev
+
+script:
+- ./install.sh
+- . hclib-install/bin/hclib_setup_env.sh
+- pushd test/c/   && ./test_all.sh && popd
+- pushd test/cpp/ && ./test_all.sh && popd

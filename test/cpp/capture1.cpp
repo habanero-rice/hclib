@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+/* Copyright (c) 2013, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -27,73 +27,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- */
+*/
 
 /**
- * DESC: Fork a bunch of asyncs in a top-level loop
+ * DESC: Capture an lvalue function object
  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <unistd.h>
 
-#include "hclib.h"
+#include "hclib_cpp.h"
 
-#define H1 256
-#define T1 33
-
-//user written code
-void forasync_fct1(void *argv, int idx) {
-    int *ran = (int *)argv;
-
-    usleep(100000);
-
-    assert(ran[idx] == -1);
-    ran[idx] = idx;
-    printf("finished %d / %d\n", idx, H1);
-}
-
-void init_ran(int *ran, int size) {
-    while (size > 0) {
-        ran[size-1] = -1;
-        size--;
-    }
-}
-
-void entrypoint(void *arg) {
-    int *ran = (int *)arg;
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
-
-    init_ran(ran, H1);
-    hclib_loop_domain_t loop = {0, H1, 1, T1};
-
-    hclib_start_finish();
-    hclib_forasync((void *)forasync_fct1, (void*)ran, 1, &loop,
-            FORASYNC_MODE_FLAT);
-    hclib_future_t *event = hclib_end_finish_nonblocking();
-
-    hclib_future_wait(event);
-    printf("Call Finalize\n");
-}
+int ran = 0;
 
 int main (int argc, char ** argv) {
-    printf("Call Init\n");
-    int *ran=(int *)malloc(H1*sizeof(int));
-    assert(ran);
-
-    char const *deps[] = { "system" };
-    hclib_launch(entrypoint, ran, deps, 1);
-
-    printf("Check results: ");
-    int i = 0;
-    while(i < H1) {
-        if (ran[i] != i) {
-            fprintf(stderr, "Error on element %d / %d\n", i, H1);
-        }
-        assert(ran[i] == i);
-        i++;
-    }
-    printf("OK\n");
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [] {
+        hclib::finish([]() {
+            printf("Hello\n");
+            auto f = [=](){ ran = 1; };
+            hclib::async(f);
+        });
+    });
+    assert(ran == 1);
+    printf("Exiting...\n");
     return 0;
 }

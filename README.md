@@ -1,4 +1,3 @@
-=============================================
 HClib
 =============================================
 
@@ -12,44 +11,56 @@ is intended to be the intra-node resource management and scheduling component
 within an exascale programming system, integrating with inter-node communication
 models such as MPI, UPC++, or OpenSHMEM.
 
-=============================================
+[![Build Status](https://travis-ci.org/habanero-rice/hclib.svg?branch=master)](https://travis-ci.org/habanero-rice/hclib)
+
 Installation
-=============================================
+---------------------------------------------
 
 HClib follows your standard bootstrap, configure, and make installation
-procedure. An install.sh script is provided for your convenience while will
-build and install HClib. To build HClib using this install script:
+procedure. An install.sh script is provided for your convenience that will
+build and install HClib. Simply run the script to install:
 
-1) Set up the paths in scripts/setup.sh based on the provided template.
+    ./install.sh
 
-2) Source the setup script: cd scripts && source ./setup.sh && cd ..
+By default, HClib will be installed to `$PWD/hclib-install`. If you want to use
+a different installation location, you can override the `INSTALL_PREFIX`
+environment variable:
 
-3) ./install.sh
-   a) If you would like to use different C/C++ compilers (the defaults are
-      gcc/g++) then you can specify them using the CC and CXX environment
-      variables at this step. For example, if I wanted to use the Intel
-      compilers instead you would run:
+    INSTALL_PREFIX=/opt/local ./install.sh
 
-          CC=icc CXX=icpc ./install.sh
+Likewise, if you would like to use different C/C++ compilers other than the
+system defaults, then you can specify them using the `CC` and `CXX` environment
+variables. For example, if you want to use the Intel compilers:
 
-=============================================
+    CC=icc CXX=icpc ./install.sh
+
+You will need to set the `HCLIB_ROOT` environment variable to point to your
+HClib installation directory. You can automatically set this variable after
+installation by sourcing the `hclib_setup_env.sh` script. For example, assuming
+HClib was installed with `INSTALL_PREFIX=/opt/local`:
+
+    source /opt/local/bin/hclib_setup_env.sh
+
+
 Dependencies
-=============================================
+---------------------------------------------
 
-gcc (>= 4.9.0, must support -std=c++11)
+* automake
+* gcc >= 4.8.4, or clang >= 3.5
+  (must support -std=c++11)
+* libxml2 (with development headers)
 
-=============================================
+
 Testing
-=============================================
+---------------------------------------------
 
 The main regression tests for HClib are in the test/c and test/cpp folders. The
-test_all.sh scripts in each of those folders will automatically build and run
+`test_all.sh` scripts in each of those folders will automatically build and run
 all test cases.
 
 
-=============================================
 Static Checks
-=============================================
+---------------------------------------------
 
 As part of the development workflow for HClib, any newly committed code should
 be checked using standard static checking tools.

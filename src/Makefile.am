@@ -4,7 +4,7 @@ SUBDIRS =
 INCLUDES_DIR = -I$(top_srcdir)/inc -I$(top_srcdir)/src/inc -I$(top_srcdir)/src/fcontext -I$(JSMN_HOME)
 
 # cflags: important to define that otherwise we inherit default values too
-CFLAGS = -Wall -g -O3 -std=c99
+CFLAGS = -Wall -g -O3 -std=c11
 CXXFLAGS = -Wall -g -O3 -std=c++11
 
 LDFLAGS = -lpthread
@@ -34,8 +34,8 @@ lib_LTLIBRARIES = libhclib.la
 noinst_LTLIBRARIES =
 libhclib_la_LIBADD =
 
-AM_CXXFLAGS = $(HC_FLAGS_VERBOSE) $(HC_FLAGS_STATS) $(PRODUCTION_SETTINGS_FLAGS) \
-			  -I$(LIBXML2_INCLUDE)
+AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) $(HC_FLAGS_4) \
+			  $(PRODUCTION_SETTINGS_FLAGS) $(shell xml2-config --cflags)
 libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-promise.c \
 					  hclib-timer.c hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c \
 					  hclib_module.cpp hclib-fptr-list.c hclib-mem.c hclib-instrument.c \

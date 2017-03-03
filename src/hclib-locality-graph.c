@@ -345,7 +345,8 @@ static void initialize_locale(hclib_locale_t *locale, int id, const char *lbl,
     locale->special_type = NULL;
     locale->idle_funcs = NULL;
     locale->n_idle_funcs = 0;
-    locale->deques = (hclib_deque_t *)calloc(nworkers, sizeof(hclib_deque_t));
+    locale->deques = (hclib_deque_t *)calloc(nworkers,
+            sizeof(*(locale->deques)));
     assert(locale->deques);
     for (i = 0; i < nworkers; i++) {
         hclib_deque_t *deq = locale->deques + i;

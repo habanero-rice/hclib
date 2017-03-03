@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Rice University
+/* Copyright (c) 2013, Rice University
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -30,28 +30,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /**
- * DESC: Fork a bunch of asyncs in a top-level loop
+ * DESC: Counting lambda copies when using forasync
  */
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <unistd.h>
 
-#include "hclib.h"
+#include "hclib_cpp.h"
 
-#define H1 256
-#define T1 33
-
-//user written code
-void forasync_fct1(void *argv, int idx) {
-    int *ran = (int *)argv;
-
-    usleep(100000);
-
-    assert(ran[idx] == -1);
-    ran[idx] = idx;
-    printf("finished %d / %d\n", idx, H1);
-}
+#define H3 1024
+#define H2 512
+#define H1 16
+#define T3 33
+#define T2 217
+#define T1 7
 
 void init_ran(int *ran, int size) {
     while (size > 0) {
@@ -60,40 +52,63 @@ void init_ran(int *ran, int size) {
     }
 }
 
-void entrypoint(void *arg) {
-    int *ran = (int *)arg;
-    // This is ok to have these on stack because this
-    // code is alive until the end of the program.
+#include <atomic>
+std::atomic<int> globalCopies;
+std::atomic<int> globalMoves;
 
-    init_ran(ran, H1);
-    hclib_loop_domain_t loop = {0, H1, 1, T1};
+struct CopyCounter {
+    int copies;
+    int moves;
 
-    hclib_start_finish();
-    hclib_forasync((void *)forasync_fct1, (void*)ran, 1, &loop,
-            FORASYNC_MODE_FLAT);
-    hclib_future_t *event = hclib_end_finish_nonblocking();
+    CopyCounter(): copies(0), moves(0) {
+        printf("Created new counter object.\n");
+    }
 
-    hclib_future_wait(event);
-    printf("Call Finalize\n");
-}
+    CopyCounter(const CopyCounter &other):
+        copies(other.copies+1), moves(other.moves) {
+            globalCopies++;
+        }
+
+    CopyCounter(const CopyCounter &&other):
+        copies(other.copies), moves(other.moves+1) {
+            globalMoves++;
+        }
+};
+
+
 
 int main (int argc, char ** argv) {
     printf("Call Init\n");
-    int *ran=(int *)malloc(H1*sizeof(int));
-    assert(ran);
+    int *ran=(int *)malloc(H1*H2*H3*sizeof(int));
 
-    char const *deps[] = { "system" };
-    hclib_launch(entrypoint, ran, deps, 1);
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [=] {
+        // This is ok to have these on stack because this
+        // code is alive until the end of the program.
+
+        init_ran(ran, H1*H2*H3);
+        hclib::finish([=]() {
+            CopyCounter k {};
+            hclib::loop_domain_3d *loop = new hclib::loop_domain_3d(0, H1, T1,
+                0, H2, T2, 0, H3, T3);
+            hclib::forasync3D(loop, [=](int idx1, int idx2, int idx3) {
+                        assert(ran[idx1*H2*H3+idx2*H3+idx3] == -1);
+                        ran[idx1*H2*H3+idx2*H3+idx3] = idx1*H2*H3+idx2*H3+idx3;
+                    },
+                    false, FORASYNC_MODE_RECURSIVE);
+        });
+    });
 
     printf("Check results: ");
     int i = 0;
-    while(i < H1) {
-        if (ran[i] != i) {
-            fprintf(stderr, "Error on element %d / %d\n", i, H1);
-        }
+    while(i < H1*H2*H3) {
         assert(ran[i] == i);
         i++;
     }
+    free(ran);
+    printf("Counted %d copies, %d moves...\n",
+            int(globalCopies), int(globalMoves));
+    assert(globalCopies + globalMoves <= 2);
     printf("OK\n");
     return 0;
 }

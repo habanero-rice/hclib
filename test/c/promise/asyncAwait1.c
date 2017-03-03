@@ -42,7 +42,7 @@ void entrypoint(void *arg) {
         promise_list[index] = hclib_promise_create();
     }
 
-    for(index = n - 1; index >= 1; index--) {
+    for(index = n; index >= 1; index--) {
         // Build async's arguments
         // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
         void ** argv = (void **)malloc(sizeof(void *) * 3);

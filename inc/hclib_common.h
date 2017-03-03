@@ -1,6 +1,8 @@
 #ifndef HCLIB_COMMON_H_
 #define HCLIB_COMMON_H_
 
+#include "hclib_config.h"
+
 /*
  * Default async arguments
  */

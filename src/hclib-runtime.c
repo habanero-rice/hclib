@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include <sys/time.h>
 #include <dlfcn.h>
+#include <stddef.h>
 
 #include <hclib.h>
 #include <hclib-internal.h>
@@ -128,7 +129,6 @@ unsigned long long hclib_current_time_ns() {
 unsigned long long hclib_current_time_ms() {
     return current_time_ns() / 1000000;
 }
-
 
 static void set_current_worker(int wid) {
     int err;
@@ -258,12 +258,12 @@ void hclib_global_init() {
             nworkers * sizeof(worker_done_t));
     HASSERT(perr == 0);
     hc_context->workers = (hclib_worker_state **)calloc(nworkers,
-            sizeof(hclib_worker_state *));
+            sizeof(*(hc_context->workers)));
     assert(hc_context->workers);
 
     for (int i = 0; i < hc_context->nworkers; i++) {
         hclib_worker_state *ws = (hclib_worker_state *)calloc(1,
-                sizeof(hclib_worker_state));
+                sizeof(*ws));
         ws->context = hc_context;
         ws->id = i;
         ws->nworkers = hc_context->nworkers;
@@ -339,7 +339,7 @@ static void hclib_entrypoint(const char **module_dependencies,
 
 #ifdef HCLIB_STATS
     worker_stats = (per_worker_stats *)calloc(hc_context->nworkers,
-            sizeof(per_worker_stats));
+            sizeof(*worker_stats));
     HASSERT(worker_stats);
 #endif
 
@@ -415,7 +415,7 @@ static inline void check_out_finish(finish_t *finish) {
 }
 
 static inline void execute_task(hclib_task_t *task) {
-    finish_t *current_finish = get_current_finish(task);
+    finish_t *current_finish = task->current_finish;
     /*
      * Update the current finish of this worker to be inherited from the
      * currently executing task so that any asyncs spawned from the currently
@@ -435,7 +435,7 @@ static inline void execute_task(hclib_task_t *task) {
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
     (task->_fp)(task->args);
     check_out_finish(current_finish);
-    HC_FREE(task);
+    free(task);
 }
 
 static inline void rt_schedule_async(hclib_task_t *async_task,
@@ -490,10 +490,8 @@ static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
             async_task, async_task->singleton_future_0);
 #endif
     // If any futures are non-null, the first must be non-null
-    if (async_task->futures[0]) {
-        hclib_triggered_task_t *triggered_task = (hclib_triggered_task_t *)
-                rt_async_task_to_triggered_task(async_task);
-        return register_on_all_promise_dependencies(triggered_task);
+    if (async_task->waiting_on[0]) {
+        return register_on_all_promise_dependencies(async_task);
     } else {
         return 1;
     }
@@ -536,9 +534,8 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
                     "%d\n", nfutures, MAX_NUM_WAITS);
             exit(1);
         }
-        memcpy(task->futures, futures, nfutures * sizeof(hclib_future_t *));
-        hclib_dependent_task_t *t = (hclib_dependent_task_t *) task;
-        hclib_triggered_task_init(&(t->deps), futures, nfutures);
+        memcpy(task->waiting_on, futures, nfutures * sizeof(hclib_future_t *));
+        task->waiting_on_index = -1;
     }
 
 #ifdef VERBOSE
@@ -576,7 +573,8 @@ void spawn_await(hclib_task_t *task, hclib_future_t **futures,
 }
 
 static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
-        const int on_fresh_ctx, volatile int *flag, const int flag_val) {
+        const int on_fresh_ctx, volatile int *flag, const int flag_val,
+        finish_t *current_finish) {
     hclib_task_t *task = locale_pop_task(ws);
 
     if (!task) {
@@ -594,7 +592,20 @@ static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
 
     if (task == NULL) {
         return NULL;
-    } else if (task && (on_fresh_ctx || task->non_blocking)) {
+    } else if (task && (on_fresh_ctx || task->non_blocking ||
+                (task->current_finish && task->current_finish == current_finish))) {
+        /*
+         * If the retrieved task is either:
+         *
+         *   1) Non-blocking.
+         *   2) Blocking and we know we have a fresh context we don't mind
+         *      swapping out if we have to.
+         *   3) We are doing this find_and_run_task as part of a help_finish at
+         *      an end-finish, and the task we found to execute is also part of
+         *      that same finish scope.
+         *
+         * then execute immediately.
+         */
         execute_task(task);
         return NULL;
     } else {
@@ -621,7 +632,7 @@ static void core_work_loop(hclib_task_t *starting_task) {
         hclib_worker_state *ws = CURRENT_WS_INTERNAL;
         wid = (uint64_t)ws->id;
         hclib_task_t *must_be_null = find_and_run_task(ws, 1,
-                &(hc_context->done_flags[wid].flag), 0);
+                &(hc_context->done_flags[wid].flag), 0, NULL);
         HASSERT(must_be_null == NULL);
     } while (hc_context->done_flags[wid].flag);
 
@@ -645,7 +656,7 @@ static void crt_work_loop(LiteCtx *ctx) {
  * context to switch from and create a lightweight context to switch to, which
  * enters crt_work_loop immediately, moving into the main work loop, eventually
  * swapping back to the proxy task
- * to clean up this worker thread when the worker thread is signalled to exit.
+ * to clean up this worker thread when the worker thread is signaled to exit.
  */
 static void *worker_routine(void *args) {
     const int wid = *((int *)args);
@@ -685,8 +696,10 @@ static void _finish_ctx_resume(void *arg) {
     LiteCtx *finishCtx = arg;
     ctx_swap(currentCtx, finishCtx, __func__);
 
+#ifdef VERBOSE
     fprintf(stderr, "Should not have reached here, currentCtx=%p "
             "finishCtx=%p\n", currentCtx, finishCtx);
+#endif
     HASSERT(0);
 }
 
@@ -699,11 +712,10 @@ void _help_wait(LiteCtx *ctx) {
     hclib_task_t *starting_task = ctx->arg2;
     LiteCtx *wait_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)calloc(
-            1, sizeof(hclib_dependent_task_t));
+    hclib_task_t *task = calloc(1, sizeof(*task));
     HASSERT(task);
-    task->async_task._fp = _finish_ctx_resume; // reuse _finish_ctx_resume
-    task->async_task.args = wait_ctx;
+    task->_fp = _finish_ctx_resume; // reuse _finish_ctx_resume
+    task->args = wait_ctx;
 
     spawn_escaping((hclib_task_t *)task, continuation_dep);
 
@@ -719,17 +731,20 @@ void *hclib_future_wait(hclib_future_t *future) {
     if (future->owner->satisfied) {
         return (void *)future->owner->datum;
     }
+
 #ifdef HCLIB_STATS
     worker_stats[CURRENT_WS_INTERNAL->id].count_future_waits++;
 #endif
-    finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
+    // save current finish scope (in case of worker swap)
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    finish_t *current_finish = ws->current_finish;
+
     hclib_task_t *need_to_swap_ctx = NULL;
     while (future->owner->satisfied == 0 &&
             need_to_swap_ctx == NULL) {
         need_to_swap_ctx = find_and_run_task(ws, 0,
-                &(future->owner->satisfied), 1);
+                &(future->owner->satisfied), 1, NULL);
     }
 
     if (need_to_swap_ctx) {
@@ -738,18 +753,19 @@ void *hclib_future_wait(hclib_future_t *future) {
         LiteCtx *newCtx = LiteCtx_create(_help_wait);
         newCtx->arg1 = future;
         newCtx->arg2 = need_to_swap_ctx;
+
 #ifdef HCLIB_STATS
         worker_stats[CURRENT_WS_INTERNAL->id].count_ctx_creates++;
 #endif
+
         ctx_swap(currentCtx, newCtx, __func__);
         LiteCtx_destroy(currentCtx->prev);
     }
-
-    // Restore the finish state from before the wait
+    // restore current finish scope (in case of worker swap)
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 
     HASSERT(future->owner->satisfied);
-    return (void *)future->owner->datum;
+    return future->owner->datum;
 }
 
 /*
@@ -771,11 +787,11 @@ static void _help_finish_ctx(LiteCtx *ctx) {
     HASSERT(finish && starting_task);
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
-    hclib_dependent_task_t *task = (hclib_dependent_task_t *)calloc(
-            1, sizeof(hclib_dependent_task_t));
+    hclib_task_t *task = (hclib_task_t *)calloc(
+            1, sizeof(*task));
     HASSERT(task);
-    task->async_task._fp = _finish_ctx_resume;
-    task->async_task.args = hclib_finish_ctx;
+    task->_fp = _finish_ctx_resume;
+    task->args = hclib_finish_ctx;
 
     /*
      * Create an async to handle the continuation after the finish, whose state
@@ -812,7 +828,8 @@ void help_finish(finish_t *finish) {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     hclib_task_t *need_to_swap_ctx = NULL;
     while (finish->counter > 1 && need_to_swap_ctx == NULL) {
-        need_to_swap_ctx = find_and_run_task(ws, 0, &(finish->counter), 1);
+        need_to_swap_ctx = find_and_run_task(ws, 0, &(finish->counter), 1,
+                finish);
     }
 
     if (need_to_swap_ctx) {
@@ -851,7 +868,7 @@ static void yield_helper(LiteCtx *ctx) {
     hclib_locale_t *locale = ctx->arg2;
 
     hclib_task_t *continuation = (hclib_task_t *)calloc(1,
-            sizeof(hclib_task_t));
+            sizeof(*continuation));
     HASSERT(continuation);
     continuation->_fp = _finish_ctx_resume;
     continuation->args = ctx->prev;
@@ -913,7 +930,7 @@ void hclib_yield(hclib_locale_t *locale) {
 
 void hclib_start_finish() {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    finish_t *finish = (finish_t *)calloc(1, sizeof(finish_t));
+    finish_t *finish = (finish_t *)calloc(1, sizeof(*finish));
     HASSERT(finish);
     /*
      * Set finish counter to 1 initially to emulate the main thread inside the
@@ -929,6 +946,9 @@ void hclib_start_finish() {
      */
     finish->counter = 1;
     finish->parent = ws->current_finish;
+#if HCLIB_LITECTX_STRATEGY
+    finish->finish_deps = NULL;
+#endif
     check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
 
@@ -959,10 +979,12 @@ void hclib_end_finish() {
             "of %p to %p from %p\n", CURRENT_WS_INTERNAL,
             current_finish->parent, current_finish);
 #endif
+    // Don't reuse worker-state! (we might not be on the same worker anymore)
     CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
-    HC_FREE(current_finish);
+    free(current_finish);
 }
 
+// Based on help_finish
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 #ifdef HCLIB_STATS
@@ -995,12 +1017,6 @@ hclib_future_t *hclib_end_finish_nonblocking() {
 
 int hclib_get_num_workers() {
     return hc_context->nworkers;
-}
-
-double mysecond() {
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    return tv.tv_sec + ((double) tv.tv_usec / 1000000);
 }
 
 void hclib_user_harness_timer(double dur) {

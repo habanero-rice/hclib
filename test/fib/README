@@ -1,0 +1,14 @@
+This is a stress test doing a recursive calculation of Fibonacci numbers.
+To build and run the example for Fib(5), simply "make run". You can change
+the Fibonacci number by setting the WORKLOAD_ARGS environment variable.
+
+    make run WORKLOAD_ARGS=10
+
+By default, the program uses an async/finish strategy to compute Fib(N).
+You can execute a version using futures for synchronization instead
+(i.e., data-driven tasks, or DDTs) by passing a second argument:
+
+    make run WORKLOAD_ARGS="10 DDT"
+
+The value of the second argument doesn't actually matter, since the logic
+just checks to see if it is present.

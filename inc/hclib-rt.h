@@ -83,6 +83,9 @@ typedef struct _hclib_worker_state {
     char *module_state;
 } hclib_worker_state;
 
+#define HCLIB_MACRO_CONCAT(x, y) _HCLIB_MACRO_CONCAT_IMPL(x, y)
+#define _HCLIB_MACRO_CONCAT_IMPL(x, y) x ## y
+
 #ifdef HC_ASSERTION_CHECK
 #define HASSERT(cond) { \
     if (!(cond)) { \
@@ -96,13 +99,22 @@ typedef struct _hclib_worker_state {
 #define HASSERT(cond)       // Do Nothing
 #endif
 
+#if defined(static_assert) || __cplusplus >= 201103L // defined in C11, C++11
+#define HASSERT_STATIC static_assert
+#elif __STDC_VERSION__ >= 201112L // C11
+#define HASSERT_STATIC _Static_assert
+#elif defined(__COUNTER__)
+#define HASSERT_STATIC(COND, MSG) \
+typedef int HCLIB_MACRO_CONCAT(_hc_static_assert, __COUNTER__)[(COND) ? 1 : -1]
+#elif defined(HC_ASSERTION_CHECK)
+#warning "Static assertions are not available"
+#endif
+
 #define CURRENT_WS_INTERNAL ((hclib_worker_state *) pthread_getspecific(ws_key))
 
 int hclib_get_current_worker();
 hclib_worker_state* current_ws();
 
-#define HC_MALLOC(msize)	malloc(msize)
-#define HC_FREE(p)			free(p)
 typedef void (*generic_frame_ptr)(void*);
 
 #include "hclib-timer.h"

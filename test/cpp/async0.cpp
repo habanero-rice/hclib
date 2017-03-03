@@ -45,7 +45,7 @@ int main (int argc, char ** argv) {
     hclib::launch(deps, 1, []() {
         hclib::finish([]() {
             printf("Hello\n");
-            hclib::async([=](){ ran = 1; });
+            hclib::async([&](){ ran = 1; });
         });
     });
     assert(ran == 1);

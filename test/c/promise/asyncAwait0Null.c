@@ -44,12 +44,13 @@ void entrypoint(void *arg) {
         // Build async's arguments
         // Pass down the whole promise_list, and async uses index*2 to resolve promises it needs
         void ** argv = (void **)malloc(sizeof(void *) * 3);
+        hclib_future_t *fut = hclib_get_future_for_promise(promise_list[index - 1]);
+
         argv[0] = malloc(sizeof(int));
         *((int *)argv[0]) = index;
-        argv[1] = (void *)hclib_get_future_for_promise(promise_list[index - 1]);
+        argv[1] = (void *)fut;
         argv[2] = (void *)promise_list[index];
 
-        hclib_future_t *fut = hclib_get_future_for_promise(promise_list[index - 1]);
         hclib_async(async_fct, argv, &fut, 1, ANY_PLACE);
     }
 

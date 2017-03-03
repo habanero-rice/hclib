@@ -10,7 +10,11 @@ TARGETS=async0 async1 finish0 finish1 finish2  forasync1DCh  forasync1DRec \
 
 FLAGS=-g
 
-all: $(TARGETS)
+all: $(TARGETS) targets.txt
+
+.PHONY: targets.txt # always update
+targets.txt:
+	@echo "$(TARGETS)" > $@
 
 %: %.c
 	gcc ${FLAGS} $(HCLIB_CFLAGS) $(HCLIB_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS)

@@ -70,46 +70,23 @@ typedef struct _hclib_future_t {
     struct hclib_promise_st *owner;
 } hclib_future_t;
 
-/*
- * Optional callback that can be registered on a future immediately prior to
- * doing a blocking wait, to give external modules the opportunity to insert
- * some logic before suspending the current task.
- */
-typedef void (*pre_wait_callback)(hclib_future_t *fut);
-
-/**
- * An hclib_triggered_task_t associates dependent tasks and the promises that
- * trigger their execution. This is exposed so that the runtime knows the size
- * of the struct.
- */
-typedef struct hclib_triggered_task_st {
-    // NULL-terminated list of futures this task is registered on
-    hclib_future_t *waiting_on[MAX_NUM_WAITS + 1];
-    int waiting_on_index;
-    /*
-     * This allows us to chain all dependent tasks waiting on a same promise.
-     * Whenever a triggered task wants to register on a promise, and that
-     * promise is not ready, we chain the current triggered task and the
-     * promise's wait_list_head and try to cas on the promise's wait_list_head,
-     * with the current triggered task.
-     */
-    struct hclib_triggered_task_st *next_waiting_on_same_future;
-} hclib_triggered_task_t;
+struct hclib_task_t;
 
 // We define a typedef in this unit for convenience
 typedef struct hclib_promise_st {
     hclib_future_t future;
     volatile int satisfied;
-    volatile void *datum;
+    void *volatile datum;
     /*
      * List of tasks that are awaiting the satisfaction of this promise.
-     * wait_list_head is initialized to UNINITIALIZED_PROMISE_WAITLIST_PTR when
+     * wait_list_head is initialized to SENTINEL_FUTURE_WAITLIST_PTR when
      * the promise has no dependent tasks and swapped out to point to different
      * tasks as a chained list of tasks is created hanging off of this promise.
-     * When the promise is satisfied, this is set to EMPTY_FUTURE_WAITLIST_PTR
-     * to indicate that no chaining needs to occur anymore.
+     * When the promise is satisfied, this is set to
+     * SATISFIED_FUTURE_WAITLIST_PTR to indicate that no chaining needs to occur
+     * anymore.
      */
-    volatile hclib_triggered_task_t *wait_list_head;
+    struct hclib_task_t *volatile wait_list_head;
 } hclib_promise_t;
 
 /**
@@ -179,11 +156,5 @@ void *hclib_future_wait_and_get(hclib_future_t *future);
  * Check if a value has been put on the corresponding promise.
  */
 int hclib_future_is_satisfied(hclib_future_t *future);
-
-/*
- * Some extras
- */
-void hclib_triggered_task_init(hclib_triggered_task_t *task,
-        hclib_future_t **futures, const int nfutures);
 
 #endif /* HCLIB_PROMISE_H_ */

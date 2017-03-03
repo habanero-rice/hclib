@@ -141,7 +141,8 @@ typedef int forasync_mode_t;
 /** @brief Forasync mode to perform static chunking of the iteration space. */
 #define FORASYNC_MODE_FLAT 0
 /** @brief To indicate an async need not register with any finish scopes. */
-#define ESCAPING_ASYNC      ((int) 0x2)
+#define ESCAPING_ASYNC ((int) 0x2)
+#define COMM_ASYNC     ((int) 0x4)
 
 /**
  * @brief Function prototype for a 1-dimension forasync.
