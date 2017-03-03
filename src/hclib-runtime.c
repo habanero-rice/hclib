@@ -943,6 +943,9 @@ void *hclib_future_wait(hclib_future_t *future) {
         return future->owner->datum;
     }
 
+    // save current finish scope (in case of worker swap)
+    finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+
     hclib_future_t *continuation_deps[] = { future, NULL };
     LiteCtx *currentCtx = get_curr_lite_ctx();
     HASSERT(currentCtx);
@@ -950,6 +953,9 @@ void *hclib_future_wait(hclib_future_t *future) {
     newCtx->arg = continuation_deps;
     ctx_swap(currentCtx, newCtx, __func__);
     LiteCtx_destroy(currentCtx->prev);
+
+    // restore current finish scope (in case of worker swap)
+    CURRENT_WS_INTERNAL->current_finish = current_finish;
 
     HASSERT(_hclib_promise_is_satisfied(future->owner) &&
             "promise must be satisfied before returning from wait");
