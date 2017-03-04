@@ -79,6 +79,7 @@ typedef struct _hclib_locality_path {
 typedef struct _hclib_worker_paths {
     hclib_locality_path *pop_path;
     hclib_locality_path *steal_path;
+    int last_successful_steal;
 } hclib_worker_paths;
 
 extern void load_locality_info(const char *filename, int *nworkers_out,

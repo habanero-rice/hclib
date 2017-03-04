@@ -498,18 +498,16 @@ void load_locality_info(const char *filename, int *nworkers_out,
     }
     token_index = edge_index;
 
-    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers * sizeof(hclib_worker_paths));
+    hclib_worker_paths *worker_paths = (hclib_worker_paths *)calloc(nworkers,
+            sizeof(*worker_paths));
     assert(worker_paths);
-    memset(worker_paths, 0x00, nworkers * sizeof(hclib_worker_paths));
 
-    hclib_locality_path **worker_pop_paths = (hclib_locality_path **)malloc(
-            nworkers * sizeof(hclib_locality_path *));
+    hclib_locality_path **worker_pop_paths = (hclib_locality_path **)calloc(
+            nworkers, sizeof(*worker_pop_paths));
     assert(worker_pop_paths);
-    memset(worker_pop_paths, 0x00, nworkers * sizeof(hclib_locality_path *));
-    hclib_locality_path **worker_steal_paths = (hclib_locality_path **)malloc(
-            nworkers * sizeof(hclib_locality_path *));
+    hclib_locality_path **worker_steal_paths = (hclib_locality_path **)calloc(
+            nworkers, sizeof(*worker_steal_paths));
     assert(worker_steal_paths);
-    memset(worker_steal_paths, 0x00, nworkers * sizeof(hclib_locality_path *));
 
     jsmntok_t *default_pop_path_token = NULL;
     jsmntok_t *default_steal_path_token = NULL;
@@ -572,6 +570,12 @@ static char *create_heap_allocated_str(const char *s) {
     return heap_allocated;
 }
 
+/*
+ * Generates a default locality graph consisting of one central node (ostensibly
+ * representing some shared, high-latency, system memory) and one node hanging
+ * off of the central node for each worker (allowing each worker to still be
+ * individually targetable if we want to.
+ */
 void generate_locality_info(int *nworkers_out,
         hclib_locality_graph **graph_out,
         hclib_worker_paths **worker_paths_out) {
@@ -599,8 +603,8 @@ void generate_locality_info(int *nworkers_out,
             sizeof(unsigned));
     assert(graph->edges);
 
-    hclib_worker_paths *worker_paths = (hclib_worker_paths *)malloc(nworkers *
-            sizeof(hclib_worker_paths));
+    hclib_worker_paths *worker_paths = (hclib_worker_paths *)calloc(nworkers,
+            sizeof(*worker_paths));
     assert(worker_paths);
 
     initialize_locale(graph->locales + 0, 0,
@@ -614,15 +618,19 @@ void generate_locality_info(int *nworkers_out,
         graph->edges[i * graph->n_locales + 0] = 1;
         graph->edges[0 * graph->n_locales + i] = 1;
 
-        worker_paths[i - 1].pop_path = (hclib_locality_path *)malloc(sizeof(hclib_locality_path));
+        worker_paths[i - 1].pop_path = (hclib_locality_path *)malloc(
+                sizeof(hclib_locality_path));
         worker_paths[i - 1].pop_path->path_length = 2;
-        worker_paths[i - 1].pop_path->locales = (hclib_locale_t **)malloc(2 * sizeof(hclib_locale_t *));
+        worker_paths[i - 1].pop_path->locales = (hclib_locale_t **)malloc(
+                2 * sizeof(hclib_locale_t *));
         worker_paths[i - 1].pop_path->locales[0] = graph->locales + i;
         worker_paths[i - 1].pop_path->locales[1] = graph->locales + 0;
 
-        worker_paths[i - 1].steal_path = (hclib_locality_path *)malloc(sizeof(hclib_locality_path));
+        worker_paths[i - 1].steal_path = (hclib_locality_path *)malloc(
+                sizeof(hclib_locality_path));
         worker_paths[i - 1].steal_path->path_length = 2;
-        worker_paths[i - 1].steal_path->locales = (hclib_locale_t **)malloc(2 * sizeof(hclib_locale_t *));
+        worker_paths[i - 1].steal_path->locales = (hclib_locale_t **)malloc(
+                2 * sizeof(hclib_locale_t *));
         worker_paths[i - 1].steal_path->locales[0] = graph->locales + i;
         worker_paths[i - 1].steal_path->locales[1] = graph->locales + 0;
     }
@@ -647,6 +655,8 @@ void check_locality_graph(hclib_locality_graph *graph,
         for (j = 0; j < curr->steal_path->path_length; j++) {
             reachable[curr->steal_path->locales[j]->id] = 1;
         }
+        // Check appropriately initialized
+        assert(curr->last_successful_steal == 0);
     }
 
     for (i = 0; i < graph->n_locales; i++) {
@@ -848,8 +858,11 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
 
     MARK_SEARCH(wid); // Set the state of this worker for timing
 
-    for (i = 0; i < steal->path_length; i++) {
-        hclib_locale_t *locale = steal->locales[i];
+    const int last_successful = paths->last_successful_steal;
+    const int steal_path_length = steal->path_length;
+    for (i = 0; i < steal_path_length; i++) {
+        const int locale_index = (last_successful + i) % steal_path_length;
+        hclib_locale_t *locale = steal->locales[locale_index];
         hclib_deque_t *deqs = locale->deques;
 
         for (j = 1; j < nworkers; j++) {
@@ -869,6 +882,7 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
                         "successfully stole task %p\n", wid, i, locale,
                         locale->deques, locale->lbl, victim, task);
 #endif
+                paths->last_successful_steal = locale_index;
                 return task;
             }
         }
