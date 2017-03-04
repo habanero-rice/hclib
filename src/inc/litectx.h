@@ -109,7 +109,7 @@ static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
  * Proxy contexts represent contexts that have an externally-managed
  * stack (e.g., the original context of a pthread).
  */
-static __inline__ LiteCtx *LiteCtx_proxy_create(const char *lbl) {
+static __inline__ LiteCtx *LiteCtx_proxy_create(const char *lbl __attribute__((unused))) {
     LiteCtx *ctx = (LiteCtx *)LITECTX_ALLOC(sizeof(*ctx));
 #ifdef OVERFLOW_PROTECT
     memset(((unsigned char *)ctx) + OVERFLOW_PADDING_SIZE, 0, sizeof(*ctx) - OVERFLOW_PADDING_SIZE);
@@ -180,7 +180,7 @@ static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
  * more sensible error message.
  */
 static __inline__ LiteCtx *LiteCtx_swap(LiteCtx *current, LiteCtx *next,
-        const char *lbl) {
+        const char *lbl __attribute__((unused))) {
 #ifdef VERBOSE
     fprintf(stderr, "LiteCtx_swap[%s]: current=%p(%p) next=%p(%p) on pthread "
             "%p\n", lbl, current, current->_fctx.sp, next, next->_fctx.sp,

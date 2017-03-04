@@ -136,7 +136,7 @@ inline void initialize_task(hclib_task_t *t, Function lambda_caller,
  * (including its captured variables), which will be pointed to from the task_t.
  */
 template <typename T>
-inline hclib_task_t* _allocate_async(T *lambda_on_heap, const bool await) {
+inline hclib_task_t* _allocate_async(T *lambda_on_heap) {
     // create off-stack storage for this task
 	hclib_task_t* task = (hclib_task_t*)calloc(1, sizeof(*task));
     initialize_task(task, call_lambda<T>, lambda_on_heap);
@@ -147,7 +147,7 @@ template <typename T>
 inline void async(T &&lambda) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-	hclib_task_t* task = _allocate_async<U>(new U(lambda), false);
+	hclib_task_t* task = _allocate_async<U>(new U(lambda));
 	spawn(task);
 }
 
@@ -155,7 +155,7 @@ template <typename T>
 inline void async_at(T &&lambda, hclib_locale_t *locale) {
     MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t* task = _allocate_async<U>(new U(lambda), false);
+    hclib_task_t* task = _allocate_async<U>(new U(lambda));
     spawn_at(task, locale);
 }
 
@@ -163,7 +163,7 @@ template <typename T>
 inline void async_nb(T &&lambda) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *task = _allocate_async<U>(new U(lambda), false);
+    hclib_task_t *task = _allocate_async<U>(new U(lambda));
     task->non_blocking = 1;
 	spawn(task);
 }
@@ -172,7 +172,7 @@ template <typename T>
 inline void async_nb_at(T &&lambda, hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *task = _allocate_async<U>(new U(lambda), false);
+    hclib_task_t *task = _allocate_async<U>(new U(lambda));
     task->non_blocking = 1;
 	spawn_at(task, locale);
 }
@@ -181,7 +181,7 @@ template <typename T>
 inline void async_nb_await(T &&lambda, hclib_future_t *future) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-	hclib_task_t* task = _allocate_async<U>(new U(lambda), true);
+	hclib_task_t* task = _allocate_async<U>(new U(lambda));
     task->non_blocking = 1;
 	spawn_await(task, future ? &future : NULL, future ? 1 : 0);
 }
@@ -191,7 +191,7 @@ inline void async_nb_await_at(T &&lambda, hclib_future_t *fut,
         hclib_locale_t *locale) {
     MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *task = _allocate_async<U>(new U(lambda), true);
+    hclib_task_t *task = _allocate_async<U>(new U(lambda));
     task->non_blocking = 1;
     spawn_await_at(task, fut ? &fut : NULL, fut ? 1 : 0, locale);
 }
@@ -200,7 +200,7 @@ template <typename T>
 inline void async_await(T &&lambda, hclib_future_t *future) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-	hclib_task_t* task = _allocate_async<U>(new U(lambda), true);
+	hclib_task_t* task = _allocate_async<U>(new U(lambda));
 	spawn_await(task, future ? &future : NULL, future ? 1 : 0);
 }
 
@@ -209,7 +209,7 @@ inline void async_await(T &&lambda, hclib_future_t *future1,
         hclib_future_t *future2) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-	hclib_task_t* task = _allocate_async<U>(new U(lambda), true);
+	hclib_task_t* task = _allocate_async<U>(new U(lambda));
 
     int nfutures = 0;
     hclib_future_t *futures[2];
@@ -228,7 +228,7 @@ inline void async_await_at(T &&lambda, hclib_future_t *future,
         hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-	hclib_task_t* task = _allocate_async<U>(new U(lambda), true);
+	hclib_task_t* task = _allocate_async<U>(new U(lambda));
 	spawn_await_at(task, future ? &future : NULL, future ? 1 : 0,
             locale);
 }
@@ -238,7 +238,7 @@ inline void async_await_at(T &&lambda, hclib_future_t *future1,
         hclib_future_t *future2, hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
-	hclib_task_t* task = _allocate_async<U>(new U(lambda), true);
+	hclib_task_t* task = _allocate_async<U>(new U(lambda));
 
     int nfutures = 0;
     hclib_future_t *futures[2];
@@ -267,7 +267,7 @@ auto async_future(T &&lambda) -> hclib::future_t<decltype(lambda())>* {
     };
     typedef decltype(wrapper) U;
 
-    hclib_task_t* task = _allocate_async(new U(wrapper), false);
+    hclib_task_t* task = _allocate_async(new U(wrapper));
     spawn(task);
     return event->get_future();
 }
@@ -288,7 +288,7 @@ auto async_future_await(T &&lambda, hclib_future_t *future) ->
     };
     typedef decltype(wrapper) U;
 
-    hclib_task_t* task = _allocate_async(new U(wrapper), true);
+    hclib_task_t* task = _allocate_async(new U(wrapper));
     spawn_await(task, future ? &future : NULL, future ? 1 : 0);
     return event->get_future();
 }
@@ -309,7 +309,7 @@ auto async_future_at_helper(T &&lambda, hclib_locale_t *locale,
     };
     typedef decltype(wrapper) U;
 
-    hclib_task_t* task = _allocate_async(new U(wrapper), true);
+    hclib_task_t* task = _allocate_async(new U(wrapper));
     if (nb) task->non_blocking = 1;
     spawn_await_at(task, NULL, 0, locale);
     return event->get_future();
@@ -343,7 +343,7 @@ auto async_future_await_at(T &&lambda, hclib_future_t *future,
     };
     typedef decltype(wrapper) U;
 
-    hclib_task_t* task = _allocate_async(new U(wrapper), true);
+    hclib_task_t* task = _allocate_async(new U(wrapper));
     spawn_await_at(task, future ? &future : NULL, future ? 1 : 0,
             locale);
     return event->get_future();

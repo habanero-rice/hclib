@@ -16,7 +16,7 @@ typedef hclib_locale_t locale_t;
 template <typename T>
 inline void launch(const char **deps, int ndeps, T &&lambda) {
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *user_task = _allocate_async(new U(lambda), false);
+    hclib_task_t *user_task = _allocate_async(new U(lambda));
     hclib_launch((generic_frame_ptr)spawn, user_task, deps, ndeps);
 }
 
