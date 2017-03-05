@@ -12,8 +12,10 @@ ulimit -c unlimited
 cd $HCLIB_HOME/test/c
 
 # 2 sockets x 12-core CPUs
-srun --ntasks=1 --ntasks-per-node=1 --cpus-per-task=24 \
-    --cpu_bind=verbose,sockets ./test_all.sh
+# srun --ntasks=1 --ntasks-per-node=1 --cpus-per-task=24 \
+#     --cpu_bind=verbose,sockets ./test_all.sh
+export HCLIB_WORKERS=24
+srun --ntasks=1 --ntasks-per-node=1 --cpus-per-task=24 --cpu_bind=verbose,mask_cpu:FFFFFF ./async0
 ERR=$?
 
 echo

@@ -656,7 +656,7 @@ void check_locality_graph(hclib_locality_graph *graph,
             reachable[curr->steal_path->locales[j]->id] = 1;
         }
         // Check appropriately initialized
-        assert(curr->last_successful_steal == 0);
+        assert(curr->last_successful_steal_locale == 0);
     }
 
     for (i = 0; i < graph->n_locales; i++) {
@@ -855,37 +855,56 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
             wid, steal, steal->path_length);
 #endif
 
-
     MARK_SEARCH(wid); // Set the state of this worker for timing
 
-    const int last_successful = paths->last_successful_steal;
+    const int last_successful_locale = paths->last_successful_steal_locale;
     const int steal_path_length = steal->path_length;
     for (i = 0; i < steal_path_length; i++) {
-        const int locale_index = (last_successful + i) % steal_path_length;
+        const int locale_index = (last_successful_locale + i) % steal_path_length;
         hclib_locale_t *locale = steal->locales[locale_index];
         hclib_deque_t *deqs = locale->deques;
 
-        for (j = 1; j < nworkers; j++) {
-            const int victim = (wid + j) % nworkers;
-
-#ifdef VERBOSE
-        fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-                "locale->deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
-                locale->deques, locale->lbl, victim);
-#endif
-
+        for (j = ws->base_intra_socket_workers; j < ws->limit_intra_socket_workers; j++) {
+            const int victim = j;
             hclib_task_t *task = deque_steal(&(deqs[victim].deque));
             if (task) {
-#ifdef VERBOSE
-                fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-                        "locale->deques=%p locale->lbl=%s victim=%d "
-                        "successfully stole task %p\n", wid, i, locale,
-                        locale->deques, locale->lbl, victim, task);
-#endif
-                paths->last_successful_steal = locale_index;
+                paths->last_successful_steal_locale = locale_index;
                 return task;
             }
         }
+
+        const int leftover = nworkers - (ws->limit_intra_socket_workers -
+                ws->base_intra_socket_workers);
+        for (j = 0; j < leftover; j++) {
+            const int victim = (ws->limit_intra_socket_workers + j) % nworkers;
+            hclib_task_t *task = deque_steal(&(deqs[victim].deque));
+            if (task) {
+                paths->last_successful_steal_locale = locale_index;
+                return task;
+            }
+        }
+
+//         for (j = 1; j < nworkers; j++) {
+//             const int victim = (wid + j) % nworkers;
+// 
+// #ifdef VERBOSE
+//         fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
+//                 "locale->deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
+//                 locale->deques, locale->lbl, victim);
+// #endif
+// 
+//             hclib_task_t *task = deque_steal(&(deqs[victim].deque));
+//             if (task) {
+// #ifdef VERBOSE
+//                 fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
+//                         "locale->deques=%p locale->lbl=%s victim=%d "
+//                         "successfully stole task %p\n", wid, i, locale,
+//                         locale->deques, locale->lbl, victim, task);
+// #endif
+//                 paths->last_successful_steal_locale = locale_index;
+//                 return task;
+//             }
+//         }
     }
 
     return NULL;

@@ -49,9 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-#define COMMUNICATION_WORKER_ID 1
-#define GPU_WORKER_ID 2
-
 // forward declaration
 extern pthread_key_t ws_key;
 struct hc_context;
@@ -61,6 +58,25 @@ struct deque_t;
 struct hc_deque_t;
 struct finish_t;
 struct _hclib_worker_paths;
+
+#ifdef USE_HWLOC
+// Various thread affinities supported by HClib
+typedef enum {
+    /*
+     * In HCLIB_AFFINITY_STRIDED mode the HClib runtime will take the set of
+     * CPUs it has been given by the calling driver (e.g. taskset, srun, aprun)
+     * and set thread affinities such that each thread has the Nth bit,
+     * (N+nthreads)th bit, (N+2*nthreads)th bit, etc. set. It is an error to set
+     * this affinity with fewer CPUs than there are runtime threads.
+     */
+    HCLIB_AFFINITY_STRIDED,
+    /*
+     * In HCLIB_AFFINITY_CHUNKED mode, the HClib runtime will chunk together the
+     * set bits in a thread's CPU mask.
+     */
+    HCLIB_AFFINITY_CHUNKED
+} hclib_affinity_t;
+#endif
 
 typedef struct _hclib_worker_state {
     // Global context for this instance of the runtime.
@@ -81,7 +97,14 @@ typedef struct _hclib_worker_state {
     int nworkers;
     // Place to keep module-specific per-worker state.
     char *module_state;
-} hclib_worker_state;
+    /*
+     * Variables holding worker IDs for a contiguous chunk of workers that share
+     * a NUMA node with this worker, and who we should therefore try to steal
+     * from first.
+     */
+    int base_intra_socket_workers;
+    int limit_intra_socket_workers;
+} __attribute__ ((aligned (128))) hclib_worker_state;
 
 #define HCLIB_MACRO_CONCAT(x, y) _HCLIB_MACRO_CONCAT_IMPL(x, y)
 #define _HCLIB_MACRO_CONCAT_IMPL(x, y) x ## y

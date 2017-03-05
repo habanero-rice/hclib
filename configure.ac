@@ -61,7 +61,21 @@ AS_IF([test "x$with_stats" != xno],
       [ AC_MSG_NOTICE([Disabled HC runtime statistics]) ])
 
 AM_CONDITIONAL(HC_STATS, test "x$with_stats" != xno)
-### End verbose
+### End runtime statistics
+
+### Enable hwloc
+AC_ARG_ENABLE(hwloc,
+    AS_HELP_STRING([--enable-hwloc],
+    [turn on hwloc (Default is false)]),
+    [with_hwloc=$enableval],
+    [with_hwloc=no;])
+
+AS_IF([test "x$with_hwloc" != xno],
+      [ AC_MSG_NOTICE([Enabled hwloc]) ],
+      [ AC_MSG_NOTICE([Disabled hwloc]) ])
+
+AM_CONDITIONAL(HC_HWLOC, test "x$with_hwloc" != xno)
+### End runtime statistics
 
 ### ENABLE PRODUCTION SETTINGS
 AC_ARG_ENABLE(production,

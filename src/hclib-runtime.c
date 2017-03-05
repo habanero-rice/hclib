@@ -58,6 +58,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-module.h>
 #include <hclib-instrument.h>
 
+#ifdef USE_HWLOC
+#include <hwloc.h>
+#endif
+
 #ifdef __MACH__
 #include <mach/clock.h>
 #include <mach/mach.h>
@@ -68,6 +72,11 @@ static double user_specified_timer = 0;
 pthread_key_t ws_key;
 
 hclib_context *hc_context = NULL;
+
+#ifdef USE_HWLOC
+static hwloc_bitmap_t *thread_cpusets = NULL;
+static hwloc_topology_t topology;
+#endif
 
 static int profile_launch_body = 0;
 #ifdef HCLIB_STATS
@@ -88,6 +97,8 @@ static per_worker_stats *worker_stats = NULL;
 #endif
 
 void hclib_start_finish();
+static void set_up_worker_thread_affinities(const int wid);
+static void create_hwloc_cpusets();
 
 void log_(const char *file, int line, hclib_worker_state *ws,
           const char *format,
@@ -350,6 +361,8 @@ static void hclib_entrypoint(const char **module_dependencies,
         exit(3);
     }
 
+    create_hwloc_cpusets();
+
     // Start workers
     for (int i = 1; i < hc_context->nworkers; i++) {
         if (pthread_create(&hc_context->workers[i]->t, &attr, worker_routine,
@@ -360,6 +373,8 @@ static void hclib_entrypoint(const char **module_dependencies,
 
     }
     set_current_worker(0);
+
+    set_up_worker_thread_affinities(0);
 
     const unsigned dist_id = hclib_register_dist_func(default_dist_func);
     HASSERT(dist_id == HCLIB_DEFAULT_LOOP_DIST);
@@ -648,6 +663,172 @@ static void crt_work_loop(LiteCtx *ctx) {
     HASSERT(0); // Should never return here
 }
 
+static void create_hwloc_cpusets() {
+#ifdef USE_HWLOC
+    int i;
+
+    int err = hwloc_topology_init(&topology);
+    assert(err == 0);
+
+    err = hwloc_topology_load(topology);
+    assert(err == 0);
+
+    hwloc_bitmap_t cpuset = hwloc_bitmap_alloc();
+    assert(cpuset);
+
+    err = hwloc_get_cpubind(topology, cpuset, HWLOC_CPUBIND_PROCESS);
+    assert(err == 0);
+    const int available_pus = hwloc_bitmap_weight(cpuset);
+    const int last_set_index = hwloc_bitmap_last(cpuset);
+    const int num_workers = hc_context->nworkers;
+
+    hclib_affinity_t selected_affinity = HCLIB_AFFINITY_STRIDED;
+    const char *user_selected_affinity = getenv("HCLIB_AFFINITY");
+    if (user_selected_affinity) {
+        if (strcmp(user_selected_affinity, "strided") == 0) {
+            selected_affinity = HCLIB_AFFINITY_STRIDED;
+        } else if (strcmp(user_selected_affinity, "chunked") == 0) {
+            selected_affinity = HCLIB_AFFINITY_CHUNKED;
+        } else {
+            fprintf(stderr, "Unsupported thread affinity \"%s\" specified with "
+                    "HCLIB_AFFINITY.\n", user_selected_affinity);
+            exit(1);
+        }
+    }
+
+    thread_cpusets = (hwloc_bitmap_t *)malloc(hc_context->nworkers *
+            sizeof(*thread_cpusets));
+    assert(thread_cpusets);
+
+    for (i = 0; i < hc_context->nworkers; i++) {
+        thread_cpusets[i] = hwloc_bitmap_alloc();
+        assert(thread_cpusets[i]);
+    }
+
+    switch (selected_affinity) {
+        case (HCLIB_AFFINITY_STRIDED): {
+            assert(available_pus >= num_workers);
+
+            int count = 0;
+            int index = 0;
+            while (index <= last_set_index) {
+                if (hwloc_bitmap_isset(cpuset, index)) {
+                    hwloc_bitmap_set(thread_cpusets[count % num_workers],
+                            index);
+                    count++;
+                }
+                index++;
+            }
+            break;
+        }
+        case (HCLIB_AFFINITY_CHUNKED): {
+            const int chunk_size = (available_pus + num_workers - 1) /
+                    num_workers;
+            int count = 0;
+            int index = 0;
+            while (index <= last_set_index) {
+                if (hwloc_bitmap_isset(cpuset, index)) {
+                    int target_worker = count / chunk_size;
+                    hwloc_bitmap_set(thread_cpusets[count / chunk_size], index);
+                    count++;
+                }
+                index++;
+            }
+            break;
+        }
+        default:
+            assert(false);
+    }
+
+    hwloc_bitmap_t nodeset = hwloc_bitmap_alloc();
+    hwloc_bitmap_t other_nodeset = hwloc_bitmap_alloc();
+    assert(nodeset && other_nodeset);
+
+    /*
+     * Here, we look for contiguous ranges of worker threads that share any NUMA
+     * nodes with us. In theory, this should be more hierarchical but isn't yet.
+     * This is also super inefficient... O(T^2) where T is the number of
+     * workers.
+     */
+    bool revert_to_naive_stealing = false;
+    for (i = 0; i < hc_context->nworkers; i++) {
+        // Get the NUMA nodes for this CPU set
+        hwloc_cpuset_to_nodeset(topology, thread_cpusets[i], nodeset);
+
+        int base = -1;
+        int limit = -1;
+        int j;
+        for (j = 0; j < hc_context->nworkers; j++) {
+            hwloc_cpuset_to_nodeset(topology, thread_cpusets[j], other_nodeset);
+            // Take the intersection, see if there is any overlap
+            hwloc_bitmap_and(other_nodeset, nodeset, other_nodeset);
+
+            if (base < 0) {
+                // Haven't found a contiguous chunk of workers yet.
+                if (!hwloc_bitmap_iszero(other_nodeset)) {
+                    base = j;
+                }
+            } else {
+                /*
+                 * Have a contiguous chunk of workers, either still inside it or
+                 * after it.
+                 */
+                if (limit < 0) {
+                    // Inside the contiguous chunk of workers
+                    if (hwloc_bitmap_iszero(other_nodeset)) {
+                        // Found the end
+                        limit = j;
+                    }
+                } else {
+                    // After the contiguous chunk of workers
+                    if (!hwloc_bitmap_iszero(other_nodeset)) {
+                        // No contiguous chunk to find, just do something naive.
+                        revert_to_naive_stealing = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (revert_to_naive_stealing) {
+            fprintf(stderr, "WARNING: Using naive work-stealing patterns.\n");
+            base = 0;
+            limit = hc_context->nworkers;
+        } else {
+            assert(base >= 0);
+            if (limit < 0) {
+                limit = hc_context->nworkers;
+            }
+        }
+
+        hc_context->workers[i]->base_intra_socket_workers = base;
+        hc_context->workers[i]->limit_intra_socket_workers = limit;
+
+#ifdef VERBOSE
+        char *nbuf;
+        hwloc_bitmap_asprintf(&nbuf, nodeset);
+
+        char *buffer;
+        hwloc_bitmap_asprintf(&buffer, thread_cpusets[i]);
+        fprintf(stderr, "Worker %d has access to %d PUs (%s), %d NUMA nodes "
+                "(%s). Shared NUMA nodes with [%d, %d).\n", i,
+                hwloc_bitmap_weight(thread_cpusets[i]), buffer,
+                hwloc_bitmap_weight(nodeset), nbuf, base, limit);
+        free(buffer);
+#endif
+    }
+
+#endif
+}
+
+static void set_up_worker_thread_affinities(const int wid) {
+#ifdef USE_HWLOC
+    int err = hwloc_set_cpubind(topology, thread_cpusets[wid],
+            HWLOC_CPUBIND_THREAD);
+    assert(err == 0);
+#endif
+}
+
 /*
  * With the addition of lightweight context switching, worker creation becomes a
  * bit more complicated because we need all task creation and finish scopes to
@@ -662,6 +843,8 @@ static void *worker_routine(void *args) {
     const int wid = *((int *)args);
     set_current_worker(wid);
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+
+    set_up_worker_thread_affinities(wid);
 
     // Create proxy original context to switch from
     LiteCtx *currentCtx = LiteCtx_proxy_create(__func__);
