@@ -707,7 +707,13 @@ static void create_hwloc_cpusets() {
 
     switch (selected_affinity) {
         case (HCLIB_AFFINITY_STRIDED): {
-            assert(available_pus >= num_workers);
+            if (available_pus < num_workers) {
+                fprintf(stderr, "ERROR Available PUs (%d) was less than number "
+                        "of workers (%d), don't currently support "
+                        "oversubscription with strided thread pinning\n",
+                        available_pus, num_workers);
+                exit(1);
+            }
 
             int count = 0;
             int index = 0;
@@ -728,7 +734,6 @@ static void create_hwloc_cpusets() {
             int index = 0;
             while (index <= last_set_index) {
                 if (hwloc_bitmap_isset(cpuset, index)) {
-                    int target_worker = count / chunk_size;
                     hwloc_bitmap_set(thread_cpusets[count / chunk_size], index);
                     count++;
                 }

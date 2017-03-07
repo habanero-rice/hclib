@@ -96,9 +96,24 @@ class atomic_t {
             nthreads = hclib_get_num_workers();
 
             vals = (padded_val_t *)malloc(nthreads * sizeof(padded_val_t));
+            assert(vals);
             for (unsigned i = 0; i < nthreads; i++) {
                 vals[i].val = default_value;
             }
+        }
+
+        // Copy constructor
+        atomic_t(const atomic_t &other) {
+            nthreads = other.nthreads;
+            vals = (padded_val_t *)malloc(nthreads * sizeof(padded_val_t));
+            assert(vals);
+            memcpy(vals, other.vals, nthreads * sizeof(padded_val_t));
+            default_value = other.default_value;
+        }
+
+        // Destructor
+        ~atomic_t() {
+            free(vals);
         }
 
         void update(std::function<T(T)> f) {
