@@ -5,7 +5,7 @@ endif
 
 HCLIB_CFLAGS=-I$(HCLIB_ROOT)/include $(shell xml2-config --cflags)
 HCLIB_CXXFLAGS=-std=c++11 $(HCLIB_CFLAGS)
-HCLIB_LDFLAGS=-L$(LIBXML2_LIBS) -L$(HCLIB_ROOT)/lib
+HCLIB_LDFLAGS=-L$(HCLIB_ROOT)/lib
 
 ifndef GET_LINK_FLAG
 	GET_LINK_FLAG = -Wl,$(1)

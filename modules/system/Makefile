@@ -13,7 +13,7 @@ lib/libhclib_system.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 
 lib/libhclib_system.so: $(OBJS)
-	g++ -shared -fPIC $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@ $(OBJS)
+	g++ -shared -fPIC $(HCLIB_LDLIBS) $(HCLIB_LDFLAGS) -o $@ $(OBJS)
 
 obj/hclib_system.o: src/hclib_system.cpp
 	g++ --compile -fPIC -std=c++11 -Iinc $^ -o $@ $(HCLIB_CFLAGS) $(DEFINES)
