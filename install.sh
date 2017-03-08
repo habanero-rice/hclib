@@ -53,12 +53,6 @@ make -j${NPROC} install
 # if install root has been specified, perform make install
 HCLIB_ENV_SETUP_SCRIPT=${INSTALL_PREFIX}/bin/hclib_setup_env.sh
 
-if [ -z `command -v xml2-config` ]; then
-    echo "ERROR: Command xml2-config not found."\
-         "Please ensure libxml2 (devel) is properly installed." >&2
-    exit 1
-fi
-
 mkdir -p `dirname ${HCLIB_ENV_SETUP_SCRIPT}`
 cat > "${HCLIB_ENV_SETUP_SCRIPT}" <<EOI
 # HClib environment setup

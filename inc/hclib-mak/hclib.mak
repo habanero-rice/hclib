@@ -3,7 +3,7 @@ ifeq ("$(HCLIB_ROOT)", "")
   $(error Please set the HCLIB_ROOT environment variable.)
 endif
 
-HCLIB_CFLAGS=-I$(HCLIB_ROOT)/include $(shell xml2-config --cflags)
+HCLIB_CFLAGS=-I$(HCLIB_ROOT)/include
 HCLIB_CXXFLAGS=-std=c++11 $(HCLIB_CFLAGS)
 HCLIB_LDFLAGS=-L$(HCLIB_ROOT)/lib
 
@@ -14,10 +14,10 @@ endif
 UNAME_S := $(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
     IS_MAC_OS = 0
-    HCLIB_LDLIBS=-lhclib $(shell xml2-config --libs) $(JSMN_HOME)/libjsmn.a -lrt -ldl
+    HCLIB_LDLIBS=-lhclib $(JSMN_HOME)/libjsmn.a -lrt -ldl
 else
     IS_MAC_OS = 1
-    HCLIB_LDLIBS=-lhclib $(shell xml2-config --libs) $(call GET_LINK_FLAG,-force_load) \
+    HCLIB_LDLIBS=-lhclib $(call GET_LINK_FLAG,-force_load) \
 				   $(call GET_LINK_FLAG,$(JSMN_HOME)/libjsmn.a)
 endif
 

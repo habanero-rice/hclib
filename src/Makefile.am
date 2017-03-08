@@ -44,7 +44,7 @@ libhclib_la_LIBADD =
 
 AM_CXXFLAGS = $(HC_FLAGS_1) $(HC_FLAGS_2) $(HC_FLAGS_3) $(HC_FLAGS_4) \
 			  $(HC_FLAGS_STATS) $(HC_FLAGS_VERBOSE) $(PRODUCTION_SETTINGS_FLAGS) \
-			  $(HC_FLAGS_HWLOC) $(shell xml2-config --cflags)
+			  $(HC_FLAGS_HWLOC)
 libhclib_la_SOURCES = hclib-runtime.c hclib-deque.c hclib-promise.c \
 					  hclib-timer.c hclib_cpp.cpp hclib.c hclib-tree.c hclib-locality-graph.c \
 					  hclib_module.cpp hclib-fptr-list.c hclib-mem.c hclib-instrument.c \
