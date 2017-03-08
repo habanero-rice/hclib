@@ -44,4 +44,3 @@ sed -e "s|CONDUIT_NAME|$CONDUIT_NAME|g" \
 sed -i -e "s|CONDUIT_TYPE|$CONDUIT_TYPE|g" inc/hclib_openshmem.post.mak
 sed -i -e "s|EXTRA_LIBS_PATTERN|$EXTRA_LIBS|g" inc/hclib_openshmem.post.mak
 make clean
-make
