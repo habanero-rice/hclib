@@ -16,6 +16,8 @@ extern "C" {
 // #define DETAILED_PROFILING
 // #define TRACING
 
+#define SOS_HANG_WORKAROUND
+
 static unsigned domain_ctx_id = 0;
 
 #ifdef PROFILE
@@ -193,6 +195,22 @@ static void init_sos_state(void *state, void *user_data) {
 
     err = ::shmemx_ctx_create(*domain, ctx);
     assert(err == 0);
+
+#ifdef SOS_HANG_WORKAROUND
+    const int npes = ::shmem_n_pes();
+    const int pe = shmem_my_pe();
+    int *tmp_buf = (int *)shmem_malloc(sizeof(int));
+    assert(tmp_buf);
+
+    for (int i = 0; i < npes; i++) {
+        if (i == pe) continue;
+
+        shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
+    }
+    shmem_barrier_all();
+
+    shmem_free(tmp_buf);
+#endif
 }
 
 static void release_sos_state(void *state, void *user_data) {
