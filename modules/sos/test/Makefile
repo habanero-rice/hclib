@@ -4,7 +4,7 @@ include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 include $(HCLIB_ROOT)/../modules/sos/inc/hclib_sos.post.mak
 
-TARGETS=init
+TARGETS=init many_putmem
 
 all: $(TARGETS)
 

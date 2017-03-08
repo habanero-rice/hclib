@@ -29,4 +29,8 @@ export CPUS_PER_PE=12
 export HCLIB_WORKERS=$CPUS_PER_PE
 export NPES=$(($SLURM_NNODES * $PES_PER_NODE))
 
-srun --ntasks=$NPES --ntasks-per-node=$PES_PER_NODE --cpus-per-task=$CPUS_PER_PE ./init
+for TEST in init many_putmem; do
+    echo "======= Testing $TEST ======="
+    srun --ntasks=$NPES --ntasks-per-node=$PES_PER_NODE --cpus-per-task=$CPUS_PER_PE ./$TEST
+    echo
+done

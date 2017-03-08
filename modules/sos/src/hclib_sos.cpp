@@ -474,13 +474,12 @@ void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) 
 }
 
 void hclib::shmem_putmem(void *dest, const void *source, size_t nelems, int pe) {
-    hclib::finish([&] {
-        hclib::async_nb_at([&] {
-            START_PROFILE
-            ::shmem_putmem(dest, source, nelems, pe);
-            END_PROFILE(shmem_putmem)
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    shmemx_ctx_putmem(dest, source, nelems, pe, *ctx);
 }
 
 void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
