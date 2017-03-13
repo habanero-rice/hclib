@@ -4,7 +4,7 @@ include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
 
-TARGETS=init shmem_malloc samplesort_omp shmem_barrier_all shmem_put64 \
+TARGETS=init shmem_malloc shmem_barrier_all shmem_put64 \
 		shmem_broadcast64 shmem_lock_stress shmem_int_wait_until \
 		shmem_int_wait_until_any shmem_int_async_when shmem_int_async_when_any
 
