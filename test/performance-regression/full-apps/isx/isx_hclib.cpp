@@ -753,7 +753,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
             unsigned chunk_size = (BUCKET_WIDTH + nworkers - 1) / nworkers;
             unsigned start_chunk = c * chunk_size;
             unsigned end_chunk = (c + 1) * chunk_size;
-            if (end_chunk > BUCKET_WIDTH) end_chunk = my_bucket_size;
+            if (end_chunk > BUCKET_WIDTH) end_chunk = BUCKET_WIDTH;
 
             for (unsigned c = 0; c < nworkers; c++) {
                 for (unsigned i = start_chunk; i < end_chunk; i++) {
