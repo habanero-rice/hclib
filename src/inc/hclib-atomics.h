@@ -43,7 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define HC_CACHE_LINE 64
 
-
+/*
+ * Return 1 if *ptr becomes 0 after being incremented, otherwise return 0.
+ * Nothing currently relies on this return value.
+ */
 static __inline__ int hc_atomic_inc(volatile int *ptr) {
     unsigned char c;
     __asm__ __volatile__(
@@ -57,7 +60,7 @@ static __inline__ int hc_atomic_inc(volatile int *ptr) {
 }
 
 /*
- * return 1 if the *ptr becomes 0 after decremented, otherwise return 0
+ * Return 1 if the *ptr becomes 0 after decremented, otherwise return 0
  */
 static __inline__ int hc_atomic_dec(volatile int *ptr) {
     unsigned char rt;
@@ -71,7 +74,7 @@ static __inline__ int hc_atomic_dec(volatile int *ptr) {
 }
 
 static __inline__ void hc_mfence() {
-        __asm__ __volatile__("mfence":: : "memory");
+    __asm__ __volatile__("mfence":: : "memory");
 }
 
 /*
@@ -79,18 +82,49 @@ static __inline__ void hc_mfence() {
  * else return 0;
  */
 static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
-        int tmp;
-        __asm__ __volatile__("lock;\n"
-                             "cmpxchgl %1,%3"
-                             : "=a" (tmp) /* %0 EAX, return value */
-                             : "r"(x), /* %1 reg, new value */
-                               "0" (ag), /* %2 EAX, compare value */
-                               "m" (*(ptr)) /* %3 mem, destination operand */
-                             : "memory" /*, "cc" content changed, memory and cond register */
-                );
-        return tmp == ag;
+    int tmp;
+    __asm__ __volatile__("lock;\n"
+                         "cmpxchgl %1,%3"
+                         : "=a" (tmp) /* %0 EAX, return value */
+                         : "r"(x), /* %1 reg, new value */
+                         "0" (ag), /* %2 EAX, compare value */
+                         "m" (*(ptr)) /* %3 mem, destination operand */
+                         : "memory" /*, "cc" content changed, memory and cond register */
+                         );
+    return tmp;
 }
 
-#endif /* __x86_64 */
+#elif defined __PPC__
+
+/*
+ * Return 1 if *ptr becomes 0 after being incremented, otherwise return 0.
+ * Nothing currently relies on this return value.
+ */
+static __inline__ int hc_atomic_inc(volatile int *ptr) {
+    const int result = __sync_add_and_fetch(ptr, 1);
+    return result == 0;
+}
+
+/*
+ * Return 1 if the *ptr becomes 0 after decremented, otherwise return 0
+ */
+static __inline__ int hc_atomic_dec(volatile int *ptr) {
+    const int result = __sync_sub_and_fetch(ptr, 1);
+    return result == 0;
+}
+
+static __inline__ void hc_mfence() {
+    __sync_synchronize();
+}
+
+/*
+ * if (*ptr == ag) { *ptr = x, return 1 }
+ * else return 0;
+ */
+static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
+    return __sync_val_compare_and_swap(ptr, ag, x);
+}
+
+#endif
 
 #endif /* HCLIB_ATOMICS_H_ */

@@ -48,28 +48,22 @@ void async_fct(void * arg) {
     ran[idx] = idx;
 }
 
-void init_ran(int *ran, int size) {
-    while (size >= 0) {
-        ran[size] = -1;
-        size--;
-    }
-}
-
 void entrypoint(void *arg) {
     int i = 0;
     // This is ok to have these on stack because this
     // code is alive until the end of the program.
     int indices [NB_ASYNC];
-    init_ran(ran, NB_ASYNC);
+    for (i = 0; i < NB_ASYNC; i++) {
+        ran[i] = -1;
+    }
 
     hclib_start_finish();
 
-    while (i < NB_ASYNC) {
+    for (i = 0; i < NB_ASYNC; i++) {
         indices[i] = i;
         //Note: Forcefully pass the address we want to write to as a void **
         hclib_async(async_fct, (void*) (indices+i), NO_FUTURE, 0,
                 ANY_PLACE);
-        i++;
     }
 
     hclib_end_finish();
