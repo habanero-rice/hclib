@@ -1,4 +1,5 @@
 #include "hclib_cuda-internal.h"
+#include "hclib-atomics.h"
 
 #include <iostream>
 
@@ -59,7 +60,7 @@ cudaStream_t hclib::get_stream(hclib_locale_t *locale) {
 
 int hclib::get_cuda_device_id(hclib_locale_t *locale) {
     gpu_locale_metadata *metadata = (gpu_locale_metadata *)locale->metadata;
-    return metadata;
+    return metadata->id;
 }
 
 static void *allocation_func(size_t nbytes, hclib_locale_t *locale) {

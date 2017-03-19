@@ -9,7 +9,7 @@ TARGETS=async0 async1 finish0 finish1 finish2  forasync1DCh  forasync1DRec \
 		promise/asyncAwait0Shared promise/asyncAwait0Unique \
 		promise/future0Float promise/future0Int \
 		no_async_finish nested_finish future_wait_in_finish atomic atomic_sum \
-		capture0 capture1 copies0 copies1
+		capture0 capture1 copies0 copies1 promise/async_future_await_at
 
 FLAGS=-g -std=c++11 -Wall
 

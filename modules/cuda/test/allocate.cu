@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
         hclib::locale_t **gpu_locales = hclib::get_gpu_locales(&ngpus);
         std::cout << "Got " << ngpus << " GPU locale(s)" << std::endl;
 
-        hclib::future_t *fut = hclib::allocate_at(N * sizeof(int), gpu_locale);
+        hclib::future_t<void*> *fut = hclib::allocate_at(N * sizeof(int), gpu_locale);
         void *alloc = fut->wait();
         assert(alloc);
 

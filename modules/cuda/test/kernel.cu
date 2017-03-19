@@ -11,7 +11,8 @@ class incr {
     public:
         incr(int *set_arr) : arr(set_arr) { }
 
-        __host__ __device__ void operator()(int idx) {
+        __host__ __device__ void operator()() {
+            const int idx = blockIdx.x * blockDim.x + threadIdx.x;
             arr[idx] = arr[idx] + arr[idx];
         }
 };
@@ -32,35 +33,35 @@ int main(int argc, char **argv) {
             hclib::get_gpu_name(gpu_locale) << ")" << std::endl;
 
         hclib::finish([N, cpu_locale, gpu_locale] {
-            hclib::future_t *cpu_fut = hclib::allocate_at(N * sizeof(int),
+            hclib::future_t<void*> *cpu_fut = hclib::allocate_at(N * sizeof(int),
                     cpu_locale);
-            hclib::future_t *gpu_fut = hclib::allocate_at(N * sizeof(int),
+            hclib::future_t<void*> *gpu_fut = hclib::allocate_at(N * sizeof(int),
                     gpu_locale);
-            hclib::future_t *init_fut = hclib::async_future_await_at([N, cpu_fut] {
+            hclib::future_t<void> *init_fut = hclib::async_future_await_at([N, cpu_fut] {
                         int *host_alloc = (int *)cpu_fut->get();
                         for (int i = 0; i < N; i++) {
                             host_alloc[i] = i;
                         }
-                    }, cpu_locale, cpu_fut);
+                    }, cpu_fut, cpu_locale);
 
             hclib::async_await_at([cpu_fut, gpu_fut, init_fut, N, cpu_locale, gpu_locale] {
                         int *gpu_mem = (int *)gpu_fut->get();
                         int *cpu_mem = (int *)cpu_fut->get();
 
-                        hclib::future_t *copy_to_fut = hclib::async_copy(
+                        hclib::future_t<void*> *copy_to_fut = hclib::async_copy(
                                 gpu_locale, gpu_mem, cpu_locale, cpu_mem,
                                 N * sizeof(int));
-                        hclib::future_t *kernel_fut = hclib::forasync_cuda(N,
-                                incr(gpu_mem), gpu_locale, copy_to_fut);
-                        hclib::future_t *copy_back_fut = hclib::async_copy_await(
+                        hclib::future_t<void> *kernel_fut = hclib::forasync_cuda(
+                            N / 256, 256, incr(gpu_mem), gpu_locale, copy_to_fut);
+                        hclib::future_t<void*> *copy_back_fut = hclib::async_copy_await(
                                 cpu_locale, cpu_mem, gpu_locale, gpu_mem,
                                 N * sizeof(int), kernel_fut);
                         hclib::async_await_at([cpu_mem, N] {
                                     for (int i = 0; i < N; i++) {
                                         assert(cpu_mem[i] == 2 * i);
                                     }
-                                }, cpu_locale, copy_back_fut);
-                    }, cpu_locale, gpu_fut, init_fut);
+                                }, copy_back_fut, cpu_locale);
+                    }, gpu_fut, init_fut, cpu_locale);
         });
     });
 }
