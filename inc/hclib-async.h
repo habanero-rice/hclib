@@ -294,7 +294,7 @@ auto async_future_await(T &&lambda, hclib_future_t *future) ->
 }
 
 template <typename T>
-auto async_future_at_helper(T &&lambda, hclib_locale_t *locale,
+auto async_future_at_helper(T &lambda, hclib_locale_t *locale,
         bool nb) -> hclib::future_t<decltype(lambda())>* {
     typedef decltype(lambda()) R;
 
@@ -322,7 +322,7 @@ auto async_future_at(T &&lambda, hclib_locale_t *locale) ->
 }
 
 template <typename T>
-auto async_nb_future_at(T lambda, hclib_locale_t *locale) ->
+auto async_nb_future_at(T &&lambda, hclib_locale_t *locale) ->
         hclib::future_t<decltype(lambda())>* {
     return async_future_at_helper<T>(lambda, locale, true);
 }

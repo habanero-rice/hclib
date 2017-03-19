@@ -1,5 +1,6 @@
 #include "hclib_mpi-internal.h"
 #include "hclib-locality-graph.h"
+#include "hclib-module-common.h"
 
 #include <iostream>
 
@@ -64,7 +65,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize) {
 
 typedef struct _pending_mpi_op {
     MPI_Request req;
-    hclib::promise_t *prom;
+    hclib::promise_t<void> *prom;
     struct _pending_mpi_op *next;
 #ifdef HCLIB_INSTRUMENT
     int event_type;
@@ -125,103 +126,20 @@ void hclib::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
     });
 }
 
-static void poll_on_pending() {
-    do {
-        int pending_list_non_empty = 1;
+static bool test_mpi_completion(void *generic_op) {
+    pending_mpi_op *op = (pending_mpi_op *)generic_op;
 
-        pending_mpi_op *prev = NULL;
-        pending_mpi_op *op = pending;
+    int complete;
+    CHECK_MPI(::MPI_Test(&op->req, &complete, MPI_STATUS_IGNORE));
 
-        assert(op != NULL);
-
-        while (op) {
-            pending_mpi_op *next = op->next;
-
-            int complete;
-            CHECK_MPI(::MPI_Test(&op->req, &complete, MPI_STATUS_IGNORE));
-
-            if (complete) {
-                // Remove from singly linked list
-                if (prev == NULL) {
-                    /*
-                     * If previous is NULL, we *may* be looking at the front of
-                     * the list. It is also possible that another thread in the
-                     * meantime came along and added an entry to the front of
-                     * this singly-linked wait list, in which case we need to
-                     * ensure we update its next rather than updating the list
-                     * head. We do this by first trying to automatically update
-                     * the list head to be the next of wait_set, and if we fail
-                     * then we know we have a new head whose next points to
-                     * wait_set and which should be updated.
-                     */
-                    pending_mpi_op *old_head = __sync_val_compare_and_swap(
-                            &pending, op, op->next);
-                    if (old_head != op) {
-                        // Failed, someone else added a different head
-                        assert(old_head->next == op);
-                        old_head->next = op->next;
-                        prev = old_head;
-                    } else {
-                        /*
-                         * Success, new head is now wait_set->next. We want this
-                         * polling task to exit if we just set the head to NULL.
-                         * It is the responsibility of future async_when calls
-                         * to restart it upon discovering a null head.
-                         */
-                        pending_list_non_empty = (op->next != NULL);
-                    }
-                } else {
-                    /*
-                     * If previous is non-null, we just adjust its next link to
-                     * jump over the current node.
-                     */
-                    assert(prev->next == op);
-                    prev->next = op->next;
-                }
-
-#ifdef HCLIB_INSTRUMENT
-                hclib_register_event(op->event_type, END, op->event_id);
-#endif
-
-                op->prom->put(NULL);
-                free(op);
-            } else {
-                prev = op;
-            }
-
-            op = next;
-        }
-
-        if (pending_list_non_empty) {
-            hclib::yield_at(nic);
-        } else {
-            // Empty list
-            break;
-        }
-    } while (true);
-}
-
-static void append_to_pending(pending_mpi_op *op) {
-    op->next = pending;
-
-    pending_mpi_op *old_head;
-    while (1) {
-        old_head = __sync_val_compare_and_swap(&pending, op->next, op);
-        if (old_head != op->next) {
-            op->next = old_head;
-        } else {
-            break;
-        }
-    }
-
-    if (old_head == NULL) {
-        hclib::async_at([] {
-            poll_on_pending();
-        }, nic);
+    if (complete) {
+        return true;
+    } else {
+        return false;
     }
 }
 
-void hclib::MPI_Waitall(int count, hclib::future_t *array_of_requests[]) {
+void hclib::MPI_Waitall(int count, hclib::future_t<void> *array_of_requests[]) {
     MPI_START_OP(MPI_Waitall);
     for (int i = 0; i < count; i++) {
         array_of_requests[i]->wait();
@@ -229,10 +147,10 @@ void hclib::MPI_Waitall(int count, hclib::future_t *array_of_requests[]) {
     MPI_END_OP(MPI_Waitall);
 }
 
-hclib::future_t *hclib::MPI_Isend_await(void *buf, int count,
+hclib::future_t<void> *hclib::MPI_Isend_await(void *buf, int count,
         MPI_Datatype datatype, int dest, int tag, MPI_Comm comm,
-        hclib::future_t *fut) {
-    hclib::promise_t *prom = new hclib::promise_t();
+        hclib::future_t<void> *fut) {
+    hclib::promise_t<void> *prom = new hclib::promise_t<void>();
 
     hclib::async_nb_await_at([=] {
         MPI_START_OP(MPI_Isend);
@@ -248,21 +166,21 @@ hclib::future_t *hclib::MPI_Isend_await(void *buf, int count,
         op->event_type = event_ids[MPI_Isend_lbl];
         op->event_id = _event_id;
 #endif
-        append_to_pending(op);
+        hclib::append_to_pending(op, &pending, test_mpi_completion, nic);
     }, fut, nic);
 
     return prom->get_future();
 }
 
-hclib::future_t *hclib::MPI_Isend(void *buf, int count,
+hclib::future_t<void> *hclib::MPI_Isend(void *buf, int count,
         MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
     return hclib::MPI_Isend_await(buf, count, datatype, dest, tag, comm, NULL);
 }
 
-hclib::future_t *hclib::MPI_Irecv_await(void *buf, int count,
+hclib::future_t<void> *hclib::MPI_Irecv_await(void *buf, int count,
         MPI_Datatype datatype, int source, int tag, MPI_Comm comm,
-        hclib::future_t *fut) {
-    hclib::promise_t *prom = new hclib::promise_t();
+        hclib::future_t<void> *fut) {
+    hclib::promise_t<void> *prom = new hclib::promise_t<void>();
 
     hclib::async_nb_await_at([=] {
         MPI_START_OP(MPI_Irecv);
@@ -277,13 +195,13 @@ hclib::future_t *hclib::MPI_Irecv_await(void *buf, int count,
         op->event_type = event_ids[MPI_Irecv_lbl];
         op->event_id = _event_id;
 #endif
-        append_to_pending(op);
+        hclib::append_to_pending(op, &pending, test_mpi_completion, nic);
     }, fut, nic);
 
     return prom->get_future();
 }
 
-hclib::future_t *hclib::MPI_Irecv(void *buf, int count,
+hclib::future_t<void> *hclib::MPI_Irecv(void *buf, int count,
         MPI_Datatype datatype, int source, int tag, MPI_Comm comm) {
     return hclib::MPI_Irecv_await(buf, count, datatype, source, tag, comm, NULL);
 }
@@ -308,7 +226,7 @@ void hclib::MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
     });
 }
 
-hclib::future_t *hclib::MPI_Allreduce_future(const void *sendbuf, void *recvbuf,
+hclib::future_t<void> *hclib::MPI_Allreduce_future(const void *sendbuf, void *recvbuf,
         int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
     return hclib::async_nb_future_at([=] {
         MPI_START_OP(MPI_Allreduce_future);

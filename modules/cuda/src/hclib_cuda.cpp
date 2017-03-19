@@ -48,6 +48,8 @@ typedef struct {
     cudaStream_t streams[NUM_STREAMS_PER_LOCALE];
 } gpu_locale_metadata;
 
+pending_cuda_op *pending_cuda = NULL;
+
 cudaStream_t hclib::get_stream(hclib_locale_t *locale) {
     assert(locale->type == gpu_locale_id);
 
@@ -192,6 +194,13 @@ std::string hclib::get_gpu_name(hclib::locale_t *locale) {
 
 int hclib::get_num_gpu_locales() {
     return hclib_get_num_locales_of_type(gpu_locale_id);
+}
+
+bool hclib::test_cuda_completion(void *generic_op) {
+    pending_cuda_op *op = (pending_cuda_op *)generic_op;
+    cudaError_t err = cudaEventQuery(op->event);
+    assert(err == cudaSuccess || err == cudaErrorNotReady);
+    return (err == cudaSuccess);
 }
 
 #ifdef HCLIB_INSTRUMENT

@@ -1,0 +1,26 @@
+{
+    "nworkers": 24,
+    "declarations": [
+        "sysmem",
+        "L1_0",  "L1_1",  "L1_2",  "L1_3",  "L1_4",  "L1_5",  "L1_6",  "L1_7",  "L1_8",  "L1_9",  "L1_10", "L1_11",
+        "L1_12", "L1_13", "L1_14", "L1_15", "L1_16", "L1_17", "L1_18", "L1_19", "L1_20", "L1_21", "L1_22", "L1_23"
+    ],
+    "reachability": [
+        ["sysmem", "L1_0"],  ["sysmem", "L1_1"],  ["sysmem", "L1_2"],
+        ["sysmem", "L1_3"],  ["sysmem", "L1_4"],  ["sysmem", "L1_5"],
+        ["sysmem", "L1_6"],  ["sysmem", "L1_7"],  ["sysmem", "L1_8"],
+        ["sysmem", "L1_9"],  ["sysmem", "L1_10"], ["sysmem", "L1_11"],
+        ["sysmem", "L1_12"], ["sysmem", "L1_13"], ["sysmem", "L1_14"],
+        ["sysmem", "L1_15"], ["sysmem", "L1_16"], ["sysmem", "L1_17"],
+        ["sysmem", "L1_18"], ["sysmem", "L1_19"], ["sysmem", "L1_20"],
+        ["sysmem", "L1_21"], ["sysmem", "L1_22"], ["sysmem", "L1_23"]
+    ],
+    "pop_paths": {
+        "default": ["L1_$(id)", "sysmem"]
+        0: ["L1_0", "sysmem"]
+    },
+    "steal_paths": {
+        "default": ["L1_$(id)", "sysmem"]
+        0: ["L1_0", "sysmem"]
+    }
+}

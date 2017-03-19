@@ -2,12 +2,20 @@
 #define HCLIB_CUDA_H
 
 #include "hclib_cuda-internal.h"
+#include "hclib-module-common.h"
 
 namespace hclib {
 
 template<typename functor_type>
 __global__ void driver_kernel(functor_type functor) {
     functor();
+}
+
+template<typename functor_type>
+__global__ void simd_driver_kernel(functor_type functor) {
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const int width = gridDim.x * blockDim.x;
+    functor(tid, width);
 }
 
 template<class functor_type, class await_type>
@@ -72,10 +80,25 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_grid,
 }
 
 template<class functor_type>
-inline void async_simd(functor_type functor, hclib::locale_t *locale) {
+inline hclib::future_t<void> *async_simd(functor_type functor, hclib::locale_t *locale) {
     CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
-    driver_kernel<<<1, 32, 0, get_stream(locale)>>>(functor);
+    cudaStream_t stream = get_stream(locale);
+    hclib::promise_t<void> *prom = new hclib::promise_t<void>();
+
+    cudaEvent_t event;
+    CHECK_CUDA(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
+
+    simd_driver_kernel<<<1, 32, 0, stream>>>(functor);
+    CHECK_CUDA(cudaEventRecord(event, stream));
+
+    pending_cuda_op *op = (pending_cuda_op *)malloc(sizeof(*op));
+    assert(op);
+    op->event = event;
+    op->prom = prom;
+    hclib::append_to_pending(op, &pending_cuda, hclib::test_cuda_completion, locale);
+
+    return prom->get_future();
 }
 
 }
