@@ -423,7 +423,9 @@ static inline void check_in_finish(finish_t *finish) {
 static inline void check_out_finish(finish_t *finish) {
     if (finish) {
         // hc_atomic_dec returns true when finish->counter goes to zero
-        if (hc_atomic_dec(&(finish->counter))) {
+        const int old = hc_atomic_dec(&(finish->counter));
+        if (old == 1) {
+            // If old was 1 and we decremented to 0
             hclib_promise_put(finish->finish_dep->owner, finish);
         }
     }

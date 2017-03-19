@@ -10,7 +10,7 @@ inline __global__ void driver_kernel(functor_type functor) {
     functor();
 }
 
-template<class functor_type, typename... future_list_t>
+template<class functor_type>
 inline hclib::future_t *forasync_cuda(const int blocks_per_gridx,
         const int blocks_per_gridy, const int blocks_per_gridz,
         const int threads_per_blockx, const int threads_per_blocky,
@@ -49,7 +49,7 @@ inline hclib::future_t *forasync_cuda(const int blocks_per_gridx,
     }
 }
 
-template<class functor_type, typename... future_list_t>
+template<class functor_type>
 inline hclib::future_t *forasync_cuda(const int blocks_per_gridx,
         const int blocks_per_gridy, const int blocks_per_gridz,
         const int threads_per_blockx, const int threads_per_blocky,
@@ -61,7 +61,7 @@ inline hclib::future_t *forasync_cuda(const int blocks_per_gridx,
             functor, locale, future);
 }
 
-template<class functor_type, typename... future_list_t>
+template<class functor_type>
 inline hclib::future_t *forasync_cuda(const int blocks_per_grid,
         const int threads_per_block, functor_type functor,
         hclib::locale_t *locale, hclib::future_t *future) {
@@ -69,7 +69,7 @@ inline hclib::future_t *forasync_cuda(const int blocks_per_grid,
             functor, locale, future);
 }
 
-template<class functor_type, typename... future_list_t>
+template<class functor_type>
 inline hclib::future_t *forasync_cuda(const int blocks_per_grid,
         const int threads_per_block, const int shared_mem, functor_type functor,
         hclib::locale_t *locale, hclib::future_t *future) {
@@ -77,6 +77,12 @@ inline hclib::future_t *forasync_cuda(const int blocks_per_grid,
             shared_mem, functor, locale, future);
 }
 
+template<class functor_type>
+inline void async_simd(functor_type functor, hclib::locale_t *locale) {
+    CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
+
+    driver_kernel<<<1, 32, 0, get_stream()>>>(functor);
+}
 
 }
 
