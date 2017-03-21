@@ -1,0 +1,6 @@
+1. git clone git@github.com:aappleby/smhasher.git
+2. git clone git@github.com:google/cityhash.git
+   a. pushd cityhash
+   b. ./configure
+   c. make -j
+   d. popd
