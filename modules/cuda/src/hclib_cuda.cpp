@@ -118,7 +118,7 @@ static void copy_func(hclib::locale_t *dst_locale, void *dst,
     const cudaError_t err = cudaMemcpy(dst, src, nbytes, kind);
     if (err != cudaSuccess) {
         fprintf(stderr, "ERROR cudaMemcpy(dst=%p, src=%p, nbytes=%llu, "
-                "kind=%s) - %s\n", dst, src, nbytes,
+                "kind=%s) - %s\n", dst, src, (unsigned long long )nbytes,
                 (kind == cudaMemcpyDeviceToHost ? "cudaMemcpyDeviceToHost" :
                  (kind == cudaMemcpyHostToDevice ? "cudaMemcpyHostToDevice" :
                   "Unknown")), cudaGetErrorString(err));

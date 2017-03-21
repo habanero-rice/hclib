@@ -13,10 +13,10 @@ lib/libhclib_cuda.a: $(OBJS)
 	ar rvs $@ $(OBJS)
 
 lib/libhclib_cuda.so: $(OBJS)
-	g++ -shared -L$(CUDA_HOME)/lib -lcudart $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@ $(OBJS)
+	$(CXX) -shared -L$(CUDA_HOME)/lib -lcudart $(HCLIB_LDFLAGS) $(HCLIB_LDLIBS) -o $@ $(OBJS)
 
 obj/hclib_cuda.o: src/hclib_cuda.cpp
-	g++ -std=c++11 -Iinc -I$(CUDA_HOME)/include $^ -o $@ $(HCLIB_CFLAGS) --compile -fPIC $(DEFINES)
+	$(CXX) -std=c++11 -Iinc -I$(CUDA_HOME)/include $^ -o $@ $(HCLIB_CFLAGS) --compile -fPIC $(DEFINES)
 
 clean:
 	rm -f obj/*.o lib/*

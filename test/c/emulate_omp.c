@@ -10,11 +10,12 @@ void *write_arr(void *arg) {
     size_t index = (size_t)arg;
     sleep(1);
 
-    fprintf(stderr, "Running task w/ index = %d\n", index);
+    fprintf(stderr, "Running task w/ index = %d\n", (int)index);
 
     const int curr_val = arr[index];
     if (curr_val != 0) {
-        fprintf(stderr, "Expected 0 at index %d but saw %d\n", index, curr_val);
+        fprintf(stderr, "Expected 0 at index %d but saw %d\n", (int)index,
+                curr_val);
         assert(false);
     }
 

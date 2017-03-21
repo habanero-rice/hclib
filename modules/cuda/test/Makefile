@@ -9,7 +9,7 @@ TARGETS=init allocate kernel async_simd
 all: $(TARGETS)
 
 %: %.cu
-	nvcc -I../../common -arch=sm_37 --expt-extended-lambda -std=c++11 $(HCLIB_CFLAGS) \
+	nvcc -ccbin $(CC) -I../../common -arch=sm_37 --expt-extended-lambda -std=c++11 $(HCLIB_CFLAGS) \
 			   $(HCLIB_CUDA_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_CUDA_LDFLAGS) \
 			   -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_CUDA_LDLIBS)
 
