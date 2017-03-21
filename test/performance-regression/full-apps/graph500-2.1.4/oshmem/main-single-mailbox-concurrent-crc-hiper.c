@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
     const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
 
-    pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+    pe = hclib::shmem_my_pe();
     npes = hclib::shmem_n_pes();
 
     uint_fast32_t seed[5];
