@@ -84,7 +84,8 @@ float avg_time=0, avg_time_all2all = 0;
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 60000)
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
 // #define KEY_BUFFER_SIZE ((1uLL<<26uLL))
-#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
+#define KEY_BUFFER_SIZE ((1uLL<<30uLL))
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
