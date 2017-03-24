@@ -111,7 +111,6 @@ int main(const int argc,  char ** argv)
   #ifdef EXTRA_STATS
   _timer_t total_time;
   if(shmem_my_pe() == 0) {
-  // if(::shmem_my_pe() == 0) {
     printf("\n-----\nmkdir timedrun fake\n\n");
     timer_start(&total_time);
   }
@@ -127,7 +126,6 @@ int main(const int argc,  char ** argv)
 
   #ifdef EXTRA_STATS
   if(shmem_my_pe() == 0) {
-  // if(::shmem_my_pe() == 0) {
     just_timer_stop(&total_time);
     double tTime = ( total_time.stop.tv_sec - total_time.start.tv_sec ) + ( total_time.stop.tv_nsec - total_time.start.tv_nsec )/1E9;
     avg_time *= 1000;
@@ -174,7 +172,6 @@ static char * parse_params(const int argc, char ** argv)
   if(argc != 3)
   {
     if( shmem_my_pe() == 0){
-    // if(::shmem_my_pe() == 0) {
       printf("Usage:  \n");
       printf("  ./%s <total num keys(strong) | keys per pe(weak)> <log_file>\n",argv[0]);
     }
@@ -218,7 +215,6 @@ static char * parse_params(const int argc, char ** argv)
     default:
       {
         if(shmem_my_pe() == 0){
-        // if(::shmem_my_pe() == 0){
           printf("Invalid scaling option! See params.h to define the scaling option.\n");
         }
 
@@ -236,7 +232,6 @@ static char * parse_params(const int argc, char ** argv)
   assert(BUCKET_WIDTH > 0);
   
   if(shmem_my_pe() == 0){
-  // if(::shmem_my_pe() == 0){
     printf("ISx v%1d.%1d\n",MAJOR_VERSION_NUMBER,MINOR_VERSION_NUMBER);
 #ifdef PERMUTE
     printf("Random Permute Used in ATA.\n");
@@ -365,6 +360,7 @@ static KEY_TYPE * make_input(void)
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Making input took %llu ns\n", end - start);
 #endif
 
@@ -441,6 +437,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Counting local bucket sizes took %llu ns\n", end - start);
 #endif
 
@@ -582,6 +579,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Bucketizing took %llu ns\n", end - start);
 #endif
 
@@ -761,6 +759,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   free(per_chunk_counts);
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Counting local took %llu ns for stage 1, %llu ns for stage 2, "
           "my_bucket_size = %u\n", intermediate - start, end - intermediate,
           my_bucket_size);
@@ -829,6 +828,7 @@ static int verify_results(int const * const my_local_key_counts,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Verifying took %llu ns\n", end - start);
 #endif
 

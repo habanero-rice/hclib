@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH -p production
+#SBATCH -p connectx5
 #SBATCH -N 2
 #SBATCH -t 00:05:00
 #SBATCH -J hickok-test
@@ -9,10 +9,11 @@
 
 set -e
 
+ulimit -c unlimited
+
 # Each node has 2 sockets, 8 hyperthreaded cores per socket
 
-# for TEST in init shmem_malloc shmem_barrier_all shmem_put64 shmem_broadcast64 shmem_lock_stress shmem_int_wait_until shmem_int_wait_until_any; do
-for TEST in init shmem_malloc shmem_barrier_all shmem_put64 shmem_broadcast64; do
+for TEST in init shmem_malloc shmem_barrier_all shmem_put64 shmem_broadcast64 shmem_lock_stress shmem_int_wait_until shmem_int_wait_until_any; do
     echo ======= $TEST =======
     srun --nodes=2 --ntasks-per-node=2 --ntasks-per-socket=1 ./$TEST
     echo
