@@ -30,10 +30,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "hclib_cpp.h"
-#include "hclib_atomic.h"
-#include "hclib_system.h"
-#include "hclib_mpi.h"
+// #include "hclib_cpp.h"
+// #include "hclib_atomic.h"
+// #include "hclib_system.h"
+// #include "hclib_mpi.h"
 
 static int compare_doubles(const void* a, const void* b) {
   double aa = *(const double*)a;
@@ -70,11 +70,11 @@ static void get_statistics(const double x[], int n, double r[s_LAST]) {
 }
 
 int main(int argc, char** argv) {
-  // MPI_Init(&argc, &argv);
+  MPI_Init(&argc, &argv);
 
-  const char *deps[] = {"system", "mpi"};
+  // const char *deps[] = {"system", "mpi"};
 
-  hclib::launch(deps, 2, [argc, argv] {
+  // hclib::launch(deps, 2, [argc, argv] {
 
   setup_globals();
 
@@ -424,7 +424,7 @@ int main(int argc, char** argv) {
   free(validate_times);
 
   cleanup_globals();
-  });
-  // MPI_Finalize();
+  // });
+  MPI_Finalize();
   return 0;
 }

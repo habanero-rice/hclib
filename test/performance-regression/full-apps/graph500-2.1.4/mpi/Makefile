@@ -1,4 +1,4 @@
-CFLAGS = -L$(MPI_HOME)/lib -lmpich -I$(MPI_HOME)/include -fopenmp -g -Wall -Drestrict=__restrict__ -O3 -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI -DGENERATOR_USE_PACKED_EDGE_TYPE # -g -pg
+CFLAGS = -L$(OPENSHMEM_INSTALL)/lib -lmpi -I$(OPENSHMEM_INSTALL)/include -fopenmp -g -Wall -Drestrict=__restrict__ -O3 -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI -DGENERATOR_USE_PACKED_EDGE_TYPE # -g -pg
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI
 LDFLAGS = -fopenmp -g # -g -pg
 MPICC = gcc
