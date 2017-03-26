@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
 
     // shmem_init();
 
-    pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+    pe = hclib::shmem_my_pe();
     npes = hclib::shmem_n_pes();
 
     uint_fast32_t seed[5];
@@ -620,8 +620,8 @@ int main(int argc, char **argv) {
         *curr_q_size = 0;
         *next_q_size = 0;
 
-        uint64_t root = bfs_roots[run];
-        // uint64_t root = 0;
+        // uint64_t root = bfs_roots[run];
+        uint64_t root = 0;
 
         set_visited(root, visited, visited_ints, local_min_vertex);
         if (get_owner_pe(root, nglobalverts) == pe) {

@@ -17,10 +17,10 @@
     ],
     "pop_paths": {
         "default": ["L2_$(id / 8)_$(id % 8)", "sysmem"],
-        0: ["Interconnect", "L2_0_0", "sysmem"]
+        0: ["L2_0_0", "sysmem", "Interconnect"]
     },
     "steal_paths": {
         "default": ["L2_$(id / 8)_$(id % 8)", "sysmem"],
-        0: ["Interconnect", "L2_0_0", "sysmem"]
+        0: ["L2_0_0", "sysmem", "Interconnect"]
     }
 }

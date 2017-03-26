@@ -564,8 +564,8 @@ void ss_push(StealStack *s, Node *c) {
   memcpy(&(s->stack[s->top]), c, sizeof(Node));
   s->top++;
   s->nNodes++;
-  s->maxStackDepth = max(s->top, s->maxStackDepth);
-  s->maxTreeDepth = max(s->maxTreeDepth, c->height);
+  s->maxStackDepth = (s->top > s->maxStackDepth ? s->top : s->maxStackDepth);
+  s->maxTreeDepth = (s->maxTreeDepth > c->height ? s->maxTreeDepth : c->height);
 }
 
 /* local top:  get local addr of node at top */ 
@@ -1116,7 +1116,7 @@ int cbarrier_wait() {
 
   SET_LOCK(cb_lock);
   cb_count++;
-  fprintf(stderr, "PE %d: cb_count=%d, # PEs=%d\n", shmem_my_pe(), cb_count, shmem_n_pes());
+  // fprintf(stderr, "PE %d: cb_count=%d, # PEs=%d\n", shmem_my_pe(), cb_count, shmem_n_pes());
 #ifdef _SHMEM
   PUT_ALL(cb_count, cb_count);
 #endif
@@ -1149,7 +1149,7 @@ int cbarrier_wait() {
   }
   while (!l_cancel && !l_done);
 
-  fprintf(stderr, "PE %d: exiting spin loop because l_cancel=%d l_done=%d\n", shmem_my_pe(), l_cancel, l_done);
+  // fprintf(stderr, "PE %d: exiting spin loop because l_cancel=%d l_done=%d\n", shmem_my_pe(), l_cancel, l_done);
 
   if (debug & 16)
     printf("Thread %d exit  spin-wait, count = %d, done = %d, cancel = %d\n",
@@ -1237,7 +1237,7 @@ void parTreeSearch(StealStack *ss) {
       /* examine node at stack top */
       parent = ss_top(ss);
       if (parent->numChildren < 0){
-          fprintf(stderr, "PE %d: processed a node\n", shmem_my_pe());
+          // fprintf(stderr, "PE %d: processed a node\n", shmem_my_pe());
           // first time visited, construct children and place on stack
           genChildren(parent,&child,ss);
 
@@ -1281,7 +1281,7 @@ void parTreeSearch(StealStack *ss) {
                 victimId = findwork(chunkSize);
         }
 
-        fprintf(stderr, "PE %d: EEEEE %d\n", shmem_my_pe(), goodSteal);
+        // fprintf(stderr, "PE %d: EEEEE %d\n", shmem_my_pe(), goodSteal);
 
         if (goodSteal)
             continue;
@@ -1293,9 +1293,9 @@ void parTreeSearch(StealStack *ss) {
      * (done == 0).
      */
     ss_setState(ss, SS_IDLE);
-    fprintf(stderr, "PE %d: FFFFF\n", shmem_my_pe());
+    // fprintf(stderr, "PE %d: FFFFF\n", shmem_my_pe());
     done = cbarrier_wait();
-    fprintf(stderr, "PE %d: GGGGG\n", shmem_my_pe());
+    // fprintf(stderr, "PE %d: GGGGG\n", shmem_my_pe());
   }
   
   /* tree search complete ! */
@@ -1379,8 +1379,8 @@ void showStats(double elapsedSecs) {
     tidle   += stealStack[i]->time[SS_IDLE];
     tovh    += stealStack[i]->time[SS_OVH];
     tcbovh  += stealStack[i]->time[SS_CBOVH];
-    mdepth   = max(mdepth, stealStack[i]->maxStackDepth);
-    mheight  = max(mheight, stealStack[i]->maxTreeDepth);
+    mdepth   = (mdepth > stealStack[i]->maxStackDepth ? mdepth : stealStack[i]->maxStackDepth);
+    mheight  = (mheight > stealStack[i]->maxTreeDepth ? mheight : stealStack[i]->maxTreeDepth);
   }
   if (trel != tacq + tsteal) {
     printf("*** error! total released != total acquired + total stolen\n");

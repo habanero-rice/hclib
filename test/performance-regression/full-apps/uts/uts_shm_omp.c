@@ -80,6 +80,7 @@ long * smem_global_lock_alloc() {
 #ifdef VERBOSE
     fprintf(stderr, "%d: A> allocating %p\n", shmem_my_pe(), lock);
 #endif
+    assert(lock);
     *lock = 0;
     shmem_barrier_all();
     return lock;
@@ -385,9 +386,15 @@ int ss_localDepth(StealStack *s) {
 void ss_release_local(StealStack *s, int k) {
   omp_set_lock(s->local_stackLock);
   if (s->top - s->local >= k) {
+#ifdef VERBOSE
+    fprintf(stderr, "%d %d: ss_release_local %d\n", shmem_my_pe(), omp_get_thread_num(), k);
+#endif
     s->local += k;
     s->workAvail += k;
     s->nRelease++;
+#ifdef VERBOSE
+  fprintf(stderr, "%d %d: ss_release_local done\n", shmem_my_pe(), omp_get_thread_num());
+#endif
   }
   else
   {
@@ -401,12 +408,16 @@ void ss_release_remote(StealStack *local_ss, StealStack *remote_ss, int k) {
     assert(remote_ss->remote_stackLock);
     assert(local_ss->local_stackLock);
 #ifdef VERBOSE
-    fprintf(stderr, "Setting lock %p\n", remote_ss->remote_stackLock);
+    fprintf(stderr, "%d %d: ss_release_remote Setting lock %p %ld\n", shmem_my_pe(),
+            omp_get_thread_num(), remote_ss->remote_stackLock, *(remote_ss->remote_stackLock));
 #endif
     shmem_set_lock(remote_ss->remote_stackLock);
     omp_set_lock(local_ss->local_stackLock);
 
     if (local_ss->workAvail >= k) {
+#ifdef VERBOSE
+        fprintf(stderr, "ss_release_remote %d\n", k);
+#endif
         memcpy(remote_ss->stack_g + remote_ss->top,
                 local_ss->stack_g + local_ss->sharedStart, k * sizeof(Node));
         remote_ss->nSteal++;
@@ -421,7 +432,8 @@ void ss_release_remote(StealStack *local_ss, StealStack *remote_ss, int k) {
 
     omp_unset_lock(local_ss->local_stackLock);
 #ifdef VERBOSE
-    fprintf(stderr, "Clearing lock %p\n", remote_ss->remote_stackLock);
+    fprintf(stderr, "%d %d: ss_release_remote Clearing lock %p\n", shmem_my_pe(),
+            omp_get_thread_num(), remote_ss->remote_stackLock);
 #endif
     shmem_clear_lock(remote_ss->remote_stackLock);
 }
@@ -434,9 +446,15 @@ int ss_acquire(StealStack *s, int k) {
   omp_set_lock(s->local_stackLock);
   avail = s->local - s->sharedStart;
   if (avail >= k) {
+#ifdef VERBOSE
+    fprintf(stderr, "%d %d: ss_acquire %d\n", shmem_my_pe(), omp_get_thread_num(), k);
+#endif
     s->local -= k;
     s->workAvail -= k;
     s->nAcquire++;
+#ifdef VERBOSE
+    fprintf(stderr, "%d %d: ss_acquire done %d\n", shmem_my_pe(), omp_get_thread_num(), k, avail >= k);
+#endif
   }
   omp_unset_lock(s->local_stackLock);
   return (avail >= k);
@@ -450,12 +468,16 @@ int ss_remote_acquire(StealStack *remote_ss, StealStack *local_ss, int k) {
     }
 
 #ifdef VERBOSE
-    fprintf(stderr, "Setting lock %p\n", remote_ss->remote_stackLock);
+    fprintf(stderr, "%d %d: ss_remote_acquire Setting lock %p %ld\n", shmem_my_pe(),
+            omp_get_thread_num(), remote_ss->remote_stackLock, *(remote_ss->remote_stackLock));
 #endif
     shmem_set_lock(remote_ss->remote_stackLock);
     omp_set_lock(local_ss->local_stackLock);
 
     if (remote_ss->workAvail >= k) {
+#ifdef VERBOSE
+        fprintf(stderr, "%d: ss_remote_acquire %d\n", omp_get_thread_num(), k);
+#endif
         memcpy(local_ss->stack + local_ss->top,
                 remote_ss->stack_g + remote_ss->sharedStart, k * sizeof(Node));
 #ifdef EXTRA_STEAL_STATS
@@ -475,7 +497,8 @@ int ss_remote_acquire(StealStack *remote_ss, StealStack *local_ss, int k) {
 
     omp_unset_lock(local_ss->local_stackLock);
 #ifdef VERBOSE
-    fprintf(stderr, "Clearing lock %p\n", remote_ss->remote_stackLock);
+    fprintf(stderr, "%d %d: ss_remote_acquire Clearing lock %p\n", shmem_my_pe(),
+            omp_get_thread_num(), remote_ss->remote_stackLock);
 #endif
     shmem_clear_lock(remote_ss->remote_stackLock);
     return success;
@@ -506,7 +529,8 @@ static int ss_steal(StealStack *this_ss, StealStack *victim_ss, int victim, int 
       omp_set_lock(victim_ss->local_stackLock);
   } else {
 #ifdef VERBOSE
-      fprintf(stderr, "Setting lock %p\n", victim_ss->remote_stackLock);
+      fprintf(stderr, "%d %d: ss_steal Setting lock %p %ld\n", shmem_my_pe(),
+              omp_get_thread_num(), victim_ss->remote_stackLock, *(victim_ss->remote_stackLock));
 #endif
       shmem_set_lock(victim_ss->remote_stackLock);
   }
@@ -559,7 +583,8 @@ static int ss_steal(StealStack *this_ss, StealStack *victim_ss, int victim, int 
       omp_unset_lock(victim_ss->local_stackLock);
   } else {
 #ifdef VERBOSE
-      fprintf(stderr, "Clearing lock %p\n", victim_ss->remote_stackLock);
+      fprintf(stderr, "%d %d: ss_steal Clearing lock %p\n", shmem_my_pe(),
+              omp_get_thread_num(), victim_ss->remote_stackLock);
 #endif
       shmem_clear_lock(victim_ss->remote_stackLock);
   }
@@ -964,7 +989,7 @@ void cb_init(){
     shared_cb_lock = smem_global_lock_alloc();
 
 #ifdef VERBOSE
-    fprintf(stderr, "Setting lock %p\n", shared_cb_lock);
+    fprintf(stderr, "%d cb_init Setting lock %p\n", shmem_my_pe(), shared_cb_lock);
 #endif
     shmem_set_lock(shared_cb_lock);
     local_cb_count = 0;
@@ -974,7 +999,7 @@ void cb_init(){
     shared_cb_cancel = 0;
     shared_cb_done = 0;
 #ifdef VERBOSE
-    fprintf(stderr, "Clearing lock %p\n", shared_cb_lock);
+    fprintf(stderr, "%d cb_init Clearing lock %p\n", shmem_my_pe(), shared_cb_lock);
 #endif
     shmem_clear_lock(shared_cb_lock);
 }
@@ -1010,7 +1035,8 @@ int cbarrier_wait(StealStack *local_ss) {
               shared_cb_cancel = 0;
           } else {
 #ifdef VERBOSE
-              fprintf(stderr, "Setting lock %p\n", shared_cb_lock);
+              fprintf(stderr, "%d cbarrier_wait Setting lock %p\n",
+                      shmem_my_pe(), shared_cb_lock);
 #endif
               shmem_set_lock(shared_cb_lock);
               shared_cb_count++;
@@ -1115,7 +1141,7 @@ void releaseNodes(StealStack *local_ss, StealStack *remote_ss) {
   if (ss_localDepth(local_ss) > 2 * chunkSize) {
     // Attribute this time to runtime overhead
     ss_setState(local_ss, SS_OVH);
-    if (omp_get_thread_num() == 0 && local_ss->workAvail > 2 * chunkSize) {
+    if (omp_get_thread_num() == 0 && local_ss->workAvail > 2 * chunkSize && shmem_n_pes() > 1) {
         // Release remotely
         ss_release_remote(local_ss, remote_ss, chunkSize);
         // This has significant overhead on clusters!
@@ -1163,7 +1189,7 @@ void parTreeSearch(StealStack *local_ss, StealStack *remote_ss) { // TODO
 #endif
 
     /* local work */
-    while (ss_localDepth(local_ss) > 0) {		
+    while (ss_localDepth(local_ss) > 0) {
 
       ss_setState(local_ss, SS_WORK);
 
@@ -1401,6 +1427,7 @@ void showStats(double elapsedSecs) {
  *       parsing parameters
  */
 int main(int argc, char *argv[]) {
+  int i, j;
   Node root;
 
   shmem_init();
@@ -1428,6 +1455,12 @@ int main(int argc, char *argv[]) {
       uts_printParams();
   }
 
+  long **shmem_locks = (long **)malloc(shmem_n_pes() * sizeof(long *));
+  assert(shmem_locks);
+  for (i = 0; i < shmem_n_pes(); i++) {
+      shmem_locks[i] = smem_global_lock_alloc();
+  }
+
   StealStack * ss_setup; 
   remote_stealStack[0] = (StealStack *)shmem_malloc(sizeof(StealStack));
 #ifdef VERBOSE
@@ -1449,11 +1482,10 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, "%d: C> allocating %p\n", shmem_my_pe(), ss_setup->stack_g);
 #endif
   ss_setup->stack = (Node *)ss_setup->stack_g;
-  ss_setup->remote_stackLock = smem_global_lock_alloc();
+  ss_setup->remote_stackLock = shmem_locks[0];
   ss_setup->local_stackLock = NULL;
   ss_init(ss_setup, MAXSTACKDEPTH);
 
-  int i, j;
   for (i = 1; i < shmem_n_pes(); i++) {
       remote_stealStack[i] = (StealStack *)shmem_malloc(sizeof(StealStack));
 #ifdef VERBOSE
@@ -1461,12 +1493,15 @@ int main(int argc, char *argv[]) {
               remote_stealStack[i]);
 #endif
       assert(remote_stealStack[i]);
+      memset(remote_stealStack[i], 0, sizeof(StealStack));
       ss_setup = (StealStack *)remote_stealStack[i];
       ss_setup->stack_g = ss_setup->stack = remote_stealStack[0]->stack;
-      ss_setup->remote_stackLock = smem_global_lock_alloc();
+      ss_setup->remote_stackLock = shmem_locks[i];
       ss_setup->local_stackLock = NULL;
       ss_init(ss_setup, MAXSTACKDEPTH);
   }
+
+  free(shmem_locks);
 
   for (i = 0; i < num_omp_threads; i++) {
       local_stealStack[i] = (StealStack *)malloc(sizeof(StealStack));
