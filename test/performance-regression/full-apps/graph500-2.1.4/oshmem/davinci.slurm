@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 #SBATCH -p commons
-#SBATCH -N 32
-#SBATCH -t 00:20:00
+#SBATCH -N 8
+#SBATCH -t 00:10:00
 #SBATCH -J asyncshmem-g500
 #SBATCH --exclusive
 
