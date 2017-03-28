@@ -114,7 +114,7 @@ unsigned hclib_add_per_worker_module_state(size_t state_size,
                 worker_state_size + state_size);
         assert(ws->module_state);
 
-        cb(ws->module_state + offset, user_data);
+        cb(ws->module_state + offset, user_data, i);
     }
 
     worker_state_size += state_size;

@@ -34,7 +34,7 @@ typedef void (*hclib_module_finalize_func_type)();
 /*
  * Type for callback to add module-specific state to worker state.
  */
-typedef void (*hclib_state_adder)(void *state, void *user_data);
+typedef void (*hclib_state_adder)(void *state, void *user_data, int tid);
 
 /*
  * Type for callback to release module-specific state stored in worker state

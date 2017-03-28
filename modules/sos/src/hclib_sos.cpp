@@ -19,6 +19,8 @@ extern "C" {
 #define SOS_HANG_WORKAROUND
 
 static unsigned domain_ctx_id = 0;
+static shmemx_domain_t *domains = NULL;
+static shmemx_ctx_t *contexts = NULL;
 
 #ifdef PROFILE
 static bool disable_profiling = false;
@@ -126,10 +128,16 @@ unsigned long long func_times[N_FUNCS];
 #endif
 
 typedef struct _lock_context_t {
+    // A future satisfied by the last attempt to lock this global lock.
     hclib_future_t *last_lock;
+    /*
+     * Store the promise that should be satisfied by whoever is currently in the
+     * critical section once they complete it.
+     */
     hclib_promise_t * volatile live;
 } lock_context_t;
 
+static int nic_locale_id;
 static hclib::locale_t *nic = NULL;
 static std::map<long *, lock_context_t *> lock_info;
 static pthread_mutex_t lock_info_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -179,22 +187,20 @@ void hclib::print_oshmem_profiling_data() {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_pre_initialize) {
+    nic_locale_id = hclib_add_known_locale_type("Interconnect");
 #ifdef PROFILE
     memset(func_counters, 0x00, sizeof(func_counters));
     memset(func_times, 0x00, sizeof(func_times));
 #endif
 }
 
-static void init_sos_state(void *state, void *user_data) {
+static void init_sos_state(void *state, void *user_data, int tid) {
     assert(user_data == NULL);
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    int err = ::shmemx_domain_create(SHMEMX_THREAD_SINGLE, 1, domain);
-    assert(err == 0); 
-
-    err = ::shmemx_ctx_create(*domain, ctx);
-    assert(err == 0);
+    *domain = domains[tid];
+    *ctx = contexts[tid];
 
 #ifdef SOS_HANG_WORKAROUND
     const int npes = ::shmem_n_pes();
@@ -224,7 +230,7 @@ static void release_sos_state(void *state, void *user_data) {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     int provided_thread_safety;
-    const int desired_thread_safety = SHMEMX_THREAD_SINGLE;
+    const int desired_thread_safety = SHMEMX_THREAD_MULTIPLE;
     ::shmemx_init_thread(desired_thread_safety, &provided_thread_safety);
     assert(provided_thread_safety == desired_thread_safety);
 
@@ -238,9 +244,35 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     assert(trace_fp);
 #endif
 #endif
+    domains = (shmemx_domain_t *)malloc(hclib_get_num_workers() * sizeof(*domains));
+    assert(domains);
+    contexts = (shmemx_ctx_t *)malloc(hclib_get_num_workers() * sizeof(*contexts));
+    assert(contexts);
+
+    int err = ::shmemx_domain_create(SHMEMX_THREAD_MULTIPLE,
+            hclib_get_num_workers(), domains);
+    assert(err == 0); 
+
+    for (int i = 0; i < hclib_get_num_workers(); i++) {
+        err = ::shmemx_ctx_create(domains[i], contexts + i);
+        assert(err == 0);
+    }
+
     domain_ctx_id = hclib_add_per_worker_module_state(
             sizeof(shmemx_domain_t) + sizeof(shmemx_ctx_t), init_sos_state,
             NULL);
+
+    /*
+     * This is only still needed because not all OpenSHMEM APIs are
+     * contexts-based.
+     */
+    int n_nics;
+    hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
+            &n_nics);
+    HASSERT(n_nics == 1);
+    HASSERT(nics);
+    HASSERT(nic == NULL);
+    nic = nics[0];
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_finalize) {
@@ -375,7 +407,7 @@ static void *shmem_set_lock_impl(void *arg) {
     return NULL;
 }
 
-static void *shmem_clear_lock_impl(void *arg) {
+static void shmem_clear_lock_impl(void *arg) {
     START_PROFILE
 #ifdef TRACE
     std::cerr << ::shmem_my_pe() << ": shmem_clear_lock: lock=" << arg <<
@@ -383,7 +415,6 @@ static void *shmem_clear_lock_impl(void *arg) {
 #endif
     ::shmem_clear_lock((long *)arg);
     END_PROFILE(shmem_clear_lock)
-    return NULL;
 }
 
 void hclib::shmem_set_lock(volatile long *lock) {
@@ -395,23 +426,23 @@ void hclib::shmem_set_lock(volatile long *lock) {
 
     hclib_promise_t *promise = hclib_promise_create();
 
-    std::map<long *, lock_context_t *>::iterator found = lock_info.find((long *)lock);
+    std::map<long *, lock_context_t *>::iterator found =
+        lock_info.find((long *)lock);
     if (found != lock_info.end()) {
         ctx = found->second;
     } else {
-        /*
-         * Cannot assert that *lock == 0L here as another node may be locking
-         * it. Can only guarantee that no one else on the same node has locked
-         * it.
-         */
-        ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
-        memset(ctx, 0x00, sizeof(lock_context_t));
+        ctx = (lock_context_t *)calloc(1, sizeof(lock_context_t));
 
         lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
     }
 
+    /*
+     * Launch an async at the NIC that performs the actual lock. This task's
+     * execution is predicated on the last lock, which may be NULL.
+     */
     await = hclib_async_future(shmem_set_lock_impl, (void *)lock,
             &ctx->last_lock, 1, nic);
+    // Save ourselves as the last person to lock.
     ctx->last_lock = hclib_get_future_for_promise(promise);
 
     err = pthread_mutex_unlock(&lock_info_mutex);
@@ -427,15 +458,15 @@ void hclib::shmem_clear_lock(long *lock) {
     HASSERT(err == 0);
 
     std::map<long *, lock_context_t *>::iterator found = lock_info.find(lock);
-    HASSERT(found != lock_info.end()) // Doesn't make much sense to clear a lock that hasn't been set
-
-    hclib_future_t *await = hclib_async_future(shmem_clear_lock_impl, lock,
-            NULL, 0, nic);
+    // Doesn't make much sense to clear a lock that hasn't been set
+    HASSERT(found != lock_info.end())
 
     err = pthread_mutex_unlock(&lock_info_mutex);
     HASSERT(err == 0);
 
-    hclib_future_wait(await);
+    hclib::finish([&] {
+        hclib_async_nb(shmem_clear_lock_impl, lock, nic);
+    });
 
     HASSERT(found->second->live);
     hclib_promise_t *live = found->second->live;
@@ -459,18 +490,12 @@ void hclib::shmem_int_get(int *dest, const int *source, size_t nelems, int pe) {
 }
 
 void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) {
-    hclib::finish([dest, source, nelems, pe] {
-        hclib::async_nb_at([dest, source, nelems, pe] {
-            START_PROFILE
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_getmem: dest=" << dest <<
-                    " source=" << source << " nelems=" << nelems << " pe=" <<
-                    pe << std::endl;
-#endif
-            ::shmem_getmem(dest, source, nelems, pe);
-            END_PROFILE(shmem_getmem)
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    shmemx_ctx_getmem(dest, source, nelems, pe, *ctx);
 }
 
 void hclib::shmem_putmem(void *dest, const void *source, size_t nelems, int pe) {
@@ -579,22 +604,40 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     return fetched;
 }
 
+int hclib::shmem_int_swap(int *dest, int value, int pe) {
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    return shmemx_ctx_int_swap(dest, value, pe, *ctx);
+}
+
+int hclib::shmem_int_cswap(int *dest, int cond, int value, int pe) {
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    return shmemx_ctx_int_cswap(dest, cond, value, pe, *ctx);
+}
+
+long hclib::shmem_long_finc(long *dest, int pe) {
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    return shmemx_ctx_long_finc(dest, pe, *ctx);
+}
+
 int hclib::shmem_int_finc(int *dest, int pe) {
-    int *heap_fetched = (int *)malloc(sizeof(int));
-    hclib::finish([dest, pe, heap_fetched] {
-        hclib::async_nb_at([dest, pe, heap_fetched] {
-            START_PROFILE
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_int_finc: dest=" << dest <<
-                " pe=" << pe << std::endl;
-#endif
-            *heap_fetched = ::shmem_int_finc(dest, pe);
-            END_PROFILE(shmem_int_finc)
-        }, nic);
-    });
-    const int fetched = *heap_fetched;
-    free(heap_fetched);
-    return fetched;
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    return shmemx_ctx_int_finc(dest, pe, *ctx);
 }
 
 void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,

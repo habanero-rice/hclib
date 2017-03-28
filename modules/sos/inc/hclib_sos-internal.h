@@ -71,6 +71,9 @@ void shmem_longlong_p(long long *addr, long long value, int pe);
 void shmem_int_add(int *dest, int value, int pe);
 int shmem_int_fadd(int *dest, int value, int pe);
 int shmem_int_finc(int *dest, int pe);
+long shmem_long_finc(long *dest, int pe);
+int shmem_int_cswap(int *dest, int cond, int value, int pe);
+int shmem_int_swap(int *dest, int value, int pe);
 int shmem_int_fetch(const int *dest, int pe);
 long long shmem_longlong_fadd(long long *target, long long value,
                               int pe);
@@ -129,8 +132,9 @@ void enqueue_wait_set(wait_set_t *wait_set);
 
 template <typename T>
 void shmem_int_async_when(volatile int *ivar, int cmp,
-        int cmp_value, T lambda) {
-    hclib_task_t *task = _allocate_async(lambda, false);
+        int cmp_value, T&& lambda) {
+    typedef typename std::remove_reference<T>::type U;
+    hclib_task_t *task = _allocate_async(new U(lambda));
 
     hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
             &cmp_value, 1, integer, i, task);
@@ -139,8 +143,9 @@ void shmem_int_async_when(volatile int *ivar, int cmp,
 
 template <typename T>
 void shmem_int_async_nb_when(volatile int *ivar, int cmp,
-        int cmp_value, T lambda) {
-    hclib_task_t *task = _allocate_async(lambda, false);
+        int cmp_value, T&& lambda) {
+    typedef typename std::remove_reference<T>::type U;
+    hclib_task_t *task = _allocate_async(new U(lambda));
     task->non_blocking = 1;
 
     hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
@@ -150,8 +155,9 @@ void shmem_int_async_nb_when(volatile int *ivar, int cmp,
 
 template <typename T>
 void shmem_int_async_when_any(volatile int **ivars, int cmp,
-        int *cmp_values, int nwaits, T lambda) {
-    hclib_task_t *task = _allocate_async(lambda, false);
+        int *cmp_values, int nwaits, T&& lambda) {
+    typedef typename std::remove_reference<T>::type U;
+    hclib_task_t *task = _allocate_async(new U(lambda));
 
     hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
             cmp_values, nwaits, integer, i, task);

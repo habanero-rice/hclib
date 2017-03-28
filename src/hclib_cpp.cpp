@@ -33,6 +33,10 @@ hclib_locale_t **hclib::get_all_locales_of_type(int type, int *out_count) {
     return hclib_get_all_locales_of_type(type, out_count);
 }
 
+hclib_locale_t *hclib::get_master_place() {
+    return hclib_get_master_place();
+}
+
 hclib::future_t<void*> *hclib::allocate_at(size_t nbytes, hclib::locale_t *locale) {
     hclib_future_t *actual = hclib_allocate_at(nbytes, locale);
     return (hclib::future_t<void*> *)actual;
