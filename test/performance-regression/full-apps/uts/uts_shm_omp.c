@@ -105,8 +105,8 @@ long * smem_global_lock_alloc() {
  ***********************************************************/
 
 int chunkSize = 15;       // number of nodes to move to/from shared area
-int cbint     = 1;        // Cancellable barrier polling interval
-int pollint   = 1;        // BUPC Polling interval
+int remotecbint     = 64;        // Cancellable barrier polling interval
+int localcbint     = 1;        // Cancellable barrier polling interval
 
 /***********************************************************
  * Tree statistics (if selected via UTS_STAT)              *
@@ -229,8 +229,8 @@ int impl_paramsToStr(char *strBuf, int ind) {
   ind += sprintf(strBuf+ind, "Parallel search using %d OMP threads, %d PEs\n", num_omp_threads,
           shmem_n_pes());
   ind += sprintf(strBuf+ind, "   Load balance by work stealing, chunk size = %d nodes\n", chunkSize);
-  ind += sprintf(strBuf+ind, "  CBarrier Interval: %d\n", cbint);
-  ind += sprintf(strBuf+ind, "   Polling Interval: %d\n", pollint);
+  ind += sprintf(strBuf+ind, "  Remote CBarrier Interval: %d\n", remotecbint);
+  ind += sprintf(strBuf+ind, "  Local CBarrier Interval: %d\n", localcbint);
       
   return ind;
 }
@@ -241,8 +241,6 @@ int impl_parseParam(char *param, char *value) {
   switch (param[1]) {
     case 'c':
       chunkSize = atoi(value); break;
-    case 'i':
-      cbint = atoi(value); break;
     default:
       err = 1;
       break;
@@ -1145,14 +1143,14 @@ void releaseNodes(StealStack *local_ss, StealStack *remote_ss) {
         // Release remotely
         ss_release_remote(local_ss, remote_ss, chunkSize);
         // This has significant overhead on clusters!
-        if (local_ss->nNodes % cbint == 0) {
+        if (local_ss->nNodes % remotecbint == 0) {
           ss_setState(local_ss, SS_CBOVH);
           remote_cbarrier_cancel();
         }
     } else {
         // Release locally
         ss_release_local(local_ss, chunkSize);
-        if (local_ss->nNodes % cbint == 0) {
+        if (local_ss->nNodes % localcbint == 0) {
           ss_setState(local_ss, SS_CBOVH);
           local_cbarrier_cancel();
         }

@@ -216,7 +216,7 @@ LOCK_T * pthread_global_lock_alloc() {
 
 int doSteal   = PARALLEL; // 1 => use work stealing
 int chunkSize = 20;       // number of nodes to move to/from shared area
-int cbint     = 1;        // Cancellable barrier polling interval
+int cbint     = 64;        // Cancellable barrier polling interval
 int pollint   = 1;        // BUPC Polling interval
 
 #ifdef __BERKELEY_UPC__
