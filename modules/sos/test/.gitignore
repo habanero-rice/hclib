@@ -10,3 +10,4 @@ shmem_int_wait_until_any
 shmem_int_async_when
 shmem_int_async_when_any
 many_putmem
+shmem_atomics_stress
