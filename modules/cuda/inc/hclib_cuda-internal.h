@@ -23,6 +23,18 @@
     } \
 }
 
+typedef struct _pending_cuda_op {
+    cudaEvent_t event;
+    hclib::promise_t<void> *prom;
+    struct _pending_cuda_op *next;
+#ifdef HCLIB_INSTRUMENT
+    int event_type;
+    int event_id;
+#endif
+} pending_cuda_op;
+
+extern pending_cuda_op *pending_cuda;
+
 namespace hclib {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(cuda_pre_initialize);
@@ -32,8 +44,23 @@ int get_gpu_locale_id();
 hclib::locale_t *get_closest_gpu_locale();
 hclib::locale_t **get_gpu_locales(int *ngpus);
 std::string get_gpu_name(hclib::locale_t *locale);
+
+/*
+ * Given a locale, return the CUDA device ID associated with that locale.
+ */
 int get_cuda_device_id(hclib_locale_t *locale);
+
+/*
+ * Get the number of locales representing GPUs in the current system.
+ */
 int get_num_gpu_locales();
+
+/*
+ * Given a GPU locale, get a stream that can be used to target it.
+ */
+cudaStream_t get_stream(hclib_locale_t *locale);
+
+bool test_cuda_completion(void *generic_op);
 
 #ifdef HCLIB_INSTRUMENT
 int get_cuda_kernel_event_id();

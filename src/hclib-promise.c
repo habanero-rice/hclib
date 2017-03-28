@@ -217,6 +217,7 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put,
         wait_list_of_promise = promise_to_be_put->wait_list_head;
     }
 
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     hclib_task_t *curr_task = wait_list_of_promise;
     hclib_task_t *next_task = NULL;
     while (curr_task != SENTINEL_FUTURE_WAITLIST_PTR) {
@@ -229,7 +230,7 @@ void hclib_promise_put(hclib_promise_t *promise_to_be_put,
          * scheduling.
          */
         if (register_on_all_promise_dependencies(curr_task)) {
-            try_schedule_async(curr_task, CURRENT_WS_INTERNAL);
+            try_schedule_async(curr_task, ws);
         }
 
         curr_task = next_task;

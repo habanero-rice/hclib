@@ -30,16 +30,16 @@ UPCLD_OPTS = -lm
 # OPENMP Compiler 
 # -------------------------------------
 OMPCC = icc
-OMPCC_OPTS = -openmp
+OMPCC_OPTS = -fopenmp
 OMPLD_OPTS = -lm
 
 
 # -------------------------------------
 # SHMEM Compiler 
 # -------------------------------------
-SHMCC = oshcc
+SHMCC = g++
 SHMCC_OPTS = 
-SHMLD_OPTS = 
+SHMLD_OPTS = -loshmem -L$(OPENSHMEM_INSTALL)/lib
 
 # -------------------------------------
 # GPSHMEM Compiler 

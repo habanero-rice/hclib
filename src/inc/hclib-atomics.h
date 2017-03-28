@@ -39,39 +39,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef HCLIB_ATOMICS_H_
 #define HCLIB_ATOMICS_H_
 
-#if defined __x86_64 || __i686__
-
-#define HC_CACHE_LINE 64
-
-
+/*
+ * Perform an atomic increment on the value pointed to by ptr and return the old
+ * value.
+ */
 static __inline__ int hc_atomic_inc(volatile int *ptr) {
-    unsigned char c;
-    __asm__ __volatile__(
-
-            "lock       ;\n"
-            "incl %0; sete %1"
-            : "+m" (*(ptr)), "=qm" (c)
-              : : "memory"
-    );
-    return c != 0;
+    return __sync_add_and_fetch(ptr, 1);
 }
 
 /*
- * return 1 if the *ptr becomes 0 after decremented, otherwise return 0
+ * Perform and atomic decrement on the value pointed to by ptr and return the
+ * old value.
  */
 static __inline__ int hc_atomic_dec(volatile int *ptr) {
-    unsigned char rt;
-    __asm__ __volatile__(
-            "lock;\n"
-            "decl %0; sete %1"
-            : "+m" (*(ptr)), "=qm" (rt)
-              : : "memory"
-    );
-    return rt != 0;
+    return __sync_fetch_and_sub(ptr, 1);
 }
 
 static __inline__ void hc_mfence() {
-        __asm__ __volatile__("mfence":: : "memory");
+    __sync_synchronize();
 }
 
 /*
@@ -79,18 +64,7 @@ static __inline__ void hc_mfence() {
  * else return 0;
  */
 static __inline__ int hc_cas(volatile int *ptr, int ag, int x) {
-        int tmp;
-        __asm__ __volatile__("lock;\n"
-                             "cmpxchgl %1,%3"
-                             : "=a" (tmp) /* %0 EAX, return value */
-                             : "r"(x), /* %1 reg, new value */
-                               "0" (ag), /* %2 EAX, compare value */
-                               "m" (*(ptr)) /* %3 mem, destination operand */
-                             : "memory" /*, "cc" content changed, memory and cond register */
-                );
-        return tmp == ag;
+    return __sync_val_compare_and_swap(ptr, ag, x);
 }
-
-#endif /* __x86_64 */
 
 #endif /* HCLIB_ATOMICS_H_ */

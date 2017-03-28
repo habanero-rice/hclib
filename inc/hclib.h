@@ -212,13 +212,6 @@ hclib_future_t *hclib_end_finish_nonblocking();
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event);
 
 /*
- * This function is added purely to help emulate the OMP tasking API, as a
- * portability tool.
- */
-void hclib_emulate_omp_task(future_fct_t fct_ptr, void *arg,
-        hclib_locale_t *locale, int n_in, int n_out, ...);
-
-/*
  * This API yields the current thread to another task. This API guarantees that
  * if there is currently a task in the pop or steal path of the current thread,
  * it will be found and its execution will start before we return from this

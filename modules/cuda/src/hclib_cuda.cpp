@@ -1,4 +1,5 @@
 #include "hclib_cuda-internal.h"
+#include "hclib-atomics.h"
 
 #include <iostream>
 
@@ -40,8 +41,28 @@ static int event_ids[N_CUDA_FUNCS];
 static int gpu_locale_id;
 static int gpus_so_far = 0;
 
+#define NUM_STREAMS_PER_LOCALE 64
+typedef struct {
+    int id;
+    int stream_iter;
+    cudaStream_t streams[NUM_STREAMS_PER_LOCALE];
+} gpu_locale_metadata;
+
+pending_cuda_op *pending_cuda = NULL;
+
+cudaStream_t hclib::get_stream(hclib_locale_t *locale) {
+    assert(locale->type == gpu_locale_id);
+
+    gpu_locale_metadata *metadata = (gpu_locale_metadata *)locale->metadata;
+
+    const int stream_index = hc_atomic_inc(&(metadata->stream_iter));
+
+    return metadata->streams[stream_index];
+}
+
 int hclib::get_cuda_device_id(hclib_locale_t *locale) {
-    return *((int *)(locale->metadata));
+    gpu_locale_metadata *metadata = (gpu_locale_metadata *)locale->metadata;
+    return metadata->id;
 }
 
 static void *allocation_func(size_t nbytes, hclib_locale_t *locale) {
@@ -97,7 +118,7 @@ static void copy_func(hclib::locale_t *dst_locale, void *dst,
     const cudaError_t err = cudaMemcpy(dst, src, nbytes, kind);
     if (err != cudaSuccess) {
         fprintf(stderr, "ERROR cudaMemcpy(dst=%p, src=%p, nbytes=%llu, "
-                "kind=%s) - %s\n", dst, src, nbytes,
+                "kind=%s) - %s\n", dst, src, (unsigned long long )nbytes,
                 (kind == cudaMemcpyDeviceToHost ? "cudaMemcpyDeviceToHost" :
                  (kind == cudaMemcpyHostToDevice ? "cudaMemcpyHostToDevice" :
                   "Unknown")), cudaGetErrorString(err));
@@ -116,12 +137,18 @@ static void copy_func(hclib::locale_t *dst_locale, void *dst,
 }
 
 static size_t metadata_size() {
-    return sizeof(int); // to store GPU ID
+    return sizeof(gpu_locale_metadata);
 }
 
 static void metadata_populate(hclib_locale_t *locale) {
-    *((int *)locale->metadata) = gpus_so_far; // ID
-    gpus_so_far++;
+    gpu_locale_metadata *metadata = (gpu_locale_metadata *)locale->metadata;
+    metadata->id = gpus_so_far++;
+    metadata->stream_iter = 0;
+
+    for (int i = 0; i < NUM_STREAMS_PER_LOCALE; i++) {
+        CHECK_CUDA(cudaStreamCreateWithFlags(metadata->streams + i,
+                    cudaStreamNonBlocking));
+    }
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(cuda_pre_initialize) {
@@ -167,6 +194,13 @@ std::string hclib::get_gpu_name(hclib::locale_t *locale) {
 
 int hclib::get_num_gpu_locales() {
     return hclib_get_num_locales_of_type(gpu_locale_id);
+}
+
+bool hclib::test_cuda_completion(void *generic_op) {
+    pending_cuda_op *op = (pending_cuda_op *)generic_op;
+    cudaError_t err = cudaEventQuery(op->event);
+    assert(err == cudaSuccess || err == cudaErrorNotReady);
+    return (err == cudaSuccess);
 }
 
 #ifdef HCLIB_INSTRUMENT

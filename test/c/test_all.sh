@@ -2,6 +2,10 @@
 
 set -e
 
+if [[ -f ~/.profile ]]; then
+    source ~/.profile
+fi
+
 make clean
 make -j
 

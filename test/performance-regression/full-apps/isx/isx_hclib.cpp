@@ -84,7 +84,8 @@ float avg_time=0, avg_time_all2all = 0;
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 60000)
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
 // #define KEY_BUFFER_SIZE ((1uLL<<26uLL))
-#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
+#define KEY_BUFFER_SIZE ((1uLL<<30uLL))
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -106,8 +107,7 @@ int main(const int argc,  char ** argv)
 
   #ifdef EXTRA_STATS
   _timer_t total_time;
-  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0) {
-  // if(::shmem_my_pe() == 0) {
+  if(hclib::shmem_my_pe() == 0) {
     printf("\n-----\nmkdir timedrun fake\n\n");
     timer_start(&total_time);
   }
@@ -122,8 +122,7 @@ int main(const int argc,  char ** argv)
   log_times(log_file);
 
   #ifdef EXTRA_STATS
-  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0) {
-  // if(::shmem_my_pe() == 0) {
+  if(hclib::shmem_my_pe() == 0) {
     just_timer_stop(&total_time);
     double tTime = ( total_time.stop.tv_sec - total_time.start.tv_sec ) + ( total_time.stop.tv_nsec - total_time.start.tv_nsec )/1E9;
     avg_time *= 1000;
@@ -169,8 +168,7 @@ static char * parse_params(const int argc, char ** argv)
 {
   if(argc != 3)
   {
-    if( hclib::pe_for_locale(hclib::shmem_my_pe()) == 0){
-    // if(::shmem_my_pe() == 0) {
+    if( hclib::shmem_my_pe() == 0){
       printf("Usage:  \n");
       printf("  ./%s <total num keys(strong) | keys per pe(weak)> <log_file>\n",argv[0]);
     }
@@ -213,8 +211,7 @@ static char * parse_params(const int argc, char ** argv)
 
     default:
       {
-        if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0){
-        // if(::shmem_my_pe() == 0){
+        if(hclib::shmem_my_pe() == 0){
           printf("Invalid scaling option! See params.h to define the scaling option.\n");
         }
 
@@ -231,8 +228,7 @@ static char * parse_params(const int argc, char ** argv)
   assert(NUM_BUCKETS > 0);
   assert(BUCKET_WIDTH > 0);
   
-  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == 0){
-  // if(::shmem_my_pe() == 0){
+  if(hclib::shmem_my_pe() == 0){
     printf("ISx v%1d.%1d\n",MAJOR_VERSION_NUMBER,MINOR_VERSION_NUMBER);
 #ifdef PERMUTE
     printf("Random Permute Used in ATA.\n");
@@ -242,7 +238,7 @@ static char * parse_params(const int argc, char ** argv)
     printf("  Bucket Width: %" PRIu64 "\n", BUCKET_WIDTH);
     printf("  Number of Iterations: %u\n", NUM_ITERATIONS);
     printf("  Number of PEs: %" PRIu64 "\n", NUM_PES);
-    printf("  Worker threads per PE: %d\n", hclib::num_workers());
+    printf("  Worker threads per PE: %d\n", hclib::get_num_workers());
     printf("  %s Scaling!\n",scaling_msg);
     }
 
@@ -318,7 +314,7 @@ static int bucket_sort(void)
     free(local_bucket_offsets);
     free(send_offsets);
     free(my_local_key_counts);
-    for (int i = 0; i < hclib::num_workers(); i++) {
+    for (int i = 0; i < hclib::get_num_workers(); i++) {
         free(bucket_counts_per_chunk[i]);
     }
     free(bucket_counts_per_chunk);
@@ -348,9 +344,9 @@ static KEY_TYPE * make_input(void)
   unsigned long long start = hclib_current_time_ns();
 #endif
   hclib::finish([my_keys] {
-      const unsigned nworkers = hclib::num_workers();
+      const unsigned nworkers = hclib::get_num_workers();
       for (unsigned i = 0; i < nworkers; i++) {
-          hclib::async([i, nworkers, my_keys] {
+          hclib::async_nb([i, nworkers, my_keys] {
               pcg32_random_t rng = seed_my_rank(i);
               uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
               uint64_t start_chunk = i * chunk_size;
@@ -366,6 +362,7 @@ static KEY_TYPE * make_input(void)
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (hclib::shmem_my_pe() == 0)
   printf("Making input took %llu ns\n", end - start);
 #endif
 
@@ -374,7 +371,7 @@ static KEY_TYPE * make_input(void)
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: Initial Keys: ", my_rank);
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
@@ -407,11 +404,11 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
 #ifdef ISX_PROFILING
   unsigned long long start = hclib_current_time_ns();
 #endif
-  const unsigned nworkers = hclib::num_workers();
+  const unsigned nworkers = hclib::get_num_workers();
   int **bucket_counts_per_chunk = (int **)malloc(nworkers * sizeof(int *));
   hclib::finish([local_bucket_sizes, my_keys, nworkers, bucket_counts_per_chunk] {
       for (unsigned i = 0; i < nworkers; i++) {
-          hclib::async([i, nworkers, my_keys, bucket_counts_per_chunk] {
+          hclib::async_nb([i, nworkers, my_keys, bucket_counts_per_chunk] {
               int *bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
               memset(bucket_sizes, 0x00, NUM_BUCKETS * sizeof(int));
 
@@ -441,6 +438,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (hclib::shmem_my_pe() == 0)
   printf("Counting local bucket sizes took %llu ns\n", end - start);
 #endif
 
@@ -449,7 +447,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: local bucket sizes: ", my_rank);
   for(uint64_t i = 0; i < NUM_BUCKETS; ++i){
@@ -496,7 +494,7 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: local bucket offsets: ", my_rank);
   for(uint64_t i = 0; i < NUM_BUCKETS; ++i){
@@ -528,7 +526,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 #ifdef ISX_PROFILING
   unsigned long long start = hclib_current_time_ns();
 #endif
-  unsigned nworkers = hclib::num_workers();
+  unsigned nworkers = hclib::get_num_workers();
 
   if (nworkers == 1) {
       for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
@@ -546,7 +544,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 
       hclib::finish([chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk] {
           hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, NUM_BUCKETS);
-          hclib::forasync1D(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
+          hclib::forasync1D_nb(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
               chunk_bucket_offsets[b * nworkers + 0] = local_bucket_offsets[b];
               for (unsigned w = 1; w < nworkers; w++) {
                   chunk_bucket_offsets[b * nworkers + w] =
@@ -558,7 +556,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 
       hclib::finish([nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
           for (unsigned c = 0; c < nworkers; c++) {
-              hclib::async([c, nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
+              hclib::async_nb([c, nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
                   uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
                   uint64_t start_chunk = c * chunk_size;
                   uint64_t end_chunk = (c + 1) * chunk_size;
@@ -586,6 +584,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (hclib::shmem_my_pe() == 0)
   printf("Bucketizing took %llu ns\n", end - start);
 #endif
 
@@ -594,7 +593,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 #ifdef DEBUG
   wait_my_turn();
   char msg[1024];
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   sprintf(msg,"Rank %d: local bucketed keys: ", my_rank);
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
@@ -619,7 +618,7 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
 {
   timer_start(&timers[TIMER_ATA_KEYS]);
 
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   unsigned int total_keys_sent = 0;
 
@@ -712,7 +711,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 
   timer_start(&timers[TIMER_SORT]);
 
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   const int my_min_key = my_rank * BUCKET_WIDTH;
 
@@ -720,13 +719,13 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   unsigned long long start = hclib_current_time_ns();
 #endif
 
-  const unsigned nworkers = hclib::num_workers();
+  const unsigned nworkers = hclib::get_num_workers();
   int *per_chunk_counts = (int *)malloc(nworkers * BUCKET_WIDTH * sizeof(int));
   memset(per_chunk_counts, 0x00, nworkers * BUCKET_WIDTH * sizeof(int));
 
   hclib::finish([nworkers, per_chunk_counts, my_bucket_keys, my_min_key] {
     for (unsigned c = 0; c < nworkers; c++) {
-        hclib::async([nworkers, c, per_chunk_counts, my_bucket_keys, my_min_key] {
+        hclib::async_nb([nworkers, c, per_chunk_counts, my_bucket_keys, my_min_key] {
             long long int chunk_size = (my_bucket_size + nworkers - 1) / nworkers;
             long long int start_chunk = c * chunk_size;
             long long int end_chunk = (c + 1) * chunk_size;
@@ -749,11 +748,11 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 
   hclib::finish([nworkers, my_local_key_counts, per_chunk_counts] {
       for (unsigned c = 0; c < nworkers; c++) {
-          hclib::async([c, nworkers, my_local_key_counts, per_chunk_counts] {
+          hclib::async_nb([c, nworkers, my_local_key_counts, per_chunk_counts] {
             unsigned chunk_size = (BUCKET_WIDTH + nworkers - 1) / nworkers;
             unsigned start_chunk = c * chunk_size;
             unsigned end_chunk = (c + 1) * chunk_size;
-            if (end_chunk > BUCKET_WIDTH) end_chunk = my_bucket_size;
+            if (end_chunk > BUCKET_WIDTH) end_chunk = BUCKET_WIDTH;
 
             for (unsigned c = 0; c < nworkers; c++) {
                 for (unsigned i = start_chunk; i < end_chunk; i++) {
@@ -767,6 +766,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   free(per_chunk_counts);
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (hclib::shmem_my_pe() == 0)
   printf("Counting local took %llu ns for stage 1, %llu ns for stage 2, "
           "my_bucket_size = %u\n", intermediate - start, end - intermediate,
           my_bucket_size);
@@ -814,7 +814,7 @@ static int verify_results(int const * const my_local_key_counts,
 
   int error = 0;
 
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
 
   const int my_min_key = my_rank * BUCKET_WIDTH;
@@ -835,6 +835,7 @@ static int verify_results(int const * const my_local_key_counts,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (hclib::shmem_my_pe() == 0)
   printf("Verifying took %llu ns\n", end - start);
 #endif
 
@@ -878,7 +879,7 @@ static void log_times(char * log_file)
     timers[i].all_counts = gather_rank_counts(&timers[i]);
   }
 
-  if(hclib::pe_for_locale(hclib::shmem_my_pe()) == ROOT_PE)
+  if(hclib::shmem_my_pe() == ROOT_PE)
   // if(::shmem_my_pe() == ROOT_PE)
   {
     int print_names = 0;
@@ -1081,8 +1082,8 @@ static unsigned int * gather_rank_counts(_timer_t * const timer)
  */
 static inline pcg32_random_t seed_my_rank(const int chunk)
 {
-  const unsigned int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
-  const unsigned int nworkers = hclib::num_workers();
+  const unsigned int my_rank = hclib::shmem_my_pe();
+  const unsigned int nworkers = hclib::get_num_workers();
   const unsigned int virtual_rank = my_rank * nworkers + chunk;
   pcg32_random_t rng;
   pcg32_srandom_r(&rng, (uint64_t) virtual_rank, (uint64_t) virtual_rank );
@@ -1124,7 +1125,7 @@ static void wait_my_turn()
   hclib::shmem_barrier_all();
   whose_turn = 0;
   hclib::shmem_barrier_all();
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
 
   hclib::shmem_int_wait_until((int*)&whose_turn, SHMEM_CMP_EQ, my_rank);
@@ -1134,7 +1135,7 @@ static void wait_my_turn()
 
 static void my_turn_complete()
 {
-  const int my_rank = hclib::pe_for_locale(hclib::shmem_my_pe());
+  const int my_rank = hclib::shmem_my_pe();
   // const int my_rank = ::shmem_my_pe();
   const int next_rank = my_rank+1;
 

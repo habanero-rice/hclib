@@ -84,7 +84,9 @@ float avg_time=0, avg_time_all2all = 0;
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 60000)
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
 // #define KEY_BUFFER_SIZE ((1uLL<<26uLL))
-#define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
+// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 50000000)
+#define KEY_BUFFER_SIZE ((1uLL<<30uLL))
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -111,7 +113,6 @@ int main(const int argc,  char ** argv)
   #ifdef EXTRA_STATS
   _timer_t total_time;
   if(shmem_my_pe() == 0) {
-  // if(::shmem_my_pe() == 0) {
     printf("\n-----\nmkdir timedrun fake\n\n");
     timer_start(&total_time);
   }
@@ -127,7 +128,6 @@ int main(const int argc,  char ** argv)
 
   #ifdef EXTRA_STATS
   if(shmem_my_pe() == 0) {
-  // if(::shmem_my_pe() == 0) {
     just_timer_stop(&total_time);
     double tTime = ( total_time.stop.tv_sec - total_time.start.tv_sec ) + ( total_time.stop.tv_nsec - total_time.start.tv_nsec )/1E9;
     avg_time *= 1000;
@@ -174,7 +174,6 @@ static char * parse_params(const int argc, char ** argv)
   if(argc != 3)
   {
     if( shmem_my_pe() == 0){
-    // if(::shmem_my_pe() == 0) {
       printf("Usage:  \n");
       printf("  ./%s <total num keys(strong) | keys per pe(weak)> <log_file>\n",argv[0]);
     }
@@ -218,7 +217,6 @@ static char * parse_params(const int argc, char ** argv)
     default:
       {
         if(shmem_my_pe() == 0){
-        // if(::shmem_my_pe() == 0){
           printf("Invalid scaling option! See params.h to define the scaling option.\n");
         }
 
@@ -236,7 +234,6 @@ static char * parse_params(const int argc, char ** argv)
   assert(BUCKET_WIDTH > 0);
   
   if(shmem_my_pe() == 0){
-  // if(::shmem_my_pe() == 0){
     printf("ISx v%1d.%1d\n",MAJOR_VERSION_NUMBER,MINOR_VERSION_NUMBER);
 #ifdef PERMUTE
     printf("Random Permute Used in ATA.\n");
@@ -365,6 +362,7 @@ static KEY_TYPE * make_input(void)
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Making input took %llu ns\n", end - start);
 #endif
 
@@ -441,6 +439,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Counting local bucket sizes took %llu ns\n", end - start);
 #endif
 
@@ -582,6 +581,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Bucketizing took %llu ns\n", end - start);
 #endif
 
@@ -749,7 +749,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
       unsigned chunk_size = (BUCKET_WIDTH + num_threads - 1) / num_threads;
       unsigned start_chunk = c * chunk_size;
       unsigned end_chunk = (c + 1) * chunk_size;
-      if (end_chunk > BUCKET_WIDTH) end_chunk = my_bucket_size;
+      if (end_chunk > BUCKET_WIDTH) end_chunk = BUCKET_WIDTH;
 
       for (int c = 0; c < num_threads; c++) {
           for (unsigned i = start_chunk; i < end_chunk; i++) {
@@ -761,6 +761,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   free(per_chunk_counts);
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Counting local took %llu ns for stage 1, %llu ns for stage 2, "
           "my_bucket_size = %u\n", intermediate - start, end - intermediate,
           my_bucket_size);
@@ -829,6 +830,7 @@ static int verify_results(int const * const my_local_key_counts,
 
 #ifdef ISX_PROFILING
   unsigned long long end = hclib_current_time_ns();
+  if (shmem_my_pe() == 0)
   printf("Verifying took %llu ns\n", end - start);
 #endif
 

@@ -104,14 +104,14 @@ static int steal_from(int target_pe, Node *stolen_out) {
     int remote_buffered_steals;
 
     shmem_set_lock(&steal_buffer_locks[target_pe]);
-    shmem_int_get(&remote_buffered_steals, &n_buffered_steals, 1, target_pe);
+    shmem_int_get(&remote_buffered_steals, (int *)&n_buffered_steals, 1, target_pe);
 
     int stole_something = 0;
     if (remote_buffered_steals > 0) {
         remote_buffered_steals--;
         shmem_getmem(stolen_out, &steal_buffer[remote_buffered_steals],
                 sizeof(Node), target_pe);
-        shmem_int_put(&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
+        shmem_int_put((int *)&n_buffered_steals, &remote_buffered_steals, 1, target_pe);
         stole_something = 1;
     }
 

@@ -1,1 +1,4 @@
 bfs_oshmem
+cityhash
+smhasher
+bfs_oshmem-single-mailbox-concurrent-crc

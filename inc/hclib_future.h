@@ -51,6 +51,10 @@ struct future_t<T*>: public hclib_future_t {
     T *wait() {
         return static_cast<T*>(hclib_future_wait(this));
     }
+
+    T *wait_and_get() {
+        return static_cast<T*>(hclib_future_wait_and_get(this));
+    }
 };
 
 // Specialized for references
@@ -63,6 +67,10 @@ struct future_t<T&>: public hclib_future_t {
     T &wait() {
         return *static_cast<T*>(hclib_future_wait(this));
     }
+
+    T &wait_and_get() {
+        return *static_cast<T*>(hclib_future_wait_and_get(this));
+    }
 };
 
 // Specialized for void
@@ -72,8 +80,10 @@ struct future_t<void>: public hclib_future_t {
     void wait() { hclib_future_wait(this); }
 };
 
+#ifndef __CUDACC__
 HASSERT_STATIC(std::is_pod<future_t<void*>>::value,
         "future_t is plain-old-datatype");
+#endif
 // assert that we can safely cast back and forth between the C and C++ types
 HASSERT_STATIC(sizeof(future_t<void*>) == sizeof(hclib_future_t),
         "future_t is a trivial wrapper around hclib_future_t");

@@ -193,6 +193,9 @@ void finalize_instrumentation() {
 
 unsigned hclib_register_event(const unsigned event_type,
         event_transition transition, const int event_id) {
+    assert(active_thread_buffers &&
+            "hclib_register_event called with uninitialized instrumentation.");
+
     const unsigned long long timestamp = hclib_current_time_ns();
     const int tid = CURRENT_WS_INTERNAL->id;
 

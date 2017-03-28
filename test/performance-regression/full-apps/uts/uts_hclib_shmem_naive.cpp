@@ -48,7 +48,7 @@
 #define MAX_OMP_THREADS       32
 #define MAX_SHMEM_THREADS     1024
 #define LOCK_T           omp_lock_t
-#define GET_NUM_THREADS  hclib::num_workers()
+#define GET_NUM_THREADS  hclib::get_num_workers()
 #define GET_THREAD_NUM   hclib::get_current_worker()
 #define SET_LOCK(zlk)    omp_set_lock(zlk)
 #define UNSET_LOCK(zlk)  omp_unset_lock(zlk)
@@ -261,7 +261,7 @@ char * impl_getName() {
 
 // construct string with all parameter settings 
 int impl_paramsToStr(char *strBuf, int ind) {
-    int n_omp_threads = hclib::num_workers();
+    int n_omp_threads = hclib::get_num_workers();
 
   ind += sprintf(strBuf+ind, "Execution strategy:  ");
   if (PARALLEL) {
@@ -853,7 +853,7 @@ int main(int argc, char *argv[]) {
   const char *deps[] = { "system", "openshmem" };
   hclib::launch(deps, 2, [argc, argv] {
 
-      pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+      pe = hclib::shmem_my_pe();
       npes = hclib::shmem_n_pes();
 
       /* determine benchmark parameters (all PEs) */
@@ -884,7 +884,7 @@ int main(int argc, char *argv[]) {
 
     /********** SPMD Parallel Region **********/
       int first = 1;
-      n_omp_threads = hclib::num_workers();
+      n_omp_threads = hclib::get_num_workers();
       assert(n_omp_threads <= MAX_OMP_THREADS);
 
       Node child;

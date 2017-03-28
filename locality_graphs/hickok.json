@@ -2,27 +2,25 @@
     "nworkers": 16,
     "declarations": [
         "sysmem",
-        "L3_0", "L3_1",
         "L2_0_0", "L2_0_1", "L2_0_2", "L2_0_3", "L2_0_4", "L2_0_5", "L2_0_6", "L2_0_7",
         "L2_1_0", "L2_1_1", "L2_1_2", "L2_1_3", "L2_1_4", "L2_1_5", "L2_1_6", "L2_1_7",
         "Interconnect"
     ],
     "reachability": [
-        ["sysmem", "L3_0"], ["sysmem", "L3_1"],
-        ["L3_0", "L2_0_0"], ["L3_0", "L2_0_1"], ["L3_0", "L2_0_2"],
-            ["L3_0", "L2_0_3"], ["L3_0", "L2_0_4"], ["L3_0", "L2_0_5"],
-            ["L3_0", "L2_0_6"], ["L3_0", "L2_0_7"],
-        ["L3_1", "L2_1_0"], ["L3_1", "L2_1_1"], ["L3_1", "L2_1_2"],
-            ["L3_1", "L2_1_3"], ["L3_1", "L2_1_4"], ["L3_1", "L2_1_5"],
-            ["L3_1", "L2_1_6"], ["L3_1", "L2_1_7"],
+        ["sysmem", "L2_0_0"], ["sysmem", "L2_0_1"], ["sysmem", "L2_0_2"],
+            ["sysmem", "L2_0_3"], ["sysmem", "L2_0_4"], ["sysmem", "L2_0_5"],
+            ["sysmem", "L2_0_6"], ["sysmem", "L2_0_7"],
+        ["sysmem", "L2_1_0"], ["sysmem", "L2_1_1"], ["sysmem", "L2_1_2"],
+            ["sysmem", "L2_1_3"], ["sysmem", "L2_1_4"], ["sysmem", "L2_1_5"],
+            ["sysmem", "L2_1_6"], ["sysmem", "L2_1_7"],
         ["sysmem", "Interconnect"]
     ],
     "pop_paths": {
-        "default": ["L2_$(id / 8)_$(id % 8)", "L3_$(id / 8)", "sysmem"],
-        0: ["Interconnect", "L2_0_0", "L3_0", "sysmem"]
+        "default": ["L2_$(id / 8)_$(id % 8)", "sysmem"],
+        0: ["L2_0_0", "sysmem", "Interconnect"]
     },
     "steal_paths": {
-        "default": ["L2_$(id / 8)_$(id % 8)", "L3_$(id / 8)", "sysmem"],
-        0: ["Interconnect", "L2_0_0", "L3_0", "sysmem"]
+        "default": ["L2_$(id / 8)_$(id % 8)", "sysmem"],
+        0: ["L2_0_0", "sysmem", "Interconnect"]
     }
 }

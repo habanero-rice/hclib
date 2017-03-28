@@ -49,22 +49,20 @@ void assert_done(int start, int end) {
     }
 }
 
-void init_ran(int *ran, int size) {
-    size--;
-    while (size >= 0) {
-        ran[size] = -1;
-        size--;
-    }
-}
-
 void spawn_async(volatile int * indices, int i) {
     if (i < NB_ASYNC) {
         hclib::finish([=]() {
             indices[i] = i;
-            hclib::async([=]() { int idx = indices[i]; assert(ran[idx] == -1);
-                ran[idx] = idx; });
-            spawn_async(indices, i+1);
+
+            hclib::async([=]() {
+                int idx = indices[i];
+                assert(ran[idx] == -1);
+                ran[idx] = idx;
+            });
+
+            spawn_async(indices, i + 1);
         });
+
         assert_done(i, i+1);
     }
 }
@@ -74,13 +72,22 @@ int main (int argc, char ** argv) {
     const char *deps[] = { "system" };
     hclib::launch(deps, 1, []() {
         volatile int * indices = (int *) malloc(sizeof(int)*NB_ASYNC);
+        assert(indices);
+
         ran = (int *) malloc(sizeof(int)*NB_ASYNC);
-        init_ran(ran, NB_ASYNC);
+        assert(ran);
+
+        for (int i = 0; i < NB_ASYNC; i++) {
+            ran[i] = -1;
+        }
+
         hclib::finish([=]() {
             spawn_async(indices, 0);
         });
+
         free((void *)indices);
     });
+
     printf("Check results: ");
     assert_done(0, NB_ASYNC);
     printf("OK\n");

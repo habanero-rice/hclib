@@ -50,7 +50,7 @@ typedef int64_t size_type;
  *   sizeof(crc) bytes                                       : CRC32 body checksum
  *   N - sizeof(crc) - sizeof(size_type) - sizeof(crc) bytes : Body
  */
-#define COALESCING 256
+#define COALESCING 512
 #define SEND_HEADER_SIZE (sizeof(crc) + sizeof(size_type) + sizeof(crc))
 #define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
     const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
 
-    pe = hclib::pe_for_locale(hclib::shmem_my_pe());
+    pe = hclib::shmem_my_pe();
     npes = hclib::shmem_n_pes();
 
     uint_fast32_t seed[5];
@@ -727,8 +727,8 @@ int main(int argc, char **argv) {
         curr_q_size = 0;
         next_q_size = 0;
 
-        uint64_t root = bfs_roots[run];
-        // uint64_t root = 0;
+        // uint64_t root = bfs_roots[run];
+        uint64_t root = 0;
 
         set_visited(root, visited, visited_ints, local_min_vertex);
         if (get_owner_pe(root, nglobalverts) == pe) {

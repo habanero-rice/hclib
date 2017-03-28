@@ -62,8 +62,9 @@ int main (int argc, char ** argv) {
         hclib::finish([=]() {
             hclib::loop_domain_2d *loop = new hclib::loop_domain_2d(H1, H2);
             hclib::forasync2D(loop, [=](int idx1, int idx2) {
-                    assert(ran[idx1*H2+idx2] == -1);
-                    ran[idx1*H2+idx2] = idx1*H2+idx2; }, false, FORASYNC_MODE_RECURSIVE);
+                        assert(ran[idx1*H2+idx2] == -1);
+                        ran[idx1*H2+idx2] = idx1*H2+idx2;
+                    }, false, FORASYNC_MODE_RECURSIVE);
         });
     });
 

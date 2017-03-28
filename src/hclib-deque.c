@@ -53,8 +53,12 @@ int deque_push(deque_t *deq, void *entry) {
         /* may not grow the deque if some interleaving steal occur */
         return 0;
     }
-    int n = (deq->tail) % INIT_DEQUE_CAPACITY;
+    const int n = (deq->tail) % INIT_DEQUE_CAPACITY;
     deq->data[n] = (hclib_task_t *) entry;
+
+    // Required to guarantee ordering of setting data[n] with incrementing tail.
+    hc_mfence();
+
     deq->tail++;
     return 1;
 }
@@ -67,25 +71,25 @@ void deque_destroy(deque_t *deq) {
  * the steal protocol
  */
 hclib_task_t *deque_steal(deque_t *deq) {
-    int head;
     /* Cannot read deq->data[head] here
      * Can happen that head=tail=0, then the owner of the deq pushes
      * a new task when stealer is here in the code, resulting in head=0, tail=1
      * All other checks down-below will be valid, but the old value of the buffer head
      * would be returned by the steal rather than the new pushed value.
      */
-    int tail;
+    const int head = deq->head;
 
-    head = deq->head;
     hc_mfence();
-    tail = deq->tail;
+
+    const int tail = deq->tail;
     if ((tail - head) <= 0) {
         return NULL;
     }
 
     hclib_task_t *t = (hclib_task_t *) deq->data[head % INIT_DEQUE_CAPACITY];
     /* compete with other thieves and possibly the owner (if the size == 1) */
-    if (hc_cas(&deq->head, head, head + 1)) { /* competing */
+    const int old = hc_cas(&deq->head, head, head + 1);
+    if (old == head) {
         return t;
     }
     return NULL;
@@ -107,14 +111,15 @@ hclib_task_t *deque_pop(deque_t *deq) {
         deq->tail = deq->head;
         return NULL;
     }
-    hclib_task_t *t = (hclib_task_t *) deq->data[(tail) % INIT_DEQUE_CAPACITY];
+    hclib_task_t *t = (hclib_task_t *) deq->data[tail % INIT_DEQUE_CAPACITY];
 
     if (size > 0) {
         return t;
     }
 
     /* now size == 1, I need to compete with the thieves */
-    if (!hc_cas(&deq->head, head, head + 1)) {
+    const int old = hc_cas(&deq->head, head, head + 1);
+    if (old != head) {
         t = NULL;
     }
 
