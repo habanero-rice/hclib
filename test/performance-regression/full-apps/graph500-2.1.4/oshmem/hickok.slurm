@@ -27,12 +27,12 @@ WORK_DIR=$(pwd)
 
 # Flat OpenSHMEM
 export SMA_SYMMETRIC_SIZE=$((2 * 1024 * 1024 * 1024))
-srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
-srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
-srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
-srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
-srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 12)) --ntasks-per-node=12 --ntasks-per-socket=6 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-hiper $GRAPH_SIZE 16
-srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 12)) --ntasks-per-node=12 --ntasks-per-socket=6 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc-hiper $GRAPH_SIZE 16
+# srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
+# srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
+# srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
+# srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
+srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 11)) --ntasks-per-node=11 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-hiper $GRAPH_SIZE 16
+srun --chdir=/var/tmp/$USER --ntasks=$(($SLURM_NNODES * 11)) --ntasks-per-node=11 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc-hiper $GRAPH_SIZE 16
 
 # OpenSHMEM + OMP
 export OMP_NUM_THREADS=8
