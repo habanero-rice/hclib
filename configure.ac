@@ -133,9 +133,41 @@ AS_IF([test "x$with_production" != xno],
 AM_CONDITIONAL(PRODUCTION_SETTINGS, test "x$with_production" != xno)
 ### End PRODUCTION settings
 
+### C11 features check
+AC_LANG_PUSH(C)
+_old_CFLAGS="${CFLAGS}"
+CFLAGS="${_old_CFLAGS} -std=c11"
+# We require basic C11 support
+AC_CACHE_CHECK([for basic C11 support], [ac_cv_c11_lang],
+[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])],
+                   [ac_cv_c11_lang=yes],
+                   [ac_cv_c11_lang=no])])
+if test $ac_cv_c11_lang = no; then
+    AC_MSG_ERROR(C11 support (-std=c11) is requred)
+fi
+# NOTE: Sadly, we can't trust __STDC_NO_ATOMICS__
+AC_CACHE_CHECK([for C11 stdatomic.h support], [ac_cv_c11_stdatomic],
+[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include  <stdatomic.h>], [])],
+                   [ac_cv_c11_stdatomic=yes],
+                   [ac_cv_c11_stdatomic=no])])
+if test $ac_cv_c11_stdatomic = yes; then
+    AC_DEFINE([HAVE_C11_STDATOMIC], [1], [Defined if C11 stdatomic.h is available.])
+fi
+CFLAGS="${_old_CFLAGS}"
+AC_LANG_POP(C)
+### End C11 features check
+
 ### C++11 features check
 _old_CXXFLAGS="${CXXFLAGS}"
 CXXFLAGS="${_old_CXXFLAGS} -std=c++11"
+# We require basic C++11 support
+AC_CACHE_CHECK([for basic C++11 support], [ac_cv_cxx11_lang],
+[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])],
+                   [ac_cv_cxx11_lang=yes],
+                   [ac_cv_cxx11_lang=no])])
+if test $ac_cv_cxx11_lang = no; then
+    AC_MSG_ERROR(C++11 support (-std=c++11) is requred)
+fi
 AC_CACHE_CHECK([for C++11 std::is_trivially_copyable support], [ac_cv_cxx11_trivial_copy_check],
 [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include  <type_traits>], [return std::is_trivially_copyable<int>::value;])],
                    [ac_cv_cxx11_trivial_copy_check=yes],

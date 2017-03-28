@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdarg.h>
 #include <stdint.h>
+#include "hclib_config.h"
 #include "hclib-tree.h"
 #include "hclib-deque.h"
 #include "hclib.h"

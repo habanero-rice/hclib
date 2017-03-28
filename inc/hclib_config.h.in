@@ -1,6 +1,9 @@
 #ifndef HCLIB_CONFIG_H_
 #define HCLIB_CONFIG_H_
 
+/* Defined if C11 stdatomic.h is available. */
+#undef HAVE_C11_STDATOMIC
+
 /* Defined if C++11 std::is_trivially_copyable is supported. */
 #undef HAVE_CXX11_TRIVIAL_COPY_CHECK
 
