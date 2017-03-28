@@ -30,7 +30,7 @@
  *   4 bytes - HEADER
  *   4 bytes - # edges in buffer
  */
-#define COALESCING 1024
+#define COALESCING 2048
 #define SEND_HEADER_SIZE (2 * sizeof(int))
 #define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
