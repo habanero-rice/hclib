@@ -6,7 +6,8 @@ FLAGS=-ffast-math -O3
 # OSHMEM_LD_FLAGS=-L$(OPENSHMEM_INSTALL)/lib64 -lsma
 
 # For OpenMPI SHMEM
-OSHMEM_LD_FLAGS=-L$(OPENSHMEM_INSTALL)/lib -loshmem
+OSHMEM_LD_FLAGS=-L$(OPENSHMEM_INSTALL)/lib -lsma
+SOS_LD_FLAGS=-L$(OPENSHMEM_INSTALL)/lib -lsma
 
 all: $(TARGET)
 
@@ -33,6 +34,9 @@ bfs_oshmem-single-mailbox-concurrent-crc: main-single-mailbox-concurrent-crc.c c
 
 bfs_oshmem-single-mailbox-concurrent-crc-hiper: main-single-mailbox-concurrent-crc-hiper.c crc/crc.c smhasher/src/MurmurHash3.cpp cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
 	g++ -std=c++11 $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -I$(OPENSHMEM_INSTALL)/include $(OSHMEM_LD_FLAGS) -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/openshmem/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/openshmem/lib -lhclib -lhclib_openshmem
+
+bfs_oshmem-single-mailbox-concurrent-crc-hiper-contexts: main-single-mailbox-concurrent-crc-hiper-contexts.c crc/crc.c smhasher/src/MurmurHash3.cpp cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
+	g++ -std=c++11 $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -I$(OPENSHMEM_INSTALL)/include $(SOS_LD_FLAGS) -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/sos/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/sos/lib -lhclib -lhclib_sos
 
 
 bfs_oshmem-single-mailbox-strided: main-single-mailbox-strided.c utilities.c mrg.c splittable_mrg.c generator.c

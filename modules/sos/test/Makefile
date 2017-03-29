@@ -7,7 +7,7 @@ include $(HCLIB_ROOT)/../modules/sos/inc/hclib_sos.post.mak
 TARGETS=init many_putmem shmem_malloc shmem_barrier_all \
 		shmem_broadcast64 shmem_int_async_when shmem_int_async_when_any \
 		shmem_int_wait_until shmem_int_wait_until_any shmem_lock_stress \
-		shmem_put64 shmem_atomics_stress
+		shmem_put64 shmem_atomics_stress shmem_barrier_stress
 
 all: $(TARGETS)
 

@@ -17,7 +17,7 @@ lib/libhclib_openshmem.so: $(OBJS)
 	$(OPENSHMEM_INSTALL)/bin/oshcc -shared $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) $(HCLIB_LDLIBS) -o $@ $(OBJS)
 
 obj/hclib_openshmem.o: src/hclib_openshmem.cpp
-	$(OPENSHMEM_INSTALL)/bin/oshcc -std=c++11 -fPIC -Iinc $^ -o $@ $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) --compile -fPIC $(DEFINES)
+	$(OPENSHMEM_INSTALL)/bin/oshcc -std=c++11 -fPIC -Iinc $^ -o $@ $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) -c -fPIC $(DEFINES)
 
 clean:
 	rm -f obj/*.o lib/*

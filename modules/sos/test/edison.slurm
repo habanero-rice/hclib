@@ -6,7 +6,6 @@
 #SBATCH -J sos-unit-tests
 #SBATCH --exclusive
 #SBATCH --mail-type=ALL
-#SBATCH --contiguous
 
 # Not sure where this value comes from (or what it means), found experimentally
 export PMI_MAX_KVS_ENTRIES=$((1000 * $SLURM_NNODES))
@@ -36,7 +35,7 @@ export NPES=$(($SLURM_NNODES * $PES_PER_NODE))
 # 		shmem_broadcast64 shmem_int_async_when shmem_int_async_when_any \
 # 		shmem_int_wait_until shmem_int_wait_until_any shmem_lock_stress \
 #         shmem_put64; do
-for TEST in shmem_atomics_stress; do
+for TEST in shmem_barrier_stress; do
     echo "======= Testing $TEST ======="
     srun --ntasks=$NPES --ntasks-per-node=$PES_PER_NODE --cpus-per-task=$CPUS_PER_PE ./$TEST
     echo

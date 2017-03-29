@@ -8,6 +8,12 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <limits.h>
+
 #ifdef USE_CRC
 #include "crc.h"
 typedef int32_t size_type;
@@ -101,50 +107,27 @@ typedef struct _send_buf {
     send_bufs_size[my_target_pe] = 0; \
 }
 
-// #define SEND_WITH_EMPTY_PACKET(my_target_pe) { \
-//     PREPARE_PACKET(my_target_pe) \
-// \
-//     unsigned send_buf_size = send_bufs_size[my_target_pe]; \
-//     unsigned char *send_buf = send_bufs[my_target_pe]->buf; \
-//     unsigned char *my_buf_iter = send_buf + send_buf_size; \
-//     crc *header_crc_ptr = (crc *)my_buf_iter; \
-//     size_type *size_ptr = (size_type *)(my_buf_iter + sizeof(crc)); \
-//     crc *body_crc_ptr = (crc *)(my_buf_iter + sizeof(crc) + sizeof(size_type)); \
-//     *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
-//     *body_crc_ptr = 0; \
-//     *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : hash( \
-//             (const unsigned char *)(my_buf_iter + sizeof(crc)), \
-//             SEND_HEADER_SIZE - sizeof(crc))); \
-//     send_buf_size += SEND_HEADER_SIZE; \
-// \
-//     const int remote_offset = shmem_int_fadd(recv_buf_index, send_buf_size, \
-//             my_target_pe); \
-//     assert(remote_offset + send_buf_size < INCOMING_MAILBOX_SIZE_IN_BYTES); \
-//     shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
-//             (const char *)send_buf, send_buf_size, my_target_pe); \
-// \
-//     send_bufs[my_target_pe] = NULL; \
-//     send_bufs_size[my_target_pe] = 0; \
-// }
-
-// #define SEND_EMPTY_PACKET(my_target_pe) { \
-//     const int remote_offset = shmem_int_fadd(recv_buf_index, SEND_HEADER_SIZE, \
-//             my_target_pe); \
-//     assert(remote_offset + SEND_HEADER_SIZE < INCOMING_MAILBOX_SIZE_IN_BYTES); \
-//     crc *header_crc_ptr = (crc *)empty_packet; \
-//     size_type *size_ptr = (size_type *)(header_crc_ptr + 1); \
-//     crc *body_crc_ptr = (crc *)(size_ptr + 1); \
-//     *size_ptr = (nmessages_local ? -1 * nmessages_local : 0); \
-//     *body_crc_ptr = 0; \
-//     *header_crc_ptr = (nmessages_local == 0 ? empty_packet_hash : \
-//             hash((const unsigned char *)(empty_packet + sizeof(crc)), \
-//             SEND_HEADER_SIZE - sizeof(crc))); \
-//     shmem_char_put_nbi((char *)(recv_buf + remote_offset), \
-//             (const char *)empty_packet, SEND_HEADER_SIZE, my_target_pe); \
-// }
-
 // #define VERBOSE
 // #define PROFILE
+
+static int pe = -1;
+static int npes = -1;
+
+void sig_handler(int signo) {
+    fprintf(stderr, "%d: received signal %d %d\n", pe, signo, SIGUSR1);
+
+    raise(SIGABRT);
+    assert(0); // should never reach here
+}
+
+void *kill_func(void *data) {
+    int kill_seconds = *((int *)data);
+    int err = sleep(kill_seconds);
+    assert(err == 0);
+    fprintf(stderr, "hitting pe %d with SUGUSR1\n", pe);
+    raise(SIGUSR1);
+    return NULL;
+}
 
 #ifdef PROFILE
 unsigned long long hash_time = 0;
@@ -186,9 +169,6 @@ static inline crc hash(const unsigned char * const data, const size_t len) {
 
     return result;
 }
-
-static int pe = -1;
-static int npes = -1;
 
 uint64_t bfs_roots[] = {240425174, 115565041, 66063943, 180487911, 11178951,
     123935973, 231036167, 373595937, 363787030, 85801485, 108275987, 69071368,
@@ -416,8 +396,18 @@ int main(int argc, char **argv) {
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
     const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
 
+    __sighandler_t serr = signal(SIGUSR1, sig_handler);
+    assert(serr != SIG_ERR);
+
+    int kill_seconds = 120;
+    pthread_t thread;
+    const int perr = pthread_create(&thread, NULL, kill_func,
+            (void *)&kill_seconds);
+    assert(perr == 0);
+
     shmem_init();
 
+    uint64_t i;
     pe = shmem_my_pe();
     npes = shmem_n_pes();
 
@@ -438,8 +428,6 @@ int main(int argc, char **argv) {
                 "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts, nglobaledges, npes,
                 edges_per_pe, get_vertices_per_pe(nglobalverts));
     }
-
-    uint64_t i;
 
     /*
      * Use the Graph500 utilities to generate a set of edges distributed across
@@ -479,6 +467,7 @@ int main(int argc, char **argv) {
     }
     free(count_edges_shared_with_pe);
 
+    fprintf(stderr, "%d AAA\n", shmem_my_pe());
     shmem_barrier_all();
 
     long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
@@ -538,6 +527,7 @@ int main(int argc, char **argv) {
 
     free(remote_offsets);
 
+    fprintf(stderr, "%d BBB\n", shmem_my_pe());
     shmem_barrier_all();
 
     free(actual_buf);
@@ -638,7 +628,7 @@ int main(int argc, char **argv) {
     local_vertex_offsets[n_local_vertices] = writing_index;
     neighbors = (uint64_t *)realloc(neighbors, writing_index *
             sizeof(uint64_t));
-    assert(neighbors);
+    assert(writing_index == 0 || neighbors);
 
     // Just some double checking
     for (i = 0; i < n_local_vertices; i++) {
@@ -758,6 +748,7 @@ int main(int argc, char **argv) {
             curr_q_size = 1;
         }
 
+    fprintf(stderr, "%d CCC\n", shmem_my_pe());
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
@@ -873,6 +864,7 @@ int main(int argc, char **argv) {
                     npes, pWrk_int, pSync);
             // shmem_int_or_to_all((int *)next_visited, (int *)visited,
             //         visited_ints, 0, 0, npes, pWrk_int2, pSync2);
+    fprintf(stderr, "%d DDD\n", shmem_my_pe());
             shmem_barrier_all();
 
             /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
@@ -925,6 +917,7 @@ int main(int argc, char **argv) {
             iter++;
         }
 
+    fprintf(stderr, "%d EEE\n", shmem_my_pe());
         shmem_barrier_all();
         const unsigned long long end_bfs = current_time_ns();
         if (pe == 0) {

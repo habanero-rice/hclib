@@ -114,7 +114,7 @@ typedef struct _send_buf {
     shmem_char_put_nbi(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
 }
 
-// #define VERBOSE
+#define VERBOSE
 // #define PROFILE
 
 static int pe = -1;

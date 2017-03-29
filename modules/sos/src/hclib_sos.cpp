@@ -204,18 +204,18 @@ static void init_sos_state(void *state, void *user_data, int tid) {
 
 #ifdef SOS_HANG_WORKAROUND
     const int npes = ::shmem_n_pes();
-    const int pe = shmem_my_pe();
-    int *tmp_buf = (int *)shmem_malloc(sizeof(int));
+    const int pe = ::shmem_my_pe();
+    int *tmp_buf = (int *)::shmem_malloc(sizeof(int));
     assert(tmp_buf);
 
     for (int i = 0; i < npes; i++) {
         if (i == pe) continue;
 
-        shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
+        ::shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
     }
-    shmem_barrier_all();
+    ::shmem_barrier_all();
 
-    shmem_free(tmp_buf);
+    ::shmem_free(tmp_buf);
 #endif
 }
 
@@ -224,8 +224,8 @@ static void release_sos_state(void *state, void *user_data) {
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    shmemx_ctx_destroy(*ctx);
-    shmemx_domain_destroy(1, domain);
+    ::shmemx_ctx_destroy(*ctx);
+    ::shmemx_domain_destroy(1, domain);
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {

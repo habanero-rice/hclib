@@ -29,16 +29,7 @@ int main(int argc, char **argv) {
         hclib::finish([&] {
             for (int i = 0; i < 10; i++) {
                 hclib::async([=] {
-                    // if (hclib::get_current_worker() == 0) {
-                        fprintf(stderr, "%d issuing finc %d\n", ::shmem_my_pe(), i);
-                        const int ret = hclib::shmem_long_finc(target, 0);
-                        fprintf(stderr, "%d done issuing finc %d\n", ::shmem_my_pe(), i);
-                    // } else {
-                    //     hclib::async_at([=] {
-                    //         assert(hclib::get_current_worker() == 0);
-                    //         const int ret = hclib::shmem_int_finc(target, 0);
-                    //     }, hclib::get_master_place());
-                    // }
+                    const int ret = hclib::shmem_long_finc(target, 0);
                 });
             }
         });
