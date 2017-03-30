@@ -61,6 +61,7 @@ typedef struct _hclib_locale_t {
     void *metadata;
     void (**idle_funcs)(void);
     unsigned n_idle_funcs;
+    int reachable;
 
     struct _hclib_deque_t *deques;
 } hclib_locale_t;

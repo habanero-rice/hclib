@@ -66,6 +66,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(mpi_pre_initialize) {
 typedef struct _pending_mpi_op {
     MPI_Request req;
     hclib::promise_t<void> *prom;
+    hclib_task_t *task;
     struct _pending_mpi_op *next;
 #ifdef HCLIB_INSTRUMENT
     int event_type;
@@ -162,6 +163,7 @@ hclib::future_t<void> *hclib::MPI_Isend_await(void *buf, int count,
         assert(op);
         op->req = req;
         op->prom = prom;
+        op->task = NULL;
 #ifdef HCLIB_INSTRUMENT
         op->event_type = event_ids[MPI_Isend_lbl];
         op->event_id = _event_id;
@@ -191,6 +193,7 @@ hclib::future_t<void> *hclib::MPI_Irecv_await(void *buf, int count,
         assert(op);
         op->req = req;
         op->prom = prom;
+        op->task = NULL;
 #ifdef HCLIB_INSTRUMENT
         op->event_type = event_ids[MPI_Irecv_lbl];
         op->event_id = _event_id;

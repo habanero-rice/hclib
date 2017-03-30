@@ -67,7 +67,11 @@ void poll_on_pending(pending_op **addr_of_head,
                 hclib_register_event(op->event_type, END, op->event_id);
 #endif
 
-                op->prom->put();
+                if (op->prom) {
+                    op->prom->put();
+                } else {
+                    spawn(op->task);
+                }
                 free(op);
             } else {
                 prev = op;

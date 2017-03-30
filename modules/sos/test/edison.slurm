@@ -2,7 +2,7 @@
 
 #SBATCH -p debug
 #SBATCH -N 2
-#SBATCH -t 00:05:00
+#SBATCH -t 00:20:00
 #SBATCH -J sos-unit-tests
 #SBATCH --exclusive
 #SBATCH --mail-type=ALL
@@ -35,7 +35,7 @@ export NPES=$(($SLURM_NNODES * $PES_PER_NODE))
 # 		shmem_broadcast64 shmem_int_async_when shmem_int_async_when_any \
 # 		shmem_int_wait_until shmem_int_wait_until_any shmem_lock_stress \
 #         shmem_put64; do
-for TEST in shmem_barrier_stress; do
+for TEST in init many_putmem shmem_malloc shmem_barrier_all shmem_broadcast64; do
     echo "======= Testing $TEST ======="
     srun --ntasks=$NPES --ntasks-per-node=$PES_PER_NODE --cpus-per-task=$CPUS_PER_PE ./$TEST
     echo

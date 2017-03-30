@@ -4,37 +4,38 @@
 #include "hclib-module.h"
 #include "hclib-locality-graph.h"
 #include "hclib_cpp.h"
+#include "hclib-module-common.h"
 
 #include <shmem.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 
-namespace hclib {
-
 enum wait_type {
     integer
 };
 
-typedef union _wait_cmp_value_t {
-    int i;
-} wait_cmp_value_t;
-
-typedef struct _wait_info_t {
+typedef struct _pending_sos_op {
     wait_type type;
     volatile void *var;
     int cmp;
-    wait_cmp_value_t cmp_value;
-} wait_info_t;
+    union { int i; } cmp_value;
 
-typedef struct _wait_set_t {
-    wait_info_t *infos;
-    int ninfos;
-    hclib_promise_t *signal;
+    hclib::promise_t<void> *prom;
     hclib_task_t *task;
 
-    struct _wait_set_t *next;
-} wait_set_t;
+    struct _pending_sos_op *next;
+#ifdef HCLIB_INSTRUMENT
+    int event_type;
+    int event_id;
+#endif
+} pending_sos_op;
+
+extern pending_sos_op *pending;
+extern bool test_sos_completion(void *generic_op);
+extern hclib::locale_t *nic;
+
+namespace hclib {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_pre_initialize);
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_post_initialize);
@@ -96,72 +97,48 @@ void shmem_fcollect64(void *dest, const void *source, size_t nelems,
         int PE_start, int logPE_stride, int PE_size, long *pSync);
 
 void shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value);
-void shmem_int_wait_until_any(volatile int **ivars, int cmp,
-        int *cmp_values, int nwaits);
-
-void reset_oshmem_profiling_data();
-void print_oshmem_profiling_data();
-void enable_oshmem_profiling();
-void disable_oshmem_profiling();
-
-#define construct_and_insert_wait_set(vars, cmp, cmp_values, nwaits, wait_type, fieldname, dependent_task) ({ \
-    wait_info_t *infos = (wait_info_t *)malloc((nwaits) * sizeof(wait_info_t)); \
-    HASSERT(infos); \
-    for (int i = 0; i < (nwaits); i++) { \
-        infos[i].type = (wait_type); \
-        infos[i].var = (vars)[i]; \
-        infos[i].cmp = (cmp); \
-        infos[i].cmp_value.fieldname = (cmp_values)[i]; \
-    } \
-    \
-    wait_set_t *wait_set = (wait_set_t *)calloc(1, sizeof(wait_set_t)); \
-    HASSERT(wait_set); \
-    \
-    if (dependent_task) wait_set->task = (dependent_task); \
-    else wait_set->signal = hclib_promise_create(); \
-    \
-    wait_set->ninfos = (nwaits); \
-    wait_set->infos = infos; \
-    \
-    enqueue_wait_set(wait_set); \
-    \
-    wait_set->signal; \
-})
-
-void enqueue_wait_set(wait_set_t *wait_set);
 
 template <typename T>
 void shmem_int_async_when(volatile int *ivar, int cmp,
         int cmp_value, T&& lambda) {
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *task = _allocate_async(new U(lambda));
 
-    hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
-            &cmp_value, 1, integer, i, task);
-    HASSERT(promise == NULL);
+    pending_sos_op *op = (pending_sos_op *)malloc(sizeof(*op));
+    assert(op);
+
+    op->type = integer;
+    op->var = ivar;
+    op->cmp = cmp;
+    op->cmp_value.i = cmp_value;
+    op->prom = NULL;
+    op->task = _allocate_async(new U(lambda));
+#ifdef HCLIB_INSTRUMENT
+    op->event_type = event_ids[shmem_int_async_nb_when_lbl];
+    op->event_id = _event_id;
+#endif
+    hclib::append_to_pending(op, &pending, test_sos_completion, nic);
 }
 
 template <typename T>
 void shmem_int_async_nb_when(volatile int *ivar, int cmp,
         int cmp_value, T&& lambda) {
     typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *task = _allocate_async(new U(lambda));
-    task->non_blocking = 1;
 
-    hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
-            &cmp_value, 1, integer, i, task);
-    HASSERT(promise == NULL);
-}
+    pending_sos_op *op = (pending_sos_op *)malloc(sizeof(*op));
+    assert(op);
 
-template <typename T>
-void shmem_int_async_when_any(volatile int **ivars, int cmp,
-        int *cmp_values, int nwaits, T&& lambda) {
-    typedef typename std::remove_reference<T>::type U;
-    hclib_task_t *task = _allocate_async(new U(lambda));
-
-    hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
-            cmp_values, nwaits, integer, i, task);
-    HASSERT(promise == NULL);
+    op->type = integer;
+    op->var = ivar;
+    op->cmp = cmp;
+    op->cmp_value.i = cmp_value;
+    op->prom = NULL;
+    op->task = _allocate_async(new U(lambda));
+    op->task->non_blocking = 1;
+#ifdef HCLIB_INSTRUMENT
+    op->event_type = event_ids[shmem_int_async_nb_when_lbl];
+    op->event_id = _event_id;
+#endif
+    hclib::append_to_pending(op, &pending, test_sos_completion, nic);
 }
 
 std::string shmem_name();

@@ -481,7 +481,9 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
                 "hc_context=%p hc_context->graph=%p\n", wid, hc_context,
                 hc_context->graph);
 #endif
-        if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque),
+        hclib_locale_t *default_locale = hc_context->graph->locales + 0;
+        assert(default_locale->reachable);
+        if (!deque_push(&(default_locale->deques[wid].deque),
                     async_task)) {
             // Deque is full
             assert(false);

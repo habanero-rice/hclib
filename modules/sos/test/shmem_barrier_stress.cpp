@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     hclib::launch(deps, 2, [] {
         pe = hclib::shmem_my_pe();
 
-
+        const unsigned long long start_time = hclib_current_time_ns();
         hclib::finish([&] {
             for (int i = 0; i < NREPEATS; i++) {
                 // hclib::async([] {
@@ -23,8 +23,9 @@ int main(int argc, char **argv) {
                 // });
             }
         });
-
-        fprintf(stderr, "%d out of finish\n", ::shmem_my_pe());
+        const unsigned long long elapsed = hclib_current_time_ns() - start_time;
+        fprintf(stderr, "PE %d elapsed time = %f ms\n", shmem_my_pe(),
+            (double)elapsed / 1000000.0);
     });
 
     return 0;

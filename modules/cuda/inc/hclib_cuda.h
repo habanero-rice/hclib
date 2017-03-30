@@ -96,6 +96,7 @@ inline hclib::future_t<void> *async_simd(functor_type functor, hclib::locale_t *
     assert(op);
     op->event = event;
     op->prom = prom;
+    op->task = NULL;
     hclib::append_to_pending(op, &pending_cuda, hclib::test_cuda_completion, locale);
 
     return prom->get_future();
