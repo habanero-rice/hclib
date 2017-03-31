@@ -283,7 +283,7 @@ hc_deque_t *get_deque_hpt(hclib_worker_state *ws, place_t *pl) {
 
 }
 
-int deque_push_place(hclib_worker_state *ws, place_t *pl, void *ele) {
+int deque_push_place(hclib_worker_state *ws, place_t *pl, hclib_task_t *ele) {
     hc_deque_t *deq = get_deque_place(ws, pl);
     return deque_push(&deq->deque, ele);
 }
