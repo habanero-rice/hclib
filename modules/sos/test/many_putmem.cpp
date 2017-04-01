@@ -10,30 +10,9 @@
 
 #include <iostream>
 
-#define NPUTS 600
-
-void sig_handler(int signo) {
-    raise(SIGABRT);
-    assert(0); // should never reach here
-}
-
-void *kill_func(void *data) {
-    int kill_seconds = *((int *)data);
-    int err = sleep(kill_seconds);
-    assert(err == 0);
-    raise(SIGUSR1);
-    return NULL;
-}
+#define NPUTS 3000
 
 int main(int argc, char **argv) {
-    // __sighandler_t serr = signal(SIGUSR1, sig_handler);
-    // assert(serr != SIG_ERR);
-    // pthread_t thread;
-    // int kill_seconds = 180;
-    // const int perr = pthread_create(&thread, NULL, kill_func,
-    //         (void *)&kill_seconds);
-    // assert(perr == 0);
-
     const char *deps[] = { "system", "sos" };
     hclib::launch(deps, 2, [argv] {
         const unsigned long long start_time = hclib_current_time_ns();
@@ -44,19 +23,15 @@ int main(int argc, char **argv) {
         assert(buf);
         buf[pe] = pe;
 
-        // hclib::finish([&] {
-            for (int i = 0; i < NPUTS; i++) {
-                for (int j = 0; j < npes; j++) {
-                    // hclib::shmem_putmem(buf + pe, buf + pe, sizeof(int), j);
-                    // hclib::shmem_putmem(buf + pe, buf + pe, sizeof(int), j);
-                    hclib::shmem_putmem(buf, buf, sizeof(int), j);
-                }
+        for (int i = 0; i < NPUTS; i++) {
+            for (int j = 0; j < npes; j++) {
+                hclib::shmem_putmem(buf + pe, buf + pe, sizeof(int), j);
             }
-        // });
+        }
 
         const unsigned long long elapsed = hclib_current_time_ns() - start_time;
-        fprintf(stderr, "%s body took %f ms\n", argv[0],
-            (double)elapsed / 1000000.0);
+        fprintf(stderr, "%s body took %f ms on PE %d\n", argv[0],
+            (double)elapsed / 1000000.0, hclib::shmem_my_pe());
     });
     return 0;
 }

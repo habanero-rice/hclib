@@ -752,6 +752,10 @@ std::string hclib::shmem_name() {
     return ss.str();
 }
 
+/*
+ * Implement a blocking wait as a wait on a future, which results in a context
+ * switch and allows us to not waste a hardware or software thread spinning.
+ */
 void hclib::shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value) {
     SOS_START_OP(shmem_int_wait_until);
     hclib::promise_t<void> *prom = new hclib::promise_t<void>();
