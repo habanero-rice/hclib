@@ -16,15 +16,11 @@ int main(int argc, char **argv) {
         pe = hclib::shmem_my_pe();
 
         const unsigned long long start_time = hclib_current_time_ns();
-        hclib::finish([&] {
-            for (int i = 0; i < NREPEATS; i++) {
-                // hclib::async([] {
-                    hclib::shmem_barrier_all();
-                // });
-            }
-        });
+        for (int i = 0; i < NREPEATS; i++) {
+            hclib::shmem_barrier_all();
+        }
         const unsigned long long elapsed = hclib_current_time_ns() - start_time;
-        fprintf(stderr, "PE %d elapsed time = %f ms\n", shmem_my_pe(),
+        fprintf(stderr, "PE %d elapsed time = %f ms\n", hclib::shmem_my_pe(),
             (double)elapsed / 1000000.0);
     });
 

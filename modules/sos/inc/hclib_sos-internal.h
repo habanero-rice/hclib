@@ -113,8 +113,9 @@ void shmem_int_async_when(volatile int *ivar, int cmp,
     op->prom = NULL;
     op->task = _allocate_async(new U(lambda));
 #ifdef HCLIB_INSTRUMENT
-    op->event_type = event_ids[shmem_int_async_nb_when_lbl];
-    op->event_id = _event_id;
+    // For now, we do not support instrumenting these methods
+    op->event_type = -1;
+    op->event_id = -1;
 #endif
     hclib::append_to_pending(op, &pending, test_sos_completion, nic);
 }
@@ -135,8 +136,9 @@ void shmem_int_async_nb_when(volatile int *ivar, int cmp,
     op->task = _allocate_async(new U(lambda));
     op->task->non_blocking = 1;
 #ifdef HCLIB_INSTRUMENT
-    op->event_type = event_ids[shmem_int_async_nb_when_lbl];
-    op->event_id = _event_id;
+    // For now, we do not support instrumenting these methods
+    op->event_type = -1;
+    op->event_id = -1;
 #endif
     hclib::append_to_pending(op, &pending, test_sos_completion, nic);
 }

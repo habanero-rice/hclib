@@ -11,7 +11,7 @@ extern "C" {
 #include <sstream>
 
 #ifdef HCLIB_INSTRUMENT
-enum FUNC_LABELS {
+enum SOS_FUNC_LABELS {
     shmem_malloc_lbl = 0,
     shmem_free_lbl,
     shmem_barrier_all_lbl,
@@ -40,10 +40,11 @@ enum FUNC_LABELS {
     shmem_collect32_lbl,
     shmem_fcollect64_lbl,
     shmem_async_when_polling_lbl,
+    shmem_int_wait_until_lbl,
     N_SOS_FUNCS
 };
 
-const char *FUNC_NAMES[N_FUNCS] = {
+const char *SOS_FUNC_NAMES[N_SOS_FUNCS] = {
     "shmem_malloc",
     "shmem_free",
     "shmem_barrier_all",
@@ -71,7 +72,8 @@ const char *FUNC_NAMES[N_FUNCS] = {
     "shmem_int_fetch",
     "shmem_collect32",
     "shmem_fcollect64",
-    "shmem_async_when_polling"};
+    "shmem_async_when_polling",
+    "shmem_int_wait_until"};
 
 static int event_ids[N_SOS_FUNCS];
 
@@ -153,9 +155,11 @@ bool test_sos_completion(void *generic_op) {
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_pre_initialize) {
     nic_locale_id = hclib_add_known_locale_type("Interconnect");
-#ifdef PROFILE
-    memset(func_counters, 0x00, sizeof(func_counters));
-    memset(func_times, 0x00, sizeof(func_times));
+#ifdef HCLIB_INSTRUMENT
+    int i;
+    for (i = 0; i < N_SOS_FUNCS; i++) {
+        event_ids[i] = register_event_type((char *)SOS_FUNC_NAMES[i]);
+    }
 #endif
 }
 
@@ -167,21 +171,21 @@ static void init_sos_state(void *state, void *user_data, int tid) {
     *domain = domains[tid];
     *ctx = contexts[tid];
 
-#ifdef SOS_HANG_WORKAROUND
-    const int npes = ::shmem_n_pes();
-    const int pe = ::shmem_my_pe();
-    int *tmp_buf = (int *)::shmem_malloc(sizeof(int));
-    assert(tmp_buf);
-
-    for (int i = 0; i < npes; i++) {
-        if (i == pe) continue;
-
-        ::shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
-    }
-    ::shmem_barrier_all();
-
-    ::shmem_free(tmp_buf);
-#endif
+// #ifdef SOS_HANG_WORKAROUND
+//     const int npes = ::shmem_n_pes();
+//     const int pe = ::shmem_my_pe();
+//     int *tmp_buf = (int *)::shmem_malloc(sizeof(int));
+//     assert(tmp_buf);
+// 
+//     for (int i = 0; i < npes; i++) {
+//         if (i == pe) continue;
+// 
+//         ::shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
+//     }
+//     ::shmem_barrier_all();
+// 
+//     ::shmem_free(tmp_buf);
+// #endif
 }
 
 static void release_sos_state(void *state, void *user_data) {
@@ -189,6 +193,7 @@ static void release_sos_state(void *state, void *user_data) {
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
+    ::shmemx_ctx_quiet(*ctx);
     ::shmemx_ctx_destroy(*ctx);
     ::shmemx_domain_destroy(1, domain);
 }
@@ -199,16 +204,6 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     ::shmemx_init_thread(desired_thread_safety, &provided_thread_safety);
     assert(provided_thread_safety == desired_thread_safety);
 
-#ifdef PROFILE
-#ifdef TRACING
-    const char *trace_dir = getenv("HIPER_TRACE_DIR");
-    assert(trace_dir);
-    char pe_filename[1024];
-    sprintf(pe_filename, "%s/%d.trace", trace_dir, ::shmem_my_pe());
-    trace_fp = fopen(pe_filename, "w");
-    assert(trace_fp);
-#endif
-#endif
     domains = (shmemx_domain_t *)malloc(hclib_get_num_workers() * sizeof(*domains));
     assert(domains);
     contexts = (shmemx_ctx_t *)malloc(hclib_get_num_workers() * sizeof(*contexts));
@@ -222,6 +217,35 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
         err = ::shmemx_ctx_create(domains[i], contexts + i);
         assert(err == 0);
     }
+
+#ifdef SOS_HANG_WORKAROUND
+    int *buf = (int *)::shmem_malloc(::shmem_n_pes() * sizeof(int));
+    assert(buf);
+    buf[::shmem_my_pe()] = ::shmem_my_pe();
+
+    int i;
+    for (i = 0; i < ::shmem_n_pes(); i++) {
+        if (i == ::shmem_my_pe()) continue;
+
+        int j;
+        for (j = 0; j < hclib_get_num_workers(); j++) {
+            shmemx_ctx_putmem(buf + ::shmem_my_pe(), buf + ::shmem_my_pe(),
+                    sizeof(int), i, contexts[j]);
+        }
+    }
+
+    for (i = 0; i < hclib_get_num_workers(); i++) {
+        ::shmemx_ctx_quiet(contexts[i]);
+    }
+    ::shmem_barrier_all();
+
+    for (int i = 0; i < ::shmem_n_pes(); i++) {
+        assert(buf[i] == i);
+    }
+
+    ::shmem_barrier_all();
+    ::shmem_free(buf);
+#endif
 
     domain_ctx_id = hclib_add_per_worker_module_state(
             sizeof(shmemx_domain_t) + sizeof(shmemx_ctx_t), init_sos_state,
@@ -241,12 +265,6 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_finalize) {
-#ifdef PROFILE
-#ifdef TRACING
-    fclose(trace_fp);
-#endif
-#endif
-
     hclib_release_per_worker_module_state(domain_ctx_id, release_sos_state,
             NULL);
     ::shmem_finalize();
@@ -735,6 +753,7 @@ std::string hclib::shmem_name() {
 }
 
 void hclib::shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value) {
+    SOS_START_OP(shmem_int_wait_until);
     hclib::promise_t<void> *prom = new hclib::promise_t<void>();
 
     pending_sos_op *op = (pending_sos_op *)malloc(sizeof(*op));

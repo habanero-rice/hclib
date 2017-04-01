@@ -44,16 +44,18 @@ labels = {}
 max_timestamp = 0
 min_timestamp = None
 if len(sys.argv) != 2:
-    print 'usage: python timeline.py timeline'
+    print('usage: python timeline.py timeline')
     sys.exit(1)
 
 fp = open(sys.argv[1], 'r')
 
+total_events = 0
 tasks = {}
 
 line_no = 1
 for line in fp:
     tokens = line.split(' ')
+    total_events += 1
 
     timestamp = int(tokens[0])
     thread = int(tokens[1])
@@ -102,6 +104,7 @@ ind = 0
 x_labels = []
 
 print('Elapsed time: ' + str(float(max_timestamp - min_timestamp) / 1000000.0) + ' ms')
+print(str(total_events) + ' events in total')
 for lbl in labels:
     print(lbl + ': ' + colors_dict[labels[lbl]])
 

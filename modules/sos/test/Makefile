@@ -12,10 +12,10 @@ TARGETS=init many_putmem shmem_malloc shmem_barrier_all \
 all: $(TARGETS)
 
 %: %.cpp
-	g++ -std=c++11 -I../../common $(HCLIB_CFLAGS) $(HCLIB_SOS_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_SOS_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_SOS_LDLIBS)
+	$(CXX) -std=c++11 -I../../common $(HCLIB_CFLAGS) $(HCLIB_SOS_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_SOS_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_SOS_LDLIBS)
 
 %: %.c
-	gcc -I../../common $(HCLIB_CFLAGS) $(HCLIB_SOS_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_SOS_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_SOS_LDLIBS)
+	$(CXX) -I../../common $(HCLIB_CFLAGS) $(HCLIB_SOS_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_SOS_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_SOS_LDLIBS)
 
 
 clean:
