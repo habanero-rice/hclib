@@ -47,7 +47,7 @@ static void copy_func(hclib_locale_t *dst_locale, void *dst,
     memcpy(dst, src, nbytes);
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(system_pre_initialize) {
+HCLIB_MODULE_PRE_INITIALIZATION_FUNC(system_pre_initialize) {
     l1_locale_id = hclib_add_known_locale_type("L1");
     l2_locale_id = hclib_add_known_locale_type("L2");
     l3_locale_id = hclib_add_known_locale_type("L3");

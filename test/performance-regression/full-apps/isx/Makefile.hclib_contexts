@@ -1,17 +1,17 @@
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.pre.mak
-include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.pre.mak
+include $(HCLIB_ROOT)/../modules/sos/inc/hclib_sos.pre.mak
 include $(HCLIB_ROOT)/include/hclib.mak
 include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
-include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
+include $(HCLIB_ROOT)/../modules/sos/inc/hclib_sos.post.mak
 
 
 CC = $(OPENSHMEM_INSTALL)/bin/oshcc
 LD = $(CC)
 DEBUGFLAGS = -g -p -O0 -DDEBUG
 OPTFLAGS = -O3 -DNDEBUG -mavx
-CFLAGS += -Wall -Wextra -std=c++11 $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) #$(OPTFLAGS)
-LDLIBS += -lrt -lm $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
-LDFLAGS += $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS)
+CFLAGS += -Wall -Wextra -std=c++11 $(HCLIB_CFLAGS) $(HCLIB_SOS_CFLAGS) #$(OPTFLAGS)
+LDLIBS += -lrt -lm $(HCLIB_LDLIBS) $(HCLIB_SOS_LDLIBS)
+LDFLAGS += $(HCLIB_LDFLAGS) $(HCLIB_SOS_LDFLAGS)
 ### 
 # If you change these values, you must also change them in params.h
 STRONG = 1
@@ -21,12 +21,12 @@ WEAKISO = 3
 
 .PHONY: all clean debug
 
-SRCS := isx_hclib.cpp pcg_basic.cpp timer.cpp
+SRCS := isx_hclib_contexts.cpp pcg_basic.cpp timer.cpp
 OBJDIR := obj
 BINDIR := bin
-STRONG_EXE = isx.hclib.strong
-WEAK_EXE = isx.hclib.weak 
-WEAKISO_EXE = isx.hclib.weak_iso
+STRONG_EXE = isx.hclib_contexts.strong
+WEAK_EXE = isx.hclib_contexts.weak 
+WEAKISO_EXE = isx.hclib_contexts.weak_iso
 STRONG_OBJS := $(SRCS:.cpp=.o_s)
 STRONG_OBJS := $(addprefix $(OBJDIR)/,$(STRONG_OBJS))
 WEAK_OBJS := $(SRCS:.cpp=.o_w)

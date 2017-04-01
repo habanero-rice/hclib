@@ -153,7 +153,7 @@ bool test_sos_completion(void *generic_op) {
     return false;
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(sos_pre_initialize) {
+HCLIB_MODULE_PRE_INITIALIZATION_FUNC(sos_pre_initialize) {
     nic_locale_id = hclib_add_known_locale_type("Interconnect");
 #ifdef HCLIB_INSTRUMENT
     int i;
@@ -161,6 +161,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_pre_initialize) {
         event_ids[i] = register_event_type((char *)SOS_FUNC_NAMES[i]);
     }
 #endif
+
 }
 
 static void init_sos_state(void *state, void *user_data, int tid) {
@@ -170,22 +171,6 @@ static void init_sos_state(void *state, void *user_data, int tid) {
 
     *domain = domains[tid];
     *ctx = contexts[tid];
-
-// #ifdef SOS_HANG_WORKAROUND
-//     const int npes = ::shmem_n_pes();
-//     const int pe = ::shmem_my_pe();
-//     int *tmp_buf = (int *)::shmem_malloc(sizeof(int));
-//     assert(tmp_buf);
-// 
-//     for (int i = 0; i < npes; i++) {
-//         if (i == pe) continue;
-// 
-//         ::shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
-//     }
-//     ::shmem_barrier_all();
-// 
-//     ::shmem_free(tmp_buf);
-// #endif
 }
 
 static void release_sos_state(void *state, void *user_data) {
@@ -204,6 +189,9 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     ::shmemx_init_thread(desired_thread_safety, &provided_thread_safety);
     assert(provided_thread_safety == desired_thread_safety);
 
+    const int pe = ::shmem_my_pe();
+    const int npes = ::shmem_n_pes();
+
     domains = (shmemx_domain_t *)malloc(hclib_get_num_workers() * sizeof(*domains));
     assert(domains);
     contexts = (shmemx_ctx_t *)malloc(hclib_get_num_workers() * sizeof(*contexts));
@@ -219,32 +207,29 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     }
 
 #ifdef SOS_HANG_WORKAROUND
-    int *buf = (int *)::shmem_malloc(::shmem_n_pes() * sizeof(int));
+    const unsigned long long start_time = hclib_current_time_ns();
+
+    int *buf = (int *)::shmem_malloc(npes * sizeof(int));
     assert(buf);
-    buf[::shmem_my_pe()] = ::shmem_my_pe();
+    buf[pe] = pe;
 
-    int i;
-    for (i = 0; i < ::shmem_n_pes(); i++) {
-        if (i == ::shmem_my_pe()) continue;
-
-        int j;
+    int i, j;
+    for (i = 0; i < npes; i++) {
         for (j = 0; j < hclib_get_num_workers(); j++) {
-            shmemx_ctx_putmem(buf + ::shmem_my_pe(), buf + ::shmem_my_pe(),
+            shmemx_ctx_putmem(buf, buf,
                     sizeof(int), i, contexts[j]);
+            ::shmemx_ctx_quiet(contexts[j]);
         }
-    }
-
-    for (i = 0; i < hclib_get_num_workers(); i++) {
-        ::shmemx_ctx_quiet(contexts[i]);
-    }
-    ::shmem_barrier_all();
-
-    for (int i = 0; i < ::shmem_n_pes(); i++) {
-        assert(buf[i] == i);
     }
 
     ::shmem_barrier_all();
     ::shmem_free(buf);
+
+    const unsigned long long elapsed = hclib_current_time_ns() - start_time;
+    if (pe == 0) {
+        fprintf(stderr, "SoS hang workaround took %f ms\n",
+                (double)elapsed / 1000000.0);
+    }
 #endif
 
     domain_ctx_id = hclib_add_per_worker_module_state(
@@ -588,39 +573,91 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
 }
 
 int hclib::shmem_int_swap(int *dest, int value, int pe) {
-    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    assert(state);
-    shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, value, pe, heap_fetched] {
+        hclib::async_nb_at([dest, value, pe, heap_fetched] {
+            const int fetched = ::shmem_int_swap(dest, value, pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
 
-    return shmemx_ctx_int_swap(dest, value, pe, *ctx);
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_int_swap(dest, value, pe, *ctx);
 }
 
 int hclib::shmem_int_cswap(int *dest, int cond, int value, int pe) {
-    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    assert(state);
-    shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, cond, value, pe, heap_fetched] {
+        hclib::async_nb_at([dest, cond, value, pe, heap_fetched] {
+            const int fetched = ::shmem_int_cswap(dest, cond, value, pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
 
-    return shmemx_ctx_int_cswap(dest, cond, value, pe, *ctx);
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_int_cswap(dest, cond, value, pe, *ctx);
 }
 
 long hclib::shmem_long_finc(long *dest, int pe) {
-    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    assert(state);
-    shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+    long *heap_fetched = (long *)malloc(sizeof(long));
+    hclib::finish([dest, pe, heap_fetched] {
+        hclib::async_nb_at([dest, pe, heap_fetched] {
+            const long fetched = ::shmem_long_finc(dest,pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
 
-    return shmemx_ctx_long_finc(dest, pe, *ctx);
+    const long fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_long_finc(dest, pe, *ctx);
 }
 
 int hclib::shmem_int_finc(int *dest, int pe) {
-    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    assert(state);
-    shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, pe, heap_fetched] {
+        hclib::async_nb_at([dest, pe, heap_fetched] {
+            const int fetched = ::shmem_int_finc(dest,pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
 
-    return shmemx_ctx_int_finc(dest, pe, *ctx);
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_int_finc(dest, pe, *ctx);
 }
 
 void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,

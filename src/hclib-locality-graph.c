@@ -375,7 +375,9 @@ void load_locality_info(const char *filename, int *nworkers_out,
     int i;
     jsmn_parser parser;
     jsmn_init(&parser);
+#ifdef VERBOSE
     printf("Loading locality graph from %s\n", filename);
+#endif
 
     FILE *fp = fopen(filename, "r");
     if (!fp) {

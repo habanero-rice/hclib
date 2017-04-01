@@ -330,6 +330,9 @@ static void hclib_entrypoint(const char **module_dependencies,
      */
     hclib_global_init();
 
+    // Initialize any registered modules
+    hclib_call_module_post_init_functions();
+
     // init timer stats
     hclib_init_stats(0, hc_context->nworkers);
 
@@ -378,9 +381,6 @@ static void hclib_entrypoint(const char **module_dependencies,
 
     const unsigned dist_id = hclib_register_dist_func(default_dist_func);
     HASSERT(dist_id == HCLIB_DEFAULT_LOOP_DIST);
-
-    // Initialize any registered modules
-    hclib_call_module_post_init_functions();
 
     // allocate root finish
     hclib_start_finish();
