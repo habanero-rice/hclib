@@ -63,7 +63,17 @@ $(error Unknown OS)
 endif # LINUX
 endif # OSX
 else
+if PPC64
+if LINUX
+libhclib_la_SOURCES += \
+fcontext/jump_ppc64_sysv_elf_gas.S \
+fcontext/make_ppc64_sysv_elf_gas.S
+else
+$(error Unknown OS)
+endif # LINUX
+else
 $(error Unknown architecture)
+endif # PPC64
 endif # X86_64
 endif # X86
 

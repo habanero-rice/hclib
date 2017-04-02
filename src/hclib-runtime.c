@@ -118,8 +118,20 @@ static inline void check_out_finish(finish_t *finish) {
     }
 }
 
+hclib_worker_state * __attribute__ ((noinline)) get_current_ws(void) {
+    return ((hclib_worker_state *)pthread_getspecific(ws_key));
+}
+
 static inline void _set_curr_fiber(fcontext_state_t *ctx) {
-    CURRENT_WS_INTERNAL->curr_ctx = ctx;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    if (!ws) {
+        int tries = 0;
+        do {
+            ws = get_current_ws();
+        } while (!ws && ++tries < 100000);
+        fprintf(stderr, "get-ws tries=%d\n", tries);
+    }
+    ws->curr_ctx = ctx;
 }
 
 static inline fcontext_state_t *_get_curr_fiber() {
