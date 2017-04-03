@@ -52,6 +52,6 @@ void hc_hpt_dev_cleanup(hc_context * context);
 hc_deque_t * get_deque_place(hclib_worker_state * ws, place_t * pl);
 hclib_task_t* hpt_pop_task(hclib_worker_state * ws);
 hclib_task_t* hpt_steal_task(hclib_worker_state* ws);
-int deque_push_place(hclib_worker_state *ws, place_t * pl, void * ele);
+int deque_push_place(hclib_worker_state *ws, place_t * pl, hclib_task_t * ele);
 
 #endif /* HCLIB_HPT_H_ */

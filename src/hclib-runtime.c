@@ -346,14 +346,15 @@ void hclib_cleanup() {
 
 static inline void check_in_finish(finish_t *finish) {
     if (finish) {
-        hc_atomic_inc(&(finish->counter));
+        // FIXME - does this need to be acquire, or can it be relaxed?
+        _hclib_atomic_inc_acquire(&finish->counter);
     }
 }
 
 static inline void check_out_finish(finish_t *finish) {
     if (finish) {
-        // hc_atomic_dec returns true when finish->counter goes to zero
-        if (hc_atomic_dec(&(finish->counter))) {
+        // was this the last async to check out?
+        if (_hclib_atomic_dec_release(&finish->counter) == 0) {
 #if HCLIB_LITECTX_STRATEGY
             HASSERT(!_hclib_promise_is_satisfied(finish->finish_deps[0]->owner));
             hclib_promise_put(finish->finish_deps[0]->owner, finish);
@@ -1000,11 +1001,11 @@ static inline void slave_worker_finishHelper_routine(finish_t *finish) {
     const int wid = ws->id;
 #endif
 
-    while (finish->counter > 0) {
+    while (_hclib_atomic_load_relaxed(&finish->counter) > 0) {
         // try to pop
         hclib_task_t *task = hpt_pop_task(ws);
         if (!task) {
-            while (finish->counter > 0) {
+            while (_hclib_atomic_load_relaxed(&finish->counter) > 0) {
                 // try to steal
                 task = hpt_steal_task(ws);
                 if (task) {
@@ -1036,7 +1037,8 @@ static void _help_finish(finish_t *finish) {
 #endif
     slave_worker_finishHelper_routine(finish);
 }
-#endif /* HCLIB_LITECTX_STRATEGY */
+
+#endif /* HCLIB_???_STRATEGY */
 
 void help_finish(finish_t *finish) {
     // This is called to make progress when an end_finish has been
@@ -1079,12 +1081,12 @@ void help_finish(finish_t *finish) {
                 deque_push_place(ws, NULL, task);
                 break;
             }
-        } while (finish->counter > 1);
+        } while (_hclib_atomic_load_relaxed(&finish->counter) > 1);
 
         // Someone stole our last task...
         // Create a new context to do other work,
         // and suspend this finish scope pending on the outstanding tasks.
-        if (finish->counter > 1) {
+        if (_hclib_atomic_load_relaxed(&finish->counter) > 1) {
             // create finish event
             hclib_promise_t *finish_promise = hclib_promise_create();
             hclib_future_t *finish_deps[] = { &finish_promise->future, NULL };
@@ -1100,22 +1102,25 @@ void help_finish(finish_t *finish) {
 #endif
             ctx_swap(currentCtx, newCtx, __func__);
 
+            // note: the other context checks out of the current finish scope
+
             // destroy the context that resumed this one since it's now defunct
             // (there are no other handles to it, and it will never be resumed)
             LiteCtx_destroy(currentCtx->prev);
             hclib_promise_free(finish_promise);
         } else {
-            HASSERT(finish->counter == 1);
+            HASSERT(_hclib_atomic_load_relaxed(&finish->counter) == 1);
             // finish->counter == 1 implies that all the tasks are done
             // (it's only waiting on itself now), so just return!
-            --finish->counter;
+            _hclib_atomic_dec_acq_rel(&finish->counter);
         }
     }
 #else /* default (broken) strategy */
+    // FIXME - do I need to decrement the finish counter here?
     _help_finish(finish);
 #endif /* HCLIB_???_STRATEGY */
 
-    HASSERT(finish->counter == 0);
+    HASSERT(_hclib_atomic_load_relaxed(&finish->counter) == 0);
 
 }
 
@@ -1139,21 +1144,21 @@ void hclib_start_finish() {
      * This would make it harder to detect when all tasks within the finish have
      * completed, or just the tasks launched so far.
      */
-    finish->counter = 1;
     finish->parent = ws->current_finish;
 #if HCLIB_LITECTX_STRATEGY
     finish->finish_deps = NULL;
 #endif
     check_in_finish(finish->parent); // check_in_finish performs NULL check
     ws->current_finish = finish;
+    _hclib_atomic_store_release(&finish->counter, 1);
 }
 
 void hclib_end_finish() {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
-    HASSERT(current_finish->counter > 0);
+    HASSERT(_hclib_atomic_load_relaxed(&current_finish->counter) > 0);
     help_finish(current_finish);
-    HASSERT(current_finish->counter == 0);
+    HASSERT(_hclib_atomic_load_relaxed(&current_finish->counter) == 0);
 
     check_out_finish(current_finish->parent); // NULL check in check_out_finish
 
@@ -1166,7 +1171,7 @@ void hclib_end_finish() {
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
     finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
 
-    HASSERT(current_finish->counter > 0);
+    HASSERT(_hclib_atomic_load_relaxed(&current_finish->counter) > 0);
 
     // NOTE: this is a nasty hack to avoid a memory leak here.
     // Previously we were allocating a two-element array of

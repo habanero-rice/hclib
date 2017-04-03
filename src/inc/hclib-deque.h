@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HCLIB_DEQUE_H_
 
 #include "hclib-task.h"
+#include "hclib-atomics.h"
 
 /****************************************************/
 /* DEQUE API                                        */
@@ -48,28 +49,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INIT_DEQUE_CAPACITY 8096
 
 typedef struct deque_t {
-    volatile int head;
-    volatile int tail;
-    volatile hclib_task_t* data[INIT_DEQUE_CAPACITY];
+    _Atomic int head;
+    _Atomic int tail;
+    hclib_task_t* data[INIT_DEQUE_CAPACITY];
 } deque_t;
 
-void deque_init(deque_t *deq, void *initValue);
-int deque_push(deque_t *deq, void *entry);
+int deque_push(deque_t *deq, hclib_task_t *entry);
 hclib_task_t* deque_pop(deque_t *deq);
 hclib_task_t* deque_steal(deque_t *deq);
-void deque_destroy(deque_t *deq);
-
-/****************************************************/
-/* Semi Concurrent DEQUE API                        */
-/****************************************************/
-typedef struct {
-    deque_t deque;
-    volatile int lock;
-} semi_conc_deque_t;
-
-void semi_conc_deque_init(semi_conc_deque_t* deq, void * initValue);
-void semi_conc_deque_locked_push(semi_conc_deque_t* deq, void* entry);
-hclib_task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * deq);
-void semi_conc_deque_destroy(semi_conc_deque_t * deq);
 
 #endif /* HCLIB_DEQUE_H_ */
