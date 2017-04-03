@@ -15,12 +15,26 @@ PREFIX_FLAGS="--prefix=${INSTALL_PREFIX:=${PWD}/${PROJECT_NAME}-install}"
 export AUTOHEADER="echo autoheader disabled"
 
 #
-# Bootstrap
+# Search for libtoolize
 #
 # if install root has been specified, add --prefix option to configure
 echo "[${PROJECT_NAME}] Bootstrap..."
 
-./bootstrap.sh
+
+if type libtoolize &>/dev/null; then
+    LIBTOOLIZE=`command -v libtoolize`
+elif type glibtoolize &>/dev/null; then
+    LIBTOOLIZE=`command -v glibtoolize`
+else
+    echo "ERROR: can't find libtoolize nor glibtoolize"
+    exit 1
+fi
+
+aclocal -I config;
+
+eval "$LIBTOOLIZE --force --copy"
+
+autoreconf -vfi;
 
 #
 # Configure
