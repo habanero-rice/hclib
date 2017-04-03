@@ -54,23 +54,8 @@ typedef struct deque_t {
     hclib_task_t* data[INIT_DEQUE_CAPACITY];
 } deque_t;
 
-void deque_init(deque_t *deq);
 int deque_push(deque_t *deq, hclib_task_t *entry);
 hclib_task_t* deque_pop(deque_t *deq);
 hclib_task_t* deque_steal(deque_t *deq);
-void deque_destroy(deque_t *deq);
-
-/****************************************************/
-/* Semi Concurrent DEQUE API                        */
-/****************************************************/
-typedef struct {
-    deque_t deque;
-    _Atomic int lock;
-} semi_conc_deque_t;
-
-void semi_conc_deque_init(semi_conc_deque_t* deq);
-void semi_conc_deque_locked_push(semi_conc_deque_t* deq, hclib_task_t* entry);
-hclib_task_t* semi_conc_deque_non_locked_pop(semi_conc_deque_t * deq);
-void semi_conc_deque_destroy(semi_conc_deque_t * deq);
 
 #endif /* HCLIB_DEQUE_H_ */

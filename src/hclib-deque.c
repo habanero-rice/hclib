@@ -39,18 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib-internal.h"
 #include "hclib-atomics.h"
 
-#if 0 // UNUSED
-void deque_init(deque_t *deq) {
-    deq->head = 0;
-    //@ FIXME ATOMIC: this should be a RELEASE to ensure synchronization?
-    deq->tail = 0;
-}
-
-void deque_destroy(deque_t *deq) {
-    free(deq);
-}
-#endif
-
 /*
  * push an entry onto the tail of the deque
  */
@@ -130,55 +118,4 @@ hclib_task_t *deque_pop(deque_t *deq) {
 
     return t;
 }
-
-/******************************************************/
-/* Semi Concurrent DEQUE                              */
-/******************************************************/
-
-#if 0 // UNUSED
-void semi_conc_deque_init(semi_conc_deque_t *semiDeq) {
-    deque_t *deq = &semiDeq->deque;
-    deq->head = 0;
-    deq->tail = 0;
-    semiDeq->lock = 0;
-}
-
-void semi_conc_deque_destroy(semi_conc_deque_t *semiDeq) {
-    free(semiDeq);
-}
-
-void semi_conc_deque_locked_push(semi_conc_deque_t *semiDeq, hclib_task_t *entry) {
-    deque_t *deq = &semiDeq->deque;
-    int success = 0;
-    while (!success) {
-        int size = deq->tail - deq->head;
-        if (INIT_DEQUE_CAPACITY == size) {
-            HASSERT("DEQUE full, increase deque's size" && 0);
-        }
-
-        if (hc_cas(&semiDeq->lock, 0, 1) ) {
-            success = 1;
-            int n = deq->tail % INIT_DEQUE_CAPACITY;
-            deq->data[n] = (hclib_task_t *) entry;
-            hc_mfence();
-            ++deq->tail;
-            semiDeq->lock= 0;
-        }
-    }
-}
-
-hclib_task_t *semi_conc_deque_non_locked_pop(semi_conc_deque_t *semiDeq) {
-    deque_t *deq = &semiDeq->deque;
-    int head = deq->head;
-    int tail = deq->tail;
-
-    if ((tail - head) > 0) {
-        hclib_task_t *t = (hclib_task_t *) deq->data[head % INIT_DEQUE_CAPACITY];
-        ++deq->head;
-        return t;
-    }
-    return NULL;
-}
-#endif
-
 
