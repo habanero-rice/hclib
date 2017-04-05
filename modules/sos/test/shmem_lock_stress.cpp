@@ -2,6 +2,9 @@
 #include "hclib_sos.h"
 #include "hclib_system.h"
 
+#include <signal.h>
+#include <unistd.h>
+
 #include <iostream>
 
 // long lock = 0L;
@@ -14,8 +17,23 @@ unsigned long long get_clock_gettime() {
     return (unsigned long long)t.tv_nsec + s;
 }
 
+void *kill_func(void *data) {
+    int kill_seconds = *((int *)data);
+    int err = sleep(kill_seconds);
+    assert(err == 0);
+    raise(SIGABRT);
+    return NULL;
+}
+
 int main(int argc, char **argv) {
     const char *deps[] = { "system", "sos" };
+
+    int kill_seconds = 180;
+    pthread_t thread;
+    const int perr = pthread_create(&thread, NULL, kill_func,
+            (void *)&kill_seconds);
+    assert(perr == 0);
+
 
     hclib::launch(deps, 2, [] {
         pe = hclib::shmem_my_pe();

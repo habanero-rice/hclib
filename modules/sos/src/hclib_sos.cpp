@@ -93,6 +93,7 @@ static int event_ids[N_SOS_FUNCS];
 static unsigned domain_ctx_id = 0;
 static shmemx_domain_t *domains = NULL;
 static shmemx_ctx_t *contexts = NULL;
+static int nthreads = -1;
 
 typedef struct _lock_context_t {
     // A future satisfied by the last attempt to lock this global lock.
@@ -192,6 +193,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     const int pe = ::shmem_my_pe();
     const int npes = ::shmem_n_pes();
 
+    nthreads = hclib_get_num_workers();
     domains = (shmemx_domain_t *)malloc(hclib_get_num_workers() * sizeof(*domains));
     assert(domains);
     contexts = (shmemx_ctx_t *)malloc(hclib_get_num_workers() * sizeof(*contexts));
@@ -216,9 +218,7 @@ HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     int i, j;
     for (i = 0; i < npes; i++) {
         for (j = 0; j < hclib_get_num_workers(); j++) {
-            shmemx_ctx_putmem(buf, buf,
-                    sizeof(int), i, contexts[j]);
-            ::shmemx_ctx_quiet(contexts[j]);
+            const int unused = ::shmemx_ctx_int_fadd(buf, 1, i, contexts[j]);
         }
     }
 
@@ -298,6 +298,10 @@ void hclib::shmem_free(void *ptr) {
 }
 
 void hclib::shmem_barrier_all() {
+    for (int i = 0; i < nthreads; i++) {
+        ::shmemx_ctx_quiet(contexts[i]);
+    }
+
     hclib::finish([] {
         hclib::async_nb_at([] {
             SOS_START_OP(shmem_barrier_all);
@@ -531,24 +535,31 @@ void hclib::shmem_int_add(int *dest, int value, int pe) {
 
 long long hclib::shmem_longlong_fadd(long long *target, long long value,
         int pe) {
-    long long *val_ptr = (long long *)malloc(sizeof(long long));
-    hclib::finish([target, value, pe, val_ptr] {
-        hclib::async_nb_at([target, value, pe, val_ptr] {
-            SOS_START_OP(shmem_longlong_fadd);
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
-                target << " value=" << value << " pe=" << pe << std::endl;
-#endif
-            const long long val = ::shmem_longlong_fadd(target, value, pe);
-            *val_ptr = val;
-            SOS_END_OP(shmem_longlong_fadd);
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    const long long result = *val_ptr;
+    return shmemx_ctx_longlong_fadd(target, value, pe, *ctx);
 
-    free(val_ptr);
-    return result;
+//     long long *val_ptr = (long long *)malloc(sizeof(long long));
+//     hclib::finish([target, value, pe, val_ptr] {
+//         hclib::async_nb_at([target, value, pe, val_ptr] {
+//             SOS_START_OP(shmem_longlong_fadd);
+// #ifdef TRACE
+//             std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
+//                 target << " value=" << value << " pe=" << pe << std::endl;
+// #endif
+//             const long long val = ::shmem_longlong_fadd(target, value, pe);
+//             *val_ptr = val;
+//             SOS_END_OP(shmem_longlong_fadd);
+//         }, nic);
+//     });
+// 
+//     const long long result = *val_ptr;
+// 
+//     free(val_ptr);
+//     return result;
 }
 
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
