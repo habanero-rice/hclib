@@ -75,7 +75,7 @@ long get_usecs (void)
 
 int main(int argc, char* argv[])
 {
-  hclib::launch(&argc, argv, [&]() {
+  hclib::launch([=]() {
       int n = 12;
       int i, j;
          
@@ -86,9 +86,9 @@ int main(int argc, char* argv[])
       atomic = (int*) malloc(sizeof(int));;
       atomic[0]=0;
       long start = get_usecs();
-      hclib::finish([=] { 
+      HCLIB_FINISH {
           nqueens_kernel(a, 0, n);  
-      });
+      }
       long end = get_usecs();
       dur = ((double)(end-start))/1000000;
       verify_queens(n);  
