@@ -51,20 +51,6 @@ CPPFLAGS=$CPPFLAGS_BACKUP
 ########### GET LOW LEVEL DETAILS IN THE INSTALLATION #############
 ###################################################################
 
-### INTERFACE HCLIB WITH PHASER LIBRARY
-AC_ARG_ENABLE(phaser,
-    AS_HELP_STRING([--enable-phaser],
-    [enable interface with Phaser (Default is false)]),
-    [with_phaser=$enableval],
-    [with_phaser=no;])
-
-AS_IF([test "x$with_phaser" != xno],
-      [ AC_MSG_NOTICE([Enabled Phaser support]) ],
-      [ AC_MSG_NOTICE([Disabled Phaser support]) ])
-
-AM_CONDITIONAL(_PHASERS_, test "x$with_phaser" != xno)
-### End Phaser
-
 ### ENABLE DISTRIBUTED WORK_STEALING SUPPORT FOR HabaneroUPC++
 AC_ARG_ENABLE(distWS,
     AS_HELP_STRING([--enable-distWS],
