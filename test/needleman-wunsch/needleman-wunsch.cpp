@@ -74,14 +74,14 @@ signed char* read_file( FILE* file, size_t* n_chars ) {
 }
 
 typedef struct {
-    hclib::promise_t* bottom_row;
-    hclib::promise_t* right_column;
-    hclib::promise_t* bottom_right;
+    hclib::promise_t<int*>* bottom_row;
+    hclib::promise_t<int*>* right_column;
+    hclib::promise_t<int*>* bottom_right;
 } Tile_t;
 
 
 int main ( int argc, char* argv[] ) {
-    hclib::launch(&argc, argv, [&]() {
+    hclib::launch([&]() {
         int i, j;
 
         int tile_width = (int) atoi (argv[3]);
@@ -128,9 +128,9 @@ int main ( int argc, char* argv[] ) {
         for ( i = 0; i < n_tiles_height+1; ++i ) {
             tile_matrix[i] = (Tile_t *) malloc(sizeof(Tile_t)*(n_tiles_width+1));
             for ( j = 0; j < n_tiles_width+1; ++j ) {
-                tile_matrix[i][j].bottom_row = new hclib::promise_t();
-                tile_matrix[i][j].right_column = new hclib::promise_t();
-                tile_matrix[i][j].bottom_right = new hclib::promise_t();
+                tile_matrix[i][j].bottom_row = new hclib::promise_t<int*>();
+                tile_matrix[i][j].right_column = new hclib::promise_t<int*>();
+                tile_matrix[i][j].bottom_right = new hclib::promise_t<int*>();
             }
         }
 
@@ -168,7 +168,7 @@ int main ( int argc, char* argv[] ) {
         struct timeval begin,end;
         gettimeofday(&begin,0);
 
-        hclib::finish([=]() {
+        HCLIB_FINISH {
             for (int i = 1; i < n_tiles_height+1; ++i ) {
                 for (int j = 1; j < n_tiles_width+1; ++j ) {
                 hclib::async_await([=] {
@@ -229,7 +229,7 @@ int main ( int argc, char* argv[] ) {
                     tile_matrix[i-1][j-1].bottom_right->get_future());
                 }
             }
-        });
+        }
 
         gettimeofday(&end,0);
         fprintf(stdout, "The computation took %f seconds\n",((end.tv_sec - begin.tv_sec)*1000000+(end.tv_usec - begin.tv_usec))*1.0/1000000);

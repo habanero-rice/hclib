@@ -6,7 +6,7 @@ fi
 
 export HCLIB_WORKERS=$1
 SIZE=$2
-export HCLIB_STATS=1
+#export HCLIB_STATS=1
 
 #SIZE=tiny
 #SIZE=medium
@@ -47,5 +47,6 @@ fi
 fi
 fi
 
-echo "./smith_waterman ${INPUT_FILE_1} ${INPUT_FILE_2} ${TILE_WIDTH} ${TILE_HEIGHT} ${INNER_TILE_WIDTH} ${INNER_TILE_HEIGHT}"
-./smith_waterman ${INPUT_FILE_1} ${INPUT_FILE_2} ${TILE_WIDTH} ${TILE_HEIGHT} ${INNER_TILE_WIDTH} ${INNER_TILE_HEIGHT}
+set -x
+
+./needleman-wunsch ${INPUT_FILE_1} ${INPUT_FILE_2} ${TILE_WIDTH} ${TILE_HEIGHT} ${INNER_TILE_WIDTH} ${INNER_TILE_HEIGHT}
