@@ -1,4 +1,4 @@
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 #include <sys/time.h>
 
 using namespace std;
@@ -65,7 +65,7 @@ long get_usecs (void)
 }
 
 int main(int argc, char **argv) {
-	hclib::launch(&argc, argv, [&]() {
+	hclib::launch([&]() {
         int N = argc>1 ? atoi(argv[1]) : 10000000; // 1 million
             int threshold = argc>2 ? atoi(argv[2]) : (int)(0.001*N);
         printf("Sorting %d size array with threshold of %d\n",N,threshold);

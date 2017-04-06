@@ -1,5 +1,21 @@
 #!/bin/bash
 
+#
+# Copyright 2017 Rice University
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 set -e
 
 # Bootstrap, Configure, Make and Install
@@ -15,12 +31,26 @@ PREFIX_FLAGS="--prefix=${INSTALL_PREFIX:=${PWD}/${PROJECT_NAME}-install}"
 export AUTOHEADER="echo autoheader disabled"
 
 #
-# Bootstrap
+# Search for libtoolize
 #
 # if install root has been specified, add --prefix option to configure
 echo "[${PROJECT_NAME}] Bootstrap..."
 
-./bootstrap.sh
+
+if type libtoolize &>/dev/null; then
+    LIBTOOLIZE=`command -v libtoolize`
+elif type glibtoolize &>/dev/null; then
+    LIBTOOLIZE=`command -v glibtoolize`
+else
+    echo "ERROR: can't find libtoolize nor glibtoolize"
+    exit 1
+fi
+
+aclocal -I config;
+
+eval "$LIBTOOLIZE --force --copy"
+
+autoreconf -vfi;
 
 #
 # Configure
