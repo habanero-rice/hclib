@@ -1,4 +1,11 @@
 /*
+ * This benchmark has been modified from the original version
+ * to use the HClib API and runtime.
+ *
+ * Modifications copyright 2017 Rice University
+ *
+ * The original copyright notice is as follows:
+ *
  *         ---- The Unbalanced Tree Search (UTS) Benchmark ----
  *  
  *  Copyright (c) 2010 See AUTHORS file for copyright holders
@@ -16,6 +23,8 @@
 #include "hclib_cpp.h"
 #include <string.h>
 #include <float.h>
+
+extern "C" {
 
 #include "uts.h"
 
@@ -74,6 +83,7 @@ int  ss_get_work(int wid, void* node_c);
 void showStats(double walltime);
 static void parTreeSearch();
 
+} // extern "C"
 
 /***********************************************************
  *  UTS Implementation                                     *
@@ -82,7 +92,7 @@ static void parTreeSearch();
 using namespace std;
 
 int main(int argc, char *argv[]) {
-	hclib::launch(&argc, argv, [&]() {
+	hclib::launch([&]() {
 
         double t1, t2;
         /* initialize stealstacks and comm. layer */
