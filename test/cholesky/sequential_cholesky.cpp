@@ -3,9 +3,9 @@
 void sequential_cholesky ( int k, int tileSize, TileBlock* in_lkji_kkk, TileBlock* out_lkji_kkkp1 ) {
 	int index = 0, iB = 0, jB = 0, kB = 0, jBB = 0;
 	double** aBlock = in_lkji_kkk->matrixBlock;
-	double** lBlock = (double**) malloc(sizeof(double*)*tileSize);
+	double** lBlock = new double*[tileSize];
 	for( index = 0; index < tileSize; ++index )
-		lBlock[index] = (double*) malloc(sizeof(double)*(index+1));
+		lBlock[index] = new double[(index + 1)];
 
 	for( kB = 0 ; kB < tileSize ; ++kB ) {
 		if( aBlock[ kB ][ kB ] <= 0 ) {
