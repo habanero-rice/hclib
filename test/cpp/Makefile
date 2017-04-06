@@ -18,7 +18,7 @@ targets.txt:
 	@echo "$(TARGETS)" > $@
 
 %: %.cpp
-	$(CXX) ${FLAGS} $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+	$(CXX) ${FLAGS} $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean:
 	rm -f $(TARGETS)
