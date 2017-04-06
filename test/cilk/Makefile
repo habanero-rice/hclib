@@ -1,14 +1,14 @@
 include $(HCLIB_ROOT)/include/hclib.mak
 
-EXE=smith_waterman
+TARGETS := FFT Cilksort
 
-all: clean $(EXE) clean-obj
+all: clean $(TARGETS) clean-obj
 
-smith_waterman: smith_waterman.cpp
+%: %.cpp
 	$(CXX) $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
 
 clean-obj:
 	rm -rf *.o *.dSYM
 
 clean:
-	rm -rf *.o $(EXE) *.dSYM *.out
+	rm -rf *.o $(TARGETS) *.dSYM

@@ -268,7 +268,7 @@ void scramble_array(int *arr, int size)
 
 int main(int argc, char **argv)
 {
-     hclib::launch(&argc, argv, [&]() {
+     hclib::launch([&]() {
          int size = 10000000;
          int i, k;
          

@@ -50,9 +50,9 @@ static void compute_w_coefficients(int n, int a, int b, COMPLEX * W)
 {
 
      if (b - a < 128) {
-      register REAL s, c;
-      register int k;
-	  register double twoPiOverN = 2.0 * 3.1415926535897932384626434 / n;
+      REAL s, c;
+      int k;
+	  double twoPiOverN = 2.0 * 3.1415926535897932384626434 / n;
 	  for (k = a; k <= b; ++k) {
 	       c = cos(twoPiOverN * k);
 	       c_re(W[k]) = c_re(W[n - k]) = c;
@@ -3204,7 +3204,7 @@ void test_speed(long size)
 
 int main(int argc, char *argv[])
 {
-     hclib::launch(&argc, argv, [&]() {
+     hclib::launch([&]() {
          int correctness=0;
          int n = 2048;
          
@@ -3219,5 +3219,6 @@ int main(int argc, char *argv[])
          else
         test_speed(size);
     });
+    printf("Done.\n");
     return 0;
 }

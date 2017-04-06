@@ -1,14 +1,13 @@
 include $(HCLIB_ROOT)/include/hclib.mak
 
-EXE=cholesky
+TARGET=cholesky
 
-all: clean $(EXE) clean-obj
+.PHONY: all clean
 
-cholesky: cholesky.cpp sequential_cholesky.cpp trisolve.cpp update_diagonal.cpp update_nondiagonal.cpp
-	$(CXX) $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $^ $(PROJECT_LDLIBS)
+all: clean $(TARGET)
 
-clean-obj:
-	rm -rf *.o *.dSYM
+$(TARGET): $(TARGET).cpp
+	$(CXX) $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) -o $@ $< $(PROJECT_LDLIBS)
 
 clean:
-	rm -rf *.o $(EXE) *.dSYM *.out
+	rm -rf $(TARGET) *.out

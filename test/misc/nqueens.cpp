@@ -75,7 +75,7 @@ long get_usecs (void)
 
 int main(int argc, char* argv[])
 {
-  hclib::launch(&argc, argv, [&]() {
+  hclib::launch([&]() {
       int n = 12;
       int i, j;
          
