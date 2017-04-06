@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 /*
  * Create async await and enable them (by a put) in the 

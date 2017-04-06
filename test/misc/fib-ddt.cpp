@@ -1,5 +1,5 @@
 #include <iostream>
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 using namespace std;
 

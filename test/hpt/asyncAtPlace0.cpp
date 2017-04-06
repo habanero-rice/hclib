@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 int main(int argc, char ** argv) {	
 	hclib::launch(&argc, argv, [&]() {

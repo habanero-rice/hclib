@@ -15,7 +15,7 @@
  */
 
 #include <stdio.h>
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 #include "phased.h"
 
 /**

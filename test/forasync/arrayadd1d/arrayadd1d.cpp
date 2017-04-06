@@ -19,7 +19,7 @@
  */
 
 #include <sys/time.h>
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 using namespace std;
 

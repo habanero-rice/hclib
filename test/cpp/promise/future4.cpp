@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 int main(int argc, char **argv) {
     bool *ran = new bool{false};

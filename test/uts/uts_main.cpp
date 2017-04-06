@@ -22,7 +22,7 @@
 
 #include <float.h>
 #include <string.h>
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 extern "C" {
 
