@@ -1,9 +1,7 @@
 #include "header.h"
 
-static int *argc_ptr = NULL;
-static char **argv_ptr = NULL;
-
-void entrypoint(void *arg) {
+int main(int argc, char** argv) {
+  hclib::launch([argc, argv]() {
     int i, j, k, ii;
     double **A, ** temp;
     int A_i, A_j, T_i, T_j;
@@ -15,44 +13,44 @@ void entrypoint(void *arg) {
     int numTiles = -1;
 
     TileBlock **** lkji;
-    if (*argc_ptr != 4) {
-        printf("Usage: ./Cholesky matrixSize tileSize fileName (found %d "
-                "args)\n", *argc_ptr);
-        return;
+    if (argc != 4) {
+        printf("Usage: ./Cholesky matrixSize tileSize fileName ");
+        printf("(found %d args)\n", argc);
+        exit(1);
     }
 
-    matrixSize = atoi(argv_ptr[1]);
-    tileSize = atoi(argv_ptr[2]);
+    matrixSize = atoi(argv[1]);
+    tileSize = atoi(argv[2]);
     if ( matrixSize % tileSize != 0) {
         printf("Incorrect tile size %d for the matrix of size %d \n", tileSize, matrixSize);
-        return;
+        exit(1);
     }
 
     numTiles = matrixSize/tileSize;
 
-    in = fopen(argv_ptr[3], "r");
+    in = fopen(argv[3], "r");
     if( !in ) {
-        printf("Cannot find file: %s\n", argv_ptr[3]);
-        return;
+        printf("Cannot find file: %s\n", argv[3]);
+        exit(1);
     }
 
-    lkji = (TileBlock ****) malloc(sizeof(TileBlock***)*numTiles);
+    lkji = new TileBlock***[numTiles];
     for( i = 0 ; i < numTiles ; ++i ) {
-        lkji[i] = (TileBlock***) malloc(sizeof(TileBlock**)*(i+1));;
+        lkji[i] = new TileBlock**[i + 1];
         for( j = 0 ; j <= i ; ++j ) {
-            lkji[i][j] = (TileBlock**) malloc(sizeof(TileBlock*)*(numTiles+1));
+            lkji[i][j] = new TileBlock*[numTiles + 1];
             for( k = 0 ; k <= numTiles ; ++k )
-                lkji[i][j][k] = (TileBlock*) malloc(sizeof(TileBlock));
+                lkji[i][j][k] = new TileBlock;
             // Allocate memory for the tiles.
-            lkji[i][j][0]->matrixBlock = (double**) malloc(sizeof(double*)*tileSize);
+            lkji[i][j][0]->matrixBlock = new double*[tileSize];
             for( ii = 0; ii < tileSize; ++ii )
-                lkji[i][j][0]->matrixBlock[ii] = (double*) malloc(sizeof(double)*tileSize); 
+                lkji[i][j][0]->matrixBlock[ii] = new double[tileSize];
         }
     }
 
-    A = (double**) malloc(sizeof(double*)*matrixSize);
+    A = new double*[matrixSize];
     for( i = 0; i < matrixSize; ++i)
-        A[i] = (double*) malloc(sizeof(double)*matrixSize);
+        A[i] = new double[matrixSize];
 
     for( i = 0; i < matrixSize; ++i ) {
         for( j = 0; j < matrixSize-1; ++j )
@@ -85,12 +83,12 @@ void entrypoint(void *arg) {
         // Taking this malloc out from triSolve method
         for(int j = k + 1 ; j < numTiles ; ++j ) {
             TileBlock *currPivotColumnTile = lkji[j][k][k+1];
-            currPivotColumnTile->matrixBlock = (double**) malloc (sizeof(double*)*tileSize);
+            currPivotColumnTile->matrixBlock = new double*[tileSize];
             for(i = 0; i < tileSize; ++i)
-                currPivotColumnTile->matrixBlock[i] = (double*) malloc (sizeof(double)*tileSize);
+                currPivotColumnTile->matrixBlock[i] = new double[tileSize];
         }
 
-        finish ([=]() {
+        HCLIB_FINISH {
                 for(int j = k + 1 ; j < numTiles ; ++j ) {
                 TileBlock *prevPivotColumnTile = lkji[j][k][k];
                 TileBlock *currPivotColumnTile = lkji[j][k][k+1];
@@ -99,8 +97,8 @@ void entrypoint(void *arg) {
                         trisolve (k, j, tileSize , prevPivotColumnTile, currPivotTile, currPivotColumnTile);
                         });
                 }
-                });
-        finish([=]() {
+        }
+        HCLIB_FINISH {
                 for(int j = k + 1 ; j < numTiles ; ++j ) {
                 TileBlock *prevPivotColumnTile = lkji[j][k][k];
                 TileBlock *currPivotColumnTile = lkji[j][k][k+1];
@@ -120,7 +118,7 @@ void entrypoint(void *arg) {
                         update_diagonal ( k, j, j, tileSize , prevDiagonalTileForUpdate, currPivotColumnTile, currDiagonalTileForUpdate);
                         });
                 }
-                });
+        }
     }
 
     gettimeofday(&b, 0);
@@ -146,24 +144,11 @@ void entrypoint(void *arg) {
         }
     }
 
-    for( i = 0; i < matrixSize; ++i )
-        free(A[i]);
-    free(A);
+    for( i = 0; i < matrixSize; ++i ) delete[] A[i];
+    delete[] A;
 
     fclose(out);
     fclose(in);
 
+  });
 }
-
-int main(int argc, char** argv) {
-    argc_ptr = &argc;
-    argv_ptr = argv;
-    hclib_launch(&argc, argv, entrypoint, NULL);
-	return 0;
-}
-
-
-
-
-
-
