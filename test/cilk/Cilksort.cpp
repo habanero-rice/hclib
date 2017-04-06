@@ -1,4 +1,12 @@
 /*
+ * This benchmark has been modified from the original version
+ * to use the HClib API and runtime.
+ *
+ * Modifications copyright 2017 Rice University
+ *
+ * The original copyright notice is as follows:
+ * -------------------------------------------------------------
+ *
  * Copyright (c) 2000 Massachusetts Institute of Technology
  * Copyright (c) 2000 Matteo Frigo
  *
@@ -268,7 +276,7 @@ void scramble_array(int *arr, int size)
 
 int main(int argc, char **argv)
 {
-     hclib::launch(&argc, argv, [&]() {
+     hclib::launch([&]() {
          int size = 10000000;
          int i, k;
          
