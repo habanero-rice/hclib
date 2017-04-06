@@ -16,7 +16,7 @@ void check(int *a,int val,int num_iters){
 
 int main(int argc, char *argv[])
 {
-	hclib::launch(&argc, argv, [&]() {
+	hclib::launch([=]() {
         int num_iters1;
         int num_iters2;
         int tilesize1;
@@ -24,7 +24,10 @@ int main(int argc, char *argv[])
         int i;
         int *a,*b,*c;
 
-        if(argc!=5){printf("USAGE:./arrayadd2d NUM_ITERS1 NUM_ITERS2 TILE_SIZE1 TILE_SIZE2\n");return -1;}
+        if (argc != 5) {
+            printf("USAGE:./arrayadd2d NUM_ITERS1 NUM_ITERS2 TILE_SIZE1 TILE_SIZE2\n");
+            exit(1);
+        }
         num_iters1 = atoi(argv[1]);
         num_iters2 = atoi(argv[2]);
         tilesize1 = atoi(argv[3]);
