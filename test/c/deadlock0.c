@@ -5,10 +5,13 @@
 
 #include "hclib.h"
 
-#define FINISH GEN_FINISH_SCOPE(MACRO_CONCAT(_hcGenVar_, __COUNTER__))
-#define GEN_FINISH_SCOPE(V) for (int V=(hclib_start_finish(), 1); V; hclib_end_finish(), --V)
-#define MACRO_CONCAT(a, b) DO_MACRO_CONCAT(a, b)
-#define DO_MACRO_CONCAT(a, b) a ## b
+/* DESC: master-helper deadlock scenario
+ * This example demonstrates how the current "work-shift" strategy used by HC 
+ * workers (in which a blocked worker tries to steal a new task) can easily lead 
+ * to deadlock. This example will deadlock when run with 4 workers
+ * when using the master-helper strategy with a (help-global without fibers).
+ */
+
 
 #if 1
 #define DELAY(t) usleep(t*100000L)
@@ -34,7 +37,7 @@ void taskSleep(void *args) {
 
 void taskA(void *args) {
     echo_worker("A");
-    FINISH {
+    HCLIB_FINISH {
         hclib_async(taskSleep, taskA, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
         DELAY(2);
     }
@@ -44,7 +47,7 @@ void taskA(void *args) {
 
 void taskB(void *args) {
     echo_worker("B");
-    FINISH {
+    HCLIB_FINISH {
         hclib_async(taskSleep, NULL, future_list, NO_PHASER, ANY_PLACE, NO_PROP);
     }
 }
