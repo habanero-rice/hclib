@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 #include <sys/time.h>
 
 using namespace std;

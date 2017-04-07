@@ -33,7 +33,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 /* Definitions and operations for complex numbers */
 

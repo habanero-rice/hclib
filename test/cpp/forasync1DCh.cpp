@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 #define H1 1024
 #define T1 33
