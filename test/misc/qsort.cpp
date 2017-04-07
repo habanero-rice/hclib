@@ -36,7 +36,7 @@ int compare(const void * a, const void * b)
 void sort(ELEMENT_T* data, int left, int right, ELEMENT_T threshold) {
 	if (right - left + 1 > threshold) {
 		int index = partition(data, left, right);
-        hclib::finish([=] {
+        HCLIB_FINISH {
 			if (left < index - 1) {
 				hclib::async([=]() {
                         		sort(data, left, (index - 1), threshold);
@@ -48,7 +48,7 @@ void sort(ELEMENT_T* data, int left, int right, ELEMENT_T threshold) {
 					sort(data, index, right, threshold);
 				});
 			}
-        });
+        }
 	}
 	else {
 		//  quicksort in C++ library
@@ -65,7 +65,7 @@ long get_usecs (void)
 }
 
 int main(int argc, char **argv) {
-	hclib::launch(&argc, argv, [&]() {
+	hclib::launch([=]() {
         int N = argc>1 ? atoi(argv[1]) : 10000000; // 1 million
             int threshold = argc>2 ? atoi(argv[2]) : (int)(0.001*N);
         printf("Sorting %d size array with threshold of %d\n",N,threshold);

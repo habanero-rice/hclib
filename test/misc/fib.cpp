@@ -17,10 +17,10 @@ int fib(int n)
     }
     else {
 	int x, y;
-	hclib::finish([n, &x, &y]( ) {
+	HCLIB_FINISH {
   	    hclib::async([n, &x]( ){x = fib(n-1);});
   	    y = fib(n-2);
-	});
+	}
 	return x + y;
     }
 }
@@ -33,7 +33,7 @@ long get_usecs (void)
 }
 
 int main (int argc, char ** argv) {
-  hclib::launch(&argc, argv, [&]() {
+  hclib::launch([=]() {
       int n = 40;
       if(argc > 1) n = atoi(argv[1]);
       if(argc > 2) threshold = atoi(argv[2]);
