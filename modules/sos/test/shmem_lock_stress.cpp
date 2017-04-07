@@ -27,13 +27,11 @@ void *kill_func(void *data) {
 
 int main(int argc, char **argv) {
     const char *deps[] = { "system", "sos" };
-
-    int kill_seconds = 180;
+    int kill_seconds = 120;
     pthread_t thread;
     const int perr = pthread_create(&thread, NULL, kill_func,
             (void *)&kill_seconds);
     assert(perr == 0);
-
 
     hclib::launch(deps, 2, [] {
         pe = hclib::shmem_my_pe();
@@ -42,22 +40,26 @@ int main(int argc, char **argv) {
         *lock = 0;
         hclib::shmem_barrier_all();
 
+        const unsigned long long start_time = get_clock_gettime();
         hclib::finish([=] {
-            const unsigned long long start_time = get_clock_gettime();
 
             size_t nlocks = 0;
-            for (nlocks = 0; nlocks < 20000; nlocks++) {
+            for (nlocks = 0; nlocks < 50000; nlocks++) {
                 hclib::async([=] {
                     hclib::shmem_set_lock(lock);
                     hclib::shmem_clear_lock(lock);
                 });
             }
 
-            const unsigned long long elapsed_ns = get_clock_gettime() -
+            const unsigned long long issued_ns = get_clock_gettime() -
                     start_time;
             fprintf(stderr, "PE %d issued %lu locks in %d ms\n", pe, nlocks,
-                    elapsed_ns / 1000000ULL);
+                    issued_ns / 1000000ULL);
         });
+        const unsigned long long elapsed_ns = get_clock_gettime() -
+                start_time;
+        fprintf(stderr, "PE %d completed in %d ms\n", pe,
+                elapsed_ns / 1000000ULL);
 
         fprintf(stderr, "PE %d out of finish\n", pe);
 

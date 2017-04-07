@@ -4,7 +4,29 @@
 
 #include <iostream>
 
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <limits.h>
+#include <sys/stat.h>
+
+void *kill_func(void *data) {
+    int kill_seconds = *((int *)data);
+    int err = sleep(kill_seconds);
+    assert(err == 0);
+    raise(SIGABRT);
+    return NULL;
+}
+
 int main(int argc, char **argv) {
+    int kill_seconds = 120;
+    pthread_t thread;
+    const int perr = pthread_create(&thread, NULL, kill_func,
+            (void *)&kill_seconds);
+    assert(perr == 0);
+
     const char *deps[] = { "system", "sos" };
     hclib::launch(deps, 2, [] {
         const int pe = hclib::shmem_my_pe();

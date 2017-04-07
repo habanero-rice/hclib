@@ -880,28 +880,6 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
                 return task;
             }
         }
-
-//         for (j = 1; j < nworkers; j++) {
-//             const int victim = (wid + j) % nworkers;
-// 
-// #ifdef VERBOSE
-//         fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-//                 "locale->deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
-//                 locale->deques, locale->lbl, victim);
-// #endif
-// 
-//             hclib_task_t *task = deque_steal(&(deqs[victim].deque));
-//             if (task) {
-// #ifdef VERBOSE
-//                 fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-//                         "locale->deques=%p locale->lbl=%s victim=%d "
-//                         "successfully stole task %p\n", wid, i, locale,
-//                         locale->deques, locale->lbl, victim, task);
-// #endif
-//                 paths->last_successful_steal_locale = locale_index;
-//                 return task;
-//             }
-//         }
     }
 
     return NULL;

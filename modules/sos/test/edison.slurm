@@ -10,7 +10,8 @@
 # Not sure where this value comes from (or what it means), found experimentally
 export PMI_MAX_KVS_ENTRIES=$((1000 * $SLURM_NNODES))
 export SMA_SYMMETRIC_SIZE=1073741824
-export SMA_BARRIER_ALGORITHM=linear # tree, dissem, auto, linear
+# export SMA_BARRIER_ALGORITHM=linear # tree, dissem, auto, linear
+# export SMA_COLL_CROSSOVER=8
 export SMA_SYMMETRIC_HEAP_USE_HUGE_PAGES=true
 export SMA_SYMMETRIC_HEAP_PAGE_SIZE=4194304
 export SMA_OFI_PROVIDER=gni
@@ -24,7 +25,6 @@ export LD_LIBRARY_PATH=$SOS_INSTALL/lib:$LD_LIBRARY_PATH
 
 ulimit -c unlimited
 
-export SOS_INSTALL=$HOME/sandia-shmem-contexts-install
 cd $HCLIB_HOME/modules/sos/test
 
 # 2 sockets x 12-core CPUs
@@ -35,17 +35,17 @@ export HCLIB_WORKERS=$CPUS_PER_PE
 export OMP_NUM_THREADS=$CPUS_PER_PE
 export NPES=$(($SLURM_NNODES * $PES_PER_NODE))
 
-# for TEST in init \
-#         many_putmem \
-#         shmem_atomics_stress \
-#         shmem_barrier_all \
-#         shmem_barrier_stress \
-#         shmem_broadcast64 \
-#         shmem_int_async_when \
-#         shmem_int_wait_until \
-#         shmem_malloc \
-#         shmem_put64; do
-for TEST in shmem_lock_stress; do
+for TEST in init \
+        many_putmem \
+        shmem_atomics_stress \
+        shmem_barrier_all \
+        shmem_barrier_stress \
+        shmem_broadcast64 \
+        shmem_int_async_when \
+        shmem_int_wait_until \
+        shmem_malloc \
+        shmem_lock_stress \
+        shmem_put64; do
     echo "======= Testing $TEST ======="
     srun --no-kill --chdir=/tmp/ --ntasks=$NPES --ntasks-per-node=$PES_PER_NODE \
         --cpus-per-task=$CPUS_PER_PE $(pwd)/$TEST
