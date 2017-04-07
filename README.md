@@ -47,7 +47,7 @@ Dependencies
 
 * automake
 * gcc >= 4.8.4, or clang >= 3.5
-  (must support -std=c++11)
+  (must support -std=c11 and -std=c++11)
 * libxml2 (with development headers)
 
 
