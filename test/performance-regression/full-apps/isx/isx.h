@@ -65,17 +65,17 @@ static void shuffle(void * array, size_t n, size_t size);
 /*
  * Generates random keys [0, MAX_KEY_VAL] on each rank using the time and rank as a seed
  */
-static inline KEY_TYPE * make_input(void);
+static KEY_TYPE * make_input(void);
 
 /*
  * Computes the size of each local bucket by iterating all local keys and incrementing
  * their corresponding bucket's size
  */
 #ifdef HCLIB_VERSION
-static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
+static int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
         int ***bucket_counts_per_chunk_out);
 #else
-static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys);
+static int * count_local_bucket_sizes(KEY_TYPE const * const my_keys);
 #endif
 
 /*
@@ -84,7 +84,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys);
  * Stores a copy of the bucket offsets in send_offsets for use in exchanging keys because the
  * original bucket_offsets array is modified in the bucketize function
  */
-static inline int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
+static int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
                                           int ** send_offsets);
 
 /*
@@ -92,24 +92,24 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
  * The contents of each bucket are not sorted.
  */
 #ifdef HCLIB_VERSION
-static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
+static KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
                                        int * const local_bucket_offsets,
                                        int **bucket_counts_per_chunk);
 #else
-static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
+static KEY_TYPE * bucketize_local_keys(KEY_TYPE const * my_keys,
                                        int * const local_bucket_offsets);
 #endif
 /*
  * Each PE sends the contents of its local buckets to the PE that owns that bucket.
  */
-static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
+static KEY_TYPE * exchange_keys(int const * const send_offsets,
                                 int const * const local_bucket_sizes,
                                 KEY_TYPE const * const local_bucketed_keys);
 
 /*
  * Count the occurence of each key within my bucket. 
  */
-static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys);
+static int * count_local_keys(KEY_TYPE const * const my_bucket_keys);
 
 /*
  * Verifies the correctness of the sort. 
@@ -123,9 +123,9 @@ static int verify_results(int const * const my_local_key_counts,
  * Seeds each rank based on the rank number and time
  */
 #ifdef HCLIB_VERSION
-static inline pcg32_random_t seed_my_rank(const int chunk);
+static pcg32_random_t seed_my_rank(const int chunk);
 #else
-static inline pcg32_random_t seed_my_rank(void);
+static pcg32_random_t seed_my_rank(void);
 #endif
 
 /*
@@ -142,7 +142,7 @@ static void my_turn_complete();
 static void init_shmem_sync_array(long * const pSync);
 
 
-static inline void init_array(int * array, const int size)
+static void init_array(int * array, const int size)
 {
   for(int i = 0; i < size; ++i){
     array[i] = 0;

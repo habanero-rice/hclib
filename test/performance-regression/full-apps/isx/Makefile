@@ -6,7 +6,7 @@
 # include $(GASNET_INSTALL)/include/gemini-conduit/gemini-par.mak
 
 
-CC = oshcc
+CC = $(OPENSHMEM_INSTALL)/bin/oshcc
 LD = $(CC)
 DEBUGFLAGS = -g -p -O0 -DDEBUG
 OPTFLAGS = -O3 -DNDEBUG -mavx

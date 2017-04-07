@@ -30,6 +30,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 #define HCLIB_VERSION
+#define _POSIX_C_SOURCE 199309L
 
 #include <shmem.h>
 #include <assert.h>
@@ -48,8 +49,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 #define ROOT_PE 0
+#define INTS_PER_CACHE_LINE (128 / sizeof(int))
 
-// #define ISX_PROFILING
+#define ISX_PROFILING
 
 // Needed for shmem collective operations
 int pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -86,7 +88,7 @@ float avg_time=0, avg_time_all2all = 0;
 // #define KEY_BUFFER_SIZE ((1uLL<<26uLL))
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
 // #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 50000000)
-#define KEY_BUFFER_SIZE ((1uLL<<30uLL))
+#define KEY_BUFFER_SIZE ((1uLL<<31uLL))
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -95,6 +97,23 @@ KEY_TYPE *my_bucket_keys;
 #ifdef PERMUTE
 int * permute_array;
 #endif
+
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 
 int main(const int argc,  char ** argv)
 {
@@ -338,12 +357,12 @@ static KEY_TYPE * make_input(void)
 {
   timer_start(&timers[TIMER_INPUT]);
 
-  KEY_TYPE * const my_keys = (KEY_TYPE * const)malloc(NUM_KEYS_PER_PE *
+  KEY_TYPE * const my_keys = (KEY_TYPE *)malloc(NUM_KEYS_PER_PE *
           sizeof(KEY_TYPE));
   assert(my_keys);
 
 #ifdef ISX_PROFILING
-  unsigned long long start = hclib_current_time_ns();
+  unsigned long long start = current_time_ns();
 #endif
 
 #pragma omp parallel
@@ -361,7 +380,7 @@ static KEY_TYPE * make_input(void)
   }
 
 #ifdef ISX_PROFILING
-  unsigned long long end = hclib_current_time_ns();
+  unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
   printf("Making input took %llu ns\n", end - start);
 #endif
@@ -391,10 +410,10 @@ static KEY_TYPE * make_input(void)
  * Computes the size of each bucket by iterating all keys and incrementing
  * their corresponding bucket's size
  */
-static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
+static  int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
         int ***bucket_counts_per_chunk_out)
 {
-  int * const local_bucket_sizes = (int * const)malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
   assert(local_bucket_sizes);
 
   timer_start(&timers[TIMER_BCOUNT]);
@@ -402,7 +421,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
   init_array(local_bucket_sizes, NUM_BUCKETS);
 
 #ifdef ISX_PROFILING
-  unsigned long long start = hclib_current_time_ns();
+  unsigned long long start = current_time_ns();
 #endif
 
   int **bucket_counts_per_chunk = (int **)malloc(num_threads * sizeof(int *));
@@ -410,8 +429,12 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
   {
       const int i = omp_get_thread_num();
 
-      int *bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
-      memset(bucket_sizes, 0x00, NUM_BUCKETS * sizeof(int));
+      int *bucket_sizes = NULL;
+      if (NUM_BUCKETS >= INTS_PER_CACHE_LINE) {
+          bucket_sizes = (int *)calloc(NUM_BUCKETS, sizeof(int));
+      } else {
+          bucket_sizes = (int *)calloc(INTS_PER_CACHE_LINE, sizeof(int));
+      }
 
       uint64_t chunk_size = (NUM_KEYS_PER_PE + num_threads - 1) / num_threads;
       uint64_t start_chunk = i * chunk_size;  
@@ -419,12 +442,11 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
       if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE; 
 
       for (uint64_t ii = start_chunk; ii < end_chunk; ++ii) {
-          const uint32_t bucket_index = my_keys[ii]/BUCKET_WIDTH;
+          const uint32_t bucket_index = my_keys[ii] / BUCKET_WIDTH;
           bucket_sizes[bucket_index]++;
       }
 
       bucket_counts_per_chunk[i] = bucket_sizes;
-
   }
 
   for (int i = 0; i < num_threads; i++) {
@@ -438,7 +460,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
   // free(bucket_counts_per_chunk);
 
 #ifdef ISX_PROFILING
-  unsigned long long end = hclib_current_time_ns();
+  unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
   printf("Counting local bucket sizes took %llu ns\n", end - start);
 #endif
@@ -471,10 +493,10 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
  * Stores a copy of the bucket offsets for use in exchanging keys because the
  * original bucket_offsets array is modified in the bucketize function
  */
-static inline int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
+static  int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
                                                  int ** send_offsets)
 {
-  int * const local_bucket_offsets = (int * const)malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_offsets = (int *)malloc(NUM_BUCKETS * sizeof(int));
   assert(local_bucket_offsets);
 
   timer_start(&timers[TIMER_BOFFSET]);
@@ -514,18 +536,18 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
  * Places local keys into their corresponding local bucket.
  * The contents of each bucket are not sorted.
  */
-static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
+static  KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                                               int * const local_bucket_offsets,
                                               int **bucket_counts_per_chunk)
 {
-  KEY_TYPE * const my_local_bucketed_keys = (KEY_TYPE * const)malloc(
+  KEY_TYPE * const my_local_bucketed_keys = (KEY_TYPE *)malloc(
           NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
   assert(my_local_bucketed_keys);
 
   timer_start(&timers[TIMER_BUCKETIZE]);
 
 #ifdef ISX_PROFILING
-  unsigned long long start = hclib_current_time_ns();
+  unsigned long long start = current_time_ns();
 #endif
 
   if (num_threads == 1) {
@@ -580,9 +602,9 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
   }
 
 #ifdef ISX_PROFILING
-  unsigned long long end = hclib_current_time_ns();
+  unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
-  printf("Bucketizing took %llu ns\n", end - start);
+      printf("Bucketizing took %llu ns\n", end - start);
 #endif
 
   timer_stop(&timers[TIMER_BUCKETIZE]);
@@ -609,7 +631,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 /*
  * Each PE sends the contents of its local buckets to the PE that owns that bucket.
  */
-static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
+static  KEY_TYPE * exchange_keys(int const * const send_offsets,
                                        int const * const local_bucket_sizes,
                                        KEY_TYPE const * const my_local_bucketed_keys)
 {
@@ -700,11 +722,10 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
  * minimum key value to allow indexing from 0.
  * my_bucket_keys: All keys in my bucket unsorted [my_rank * BUCKET_WIDTH, (my_rank+1)*BUCKET_WIDTH)
  */
-static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
+static  int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 {
-  int * const my_local_key_counts = (int * const)malloc(BUCKET_WIDTH * sizeof(int));
+  int * const my_local_key_counts = (int *)calloc(BUCKET_WIDTH, sizeof(int));
   assert(my_local_key_counts);
-  memset(my_local_key_counts, 0, BUCKET_WIDTH * sizeof(int));
 
   timer_start(&timers[TIMER_SORT]);
 
@@ -713,12 +734,11 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   const int my_min_key = my_rank * BUCKET_WIDTH;
 
 #ifdef ISX_PROFILING
-  unsigned long long start = hclib_current_time_ns();
+  unsigned long long start = current_time_ns();
 #endif
 
-
-  int *per_chunk_counts = (int *)malloc(num_threads * BUCKET_WIDTH * sizeof(int));
-  memset(per_chunk_counts, 0x00, num_threads * BUCKET_WIDTH * sizeof(int));
+  int *per_chunk_counts = (int *)calloc(num_threads * BUCKET_WIDTH, sizeof(int));
+  assert(per_chunk_counts);
 
 #pragma omp parallel
   {
@@ -739,7 +759,7 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   }
 
 #ifdef ISX_PROFILING
-  unsigned long long intermediate = hclib_current_time_ns();
+  unsigned long long intermediate = current_time_ns();
 #endif
 
 #pragma omp parallel
@@ -760,10 +780,10 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 
   free(per_chunk_counts);
 #ifdef ISX_PROFILING
-  unsigned long long end = hclib_current_time_ns();
+  unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
   printf("Counting local took %llu ns for stage 1, %llu ns for stage 2, "
-          "my_bucket_size = %u\n", intermediate - start, end - intermediate,
+          "my_bucket_size = %lld\n", intermediate - start, end - intermediate,
           my_bucket_size);
 #endif
 
@@ -816,7 +836,7 @@ static int verify_results(int const * const my_local_key_counts,
   const int my_max_key = (my_rank+1) * BUCKET_WIDTH - 1;
 
 #ifdef ISX_PROFILING
-  unsigned long long start = hclib_current_time_ns();
+  unsigned long long start = current_time_ns();
 #endif
   // Verify all keys are within bucket boundaries
   for(long long int i = 0; i < my_bucket_size; ++i){
@@ -829,7 +849,7 @@ static int verify_results(int const * const my_local_key_counts,
   }
 
 #ifdef ISX_PROFILING
-  unsigned long long end = hclib_current_time_ns();
+  unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
   printf("Verifying took %llu ns\n", end - start);
 #endif
@@ -1078,7 +1098,7 @@ static unsigned int * gather_rank_counts(_timer_t * const timer)
 /*
  * Seeds each rank based on the rank number and time
  */
-static inline pcg32_random_t seed_my_rank(const int chunk)
+static  pcg32_random_t seed_my_rank(const int chunk)
 {
   const unsigned int my_rank = shmem_my_pe();
   const unsigned int virtual_rank = my_rank * num_threads + chunk;
