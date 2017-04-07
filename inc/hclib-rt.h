@@ -93,15 +93,10 @@ typedef struct hclib_worker_state {
 #define HASSERT(cond)       // Do Nothing
 #endif
 
-#if defined(static_assert) || __cplusplus >= 201103L // defined in C11, C++11
+#if __cplusplus // C++11 static assert
 #define HASSERT_STATIC static_assert
-#elif __STDC_VERSION__ >= 201112L // C11
+#else // C11 static assert
 #define HASSERT_STATIC _Static_assert
-#elif defined(__COUNTER__)
-#define HASSERT_STATIC(COND, MSG) \
-typedef int HCLIB_MACRO_CONCAT(_hc_static_assert, __COUNTER__)[(COND) ? 1 : -1]
-#elif defined(HC_ASSERTION_CHECK)
-#warning "Static assertions are not available"
 #endif
 
 #define CURRENT_WS_INTERNAL ((hclib_worker_state *) pthread_getspecific(ws_key))
