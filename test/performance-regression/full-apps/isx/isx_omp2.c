@@ -564,7 +564,7 @@ static  KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
       int *chunk_bucket_offsets = (int *)malloc(NUM_BUCKETS * num_threads *
               sizeof(int));
 
-#pragma omp parallel for
+// #pragma omp parallel for schedule(static)
       for (uint64_t b = 0; b < NUM_BUCKETS; b++) {
           chunk_bucket_offsets[b * num_threads + 0] = local_bucket_offsets[b];
           for (int w = 1; w < num_threads; w++) {
@@ -583,7 +583,14 @@ static  KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
           uint64_t end_chunk = (c + 1) * chunk_size;
           if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE;
 
-          int *tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+          int *tmp = NULL;
+          if (NUM_BUCKETS < INTS_PER_CACHE_LINE) {
+              tmp = (int *)malloc(INTS_PER_CACHE_LINE * sizeof(int));
+          } else {
+              tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+          }
+          assert(tmp);
+
           for (unsigned i = 0; i < NUM_BUCKETS; i++) {
               tmp[i] = chunk_bucket_offsets[i * num_threads + c];
           }
