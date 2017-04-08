@@ -23,6 +23,7 @@ export CORES_PER_SOCKET=12
 
 # 2 sockets x 12-core CPUs
 
+# Edison:
 export KEYS_PER_CORE=130000000
 
 # export SMA_SYMMETRIC_SIZE=$((768 * 1024 * 1024))
@@ -35,8 +36,8 @@ export HCLIB_WORKERS=$CORES_PER_SOCKET
 export SMA_SYMMETRIC_SIZE=$((9 * 1024 * 1024 * 1024))
 
 srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 \
-    --ntasks-per-socket=1 --cpus-per-task=$CORES_PER_SOCKET ./bin/isx.omp.weak $(($KEYS_PER_CORE * $CORES_PER_SOCKET)) \
-    /tmp/output_weak
+    --ntasks-per-socket=1 --cpus-per-task=$CORES_PER_SOCKET ./bin/isx.omp.weak \
+    $(($KEYS_PER_CORE * $CORES_PER_SOCKET)) ./output_weak
 # 
 # srun --ntasks=$(($SLURM_NNODES * $PES_PER_NODE)) --ntasks-per-node=$PES_PER_NODE --ntasks-per-socket=1 --cpus-per-task=12 ./bin/isx.hclib.weak $(($KEYS_PER_NODE / $PES_PER_NODE)) /tmp/output_weak
 # # srun --no-kill --chdir=/tmp/ --ntasks=$(($SLURM_NNODES * $PES_PER_NODE)) \

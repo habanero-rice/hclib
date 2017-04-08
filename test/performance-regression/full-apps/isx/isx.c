@@ -85,9 +85,11 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 100000)
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
+#ifdef EDISON_DATASET
 #define KEY_BUFFER_SIZE ((1uLL<<27uLL))
+#else
+#error No cluster specified
+#endif
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -643,8 +645,8 @@ static int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 #ifdef ISX_PROFILING
   unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
-  printf("Counting local took %llu ns, my_bucket_size = %u\n", end - start,
-          my_bucket_size);
+  printf("Counting local took %llu ns, my_bucket_size = %u, BUCKET_WIDTH = "
+          "%llu\n", end - start, my_bucket_size, BUCKET_WIDTH);
 #endif
 
   timer_stop(&timers[TIMER_SORT]);

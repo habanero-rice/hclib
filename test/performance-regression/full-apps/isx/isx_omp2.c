@@ -83,12 +83,11 @@ static int num_threads = -1;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 60000)
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
-// #define KEY_BUFFER_SIZE ((1uLL<<26uLL))
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 50000000)
+#ifdef EDISON_DATASET
 #define KEY_BUFFER_SIZE ((1uLL<<31uLL))
+#else
+#error No cluster specified
+#endif
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -117,15 +116,12 @@ static unsigned long long current_time_ns() {
 
 int main(const int argc,  char ** argv)
 {
-  // const char *deps[] = { "system", "openshmem" };
-            {
   shmem_init();
 
 #pragma omp parallel
 #pragma omp single
   num_threads = omp_get_num_threads();
    
-    // fprintf(stderr, "Trying to allocate %llu bytes\n", KEY_BUFFER_SIZE * sizeof(KEY_TYPE));
     my_bucket_keys = (KEY_TYPE *)shmem_malloc(KEY_BUFFER_SIZE * sizeof(KEY_TYPE));
     assert(my_bucket_keys);
 
@@ -181,7 +177,6 @@ int main(const int argc,  char ** argv)
 #endif
 
   shmem_finalize();
-    }
   return 0;
 }
 
@@ -351,7 +346,8 @@ static int bucket_sort(void)
 
 /*
  * Generates uniformly random keys [0, MAX_KEY_VAL] on each rank using the time and rank
- * number as a seed
+ * number as a seed. NUM_KEYS_PER_PE are generated in each PE, into the locally
+ * allocated my_keys buffer.
  */
 static KEY_TYPE * make_input(void)
 {
@@ -413,12 +409,10 @@ static KEY_TYPE * make_input(void)
 static  int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
         int ***bucket_counts_per_chunk_out)
 {
-  int * const local_bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_sizes = (int *)calloc(NUM_BUCKETS, sizeof(int));
   assert(local_bucket_sizes);
 
   timer_start(&timers[TIMER_BCOUNT]);
-
-  init_array(local_bucket_sizes, NUM_BUCKETS);
 
 #ifdef ISX_PROFILING
   unsigned long long start = current_time_ns();
@@ -429,6 +423,13 @@ static  int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
   {
       const int i = omp_get_thread_num();
 
+      /**
+       * Parallelized across the my_keys buffer of locally generated keys to
+       * sort, allocate a thread-local buffer called bucket_sizes. For each
+       * thread, that thread's bucket_sizes buffer stores a partial count of the
+       * number of keys in each bucket for the subset of my_keys that the thread
+       * iterated over.
+       */
       int *bucket_sizes = NULL;
       if (NUM_BUCKETS >= INTS_PER_CACHE_LINE) {
           bucket_sizes = (int *)calloc(NUM_BUCKETS, sizeof(int));
@@ -449,8 +450,13 @@ static  int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
       bucket_counts_per_chunk[i] = bucket_sizes;
   }
 
+  /**
+   * Reduce the partial counts from each thread into local_bucket_sizes.
+   */
   for (int i = 0; i < num_threads; i++) {
       int *worker_bucket_sizes = bucket_counts_per_chunk[i];
+
+#pragma omp simd
       for (unsigned b = 0; b < NUM_BUCKETS; b++) {
           local_bucket_sizes[b] += worker_bucket_sizes[b];
       }
@@ -722,6 +728,11 @@ static  KEY_TYPE * exchange_keys(int const * const send_offsets,
   return my_bucket_keys;
 }
 
+int compare_keys(const void *a, const void *b) {
+    const KEY_TYPE key1 = *((KEY_TYPE *)a);
+    const KEY_TYPE key2 = *((KEY_TYPE *)b);
+    return key1 - key2;
+}
 
 /*
  * Counts the occurence of each key in my bucket. 
@@ -740,12 +751,16 @@ static  int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   // const int my_rank = ::shmem_my_pe();
   const int my_min_key = my_rank * BUCKET_WIDTH;
 
+  int *per_chunk_counts = (int *)calloc(num_threads * BUCKET_WIDTH, sizeof(int));
+  assert(per_chunk_counts);
+
 #ifdef ISX_PROFILING
   unsigned long long start = current_time_ns();
 #endif
 
-  int *per_chunk_counts = (int *)calloc(num_threads * BUCKET_WIDTH, sizeof(int));
-  assert(per_chunk_counts);
+#ifdef ISX_PROFILING
+  unsigned long long intermediate;
+#endif
 
 #pragma omp parallel
   {
@@ -758,29 +773,41 @@ static  int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 
       int *counts = per_chunk_counts + (c * BUCKET_WIDTH);
 
-      for (long long int i = start_chunk; i < end_chunk; i++) {
+#pragma omp for
+      for (int i = 0; i < my_bucket_size; i++) {
           const unsigned int key_index = my_bucket_keys[i] - my_min_key;
-
           counts[key_index]++;
       }
-  }
+
+#pragma omp barrier
 
 #ifdef ISX_PROFILING
-  unsigned long long intermediate = current_time_ns();
+#pragma omp master
+      intermediate = current_time_ns();
 #endif
 
-#pragma omp parallel
-  {
-      const int c = omp_get_thread_num();
-
-      unsigned chunk_size = (BUCKET_WIDTH + num_threads - 1) / num_threads;
-      unsigned start_chunk = c * chunk_size;
-      unsigned end_chunk = (c + 1) * chunk_size;
+      chunk_size = (BUCKET_WIDTH + num_threads - 1) / num_threads;
+      start_chunk = c * chunk_size;
+      end_chunk = (c + 1) * chunk_size;
       if (end_chunk > BUCKET_WIDTH) end_chunk = BUCKET_WIDTH;
 
+//       for (int c = 0; c < num_threads; c++) {
+//           int *counts = per_chunk_counts[c];
+// 
+// #pragma omp simd
+//           for (unsigned i = start_chunk; i < end_chunk; i++) {
+//               my_local_key_counts[i] += counts[i];
+//           }
+//       }
+
+      // for (unsigned i = start_chunk; i < end_chunk; i++) {
+
       for (int c = 0; c < num_threads; c++) {
-          for (unsigned i = start_chunk; i < end_chunk; i++) {
-              my_local_key_counts[i] += per_chunk_counts[c * BUCKET_WIDTH + i];
+          int *thread_counts = per_chunk_counts + (c * BUCKET_WIDTH);
+
+#pragma omp for
+          for (unsigned i = 0; i < BUCKET_WIDTH; i++) {
+              my_local_key_counts[i] += thread_counts[i];
           }
       }
   }
@@ -790,8 +817,8 @@ static  int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   unsigned long long end = current_time_ns();
   if (shmem_my_pe() == 0)
   printf("Counting local took %llu ns for stage 1, %llu ns for stage 2, "
-          "my_bucket_size = %lld\n", intermediate - start, end - intermediate,
-          my_bucket_size);
+          "my_bucket_size = %lld, BUCKET_WIDTH = %llu\n", intermediate - start,
+          end - intermediate, my_bucket_size, BUCKET_WIDTH);
 #endif
 
   // // Count the occurences of each key in my bucket
