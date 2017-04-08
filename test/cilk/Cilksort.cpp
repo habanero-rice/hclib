@@ -62,7 +62,7 @@
  * log factor in the critical path (left as homework).
  */
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 #include<sys/time.h>
 #include<stdlib.h>
 

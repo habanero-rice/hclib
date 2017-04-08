@@ -18,8 +18,8 @@
 #include <type_traits>
 
 #include "hclib-async-struct.h"
-#include "hcupc-support.h"
-#include "hclib_promise.h"
+#include "hcupc-support.hpp"
+#include "hclib-promise.hpp"
 
 #ifndef HCLIB_ASYNC_H_
 #define HCLIB_ASYNC_H_

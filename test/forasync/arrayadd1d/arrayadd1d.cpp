@@ -18,7 +18,7 @@
  * HC CONCORD foreach add.hc example 
  */
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 #include <sys/time.h>
 
 using namespace std;

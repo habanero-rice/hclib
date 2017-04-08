@@ -6,7 +6,7 @@
 [../../src/hclib.c:91]: (warning) Conversion of string literal "malloc failed" to bool always evaluates to true.
 [../../src/hclib.c:99]: (warning) Conversion of string literal "malloc failed" to bool always evaluates to true.
 [../../src/hclib.c:457]: (warning) Conversion of string literal "Limitation: forasync does not support futures yet" to bool always evaluates to true.
-[../../inc/hclib-async.h:131]: (error) Memory leak: lambda_on_heap
+[../../inc/hclib-async.hpp:131]: (error) Memory leak: lambda_on_heap
 [/usr/include/vector_types.h:420]: (style) Struct 'dim3' has a constructor with 1 argument that is not explicit.
 [../../src/hclib_cpp.cpp:22]: (style) The function 'current_worker' is never used.
 [../../src/hclib-deque.c:64]: (style) The function 'deque_destroy' is never used.

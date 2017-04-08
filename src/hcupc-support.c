@@ -16,7 +16,7 @@
 
 #include "hclib-internal.h"
 #include "hclib-atomics.h"
-#include "hcupc-support.h"
+#include "hcupc-support.hpp"
 
 #if defined(HUPCPP) && defined(DIST_WS)
 

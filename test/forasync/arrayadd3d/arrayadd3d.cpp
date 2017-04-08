@@ -18,7 +18,7 @@
  * HC CONCORD foreach add3d.hc example 
  */
 
-#include "hclib_cpp.h"
+#include "hclib.hpp"
 
 void check(int *a,int val,int num_iters){
 	int i;

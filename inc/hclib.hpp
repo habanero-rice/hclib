@@ -19,9 +19,9 @@
 
 #include "hclib_common.h"
 #include "hclib-rt.h"
-#include "hclib-async.h"
-#include "hclib-forasync.h"
-#include "hclib_promise.h"
+#include "hclib-async.hpp"
+#include "hclib-forasync.hpp"
+#include "hclib-promise.hpp"
 #include "hclib.h"
 
 namespace hclib {
