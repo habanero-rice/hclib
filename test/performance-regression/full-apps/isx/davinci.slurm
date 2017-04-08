@@ -5,6 +5,7 @@
 #SBATCH -t 00:10:00
 #SBATCH -J asyncshmem-isx
 #SBATCH --exclusive
+#SBATCH --contiguous
 
 set -e
 
@@ -19,12 +20,12 @@ export KEYS_PER_CORE=67108864
 
 # Flat OpenSHMEM
 export SMA_SYMMETRIC_SIZE=$((1 * 1024 * 1024 * 1024))
-oshrun -bind-to core -N 12 ./bin/isx.weak $KEYS_PER_CORE /tmp/output_weak
+oshrun -bind-to core -N 12 ./bin/isx.weak $KEYS_PER_CORE ./output_weak.flat
 
 # OpenSHMEM + OMP
 export OMP_NUM_THREADS=6
 export SMA_SYMMETRIC_SIZE=$((8 * 1024 * 1024 * 1024))
-oshrun -bind-to socket -N 2 ./bin/isx.omp.weak $(($KEYS_PER_CORE * 6)) /tmp/output_weak
+oshrun -bind-to socket -N 2 ./bin/isx.omp.weak $(($KEYS_PER_CORE * 6)) ./output_weak.omp
 
 # AsyncSHMEM
 # export HCLIB_WORKERS=6
