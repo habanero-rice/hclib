@@ -5,7 +5,7 @@ include $(HCLIB_ROOT)/../modules/system/inc/hclib_system.post.mak
 include $(HCLIB_ROOT)/../modules/openshmem/inc/hclib_openshmem.post.mak
 
 
-CC = g++
+CC = $(OPENSHMEM_INSTALL)/bin/oshcc
 LD = $(CC)
 DEBUGFLAGS = -g -p -O0 -DDEBUG
 OPTFLAGS = -O3 -DNDEBUG -mavx

@@ -29,11 +29,14 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 POSSIBILITY OF SUCH DAMAGE.
 */
+#define _POSIX_C_SOURCE 199309L
+
 #include <shmem.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <time.h>
 #include <math.h>
 #include <string.h>
 #include <unistd.h> // sleep()
@@ -45,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "pcg_basic.h"
 
 #define ROOT_PE 0
+
+#define ISX_PROFILING
 
 // Needed for shmem collective operations
 int pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -80,7 +85,13 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
+#ifdef EDISON_DATASET
+#define KEY_BUFFER_SIZE ((1uLL<<27uLL))
+#elif defined(DAVINCI_DATASET)
 #define KEY_BUFFER_SIZE ((1uLL<<30uLL + 80000))
+#else
+#error No cluster specified
+#endif
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -89,6 +100,23 @@ KEY_TYPE *my_bucket_keys = NULL;
 #ifdef PERMUTE
 int * permute_array;
 #endif
+
+static unsigned long long current_time_ns() {
+#ifdef __MACH__
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    unsigned long long s = 1000000000ULL * (unsigned long long)mts.tv_sec;
+    return (unsigned long long)mts.tv_nsec + s;
+#else
+    struct timespec t ={0,0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    unsigned long long s = 1000000000ULL * (unsigned long long)t.tv_sec;
+    return (((unsigned long long)t.tv_nsec)) + s;
+#endif
+}
 
 int main(const int argc,  char ** argv)
 {
@@ -321,9 +349,19 @@ static KEY_TYPE * make_input(void)
 
   pcg32_random_t rng = seed_my_rank();
 
+#ifdef ISX_PROFILING
+  unsigned long long start = current_time_ns();
+#endif
+
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i) {
     my_keys[i] = pcg32_boundedrand_r(&rng, MAX_KEY_VAL);
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = current_time_ns();
+  if (shmem_my_pe() == 0)
+  printf("Making input took %llu ns\n", end - start);
+#endif
 
   timer_stop(&timers[TIMER_INPUT]);
 
@@ -349,7 +387,7 @@ static KEY_TYPE * make_input(void)
  * Computes the size of each bucket by iterating all keys and incrementing
  * their corresponding bucket's size
  */
-static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
+static int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
 {
   int * const local_bucket_sizes = malloc(NUM_BUCKETS * sizeof(int));
   assert(local_bucket_sizes);
@@ -358,10 +396,20 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
 
   init_array(local_bucket_sizes, NUM_BUCKETS);
 
+#ifdef ISX_PROFILING
+  unsigned long long start = current_time_ns();
+#endif
+
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
     const uint32_t bucket_index = my_keys[i]/BUCKET_WIDTH;
     local_bucket_sizes[bucket_index]++;
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = current_time_ns();
+  if (shmem_my_pe() == 0)
+  printf("Counting local bucket sizes took %llu ns\n", end - start);
+#endif
 
   timer_stop(&timers[TIMER_BCOUNT]);
 
@@ -390,7 +438,7 @@ static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys)
  * Stores a copy of the bucket offsets for use in exchanging keys because the
  * original bucket_offsets array is modified in the bucketize function
  */
-static inline int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
+static int * compute_local_bucket_offsets(int const * const local_bucket_sizes,
                                                  int ** send_offsets)
 {
   int * const local_bucket_offsets = malloc(NUM_BUCKETS * sizeof(int));
@@ -432,13 +480,17 @@ static inline int * compute_local_bucket_offsets(int const * const local_bucket_
  * Places local keys into their corresponding local bucket.
  * The contents of each bucket are not sorted.
  */
-static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
+static KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                                               int * const local_bucket_offsets)
 {
   KEY_TYPE * const my_local_bucketed_keys = malloc(NUM_KEYS_PER_PE * sizeof(KEY_TYPE));
   assert(my_local_bucketed_keys);
 
   timer_start(&timers[TIMER_BUCKETIZE]);
+
+#ifdef ISX_PROFILING
+  unsigned long long start = current_time_ns();
+#endif
 
   for(uint64_t i = 0; i < NUM_KEYS_PER_PE; ++i){
     const KEY_TYPE key = my_keys[i];
@@ -449,6 +501,12 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
     assert(index < NUM_KEYS_PER_PE);
     my_local_bucketed_keys[index] = key;
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = current_time_ns();
+  if (shmem_my_pe() == 0)
+  printf("Bucketizing took %llu ns\n", end - start);
+#endif
 
   timer_stop(&timers[TIMER_BUCKETIZE]);
 
@@ -473,7 +531,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
 /*
  * Each PE sends the contents of its local buckets to the PE that owns that bucket.
  */
-static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
+static KEY_TYPE * exchange_keys(int const * const send_offsets,
                                        int const * const local_bucket_sizes,
                                        KEY_TYPE const * const my_local_bucketed_keys)
 {
@@ -561,7 +619,7 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
  * minimum key value to allow indexing from 0.
  * my_bucket_keys: All keys in my bucket unsorted [my_rank * BUCKET_WIDTH, (my_rank+1)*BUCKET_WIDTH)
  */
-static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
+static int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 {
   int * const my_local_key_counts = malloc(BUCKET_WIDTH * sizeof(int));
   assert(my_local_key_counts);
@@ -572,6 +630,10 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
   const int my_rank = shmem_my_pe();
   const int my_min_key = my_rank * BUCKET_WIDTH;
 
+#ifdef ISX_PROFILING
+  unsigned long long start = current_time_ns();
+#endif
+
   // Count the occurences of each key in my bucket
   for(long long int i = 0; i < my_bucket_size; ++i){
     const unsigned int key_index = my_bucket_keys[i] - my_min_key;
@@ -581,6 +643,14 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 
     my_local_key_counts[key_index]++;
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = current_time_ns();
+  if (shmem_my_pe() == 0)
+  printf("Counting local took %llu ns, my_bucket_size = %u, BUCKET_WIDTH = "
+          "%llu\n", end - start, my_bucket_size, BUCKET_WIDTH);
+#endif
+
   timer_stop(&timers[TIMER_SORT]);
 
 #ifdef DEBUG
@@ -618,6 +688,10 @@ static int verify_results(int const * const my_local_key_counts,
   const int my_min_key = my_rank * BUCKET_WIDTH;
   const int my_max_key = (my_rank+1) * BUCKET_WIDTH - 1;
 
+#ifdef ISX_PROFILING
+  unsigned long long start = current_time_ns();
+#endif
+
   // Verify all keys are within bucket boundaries
   for(long long int i = 0; i < my_bucket_size; ++i){
     const int key = my_local_keys[i];
@@ -627,6 +701,12 @@ static int verify_results(int const * const my_local_key_counts,
       error = 1;
     }
   }
+
+#ifdef ISX_PROFILING
+  unsigned long long end = current_time_ns();
+  if (shmem_my_pe() == 0)
+  printf("Verifying took %llu ns\n", end - start);
+#endif
 
   // Verify the sum of the key population equals the expected bucket size
   long long int bucket_size_test = 0;
@@ -868,7 +948,7 @@ static unsigned int * gather_rank_counts(_timer_t * const timer)
 /*
  * Seeds each rank based on the rank number and time
  */
-static inline pcg32_random_t seed_my_rank(void)
+static pcg32_random_t seed_my_rank(void)
 {
   const unsigned int my_rank = shmem_my_pe();
   pcg32_random_t rng;

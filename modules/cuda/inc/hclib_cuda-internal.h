@@ -26,6 +26,7 @@
 typedef struct _pending_cuda_op {
     cudaEvent_t event;
     hclib::promise_t<void> *prom;
+    hclib_task_t *task;
     struct _pending_cuda_op *next;
 #ifdef HCLIB_INSTRUMENT
     int event_type;

@@ -11,7 +11,7 @@ static unsigned worker_state_size = 0;
 
 static std::vector<hclib_module_pre_init_func_type> *pre_init_functions =
         NULL;
-static std::vector<hclib_module_pre_init_func_type> *post_init_functions =
+static std::vector<hclib_module_post_init_func_type> *post_init_functions =
         NULL;
 static std::vector<hclib_module_finalize_func_type> *finalize_functions = NULL;
 
@@ -23,7 +23,9 @@ int hclib_add_module_init_function(const char *name,
         hclib_module_pre_init_func_type pre,
         hclib_module_post_init_func_type post,
         hclib_module_finalize_func_type finalize) {
+#ifdef VERBOSE
     std::cout << "Registering module " << name << std::endl;
+#endif
 
     if (pre_init_functions == NULL) {
         pre_init_functions = new std::vector<hclib_module_pre_init_func_type>();
@@ -56,12 +58,16 @@ int hclib_add_module_init_function(const char *name,
 
 void hclib_call_module_pre_init_functions() {
     if (pre_init_functions == NULL) {
+#ifdef VERBOSE
         std::cout << "Pre-initializing 0 module(s)" << std::endl;
+#endif
         return;
     }
 
+#ifdef VERBOSE
     std::cout << "Pre-initializing " << pre_init_functions->size() <<
         " module(s)" << std::endl;
+#endif
     for (std::vector<hclib_module_pre_init_func_type>::iterator i =
             pre_init_functions->begin(), e =
             pre_init_functions->end(); i != e; i++) {
@@ -72,12 +78,16 @@ void hclib_call_module_pre_init_functions() {
 
 void hclib_call_module_post_init_functions() {
     if (post_init_functions == NULL) {
+#ifdef VERBOSE
         std::cout << "Post-initializing 0 module(s)" << std::endl;
+#endif
         return;
     }
 
+#ifdef VERBOSE
     std::cout << "Post-initializing " << post_init_functions->size() <<
         " module(s)" << std::endl;
+#endif
     for (std::vector<hclib_module_post_init_func_type>::iterator i =
             post_init_functions->begin(), e =
             post_init_functions->end(); i != e; i++) {
@@ -88,12 +98,16 @@ void hclib_call_module_post_init_functions() {
 
 void hclib_call_finalize_functions() {
     if (finalize_functions == NULL) {
+#ifdef VERBOSE
         std::cout << "Finalizing 0 module(s)" << std::endl;
+#endif
         return;
     }
 
+#ifdef VERBOSE
     std::cout << "Finalizing " << finalize_functions->size() << " module(s)" <<
         std::endl;
+#endif
     for (std::vector<hclib_module_finalize_func_type>::iterator i =
             finalize_functions->begin(), e = finalize_functions->end(); i != e;
             i++) {
@@ -114,7 +128,7 @@ unsigned hclib_add_per_worker_module_state(size_t state_size,
                 worker_state_size + state_size);
         assert(ws->module_state);
 
-        cb(ws->module_state + offset, user_data);
+        cb(ws->module_state + offset, user_data, i);
     }
 
     worker_state_size += state_size;

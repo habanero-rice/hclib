@@ -128,7 +128,6 @@ hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
         hclib_locale_t *src_locale, void *src, size_t nbytes,
         hclib_future_t **futures, const int nfutures);
 
-
 /*
  * Forasync definition and API
  */

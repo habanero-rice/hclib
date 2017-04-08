@@ -29,6 +29,7 @@ hclib_locale_t *get_closest_locale();
 hclib_locale_t **get_thread_private_locales();
 hclib_locale_t *get_all_locales();
 hclib_locale_t **get_all_locales_of_type(int type, int *out_count);
+hclib_locale_t *get_master_place();
 
 hclib::future_t<void*> *allocate_at(size_t nbytes, hclib::locale_t *locale);
 hclib::future_t<void*> *reallocate_at(void *ptr, size_t nbytes,

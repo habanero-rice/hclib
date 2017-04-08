@@ -1,5 +1,4 @@
 #include "hclib_sos-internal.h"
-
 #include "hclib-locality-graph.h"
 
 extern "C" {
@@ -11,50 +10,8 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 
-// #define TRACE
-// #define PROFILE
-// #define DETAILED_PROFILING
-// #define TRACING
-
-#define SOS_HANG_WORKAROUND
-
-static unsigned domain_ctx_id = 0;
-
-#ifdef PROFILE
-static bool disable_profiling = false;
-
-#define START_PROFILE const unsigned long long __start_time = hclib_current_time_ns();
-
-#if defined(TRACING)
-static FILE *trace_fp = NULL;
-#define END_PROFILE(funcname) { \
-    if (!disable_profiling) { \
-        fprintf(trace_fp, "TRACE %d : %s : %llu : %llu\n", ::shmem_my_pe(), \
-                FUNC_NAMES[funcname##_lbl], __start_time, \
-                hclib_current_time_ns()); \
-    } \
-}
-#elif defined(DETAILED_PROFILING)
-#define END_PROFILE(funcname) { \
-    if (!disable_profiling) { \
-        const unsigned long long __end_time = hclib_current_time_ns(); \
-        func_counters[funcname##_lbl]++; \
-        func_times[funcname##_lbl] += (__end_time - __start_time); \
-        printf("%s: %llu ns\n", FUNC_NAMES[funcname##_lbl], \
-                (__end_time - __start_time)); \
-    } \
-}
-#else
-#define END_PROFILE(funcname) { \
-    if (!disable_profiling) { \
-        const unsigned long long __end_time = hclib_current_time_ns(); \
-        func_counters[funcname##_lbl]++; \
-        func_times[funcname##_lbl] += (__end_time - __start_time); \
-    } \
-}
-#endif
-
-enum FUNC_LABELS {
+#ifdef HCLIB_INSTRUMENT
+enum SOS_FUNC_LABELS {
     shmem_malloc_lbl = 0,
     shmem_free_lbl,
     shmem_barrier_all_lbl,
@@ -83,11 +40,11 @@ enum FUNC_LABELS {
     shmem_collect32_lbl,
     shmem_fcollect64_lbl,
     shmem_async_when_polling_lbl,
-    enqueue_wait_set_lbl,
-    N_FUNCS
+    shmem_int_wait_until_lbl,
+    N_SOS_FUNCS
 };
 
-const char *FUNC_NAMES[N_FUNCS] = {
+const char *SOS_FUNC_NAMES[N_SOS_FUNCS] = {
     "shmem_malloc",
     "shmem_free",
     "shmem_barrier_all",
@@ -116,101 +73,104 @@ const char *FUNC_NAMES[N_FUNCS] = {
     "shmem_collect32",
     "shmem_fcollect64",
     "shmem_async_when_polling",
-    "enqueue_wait_set"};
+    "shmem_int_wait_until"};
 
-unsigned long long func_counters[N_FUNCS];
-unsigned long long func_times[N_FUNCS];
+static int event_ids[N_SOS_FUNCS];
+
+#define SOS_START_OP(funcname) \
+    const unsigned _event_id = hclib_register_event(event_ids[funcname##_lbl], \
+            START, -1)
+#define SOS_END_OP(funcname) \
+    hclib_register_event(event_ids[funcname##_lbl], END, _event_id)
+
 #else
-#define START_PROFILE
-#define END_PROFILE(funcname)
+#define SOS_START_OP(funcname)
+#define SOS_END_OP(funcname)
 #endif
 
+#define SOS_HANG_WORKAROUND
+
+static unsigned domain_ctx_id = 0;
+static shmemx_domain_t *domains = NULL;
+static shmemx_ctx_t *contexts = NULL;
+static int nthreads = -1;
+
 typedef struct _lock_context_t {
+    // A future satisfied by the last attempt to lock this global lock.
     hclib_future_t *last_lock;
+    /*
+     * Store the promise that should be satisfied by whoever is currently in the
+     * critical section once they complete it.
+     */
     hclib_promise_t * volatile live;
 } lock_context_t;
 
-static hclib::locale_t *nic = NULL;
-static std::map<long *, lock_context_t *> lock_info;
+pending_sos_op *pending = NULL;
+
+static int nic_locale_id;
+hclib::locale_t *nic = NULL;
 static pthread_mutex_t lock_info_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static hclib::wait_set_t * volatile waiting_on_head = NULL;
+bool test_sos_completion(void *generic_op) {
+    pending_sos_op *op = (pending_sos_op *)generic_op;
 
-static int pe_to_locale_id(int pe) {
-    HASSERT(pe >= 0);
-    return -1 * pe - 1;
+    switch (op->cmp) {
+        case SHMEM_CMP_EQ:
+            switch (op->type) {
+                case integer:
+                    if (*((volatile int *)op->var) == op->cmp_value.i) {
+                        return true;
+                    }
+                    break; // integer
+
+                default:
+                    std::cerr << "Unsupported wait type " << op->type <<
+                        std::endl;
+                    exit(1);
+            }
+        break; // SHMEM_CMP_EQ
+              
+        case SHMEM_CMP_NE:
+            switch (op->type) {
+                case integer:
+                    if (*((volatile int *)op->var) != op->cmp_value.i) {
+                        return true;
+                    }
+                    break; // integer
+
+                default:
+                    std::cerr << "Unsupported wait type " << op->type <<
+                        std::endl;
+                    exit(1);
+            }
+            break; // SHMEM_CMP_NE
+
+            default:
+                std::cerr << "Unsupported cmp type " << op->cmp << std::endl;
+                exit(1);
+    }
+
+    return false;
 }
 
-static int locale_id_to_pe(int locale_id) {
-    HASSERT(locale_id < 0);
-    return (locale_id + 1) * -1;
-}
-
-void hclib::disable_oshmem_profiling() {
-#ifdef PROFILE
-    disable_profiling = true;
-#endif
-}
-
-void hclib::enable_oshmem_profiling() {
-#ifdef PROFILE
-    disable_profiling = false;
-#endif
-}
-
-void hclib::reset_oshmem_profiling_data() {
-#ifdef PROFILE
-    memset(func_counters, 0x00, sizeof(func_counters));
-    memset(func_times, 0x00, sizeof(func_times));
-#endif
-}
-
-void hclib::print_oshmem_profiling_data() {
-#ifdef PROFILE
+HCLIB_MODULE_PRE_INITIALIZATION_FUNC(sos_pre_initialize) {
+    nic_locale_id = hclib_add_known_locale_type("Interconnect");
+#ifdef HCLIB_INSTRUMENT
     int i;
-    printf("PE %d OPENSHMEM PROFILE INFO:\n", ::shmem_my_pe());
-    for (i = 0; i < N_FUNCS; i++) {
-        if (func_counters[i] > 0) {
-            printf("  %s: %llu calls, %llu ms\n", FUNC_NAMES[i],
-                    func_counters[i], func_times[i] / 1000000);
-        }
+    for (i = 0; i < N_SOS_FUNCS; i++) {
+        event_ids[i] = register_event_type((char *)SOS_FUNC_NAMES[i]);
     }
 #endif
+
 }
 
-HCLIB_MODULE_INITIALIZATION_FUNC(sos_pre_initialize) {
-#ifdef PROFILE
-    memset(func_counters, 0x00, sizeof(func_counters));
-    memset(func_times, 0x00, sizeof(func_times));
-#endif
-}
-
-static void init_sos_state(void *state, void *user_data) {
+static void init_sos_state(void *state, void *user_data, int tid) {
     assert(user_data == NULL);
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    int err = ::shmemx_domain_create(SHMEMX_THREAD_SINGLE, 1, domain);
-    assert(err == 0); 
-
-    err = ::shmemx_ctx_create(*domain, ctx);
-    assert(err == 0);
-
-#ifdef SOS_HANG_WORKAROUND
-    const int npes = ::shmem_n_pes();
-    const int pe = shmem_my_pe();
-    int *tmp_buf = (int *)shmem_malloc(sizeof(int));
-    assert(tmp_buf);
-
-    for (int i = 0; i < npes; i++) {
-        if (i == pe) continue;
-
-        shmemx_ctx_putmem(tmp_buf, tmp_buf, sizeof(int), i, *ctx);
-    }
-    shmem_barrier_all();
-
-    shmem_free(tmp_buf);
-#endif
+    *domain = domains[tid];
+    *ctx = contexts[tid];
 }
 
 static void release_sos_state(void *state, void *user_data) {
@@ -218,38 +178,77 @@ static void release_sos_state(void *state, void *user_data) {
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    shmemx_ctx_destroy(*ctx);
-    shmemx_domain_destroy(1, domain);
+    ::shmemx_ctx_quiet(*ctx);
+    ::shmemx_ctx_destroy(*ctx);
+    ::shmemx_domain_destroy(1, domain);
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_post_initialize) {
     int provided_thread_safety;
-    const int desired_thread_safety = SHMEMX_THREAD_SINGLE;
+    const int desired_thread_safety = SHMEMX_THREAD_MULTIPLE;
     ::shmemx_init_thread(desired_thread_safety, &provided_thread_safety);
     assert(provided_thread_safety == desired_thread_safety);
 
-#ifdef PROFILE
-#ifdef TRACING
-    const char *trace_dir = getenv("HIPER_TRACE_DIR");
-    assert(trace_dir);
-    char pe_filename[1024];
-    sprintf(pe_filename, "%s/%d.trace", trace_dir, ::shmem_my_pe());
-    trace_fp = fopen(pe_filename, "w");
-    assert(trace_fp);
+    const int pe = ::shmem_my_pe();
+    const int npes = ::shmem_n_pes();
+
+    nthreads = hclib_get_num_workers();
+    domains = (shmemx_domain_t *)malloc(hclib_get_num_workers() * sizeof(*domains));
+    assert(domains);
+    contexts = (shmemx_ctx_t *)malloc(hclib_get_num_workers() * sizeof(*contexts));
+    assert(contexts);
+
+    int err = ::shmemx_domain_create(SHMEMX_THREAD_MULTIPLE,
+            hclib_get_num_workers(), domains);
+    assert(err == 0); 
+
+    for (int i = 0; i < hclib_get_num_workers(); i++) {
+        err = ::shmemx_ctx_create(domains[i], contexts + i);
+        assert(err == 0);
+    }
+
+#ifdef SOS_HANG_WORKAROUND
+    const unsigned long long start_time = hclib_current_time_ns();
+
+    int *buf = (int *)::shmem_malloc(npes * sizeof(int));
+    assert(buf);
+    buf[pe] = pe;
+
+    int i, j;
+    for (i = 0; i < npes; i++) {
+        for (j = 0; j < hclib_get_num_workers(); j++) {
+            const int unused = ::shmemx_ctx_int_fadd(buf, 1, i, contexts[j]);
+        }
+    }
+
+    ::shmem_barrier_all();
+    ::shmem_free(buf);
+
+    const unsigned long long elapsed = hclib_current_time_ns() - start_time;
+    if (pe == 0) {
+        fprintf(stderr, "SoS hang workaround took %f ms\n",
+                (double)elapsed / 1000000.0);
+    }
 #endif
-#endif
+
     domain_ctx_id = hclib_add_per_worker_module_state(
             sizeof(shmemx_domain_t) + sizeof(shmemx_ctx_t), init_sos_state,
             NULL);
+
+    /*
+     * This is only still needed because not all OpenSHMEM APIs are
+     * contexts-based.
+     */
+    int n_nics;
+    hclib::locale_t **nics = hclib::get_all_locales_of_type(nic_locale_id,
+            &n_nics);
+    HASSERT(n_nics == 1);
+    HASSERT(nics);
+    HASSERT(nic == NULL);
+    nic = nics[0];
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(sos_finalize) {
-#ifdef PROFILE
-#ifdef TRACING
-    fclose(trace_fp);
-#endif
-#endif
-
     hclib_release_per_worker_module_state(domain_ctx_id, release_sos_state,
             NULL);
     ::shmem_finalize();
@@ -267,13 +266,13 @@ void *hclib::shmem_malloc(size_t size) {
     void **out_alloc = (void **)malloc(sizeof(void *));
     hclib::finish([out_alloc, size] {
         hclib::async_nb_at([size, out_alloc] {
-            START_PROFILE
+            SOS_START_OP(shmem_malloc);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_malloc: Allocating " << size <<
                     " bytes" << std::endl;
 #endif
             *out_alloc = ::shmem_malloc(size);
-            END_PROFILE(shmem_malloc)
+            SOS_END_OP(shmem_malloc);
         }, nic);
     });
 
@@ -286,26 +285,30 @@ void *hclib::shmem_malloc(size_t size) {
 void hclib::shmem_free(void *ptr) {
     hclib::finish([ptr] {
         hclib::async_nb_at([ptr] {
-            START_PROFILE
+            SOS_START_OP(shmem_free);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_free: ptr=" << ptr <<
                     std::endl;
 #endif
             ::shmem_free(ptr);
-            END_PROFILE(shmem_free)
+            SOS_END_OP(shmem_free);
         }, nic);
     });
 }
 
 void hclib::shmem_barrier_all() {
+    for (int i = 0; i < nthreads; i++) {
+        ::shmemx_ctx_quiet(contexts[i]);
+    }
+
     hclib::finish([] {
         hclib::async_nb_at([] {
-            START_PROFILE
+            SOS_START_OP(shmem_barrier_all);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_barrier_all" << std::endl;
 #endif
             ::shmem_barrier_all();
-            END_PROFILE(shmem_barrier_all)
+            SOS_END_OP(shmem_barrier_all);
         }, nic);
     });
 }
@@ -313,9 +316,9 @@ void hclib::shmem_barrier_all() {
 void hclib::shmem_fence() {
     hclib::finish([] {
         hclib::async_nb_at([] {
-            START_PROFILE
+            SOS_START_OP(shmem_fence);
             ::shmem_fence();
-            END_PROFILE(shmem_fence)
+            SOS_END_OP(shmem_fence);
         }, nic);
     });
 }
@@ -323,9 +326,9 @@ void hclib::shmem_fence() {
 void hclib::shmem_quiet() {
     hclib::finish([] {
         hclib::async_nb_at([] {
-            START_PROFILE
+            SOS_START_OP(shmem_quiet);
             ::shmem_quiet();
-            END_PROFILE(shmem_quiet)
+            SOS_END_OP(shmem_quiet);
         }, nic);
     });
 }
@@ -333,14 +336,14 @@ void hclib::shmem_quiet() {
 void hclib::shmem_put64(void *dest, const void *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_nb_at([dest, source, nelems, pe] {
-            START_PROFILE
+            SOS_START_OP(shmem_put64);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_put64: dest=" << dest <<
                     " source=" << source << " nelems=" << nelems << " pe=" <<
                     pe << std::endl;
 #endif
             ::shmem_put64(dest, source, nelems, pe);
-            END_PROFILE(shmem_put64)
+            SOS_END_OP(shmem_put64);
         }, nic);
     });
 }
@@ -349,7 +352,7 @@ void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
         int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync) {
     hclib::finish([dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
         hclib::async_nb_at([dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
-            START_PROFILE
+            SOS_START_OP(shmem_broadcast64);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_broadcast64: dest=" <<
                     dest << " source=" << source << " nelems=" << nelems <<
@@ -359,118 +362,73 @@ void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
 #endif
             ::shmem_broadcast64(dest, source, nelems, PE_root, PE_start,
                 logPE_stride, PE_size, pSync);
-            END_PROFILE(shmem_broadcast64)
+            SOS_END_OP(shmem_broadcast64);
         }, nic);
     });
 }
 
-static void *shmem_set_lock_impl(void *arg) {
-    START_PROFILE
-#ifdef TRACE
-    std::cerr << ::shmem_my_pe() << ": shmem_set_lock: lock=" << arg <<
-        std::endl;
-#endif
-    ::shmem_set_lock((long *)arg);
-    END_PROFILE(shmem_set_lock)
-    return NULL;
-}
-
-static void *shmem_clear_lock_impl(void *arg) {
-    START_PROFILE
-#ifdef TRACE
-    std::cerr << ::shmem_my_pe() << ": shmem_clear_lock: lock=" << arg <<
-        std::endl;
-#endif
-    ::shmem_clear_lock((long *)arg);
-    END_PROFILE(shmem_clear_lock)
-    return NULL;
-}
+static hclib::future_t<void> * volatile lock_future = NULL;
+static hclib::promise_t<void> * volatile next_to_put = NULL;
 
 void hclib::shmem_set_lock(volatile long *lock) {
+    hclib::promise_t<void> *promise = new hclib::promise_t<void>();
+
     int err = pthread_mutex_lock(&lock_info_mutex);
     HASSERT(err == 0);
 
-    hclib_future_t *await = NULL;
-    lock_context_t *ctx = NULL;
-
-    hclib_promise_t *promise = hclib_promise_create();
-
-    std::map<long *, lock_context_t *>::iterator found = lock_info.find((long *)lock);
-    if (found != lock_info.end()) {
-        ctx = found->second;
-    } else {
-        /*
-         * Cannot assert that *lock == 0L here as another node may be locking
-         * it. Can only guarantee that no one else on the same node has locked
-         * it.
-         */
-        ctx = (lock_context_t *)malloc(sizeof(lock_context_t));
-        memset(ctx, 0x00, sizeof(lock_context_t));
-
-        lock_info.insert(std::pair<long *, lock_context_t *>((long *)lock, ctx));
-    }
-
-    await = hclib_async_future(shmem_set_lock_impl, (void *)lock,
-            &ctx->last_lock, 1, nic);
-    ctx->last_lock = hclib_get_future_for_promise(promise);
+    hclib::future_t<void> *old = lock_future;
+    lock_future = promise->get_future();
 
     err = pthread_mutex_unlock(&lock_info_mutex);
     HASSERT(err == 0);
 
-    hclib_future_wait(await);
-    HASSERT(ctx->live == NULL);
-    ctx->live = promise;
+    if (old) {
+        old->wait();
+    }
+
+    hclib::finish([&] {
+        hclib::async_nb_at([=] {
+            ::shmem_set_lock(lock);
+        }, nic);
+    });
+
+    next_to_put = promise;
 }
 
 void hclib::shmem_clear_lock(long *lock) {
-    int err = pthread_mutex_lock(&lock_info_mutex);
-    HASSERT(err == 0);
+    assert(next_to_put);
 
-    std::map<long *, lock_context_t *>::iterator found = lock_info.find(lock);
-    HASSERT(found != lock_info.end()) // Doesn't make much sense to clear a lock that hasn't been set
+    hclib::finish([&] {
+        hclib::async_at([=] { ::shmem_clear_lock(lock); }, nic);
+    });
 
-    hclib_future_t *await = hclib_async_future(shmem_clear_lock_impl, lock,
-            NULL, 0, nic);
-
-    err = pthread_mutex_unlock(&lock_info_mutex);
-    HASSERT(err == 0);
-
-    hclib_future_wait(await);
-
-    HASSERT(found->second->live);
-    hclib_promise_t *live = found->second->live;
-    found->second->live = NULL;
-    hclib_promise_put(live, NULL);
+    hclib::promise_t<void> *to_put = next_to_put;
+    next_to_put = NULL;
+    to_put->put();
 }
 
 void hclib::shmem_int_get(int *dest, const int *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_nb_at([dest, source, nelems, pe] {
-            START_PROFILE
+            SOS_START_OP(shmem_int_get);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_int_get: dest=" << dest <<
                     " source=" << source << " nelems=" << nelems << " pe=" <<
                     pe << std::endl;
 #endif
             ::shmem_int_get(dest, source, nelems, pe);
-            END_PROFILE(shmem_int_get)
+            SOS_END_OP(shmem_int_get);
         }, nic);
     });
 }
 
 void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) {
-    hclib::finish([dest, source, nelems, pe] {
-        hclib::async_nb_at([dest, source, nelems, pe] {
-            START_PROFILE
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_getmem: dest=" << dest <<
-                    " source=" << source << " nelems=" << nelems << " pe=" <<
-                    pe << std::endl;
-#endif
-            ::shmem_getmem(dest, source, nelems, pe);
-            END_PROFILE(shmem_getmem)
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    shmemx_ctx_getmem(dest, source, nelems, pe, *ctx);
 }
 
 void hclib::shmem_putmem(void *dest, const void *source, size_t nelems, int pe) {
@@ -485,14 +443,14 @@ void hclib::shmem_putmem(void *dest, const void *source, size_t nelems, int pe) 
 void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
     hclib::finish([dest, source, nelems, pe] {
         hclib::async_nb_at([dest, source, nelems, pe] {
-            START_PROFILE
+            SOS_START_OP(shmem_int_put);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_int_put: dest=" << dest <<
                     " source=" << source << " nelems=" << nelems << " pe=" <<
                     pe << std::endl;
 #endif
             ::shmem_int_put(dest, source, nelems, pe);
-            END_PROFILE(shmem_int_put)
+            SOS_END_OP(shmem_int_put);
         }, nic);
     });
 }
@@ -501,9 +459,9 @@ void hclib::shmem_char_put_nbi(char *dest, const char *source, size_t nelems,
         int pe) {
     hclib::finish([&] {
         hclib::async_nb_at([&] {
-            START_PROFILE
+            SOS_START_OP(shmem_char_put_nbi);
             ::shmem_char_put_nbi(dest, source, nelems, pe);
-            END_PROFILE(shmem_char_put_nbi)
+            SOS_END_OP(shmem_char_put_nbi);
         }, nic);
     });
 }
@@ -513,11 +471,11 @@ void hclib::shmem_char_put_signal_nbi(char *dest, const char *source,
         size_t signal_nelems, int pe) {
     hclib::finish([&] {
         hclib::async_nb_at([&] {
-            START_PROFILE
+            SOS_START_OP(shmem_char_put_signal_nbi);
             ::shmem_char_put_nbi(dest, source, nelems, pe);
             ::shmem_fence();
             ::shmem_char_put_nbi(signal_dest, signal_source, signal_nelems, pe);
-            END_PROFILE(shmem_char_put_signal_nbi)
+            SOS_END_OP(shmem_char_put_signal_nbi);
         }, nic);
     });
 }
@@ -525,51 +483,58 @@ void hclib::shmem_char_put_signal_nbi(char *dest, const char *source,
 void hclib::shmem_int_add(int *dest, int value, int pe) {
     hclib::finish([dest, value, pe] {
         hclib::async_nb_at([dest, value, pe] {
-            START_PROFILE
+            SOS_START_OP(shmem_int_add);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_int_add: dest=" << dest <<
                     " value=" << value << " pe=" << pe << std::endl;
 #endif
             ::shmem_int_add(dest, value, pe);
-            END_PROFILE(shmem_int_add)
+            SOS_END_OP(shmem_int_add);
         }, nic);
     });
 }
 
 long long hclib::shmem_longlong_fadd(long long *target, long long value,
         int pe) {
-    long long *val_ptr = (long long *)malloc(sizeof(long long));
-    hclib::finish([target, value, pe, val_ptr] {
-        hclib::async_nb_at([target, value, pe, val_ptr] {
-            START_PROFILE
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
-                target << " value=" << value << " pe=" << pe << std::endl;
-#endif
-            const long long val = ::shmem_longlong_fadd(target, value, pe);
-            *val_ptr = val;
-            END_PROFILE(shmem_longlong_fadd)
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    const long long result = *val_ptr;
+    return shmemx_ctx_longlong_fadd(target, value, pe, *ctx);
 
-    free(val_ptr);
-    return result;
+//     long long *val_ptr = (long long *)malloc(sizeof(long long));
+//     hclib::finish([target, value, pe, val_ptr] {
+//         hclib::async_nb_at([target, value, pe, val_ptr] {
+//             SOS_START_OP(shmem_longlong_fadd);
+// #ifdef TRACE
+//             std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
+//                 target << " value=" << value << " pe=" << pe << std::endl;
+// #endif
+//             const long long val = ::shmem_longlong_fadd(target, value, pe);
+//             *val_ptr = val;
+//             SOS_END_OP(shmem_longlong_fadd);
+//         }, nic);
+//     });
+// 
+//     const long long result = *val_ptr;
+// 
+//     free(val_ptr);
+//     return result;
 }
 
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     int *heap_fetched = (int *)malloc(sizeof(int));
     hclib::finish([dest, value, pe, heap_fetched] {
         hclib::async_nb_at([dest, value, pe, heap_fetched] {
-            START_PROFILE
+            SOS_START_OP(shmem_int_fadd);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_int_fadd: dest=" <<
                 dest << " value=" << value << " pe=" << pe << std::endl;
 #endif
             const int fetched = ::shmem_int_fadd(dest, value, pe);
             *heap_fetched = fetched;
-            END_PROFILE(shmem_int_fadd)
+            SOS_END_OP(shmem_int_fadd);
         }, nic);
     });
 
@@ -579,22 +544,92 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
     return fetched;
 }
 
+int hclib::shmem_int_swap(int *dest, int value, int pe) {
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, value, pe, heap_fetched] {
+        hclib::async_nb_at([dest, value, pe, heap_fetched] {
+            const int fetched = ::shmem_int_swap(dest, value, pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
+
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_int_swap(dest, value, pe, *ctx);
+}
+
+int hclib::shmem_int_cswap(int *dest, int cond, int value, int pe) {
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, cond, value, pe, heap_fetched] {
+        hclib::async_nb_at([dest, cond, value, pe, heap_fetched] {
+            const int fetched = ::shmem_int_cswap(dest, cond, value, pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
+
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_int_cswap(dest, cond, value, pe, *ctx);
+}
+
+long hclib::shmem_long_finc(long *dest, int pe) {
+    long *heap_fetched = (long *)malloc(sizeof(long));
+    hclib::finish([dest, pe, heap_fetched] {
+        hclib::async_nb_at([dest, pe, heap_fetched] {
+            const long fetched = ::shmem_long_finc(dest,pe);
+            *heap_fetched = fetched;
+        }, nic);
+    });
+
+    const long fetched = *heap_fetched;
+    free(heap_fetched);
+
+    return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_long_finc(dest, pe, *ctx);
+}
+
 int hclib::shmem_int_finc(int *dest, int pe) {
     int *heap_fetched = (int *)malloc(sizeof(int));
     hclib::finish([dest, pe, heap_fetched] {
         hclib::async_nb_at([dest, pe, heap_fetched] {
-            START_PROFILE
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_int_finc: dest=" << dest <<
-                " pe=" << pe << std::endl;
-#endif
-            *heap_fetched = ::shmem_int_finc(dest, pe);
-            END_PROFILE(shmem_int_finc)
+            const int fetched = ::shmem_int_finc(dest,pe);
+            *heap_fetched = fetched;
         }, nic);
     });
+
     const int fetched = *heap_fetched;
     free(heap_fetched);
+
     return fetched;
+
+    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    // assert(state);
+    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    // return shmemx_ctx_int_finc(dest, pe, *ctx);
 }
 
 void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,
@@ -604,7 +639,7 @@ void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,
             pWrk, pSync] {
         hclib::async_nb_at([target, source, nreduce, PE_start, logPE_stride,
             PE_size, pWrk, pSync] {
-            START_PROFILE
+            SOS_START_OP(shmem_int_sum_to_all);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_int_sum_to_all: target=" <<
                 target << " source=" << source << " nreduce=" << nreduce <<
@@ -613,7 +648,7 @@ void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,
 #endif
             ::shmem_int_sum_to_all(target, source, nreduce, PE_start,
                 logPE_stride, PE_size, pWrk, pSync);
-            END_PROFILE(shmem_int_sum_to_all)
+            SOS_END_OP(shmem_int_sum_to_all);
         }, nic);
     });
 }
@@ -626,7 +661,7 @@ void hclib::shmem_longlong_sum_to_all(long long *target, long long *source,
             pWrk, pSync] {
         hclib::async_nb_at([target, source, nreduce, PE_start, logPE_stride,
             PE_size, pWrk, pSync] {
-            START_PROFILE
+            SOS_START_OP(shmem_longlong_sum_to_all);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_longlong_sum_to_all: "
                 "target=" << target << " source=" << source << " nreduce=" <<
@@ -635,7 +670,7 @@ void hclib::shmem_longlong_sum_to_all(long long *target, long long *source,
 #endif
             ::shmem_longlong_sum_to_all(target, source, nreduce, PE_start,
                 logPE_stride, PE_size, pWrk, pSync);
-            END_PROFILE(shmem_longlong_sum_to_all)
+            SOS_END_OP(shmem_longlong_sum_to_all);
         }, nic);
     });
 }
@@ -646,10 +681,10 @@ void hclib::shmem_longlong_max_to_all(long long *target, long long *source,
                                long long *pWrk, long *pSync) {
     hclib::finish([&] {
         hclib::async_nb_at([&] {
-            START_PROFILE
+            SOS_START_OP(shmem_longlong_max_to_all);
             ::shmem_longlong_max_to_all(target, source, nreduce, PE_start,
                 logPE_stride, PE_size, pWrk, pSync);
-            END_PROFILE(shmem_longlong_max_to_all)
+            SOS_END_OP(shmem_longlong_max_to_all);
         }, nic);
     });
 }
@@ -657,13 +692,13 @@ void hclib::shmem_longlong_max_to_all(long long *target, long long *source,
 void hclib::shmem_longlong_p(long long *addr, long long value, int pe) {
     hclib::finish([addr, value, pe] {
         hclib::async_nb_at([addr, value, pe] {
-            START_PROFILE
+            SOS_START_OP(shmem_longlong_p);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_longlong_p: addr=" <<
                 addr << " value=" << value << " pe=" << pe << std::endl;
 #endif
             ::shmem_longlong_p(addr, value, pe);
-            END_PROFILE(shmem_longlong_p)
+            SOS_END_OP(shmem_longlong_p);
         }, nic);
     });
 }
@@ -672,14 +707,14 @@ void hclib::shmem_longlong_put(long long *dest, const long long *src,
                         size_t nelems, int pe) {
     hclib::finish([dest, src, nelems, pe] {
         hclib::async_nb_at([dest, src, nelems, pe] {
-            START_PROFILE
+            SOS_START_OP(shmem_longlong_put);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_longlong_put: dest=" <<
                 dest << " src=" << src << "nelems=" << nelems << " pe=" << pe <<
                 std::endl;
 #endif
             ::shmem_longlong_put(dest, src, nelems, pe);
-            END_PROFILE(shmem_longlong_put)
+            SOS_END_OP(shmem_longlong_put);
         }, nic);
     });
 }
@@ -688,13 +723,13 @@ void hclib::shmem_collect32(void *dest, const void *source, size_t nelems,
         int PE_start, int logPE_stride, int PE_size, long *pSync) {
     hclib::finish([dest, source, nelems, PE_start, logPE_stride, PE_size, pSync] {
         hclib::async_nb_at([dest, source, nelems, PE_start, logPE_stride, PE_size, pSync] {
-            START_PROFILE
+            SOS_START_OP(shmem_collect32);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_collect32" << std::endl;
 #endif
             ::shmem_collect32(dest, source, nelems, PE_start, logPE_stride,
                 PE_size, pSync);
-            END_PROFILE(shmem_collect32)
+            SOS_END_OP(shmem_collect32);
         }, nic);
     });
 }
@@ -703,13 +738,13 @@ void hclib::shmem_fcollect64(void *dest, const void *source, size_t nelems,
         int PE_start, int logPE_stride, int PE_size, long *pSync) {
     hclib::finish([&] {
         hclib::async_nb_at([&] {
-            START_PROFILE
+            SOS_START_OP(shmem_fcollect64);
 #ifdef TRACE
             std::cerr << ::shmem_my_pe() << ": shmem_fcollect64" << std::endl;
 #endif
             ::shmem_fcollect64(dest, source, nelems, PE_start, logPE_stride,
                 PE_size, pSync);
-            END_PROFILE(shmem_fcollect64)
+            SOS_END_OP(shmem_fcollect64);
         }, nic);
     });
 
@@ -726,170 +761,32 @@ std::string hclib::shmem_name() {
     return ss.str();
 }
 
-static void poll_on_waits() {
-    do {
-        START_PROFILE
-        int wait_set_list_non_empty = 1;
-
-        hclib::wait_set_t *prev = NULL;
-        hclib::wait_set_t *wait_set = waiting_on_head;
-
-        assert(wait_set != NULL);
-
-        while (wait_set) {
-            hclib::wait_set_t *next = wait_set->next;
-
-            bool any_complete = false;
-            for (int i = 0; i < wait_set->ninfos && !any_complete; i++) {
-                hclib::wait_info_t *wait_info = wait_set->infos + i;
-
-                switch (wait_info->cmp) {
-                    case SHMEM_CMP_EQ:
-                        switch (wait_info->type) {
-                            case hclib::integer:
-                                if (*((volatile int *)wait_info->var) == wait_info->cmp_value.i) {
-                                    any_complete = true;
-                                }
-                                break; // integer
-
-                            default:
-                                std::cerr << "Unsupported wait type " << wait_info->type << std::endl;
-                                exit(1);
-                        }
-                        break; // SHMEM_CMP_EQ
-              
-                    case SHMEM_CMP_NE:
-                        switch (wait_info->type) {
-                            case hclib::integer:
-                                if (*((volatile int *)wait_info->var) != wait_info->cmp_value.i) {
-                                    any_complete = true;
-                                }
-                                break; // integer
-
-                            default:
-                                std::cerr << "Unsupported wait type " << wait_info->type << std::endl;
-                                exit(1);
-                        }
-                        break; // SHMEM_CMP_NE
-
-                    default:
-                        std::cerr << "Unsupported cmp type " << wait_info->cmp << std::endl;
-                        exit(1);
-                }
-            }
-
-            /*
-             * If a signal in the current wait_set was satisfied, trigger either
-             * a downstream task or promise.
-             */
-            if (any_complete) {
-                // Remove from singly linked list
-                if (prev == NULL) {
-                    /*
-                     * If previous is NULL, we *may* be looking at the front of
-                     * the list. It is also possible that another thread in the
-                     * meantime came along and added an entry to the front of
-                     * this singly-linked wait list, in which case we need to
-                     * ensure we update its next rather than updating the list
-                     * head. We do this by first trying to automatically update
-                     * the list head to be the next of wait_set, and if we fail
-                     * then we know we have a new head whose next points to
-                     * wait_set and which should be updated.
-                     */
-                    hclib::wait_set_t *old_head = __sync_val_compare_and_swap(
-                            &waiting_on_head, wait_set, wait_set->next);
-                    if (old_head != wait_set) {
-                        // Failed, someone else added a different head
-                        assert(old_head->next == wait_set);
-                        old_head->next = wait_set->next;
-                        prev = old_head;
-                    } else {
-                        /*
-                         * Success, new head is now wait_set->next. We want this
-                         * polling task to exit if we just set the head to NULL.
-                         * It is the responsibility of future async_when calls
-                         * to restart it upon discovering a null head.
-                         */
-                        wait_set_list_non_empty = (wait_set->next != NULL);
-                    }
-                } else {
-                    /*
-                     * If previous is non-null, we just adjust its next link to
-                     * jump over the current node.
-                     */
-                    assert(prev->next == wait_set);
-                    prev->next = wait_set->next;
-                }
-
-                if (wait_set->task) {
-                    HASSERT(wait_set->signal == NULL);
-                    spawn(wait_set->task);
-                } else {
-                    HASSERT(wait_set->task == NULL);
-                    hclib_promise_put(wait_set->signal, NULL);
-                }
-                free(wait_set->infos);
-                free(wait_set);
-            } else {
-                prev = wait_set;
-            }
-
-            wait_set = next;
-        }
-
-        END_PROFILE(shmem_async_when_polling)
-
-        if (wait_set_list_non_empty) {
-            hclib::yield_at(nic);
-        } else {
-            // Empty list
-            break;
-        }
-    } while (true);
-}
-
+/*
+ * Implement a blocking wait as a wait on a future, which results in a context
+ * switch and allows us to not waste a hardware or software thread spinning.
+ */
 void hclib::shmem_int_wait_until(volatile int *ivar, int cmp, int cmp_value) {
-    hclib_promise_t *promise = construct_and_insert_wait_set(&ivar, cmp,
-            &cmp_value, 1, integer, i, NULL);
-    HASSERT(promise);
+    SOS_START_OP(shmem_int_wait_until);
+    hclib::promise_t<void> *prom = new hclib::promise_t<void>();
 
-    hclib_future_wait(hclib_get_future_for_promise(promise));
+    pending_sos_op *op = (pending_sos_op *)malloc(sizeof(*op));
+    assert(op);
 
-    hclib_promise_free(promise);
+    op->type = integer;
+    op->var = ivar;
+    op->cmp = cmp;
+    op->cmp_value.i = cmp_value;
+    op->prom = prom;
+    op->task = NULL;
+#ifdef HCLIB_INSTRUMENT
+    op->event_type = event_ids[shmem_int_wait_until_lbl];
+    op->event_id = _event_id;
+#endif
+    hclib::append_to_pending(op, &pending, test_sos_completion, nic);
+
+    prom->get_future()->wait();
+
+    delete prom;
 }
 
-void hclib::shmem_int_wait_until_any(volatile int **ivars, int cmp,
-        int *cmp_values, int nwaits) {
-    hclib_promise_t *promise = construct_and_insert_wait_set(ivars, cmp,
-            cmp_values, nwaits, integer, i, NULL);
-    HASSERT(promise);
-
-    hclib_future_wait(hclib_get_future_for_promise(promise));
-
-    hclib_promise_free(promise);
-}
-
-void hclib::enqueue_wait_set(hclib::wait_set_t *wait_set) {
-    START_PROFILE
-    wait_set->next = waiting_on_head;
-
-    hclib::wait_set_t *old_head;
-    while (1) {
-        old_head = __sync_val_compare_and_swap(
-                &waiting_on_head, wait_set->next, wait_set);
-        if (old_head != wait_set->next) {
-            wait_set->next = old_head;
-        } else {
-            break;
-        }
-    }
-
-    if (old_head == NULL) {
-        hclib::async_at([] {
-            poll_on_waits();
-        }, nic);
-    }
-    END_PROFILE(enqueue_wait_set)
-}
-
-HCLIB_REGISTER_MODULE("openshmem", sos_pre_initialize, sos_post_initialize, sos_finalize)
+HCLIB_REGISTER_MODULE("sos", sos_pre_initialize, sos_post_initialize, sos_finalize)

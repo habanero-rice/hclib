@@ -375,7 +375,9 @@ void load_locality_info(const char *filename, int *nworkers_out,
     int i;
     jsmn_parser parser;
     jsmn_init(&parser);
+#ifdef VERBOSE
     printf("Loading locality graph from %s\n", filename);
+#endif
 
     FILE *fp = fopen(filename, "r");
     if (!fp) {
@@ -643,28 +645,22 @@ void generate_locality_info(int *nworkers_out,
 void check_locality_graph(hclib_locality_graph *graph,
         hclib_worker_paths *worker_paths, int nworkers) {
     int i;
-    int *reachable = (int *)malloc(sizeof(int) * graph->n_locales);
-    memset(reachable, 0x00, sizeof(int) * graph->n_locales);
+
+    for (i = 0; i < graph->n_locales; i++) {
+        graph->locales[i].reachable = 0;
+    }
 
     for (i = 0; i < nworkers; i++) {
         hclib_worker_paths *curr = worker_paths + i;
         int j;
         for (j = 0; j < curr->pop_path->path_length; j++) {
-            reachable[curr->pop_path->locales[j]->id] = 1;
+            curr->pop_path->locales[j]->reachable = 1;
         }
         for (j = 0; j < curr->steal_path->path_length; j++) {
-            reachable[curr->steal_path->locales[j]->id] = 1;
+            curr->steal_path->locales[j]->reachable = 1;
         }
         // Check appropriately initialized
         assert(curr->last_successful_steal_locale == 0);
-    }
-
-    for (i = 0; i < graph->n_locales; i++) {
-        if (!reachable[i]) {
-            fprintf(stderr, "WARNING: Locale %d (%s) is unreachable along any "
-                    "pop or steal path, if a task is launched there this may "
-                    "lead to a hang\n", i, graph->locales[i].lbl);
-        }
     }
 }
 
@@ -738,6 +734,7 @@ static inline hclib_deque_t *get_deque_locale(hclib_worker_state *ws,
  */
 int deque_push_locale(hclib_worker_state *ws, hclib_locale_t *locale,
         void *ele) {
+    assert(locale->reachable);
     hclib_deque_t *deq = get_deque_locale(ws, locale);
     return deque_push(&deq->deque, ele);
 }
@@ -883,28 +880,6 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
                 return task;
             }
         }
-
-//         for (j = 1; j < nworkers; j++) {
-//             const int victim = (wid + j) % nworkers;
-// 
-// #ifdef VERBOSE
-//         fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-//                 "locale->deques=%p locale->lbl=%s victim=%d\n", wid, i, locale,
-//                 locale->deques, locale->lbl, victim);
-// #endif
-// 
-//             hclib_task_t *task = deque_steal(&(deqs[victim].deque));
-//             if (task) {
-// #ifdef VERBOSE
-//                 fprintf(stderr, "locale_steal_task: wid=%d i=%d locale=%p "
-//                         "locale->deques=%p locale->lbl=%s victim=%d "
-//                         "successfully stole task %p\n", wid, i, locale,
-//                         locale->deques, locale->lbl, victim, task);
-// #endif
-//                 paths->last_successful_steal_locale = locale_index;
-//                 return task;
-//             }
-//         }
     }
 
     return NULL;

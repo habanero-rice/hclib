@@ -50,7 +50,7 @@ typedef int64_t size_type;
  *   sizeof(crc) bytes                                       : CRC32 body checksum
  *   N - sizeof(crc) - sizeof(size_type) - sizeof(crc) bytes : Body
  */
-#define COALESCING 2048
+#define COALESCING 512
 #define SEND_HEADER_SIZE (sizeof(crc) + sizeof(size_type) + sizeof(crc))
 #define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 

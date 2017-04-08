@@ -330,6 +330,9 @@ static void hclib_entrypoint(const char **module_dependencies,
      */
     hclib_global_init();
 
+    // Initialize any registered modules
+    hclib_call_module_post_init_functions();
+
     // init timer stats
     hclib_init_stats(0, hc_context->nworkers);
 
@@ -378,9 +381,6 @@ static void hclib_entrypoint(const char **module_dependencies,
 
     const unsigned dist_id = hclib_register_dist_func(default_dist_func);
     HASSERT(dist_id == HCLIB_DEFAULT_LOOP_DIST);
-
-    // Initialize any registered modules
-    hclib_call_module_post_init_functions();
 
     // allocate root finish
     hclib_start_finish();
@@ -481,7 +481,9 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
                 "hc_context=%p hc_context->graph=%p\n", wid, hc_context,
                 hc_context->graph);
 #endif
-        if (!deque_push(&(hc_context->graph->locales[0].deques[wid].deque),
+        hclib_locale_t *default_locale = hc_context->graph->locales + 0;
+        assert(default_locale->reachable);
+        if (!deque_push(&(default_locale->deques[wid].deque),
                     async_task)) {
             // Deque is full
             assert(false);

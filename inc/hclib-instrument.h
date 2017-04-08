@@ -60,8 +60,10 @@ void initialize_instrumentation(const unsigned nthreads);
 
 void finalize_instrumentation();
 
-unsigned hclib_register_event(const unsigned event_type,
-        event_transition transition, const int event_id);
+inline int hclib_register_event(const int event_type,
+        event_transition transition, const int event_id) {
+    return -1;
+}
 
 #ifdef __cplusplus
 }

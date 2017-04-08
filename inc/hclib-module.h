@@ -34,7 +34,7 @@ typedef void (*hclib_module_finalize_func_type)();
 /*
  * Type for callback to add module-specific state to worker state.
  */
-typedef void (*hclib_state_adder)(void *state, void *user_data);
+typedef void (*hclib_state_adder)(void *state, void *user_data, int tid);
 
 /*
  * Type for callback to release module-specific state stored in worker state
@@ -59,6 +59,7 @@ typedef void (*hclib_module_memset_impl_func_type)(void *, int, size_t,
 typedef void (*hclib_module_copy_impl_func_type)(hclib_locale_t *, void *,
         hclib_locale_t *, void *, size_t);
 
+#define HCLIB_MODULE_PRE_INITIALIZATION_FUNC(module_init_funcname) void module_init_funcname()
 #define HCLIB_MODULE_INITIALIZATION_FUNC(module_init_funcname) void module_init_funcname()
 #define HCLIB_REGISTER_MODULE(module_name,module_pre_init_func,module_post_init_func,module_finalize_func) const static int ____hclib_module_init = hclib_add_module_init_function(module_name, module_pre_init_func, module_post_init_func, module_finalize_func);
 

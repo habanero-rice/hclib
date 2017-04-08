@@ -25,7 +25,7 @@
  *   4 bytes - HEADER
  *   4 bytes - # edges in buffer
  */
-#define COALESCING 2048
+#define COALESCING 1024
 #define SEND_HEADER_SIZE (2 * sizeof(int))
 #define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
@@ -114,7 +114,7 @@ typedef struct _send_buf {
     shmem_char_put_nbi(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
 }
 
-// #define VERBOSE
+#define VERBOSE
 // #define PROFILE
 
 static int pe = -1;

@@ -191,40 +191,45 @@ void finalize_instrumentation() {
     free(dump_folder);
 }
 
-unsigned hclib_register_event(const unsigned event_type,
-        event_transition transition, const int event_id) {
-    assert(active_thread_buffers &&
-            "hclib_register_event called with uninitialized instrumentation.");
-
-    const unsigned long long timestamp = hclib_current_time_ns();
-    const int tid = CURRENT_WS_INTERNAL->id;
-
-    if (n_buffered_events[tid] == EVENT_BUFFER_LENGTH) {
-        /*
-         * Write out. This could be made ALOT more efficient. Keeping it simple
-         * for now to get a prototype working.
-         */
-        flush_events(tid);
-    }
-    const int buf_index = n_buffered_events[tid];
-    assert(buf_index < EVENT_BUFFER_LENGTH);
-    hclib_instrument_event *event_buf = active_thread_buffers[tid];
-    event_buf[buf_index].timestamp_ns = timestamp;
-    event_buf[buf_index].event_type = event_type;
-    event_buf[buf_index].transition = transition;
-
-    int my_event_id;
-    if (transition == START) {
-        assert(event_id < 0);
-        my_event_id = thread_event_counters[tid];
-        thread_event_counters[tid] += 1;
-    } else {
-        assert(event_id >= 0);
-        my_event_id = event_id;
-    }
-    event_buf[buf_index].event_id = my_event_id;
-
-    n_buffered_events[tid] = buf_index + 1;
-
-    return my_event_id;
-}
+// int hclib_register_event(const int event_type,
+//         event_transition transition, const int event_id) {
+//     return -1;
+//     assert(active_thread_buffers &&
+//             "hclib_register_event called with uninitialized instrumentation.");
+// 
+//     if (event_type < 0) {
+//         return -1;
+//     }
+// 
+//     const unsigned long long timestamp = hclib_current_time_ns();
+//     const int tid = CURRENT_WS_INTERNAL->id;
+// 
+//     if (n_buffered_events[tid] == EVENT_BUFFER_LENGTH) {
+//         /*
+//          * Write out. This could be made ALOT more efficient. Keeping it simple
+//          * for now to get a prototype working.
+//          */
+//         flush_events(tid);
+//     }
+//     const int buf_index = n_buffered_events[tid];
+//     assert(buf_index < EVENT_BUFFER_LENGTH);
+//     hclib_instrument_event *event_buf = active_thread_buffers[tid];
+//     event_buf[buf_index].timestamp_ns = timestamp;
+//     event_buf[buf_index].event_type = event_type;
+//     event_buf[buf_index].transition = transition;
+// 
+//     int my_event_id;
+//     if (transition == START) {
+//         assert(event_id < 0);
+//         my_event_id = thread_event_counters[tid];
+//         thread_event_counters[tid] += 1;
+//     } else {
+//         assert(event_id >= 0);
+//         my_event_id = event_id;
+//     }
+//     event_buf[buf_index].event_id = my_event_id;
+// 
+//     n_buffered_events[tid] = buf_index + 1;
+// 
+//     return my_event_id;
+// }
