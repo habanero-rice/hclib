@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_openshmem.h"
 
 #define ROOT_PE 0
+#define INTS_PER_CACHE_LINE (128 / sizeof(int))
 
 // #define ISX_PROFILING
 
@@ -81,7 +82,13 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
+#ifdef EDISON_DATASET
+#define KEY_BUFFER_SIZE ((1uLL<<31uLL))
+#elif defined(DAVINCI_DATASET)
 #define KEY_BUFFER_SIZE ((1uLL<<27uLL))
+#else
+#error No cluster specified
+#endif
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -390,23 +397,29 @@ static KEY_TYPE * make_input(void)
 static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
         int ***bucket_counts_per_chunk_out)
 {
-  int * const local_bucket_sizes = (int * const)malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_sizes = (int * const)calloc(NUM_BUCKETS, sizeof(int));
   assert(local_bucket_sizes);
 
   timer_start(&timers[TIMER_BCOUNT]);
-
-  init_array(local_bucket_sizes, NUM_BUCKETS);
 
 #ifdef ISX_PROFILING
   unsigned long long start = hclib_current_time_ns();
 #endif
   const unsigned nworkers = hclib::get_num_workers();
+
   int **bucket_counts_per_chunk = (int **)malloc(nworkers * sizeof(int *));
+  assert(bucket_counts_per_chunk);
+
   hclib::finish([local_bucket_sizes, my_keys, nworkers, bucket_counts_per_chunk] {
       for (unsigned i = 0; i < nworkers; i++) {
           hclib::async_nb([i, nworkers, my_keys, bucket_counts_per_chunk] {
-              int *bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
-              memset(bucket_sizes, 0x00, NUM_BUCKETS * sizeof(int));
+
+              int *bucket_sizes = NULL;
+              if (NUM_BUCKETS >= INTS_PER_CACHE_LINE) {
+                  bucket_sizes = (int *)calloc(NUM_BUCKETS, sizeof(int));
+              } else {
+                  bucket_sizes = (int *)calloc(INTS_PER_CACHE_LINE, sizeof(int));
+              }
 
               uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
               uint64_t start_chunk = i * chunk_size;  
@@ -558,7 +571,14 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                   uint64_t end_chunk = (c + 1) * chunk_size;
                   if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE;
 
-                  int *tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+                  int *tmp = NULL;
+                  if (NUM_BUCKETS < INTS_PER_CACHE_LINE) {
+                      tmp = (int *)malloc(INTS_PER_CACHE_LINE * sizeof(int));
+                  } else {
+                      tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+                  }
+                  assert(tmp);
+
                   for (unsigned i = 0; i < NUM_BUCKETS; i++) {
                     tmp[i] = chunk_bucket_offsets[i * nworkers + c];
                   }
