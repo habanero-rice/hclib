@@ -13,7 +13,7 @@ ulimit -c unlimited
 export LD_LIBRARY_PATH=$OPENSHMEM_INSTALL/lib:$LD_LIBRARY_PATH
 export LD_PRELOAD=/opt/apps/software/Core/icc/2015.2.164/composer_xe_2015.2.164/tbb/lib/intel64/gcc4.4/libtbbmalloc.so.2
 
-export KEYS_PER_CORE=60000000
+export KEYS_PER_CORE=67108864
 
 # Each node has 2 sockets, 8 hyperthreaded cores per socket
 
