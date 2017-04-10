@@ -10,8 +10,6 @@ int main(int argc, char **argv) {
     hclib::launch(deps, 3, [] {
         hclib::async_remote([=] {
             printf("Howdy! on PE %d\n", hclib::shmem_my_pe());
-
-            hclib::async([=] { printf("No way\n"); });
         }, 0);
     });
     return 0;

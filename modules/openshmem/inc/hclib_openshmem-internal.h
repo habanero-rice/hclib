@@ -50,12 +50,15 @@ void shmem_quiet();
 void shmem_put64(void *dest, const void *source, size_t nelems, int pe);
 void shmem_broadcast64(void *dest, const void *source, size_t nelems,
         int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_broadcast32(void *dest, const void *source, size_t nelems,
+        int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync);
 
 void shmem_set_lock(volatile long *lock);
 void shmem_clear_lock(long *lock);
 
 void shmem_int_get(int *dest, const int *source, size_t nelems, int pe);
 void shmem_int_put(int *dest, const int *source, size_t nelems, int pe);
+void shmem_int_p(int *dest, int value, int pe);
 void shmem_longlong_put(long long *dest, const long long *src,
                         size_t nelems, int pe);
 void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
@@ -73,7 +76,7 @@ void shmem_longlong_p(long long *addr, long long value, int pe);
 void shmem_int_add(int *dest, int value, int pe);
 int shmem_int_fadd(int *dest, int value, int pe);
 int shmem_int_finc(int *dest, int pe);
-int shmem_int_fetch(const int *dest, int pe);
+int shmem_int_swap(int *dest, int value, int pe);
 long long shmem_longlong_fadd(long long *target, long long value,
                               int pe);
 

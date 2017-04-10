@@ -62,14 +62,23 @@ unsigned long long func_times[N_FUNCS];
 
 static int nic_locale_id;
 static hclib::locale_t *nic = NULL;
-int handler_func_id = 420;
+int handler_func_id = 430;
 
 void handler_func(void *msg_new, size_t nbytes, int req_pe,
         shmemx_am_token_t token) {
-    assert(nbytes >= sizeof(void *));
-    void (*fp)(void *) = *((void (**)(void *))msg_new);
-    void *payload = ((void (**)(void *))msg_new) + 1;
-    fp(payload);
+    assert(nbytes >= sizeof(hclib::am_packet));
+    hclib::am_packet *packet = (hclib::am_packet *)msg_new;
+
+    if (packet->user_data_size > 0) {
+        void (*fp)(void *, void *, size_t) = (void (*)(void *, void *, size_t))packet->fp;
+        void *lambda = packet + 1;
+        void *user_data = ((char *)lambda) + packet->lambda_size;
+        fp(lambda, user_data, packet->user_data_size);
+    } else {
+        void (*fp)(void *) = (void (*)(void *))packet->fp;
+        void *payload = packet + 1;
+        fp(payload);
+    }
 }
 
 HCLIB_MODULE_INITIALIZATION_FUNC(openshmem_am_pre_initialize) {

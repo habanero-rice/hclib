@@ -54,6 +54,7 @@ enum FUNC_LABELS {
     shmem_quiet_lbl,
     shmem_put64_lbl,
     shmem_broadcast64_lbl,
+    shmem_broadcast32_lbl,
     shmem_set_lock_lbl,
     shmem_clear_lock_lbl,
     shmem_int_get_lbl,
@@ -71,11 +72,12 @@ enum FUNC_LABELS {
     shmem_longlong_p_lbl,
     shmem_longlong_put_lbl,
     shmem_int_finc_lbl,
-    shmem_int_fetch_lbl,
+    shmem_int_swap_lbl,
     shmem_collect32_lbl,
     shmem_fcollect64_lbl,
     shmem_async_when_polling_lbl,
     enqueue_wait_set_lbl,
+    shmem_int_p_lbl,
     N_FUNCS
 };
 
@@ -87,6 +89,7 @@ const char *FUNC_NAMES[N_FUNCS] = {
     "shmem_quiet",
     "shmem_put64",
     "shmem_broadcast64",
+    "shmem_broadcast32",
     "shmem_set_lock",
     "shmem_clear_lock",
     "shmem_int_get",
@@ -104,11 +107,12 @@ const char *FUNC_NAMES[N_FUNCS] = {
     "shmem_longlong_p",
     "shmem_longlong_put",
     "shmem_int_finc",
-    "shmem_int_fetch",
+    "shmem_int_swap",
     "shmem_collect32",
     "shmem_fcollect64",
     "shmem_async_when_polling",
-    "enqueue_wait_set"};
+    "enqueue_wait_set",
+    "shmem_int_p"};
 
 unsigned long long func_counters[N_FUNCS];
 unsigned long long func_times[N_FUNCS];
@@ -335,6 +339,25 @@ void hclib::shmem_broadcast64(void *dest, const void *source, size_t nelems,
     });
 }
 
+void hclib::shmem_broadcast32(void *dest, const void *source, size_t nelems,
+        int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync) {
+    hclib::finish([dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
+        hclib::async_nb_at([dest, source, nelems, PE_root, PE_start, logPE_stride, PE_size, pSync] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_broadcast32: dest=" <<
+                    dest << " source=" << source << " nelems=" << nelems <<
+                    " PE_root=" << PE_root << " PE_start=" << PE_start <<
+                    " logPE_stride=" << logPE_stride << " PE_size=" <<
+                    PE_size << std::endl;
+#endif
+            ::shmem_broadcast32(dest, source, nelems, PE_root, PE_start,
+                logPE_stride, PE_size, pSync);
+            END_PROFILE(shmem_broadcast32)
+        }, nic);
+    });
+}
+
 static void *shmem_set_lock_impl(void *arg) {
     START_PROFILE
 #ifdef TRACE
@@ -469,6 +492,20 @@ void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
     });
 }
 
+void hclib::shmem_int_p(int *dest, int value, int pe) {
+    hclib::finish([dest, value, pe] {
+        hclib::async_nb_at([dest, value, pe] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_p: dest=" << dest <<
+                    " value=" << value << " pe=" << pe << std::endl;
+#endif
+            ::shmem_int_p(dest, value, pe);
+            END_PROFILE(shmem_int_p)
+        }, nic);
+    });
+}
+
 #if SHMEM_MAJOR_VERSION > 1 || ( SHMEM_MAJOR_VERSION == 1 && SHMEM_MINOR_VERSION >= 3)
 void hclib::shmem_char_put_nbi(char *dest, const char *source, size_t nelems,
         int pe) {
@@ -564,6 +601,24 @@ int hclib::shmem_int_finc(int *dest, int pe) {
 #endif
             *heap_fetched = ::shmem_int_finc(dest, pe);
             END_PROFILE(shmem_int_finc)
+        }, nic);
+    });
+    const int fetched = *heap_fetched;
+    free(heap_fetched);
+    return fetched;
+}
+
+int hclib::shmem_int_swap(int *dest, int value, int pe) {
+    int *heap_fetched = (int *)malloc(sizeof(int));
+    hclib::finish([dest, value, pe, heap_fetched] {
+        hclib::async_nb_at([dest, value, pe, heap_fetched] {
+            START_PROFILE
+#ifdef TRACE
+            std::cerr << ::shmem_my_pe() << ": shmem_int_swap: dest=" << dest <<
+                " value=" << value << " pe=" << pe << std::endl;
+#endif
+            *heap_fetched = ::shmem_int_swap(dest, value, pe);
+            END_PROFILE(shmem_int_swap)
         }, nic);
     });
     const int fetched = *heap_fetched;
