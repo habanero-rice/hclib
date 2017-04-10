@@ -61,7 +61,9 @@ void shmem_longlong_put(long long *dest, const long long *src,
 void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
 void shmem_putmem(void *dest, const void *source, size_t nelems, int pe);
 
+#if SHMEM_MAJOR_VERSION > 1 || ( SHMEM_MAJOR_VERSION == 1 && SHMEM_MINOR_VERSION >= 3)
 void shmem_char_put_nbi(char *dest, const char *source, size_t nelems, int pe);
+#endif
 void shmem_char_put_signal_nbi(char *dest, const char *source,
         size_t nelems, char *signal_dest, const char *signal_source,
         size_t signal_nelems, int pe);

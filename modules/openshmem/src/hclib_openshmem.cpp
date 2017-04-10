@@ -469,6 +469,7 @@ void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
     });
 }
 
+#if SHMEM_MAJOR_VERSION > 1 || ( SHMEM_MAJOR_VERSION == 1 && SHMEM_MINOR_VERSION >= 3)
 void hclib::shmem_char_put_nbi(char *dest, const char *source, size_t nelems,
         int pe) {
     hclib::finish([&] {
@@ -493,6 +494,7 @@ void hclib::shmem_char_put_signal_nbi(char *dest, const char *source,
         }, nic);
     });
 }
+#endif
 
 void hclib::shmem_int_add(int *dest, int value, int pe) {
     hclib::finish([dest, value, pe] {
