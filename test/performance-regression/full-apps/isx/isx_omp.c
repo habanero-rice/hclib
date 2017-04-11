@@ -86,7 +86,7 @@ float avg_time=0, avg_time_all2all = 0;
 #ifdef EDISON_DATASET
 #define KEY_BUFFER_SIZE ((1uLL<<31uLL))
 #elif defined(DAVINCI_DATASET)
-#define KEY_BUFFER_SIZE ((1uLL<<27uLL))
+#define KEY_BUFFER_SIZE ((1uLL<<29uLL))
 #else
 #error No cluster specified
 #endif

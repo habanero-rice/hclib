@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define ROOT_PE 0
 #define INTS_PER_CACHE_LINE (128 / sizeof(int))
 
-// #define ISX_PROFILING
+#define ISX_PROFILING
 
 // Needed for shmem collective operations
 int pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -85,7 +85,7 @@ float avg_time=0, avg_time_all2all = 0;
 #ifdef EDISON_DATASET
 #define KEY_BUFFER_SIZE ((1uLL<<31uLL))
 #elif defined(DAVINCI_DATASET)
-#define KEY_BUFFER_SIZE ((1uLL<<27uLL))
+#define KEY_BUFFER_SIZE ((1uLL<<29uLL))
 #else
 #error No cluster specified
 #endif
