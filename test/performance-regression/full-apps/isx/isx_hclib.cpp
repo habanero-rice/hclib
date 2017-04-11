@@ -736,8 +736,8 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 #endif
 
   const unsigned nworkers = hclib::get_num_workers();
-  int *per_chunk_counts = (int *)malloc(nworkers * BUCKET_WIDTH * sizeof(int));
-  memset(per_chunk_counts, 0x00, nworkers * BUCKET_WIDTH * sizeof(int));
+  int *per_chunk_counts = (int *)calloc(nworkers * BUCKET_WIDTH, sizeof(int));
+  assert(per_chunk_counts);
 
   hclib::finish([nworkers, per_chunk_counts, my_bucket_keys, my_min_key] {
     for (unsigned c = 0; c < nworkers; c++) {
