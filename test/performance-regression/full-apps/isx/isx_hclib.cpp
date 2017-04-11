@@ -557,10 +557,10 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
        * want to find that threshold empirically.
        */
       for (uint64_t b = 0; b < NUM_BUCKETS; b++) {
-          chunk_bucket_offsets[b * num_threads + 0] = local_bucket_offsets[b];
-          for (int w = 1; w < num_threads; w++) {
-              chunk_bucket_offsets[b * num_threads + w] =
-                  chunk_bucket_offsets[b * num_threads + w - 1] +
+          chunk_bucket_offsets[b * nworkers + 0] = local_bucket_offsets[b];
+          for (int w = 1; w < nworkers; w++) {
+              chunk_bucket_offsets[b * nworkers + w] =
+                  chunk_bucket_offsets[b * nworkers + w - 1] +
                   bucket_counts_per_chunk[w - 1][b];
           }
       }
