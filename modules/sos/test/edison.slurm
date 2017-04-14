@@ -20,6 +20,9 @@ export HCLIB_LOCALITY_FILE=$HOME/hclib/locality_graphs/edison.flat.json
 # export HCLIB_INSTRUMENT=1
 export LD_PRELOAD=/opt/intel/compilers_and_libraries_2017.1.132/linux/tbb/lib/intel64/gcc4.7/libtbbmalloc.so.2
 
+export LD_LIBRARY_PATH=$HCLIB_ROOT/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$HCLIB_HOME/modules/system/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$HCLIB_HOME/modules/sos/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$OFI_HOME/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$SOS_INSTALL/lib:$LD_LIBRARY_PATH
 
