@@ -88,7 +88,7 @@ static int event_ids[N_SOS_FUNCS];
 #define SOS_END_OP(funcname)
 #endif
 
-#define SOS_HANG_WORKAROUND
+// #define SOS_HANG_WORKAROUND
 
 static unsigned domain_ctx_id = 0;
 static shmemx_domain_t *domains = NULL;
