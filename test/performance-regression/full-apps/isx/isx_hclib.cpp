@@ -556,26 +556,17 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
        * we would likely want to parallelize at larger bucket sizes. Probably
        * want to find that threshold empirically.
        */
-      for (uint64_t b = 0; b < NUM_BUCKETS; b++) {
-          chunk_bucket_offsets[b * nworkers + 0] = local_bucket_offsets[b];
-          for (int w = 1; w < nworkers; w++) {
-              chunk_bucket_offsets[b * nworkers + w] =
-                  chunk_bucket_offsets[b * nworkers + w - 1] +
-                  bucket_counts_per_chunk[w - 1][b];
-          }
-      }
-
-      // hclib::finish([chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk] {
-      //     hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, NUM_BUCKETS);
-      //     hclib::forasync1D_nb(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
-      //         chunk_bucket_offsets[b * nworkers + 0] = local_bucket_offsets[b];
-      //         for (unsigned w = 1; w < nworkers; w++) {
-      //             chunk_bucket_offsets[b * nworkers + w] =
-      //                 chunk_bucket_offsets[b * nworkers + w - 1] +
-      //                 bucket_counts_per_chunk[w - 1][b];
-      //         }
-      //     }, FORASYNC_MODE_FLAT);
-      // });
+      hclib::finish([chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk] {
+          hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, NUM_BUCKETS);
+          hclib::forasync1D_nb(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
+              chunk_bucket_offsets[b * nworkers + 0] = local_bucket_offsets[b];
+              for (unsigned w = 1; w < nworkers; w++) {
+                  chunk_bucket_offsets[b * nworkers + w] =
+                      chunk_bucket_offsets[b * nworkers + w - 1] +
+                      bucket_counts_per_chunk[w - 1][b];
+              }
+          }, true, FORASYNC_MODE_FLAT);
+      });
 
       hclib::finish([nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
           for (unsigned c = 0; c < nworkers; c++) {
@@ -675,8 +666,8 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
     // Local keys already written with memcpy
     if(target_pe == my_rank){ continue; }
 
-    const int read_offset_from_self = send_offsets[target_pe];
     const int my_send_size = local_bucket_sizes[target_pe];
+    const int read_offset_from_self = send_offsets[target_pe];
 
     const long long int write_offset_into_target = hclib::shmem_longlong_fadd(
             &receive_offset, (long long int)my_send_size, target_pe);

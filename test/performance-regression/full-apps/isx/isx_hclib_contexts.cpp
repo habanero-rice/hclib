@@ -48,11 +48,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "hclib_cpp.h"
 #include "hclib_system.h"
 #include "hclib_sos.h"
-#include <signal.h>
 
 #define ROOT_PE 0
+#define INTS_PER_CACHE_LINE (128 / sizeof(int))
 
-// #define ISX_PROFILING
+#define ISX_PROFILING
 
 // Needed for shmem collective operations
 int pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -82,11 +82,13 @@ long long int my_bucket_size = 0;
 float avg_time=0, avg_time_all2all = 0;
 #endif
 
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 60000)
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL))
-// #define KEY_BUFFER_SIZE ((1uLL<<26uLL))
-// #define KEY_BUFFER_SIZE ((1uLL<<28uLL) + 80000)
-#define KEY_BUFFER_SIZE ((1uLL<<30uLL))
+#ifdef EDISON_DATASET
+#define KEY_BUFFER_SIZE ((1uLL<<31uLL))
+#elif defined(DAVINCI_DATASET)
+#define KEY_BUFFER_SIZE ((1uLL<<29uLL))
+#else
+#error No cluster specified
+#endif
 
 // The receive array for the All2All exchange
 // KEY_TYPE my_bucket_keys[KEY_BUFFER_SIZE];
@@ -96,22 +98,8 @@ KEY_TYPE *my_bucket_keys;
 int * permute_array;
 #endif
 
-void *kill_func(void *data) {
-    int kill_seconds = *((int *)data);
-    int err = sleep(kill_seconds);
-    assert(err == 0);
-    raise(SIGABRT);
-    return NULL;
-}
-
 int main(const int argc,  char ** argv)
 {
-    int kill_seconds = 60;
-    pthread_t thread;
-    const int perr = pthread_create(&thread, NULL, kill_func,
-            (void *)&kill_seconds);
-    assert(perr == 0);
-
   const char *deps[] = { "system", "sos" };
     hclib::launch(deps, 2, [argc, argv] {
   // ::shmem_init();
@@ -406,23 +394,29 @@ static KEY_TYPE * make_input(void)
 static inline int * count_local_bucket_sizes(KEY_TYPE const * const my_keys,
         int ***bucket_counts_per_chunk_out)
 {
-  int * const local_bucket_sizes = (int * const)malloc(NUM_BUCKETS * sizeof(int));
+  int * const local_bucket_sizes = (int * const)calloc(NUM_BUCKETS, sizeof(int));
   assert(local_bucket_sizes);
 
   timer_start(&timers[TIMER_BCOUNT]);
-
-  init_array(local_bucket_sizes, NUM_BUCKETS);
 
 #ifdef ISX_PROFILING
   unsigned long long start = hclib_current_time_ns();
 #endif
   const unsigned nworkers = hclib::get_num_workers();
+
   int **bucket_counts_per_chunk = (int **)malloc(nworkers * sizeof(int *));
+  assert(bucket_counts_per_chunk);
+
   hclib::finish([local_bucket_sizes, my_keys, nworkers, bucket_counts_per_chunk] {
       for (unsigned i = 0; i < nworkers; i++) {
           hclib::async_nb([i, nworkers, my_keys, bucket_counts_per_chunk] {
-              int *bucket_sizes = (int *)malloc(NUM_BUCKETS * sizeof(int));
-              memset(bucket_sizes, 0x00, NUM_BUCKETS * sizeof(int));
+
+              int *bucket_sizes = NULL;
+              if (NUM_BUCKETS >= INTS_PER_CACHE_LINE) {
+                  bucket_sizes = (int *)calloc(NUM_BUCKETS, sizeof(int));
+              } else {
+                  bucket_sizes = (int *)calloc(INTS_PER_CACHE_LINE, sizeof(int));
+              }
 
               uint64_t chunk_size = (NUM_KEYS_PER_PE + nworkers - 1) / nworkers;
               uint64_t start_chunk = i * chunk_size;  
@@ -554,6 +548,11 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
       int *chunk_bucket_offsets = (int *)malloc(NUM_BUCKETS * nworkers *
               sizeof(int));
 
+      /*
+       * TODO This performs much better sequentially at small bucket sizes, but
+       * we would likely want to parallelize at larger bucket sizes. Probably
+       * want to find that threshold empirically.
+       */
       hclib::finish([chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk] {
           hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, NUM_BUCKETS);
           hclib::forasync1D_nb(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
@@ -563,7 +562,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                       chunk_bucket_offsets[b * nworkers + w - 1] +
                       bucket_counts_per_chunk[w - 1][b];
               }
-          }, FORASYNC_MODE_FLAT);
+          }, true, FORASYNC_MODE_FLAT);
       });
 
       hclib::finish([nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
@@ -574,7 +573,14 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                   uint64_t end_chunk = (c + 1) * chunk_size;
                   if (end_chunk > NUM_KEYS_PER_PE) end_chunk = NUM_KEYS_PER_PE;
 
-                  int *tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+                  int *tmp = NULL;
+                  if (NUM_BUCKETS < INTS_PER_CACHE_LINE) {
+                      tmp = (int *)malloc(INTS_PER_CACHE_LINE * sizeof(int));
+                  } else {
+                      tmp = (int *)malloc(NUM_BUCKETS * sizeof(int));
+                  }
+                  assert(tmp);
+
                   for (unsigned i = 0; i < NUM_BUCKETS; i++) {
                     tmp[i] = chunk_bucket_offsets[i * nworkers + c];
                   }
@@ -657,8 +663,8 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
     // Local keys already written with memcpy
     if(target_pe == my_rank){ continue; }
 
-    const int read_offset_from_self = send_offsets[target_pe];
     const int my_send_size = local_bucket_sizes[target_pe];
+    const int read_offset_from_self = send_offsets[target_pe];
 
     const long long int write_offset_into_target = hclib::shmem_longlong_fadd(
             &receive_offset, (long long int)my_send_size, target_pe);
@@ -732,8 +738,8 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 #endif
 
   const unsigned nworkers = hclib::get_num_workers();
-  int *per_chunk_counts = (int *)malloc(nworkers * BUCKET_WIDTH * sizeof(int));
-  memset(per_chunk_counts, 0x00, nworkers * BUCKET_WIDTH * sizeof(int));
+  int *per_chunk_counts = (int *)calloc(nworkers * BUCKET_WIDTH, sizeof(int));
+  assert(per_chunk_counts);
 
   hclib::finish([nworkers, per_chunk_counts, my_bucket_keys, my_min_key] {
     for (unsigned c = 0; c < nworkers; c++) {
