@@ -17,7 +17,8 @@
 
 #define QUEUE_SIZE 2097152
 
-#define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
+// #define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
+#define INCOMING_MAILBOX_SIZE_IN_BYTES (200 * 1024 * 1024)
 
 /*
  * Header format:
@@ -114,7 +115,7 @@ typedef struct _send_buf {
     shmem_char_put_nbi(recv_buf + remote_offset, (char *)empty_packet, sizeof(int), my_target_pe); \
 }
 
-#define VERBOSE
+// #define VERBOSE
 // #define PROFILE
 
 static int pe = -1;
@@ -372,8 +373,13 @@ int main(int argc, char **argv) {
         n_local_vertices = local_max_vertex - local_min_vertex;
     }
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+            n_local_vertices * sizeof(uint64_t));
+#endif
     // Contains parent-id + 1 for each local vertex
-    uint64_t * restrict preds = (uint64_t *)calloc(n_local_vertices, sizeof(uint64_t));
+    uint64_t * restrict preds = (uint64_t *)calloc(n_local_vertices,
+            sizeof(uint64_t));
     assert(preds);
 
     /*
@@ -381,6 +387,10 @@ int main(int argc, char **argv) {
      * of the vertices of the edge is handled by this PE. This information will
      * be provided by other PEs.
      */
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            max_n_local_edges * sizeof(packed_edge));
+#endif
     packed_edge *local_edges = (packed_edge *)shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
     assert(local_edges);
@@ -401,7 +411,12 @@ int main(int argc, char **argv) {
         shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
                 sizeof(packed_edge), v1_pe);
         remote_offsets[v1_pe]++;
+        shmem_quiet();
     }
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d done putmem-ing\n", shmem_my_pe());
+#endif
 
     free(remote_offsets);
 
@@ -409,6 +424,10 @@ int main(int argc, char **argv) {
 
     free(actual_buf);
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+            (n_local_vertices + 1) * sizeof(unsigned));
+#endif
     unsigned * restrict local_vertex_offsets = (unsigned *)calloc(
             (n_local_vertices + 1), sizeof(unsigned));
     assert(local_vertex_offsets);
@@ -463,6 +482,11 @@ int main(int argc, char **argv) {
      *     - the list of global vertix IDs it is attached to by edges starts at
      *       local_vertex_offsets[i] and ends at local_vertex_offsets[i + 1]
      */
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+            acc * 2 * sizeof(uint64_t));
+#endif
     uint64_t * restrict neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
     assert(neighbors);
     for (i = 0; i < n_local_edges; i++) {
@@ -503,6 +527,10 @@ int main(int argc, char **argv) {
         }
     }
     local_vertex_offsets[n_local_vertices] = writing_index;
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d realloc-ing from %llu bytes to %llu bytes\n",
+            shmem_my_pe(), acc * 2 * sizeof(uint64_t), writing_index * sizeof(uint64_t));
+#endif
     neighbors = (uint64_t *)realloc(neighbors, writing_index *
             sizeof(uint64_t));
     assert(neighbors);
