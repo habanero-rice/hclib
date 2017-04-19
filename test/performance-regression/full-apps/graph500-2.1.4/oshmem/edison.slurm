@@ -2,7 +2,7 @@
 
 #SBATCH -p debug
 #SBATCH -N 8
-#SBATCH -t 00:10:00
+#SBATCH -t 00:20:00
 #SBATCH -J asyncshmem-g500
 #SBATCH --exclusive
 
@@ -21,8 +21,6 @@ export LD_PRELOAD=/opt/intel/compilers_and_libraries_2017.1.132/linux/tbb/lib/in
 export HCLIB_LOCALITY_FILE=$HCLIB_HOME/locality_graphs/edison.flat.json
 export SMA_OFI_PROVIDER=gni
 
-export GRAPH_SIZE=29
-
 export OMP_NUM_THREADS=1
 export HCLIB_WORKERS=$OMP_NUM_THREADS
 
@@ -31,13 +29,17 @@ export WORK_DIR=$(pwd)
 # 2 sockets x 12-core CPUs
 
 # Flat OpenSHMEM
-export SMA_SYMMETRIC_SIZE=$((5 * 256 * 1024 * 1024)) # Works with GRAPH_SIZE = 29
 
 # srun --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
 # srun --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
 
+export GRAPH_SIZE=29
+export SMA_SYMMETRIC_SIZE=$((5 * 256 * 1024 * 1024)) # Works with GRAPH_SIZE = 29 on bfs_oshmem-single-mailbox-concurrent
 srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
-# srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
+
+export GRAPH_SIZE=29
+export SMA_SYMMETRIC_SIZE=$((5 * 256 * 1024 * 1024))
+srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
 
 # srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-hiper $GRAPH_SIZE 16
 # srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc-hiper $GRAPH_SIZE 16

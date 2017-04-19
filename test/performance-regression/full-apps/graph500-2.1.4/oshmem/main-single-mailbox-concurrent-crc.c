@@ -41,7 +41,8 @@ typedef int64_t size_type;
 // #define QUEUE_SIZE 1572864
 #define QUEUE_SIZE 1048576
 
-#define INCOMING_MAILBOX_SIZE_IN_BYTES 100663296
+// #define INCOMING_MAILBOX_SIZE_IN_BYTES 100663296
+#define INCOMING_MAILBOX_SIZE_IN_BYTES (200 * 1024 * 1024)
 
 /*
  * Header format:
@@ -396,14 +397,14 @@ int main(int argc, char **argv) {
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
     const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
 
-    __sighandler_t serr = signal(SIGUSR1, sig_handler);
-    assert(serr != SIG_ERR);
+    // __sighandler_t serr = signal(SIGUSR1, sig_handler);
+    // assert(serr != SIG_ERR);
 
-    int kill_seconds = 120;
-    pthread_t thread;
-    const int perr = pthread_create(&thread, NULL, kill_func,
-            (void *)&kill_seconds);
-    assert(perr == 0);
+    // int kill_seconds = 120;
+    // pthread_t thread;
+    // const int perr = pthread_create(&thread, NULL, kill_func,
+    //         (void *)&kill_seconds);
+    // assert(perr == 0);
 
     shmem_init();
 
@@ -433,6 +434,10 @@ int main(int argc, char **argv) {
      * Use the Graph500 utilities to generate a set of edges distributed across
      * PEs.
      */
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+            nedges_this_pe * sizeof(packed_edge));
+#endif
     packed_edge *actual_buf = (packed_edge *)malloc(
             nedges_this_pe * sizeof(packed_edge));
     assert(actual_buf || nedges_this_pe == 0);
@@ -443,6 +448,10 @@ int main(int argc, char **argv) {
      * Count the number of edge endpoints in actual_buf that are resident on
      * each PE.
      */
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+            npes * sizeof(long long));
+#endif
     long long *count_edges_shared_with_pe = (long long *)calloc(npes,
             sizeof(long long));
     assert(count_edges_shared_with_pe);
@@ -459,6 +468,10 @@ int main(int argc, char **argv) {
      * Tell each PE how many edges you have to send it based on vertex
      * ownership.
      */
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+            npes * sizeof(long long));
+#endif
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
     assert(remote_offsets);
     for (i = 0; i < npes; i++) {
@@ -467,10 +480,17 @@ int main(int argc, char **argv) {
     }
     free(count_edges_shared_with_pe);
 
-    fprintf(stderr, "%d AAA\n", shmem_my_pe());
     shmem_barrier_all();
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
+#endif
     long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
+#endif
     long *pSync2 = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
     assert(pSync && pSync2);
     for (i = 0; i < SHMEM_REDUCE_SYNC_SIZE; i++) {
@@ -495,6 +515,10 @@ int main(int argc, char **argv) {
     }
 
     // Contains parent-id + 1 for each local vertex
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+            n_local_vertices * sizeof(uint64_t));
+#endif
     uint64_t *preds = (uint64_t *)calloc(n_local_vertices, sizeof(uint64_t));
     assert(preds);
 
@@ -503,6 +527,10 @@ int main(int argc, char **argv) {
      * of the vertices of the edge is handled by this PE. This information will
      * be provided by other PEs.
      */
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            max_n_local_edges * sizeof(packed_edge));
+#endif
     packed_edge *local_edges = (packed_edge *)shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
     assert(local_edges);
@@ -523,15 +551,19 @@ int main(int argc, char **argv) {
         shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
                 sizeof(packed_edge), v1_pe);
         remote_offsets[v1_pe]++;
+        shmem_quiet();
     }
 
     free(remote_offsets);
 
-    fprintf(stderr, "%d BBB\n", shmem_my_pe());
     shmem_barrier_all();
 
     free(actual_buf);
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+            (n_local_vertices + 1) * sizeof(unsigned));
+#endif
     unsigned *local_vertex_offsets = (unsigned *)calloc(
             (n_local_vertices + 1), sizeof(unsigned));
     assert(local_vertex_offsets);
@@ -586,6 +618,10 @@ int main(int argc, char **argv) {
      *     - the list of global vertix IDs it is attached to by edges starts at
      *       local_vertex_offsets[i] and ends at local_vertex_offsets[i + 1]
      */
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+            acc * 2 * sizeof(uint64_t));
+#endif
     uint64_t *neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
     assert(neighbors);
     for (i = 0; i < n_local_edges; i++) {
@@ -626,6 +662,10 @@ int main(int argc, char **argv) {
         }
     }
     local_vertex_offsets[n_local_vertices] = writing_index;
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d realloc-ing from %llu bytes to %llu bytes\n", shmem_my_pe(),
+            acc * 2 * sizeof(uint64_t), writing_index * sizeof(uint64_t));
+#endif
     neighbors = (uint64_t *)realloc(neighbors, writing_index *
             sizeof(uint64_t));
     assert(writing_index == 0 || neighbors);
@@ -653,8 +693,16 @@ int main(int argc, char **argv) {
 
     shmem_free(local_edges);
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            INCOMING_MAILBOX_SIZE_IN_BYTES);
+#endif
     unsigned char *recv_buf = (unsigned char *)shmem_malloc(
             INCOMING_MAILBOX_SIZE_IN_BYTES);
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            INCOMING_MAILBOX_SIZE_IN_BYTES);
+#endif
     unsigned char *inactive_recv_buf = (unsigned char *)shmem_malloc(
             INCOMING_MAILBOX_SIZE_IN_BYTES);
     assert(recv_buf && inactive_recv_buf);
@@ -662,8 +710,16 @@ int main(int argc, char **argv) {
     int *inactive_recv_buf_index = (int *)shmem_malloc(sizeof(int));
     assert(recv_buf_index && inactive_recv_buf_index);
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            QUEUE_SIZE * sizeof(uint64_t));
+#endif
     uint64_t *curr_q = (uint64_t *)malloc(QUEUE_SIZE * sizeof(uint64_t));
     assert(curr_q);
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+            QUEUE_SIZE * sizeof(uint64_t));
+#endif
     uint64_t *next_q = (uint64_t *)malloc(QUEUE_SIZE * sizeof(uint64_t));
     assert(next_q);
     unsigned curr_q_size = 0;
@@ -748,7 +804,6 @@ int main(int argc, char **argv) {
             curr_q_size = 1;
         }
 
-    fprintf(stderr, "%d CCC\n", shmem_my_pe());
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
@@ -864,7 +919,6 @@ int main(int argc, char **argv) {
                     npes, pWrk_int, pSync);
             // shmem_int_or_to_all((int *)next_visited, (int *)visited,
             //         visited_ints, 0, 0, npes, pWrk_int2, pSync2);
-    fprintf(stderr, "%d DDD\n", shmem_my_pe());
             shmem_barrier_all();
 
             /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
@@ -917,7 +971,6 @@ int main(int argc, char **argv) {
             iter++;
         }
 
-    fprintf(stderr, "%d EEE\n", shmem_my_pe());
         shmem_barrier_all();
         const unsigned long long end_bfs = current_time_ns();
         if (pe == 0) {
