@@ -62,7 +62,6 @@ typedef struct {
  *      scheduled.
  *   3) The domain of each dimension of the whole loop.
  *   4) The loop execution mode (recursive or flat)
- *   5) Some arbitrary, user-provided data.
  *
  * and which then returns a locale to place this subset of the loop at.
  */
