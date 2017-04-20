@@ -382,8 +382,11 @@ int main(int argc, char **argv) {
             (long long int *)&n_local_edges, 1, 0, 0, npes, pWrk, pSync);
 
     if (pe == 0) {
-        fprintf(stderr, "%llu: Max. # local edges = %lld\n", current_time_ns(),
-                max_n_local_edges);
+        fprintf(stderr, "%llu: Max. # local edges = %lld, sizeof(local_edges) "
+                "= %f MB, sizeof(packed_edge) = %d bytes \n", current_time_ns(),
+                max_n_local_edges,
+                (double)(max_n_local_edges * sizeof(packed_edge)) / (1024.0 * 1024.0),
+                sizeof(packed_edge));
     }
 
     uint64_t local_min_vertex = get_starting_vertex_for_pe(pe, nglobalverts);

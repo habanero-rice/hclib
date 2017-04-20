@@ -88,7 +88,7 @@ static int event_ids[N_SOS_FUNCS];
 #define SOS_END_OP(funcname)
 #endif
 
-#define SOS_HANG_WORKAROUND
+// #define SOS_HANG_WORKAROUND
 
 static unsigned domain_ctx_id = 0;
 static shmemx_domain_t *domains = NULL;
@@ -428,7 +428,7 @@ void hclib::shmem_getmem(void *dest, const void *source, size_t nelems, int pe) 
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    shmemx_ctx_getmem(dest, source, nelems, pe, *ctx);
+    ::shmemx_ctx_getmem(dest, source, nelems, pe, *ctx);
 }
 
 void hclib::shmem_putmem(void *dest, const void *source, size_t nelems, int pe) {
@@ -437,22 +437,16 @@ void hclib::shmem_putmem(void *dest, const void *source, size_t nelems, int pe) 
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    shmemx_ctx_putmem(dest, source, nelems, pe, *ctx);
+    ::shmemx_ctx_putmem(dest, source, nelems, pe, *ctx);
 }
 
 void hclib::shmem_int_put(int *dest, const int *source, size_t nelems, int pe) {
-    hclib::finish([dest, source, nelems, pe] {
-        hclib::async_nb_at([dest, source, nelems, pe] {
-            SOS_START_OP(shmem_int_put);
-#ifdef TRACE
-            std::cerr << ::shmem_my_pe() << ": shmem_int_put: dest=" << dest <<
-                    " source=" << source << " nelems=" << nelems << " pe=" <<
-                    pe << std::endl;
-#endif
-            ::shmem_int_put(dest, source, nelems, pe);
-            SOS_END_OP(shmem_int_put);
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
+
+    ::shmemx_ctx_int_put(dest, source, nelems, pe, *ctx);
 }
 
 void hclib::shmem_char_put_nbi(char *dest, const char *source, size_t nelems,
@@ -501,26 +495,7 @@ long long hclib::shmem_longlong_fadd(long long *target, long long value,
     shmemx_domain_t *domain = (shmemx_domain_t *)state;
     shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    return shmemx_ctx_longlong_fadd(target, value, pe, *ctx);
-
-//     long long *val_ptr = (long long *)malloc(sizeof(long long));
-//     hclib::finish([target, value, pe, val_ptr] {
-//         hclib::async_nb_at([target, value, pe, val_ptr] {
-//             SOS_START_OP(shmem_longlong_fadd);
-// #ifdef TRACE
-//             std::cerr << ::shmem_my_pe() << ": shmem_longlong_fadd: target=" <<
-//                 target << " value=" << value << " pe=" << pe << std::endl;
-// #endif
-//             const long long val = ::shmem_longlong_fadd(target, value, pe);
-//             *val_ptr = val;
-//             SOS_END_OP(shmem_longlong_fadd);
-//         }, nic);
-//     });
-// 
-//     const long long result = *val_ptr;
-// 
-//     free(val_ptr);
-//     return result;
+    return ::shmemx_ctx_longlong_fadd(target, value, pe, *ctx);
 }
 
 int hclib::shmem_int_fadd(int *dest, int value, int pe) {
@@ -545,91 +520,39 @@ int hclib::shmem_int_fadd(int *dest, int value, int pe) {
 }
 
 int hclib::shmem_int_swap(int *dest, int value, int pe) {
-    int *heap_fetched = (int *)malloc(sizeof(int));
-    hclib::finish([dest, value, pe, heap_fetched] {
-        hclib::async_nb_at([dest, value, pe, heap_fetched] {
-            const int fetched = ::shmem_int_swap(dest, value, pe);
-            *heap_fetched = fetched;
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    const int fetched = *heap_fetched;
-    free(heap_fetched);
-
-    return fetched;
-
-    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    // assert(state);
-    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
-
-    // return shmemx_ctx_int_swap(dest, value, pe, *ctx);
+    return ::shmemx_ctx_int_swap(dest, value, pe, *ctx);
 }
 
 int hclib::shmem_int_cswap(int *dest, int cond, int value, int pe) {
-    int *heap_fetched = (int *)malloc(sizeof(int));
-    hclib::finish([dest, cond, value, pe, heap_fetched] {
-        hclib::async_nb_at([dest, cond, value, pe, heap_fetched] {
-            const int fetched = ::shmem_int_cswap(dest, cond, value, pe);
-            *heap_fetched = fetched;
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    const int fetched = *heap_fetched;
-    free(heap_fetched);
-
-    return fetched;
-
-    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    // assert(state);
-    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
-
-    // return shmemx_ctx_int_cswap(dest, cond, value, pe, *ctx);
+    return ::shmemx_ctx_int_cswap(dest, cond, value, pe, *ctx);
 }
 
 long hclib::shmem_long_finc(long *dest, int pe) {
-    long *heap_fetched = (long *)malloc(sizeof(long));
-    hclib::finish([dest, pe, heap_fetched] {
-        hclib::async_nb_at([dest, pe, heap_fetched] {
-            const long fetched = ::shmem_long_finc(dest,pe);
-            *heap_fetched = fetched;
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    const long fetched = *heap_fetched;
-    free(heap_fetched);
-
-    return fetched;
-
-    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    // assert(state);
-    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
-
-    // return shmemx_ctx_long_finc(dest, pe, *ctx);
+    return ::shmemx_ctx_long_finc(dest, pe, *ctx);
 }
 
 int hclib::shmem_int_finc(int *dest, int pe) {
-    int *heap_fetched = (int *)malloc(sizeof(int));
-    hclib::finish([dest, pe, heap_fetched] {
-        hclib::async_nb_at([dest, pe, heap_fetched] {
-            const int fetched = ::shmem_int_finc(dest,pe);
-            *heap_fetched = fetched;
-        }, nic);
-    });
+    void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
+    assert(state);
+    shmemx_domain_t *domain = (shmemx_domain_t *)state;
+    shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
 
-    const int fetched = *heap_fetched;
-    free(heap_fetched);
-
-    return fetched;
-
-    // void *state = hclib_get_curr_worker_module_state(domain_ctx_id);
-    // assert(state);
-    // shmemx_domain_t *domain = (shmemx_domain_t *)state;
-    // shmemx_ctx_t *ctx = (shmemx_ctx_t *)(domain + 1);
-
-    // return shmemx_ctx_int_finc(dest, pe, *ctx);
+    return ::shmemx_ctx_int_finc(dest, pe, *ctx);
 }
 
 void hclib::shmem_int_sum_to_all(int *target, int *source, int nreduce,

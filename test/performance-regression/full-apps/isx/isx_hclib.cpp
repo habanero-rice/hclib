@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define ROOT_PE 0
 #define INTS_PER_CACHE_LINE (128 / sizeof(int))
 
-// #define ISX_PROFILING
+#define ISX_PROFILING
 
 // Needed for shmem collective operations
 int pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -85,7 +85,7 @@ float avg_time=0, avg_time_all2all = 0;
 #ifdef EDISON_DATASET
 #define KEY_BUFFER_SIZE ((1uLL<<31uLL))
 #elif defined(DAVINCI_DATASET)
-#define KEY_BUFFER_SIZE ((1uLL<<27uLL))
+#define KEY_BUFFER_SIZE ((1uLL<<29uLL))
 #else
 #error No cluster specified
 #endif
@@ -551,6 +551,11 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
       int *chunk_bucket_offsets = (int *)malloc(NUM_BUCKETS * nworkers *
               sizeof(int));
 
+      /*
+       * TODO This performs much better sequentially at small bucket sizes, but
+       * we would likely want to parallelize at larger bucket sizes. Probably
+       * want to find that threshold empirically.
+       */
       hclib::finish([chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk] {
           hclib::loop_domain_1d *loop = new hclib::loop_domain_1d(0, NUM_BUCKETS);
           hclib::forasync1D_nb(loop, [chunk_bucket_offsets, nworkers, local_bucket_offsets, bucket_counts_per_chunk](int b) {
@@ -560,7 +565,7 @@ static inline KEY_TYPE * bucketize_local_keys(KEY_TYPE const * const my_keys,
                       chunk_bucket_offsets[b * nworkers + w - 1] +
                       bucket_counts_per_chunk[w - 1][b];
               }
-          }, FORASYNC_MODE_FLAT);
+          }, true, FORASYNC_MODE_FLAT);
       });
 
       hclib::finish([nworkers, my_keys, my_local_bucketed_keys, chunk_bucket_offsets] {
@@ -661,8 +666,8 @@ static inline KEY_TYPE * exchange_keys(int const * const send_offsets,
     // Local keys already written with memcpy
     if(target_pe == my_rank){ continue; }
 
-    const int read_offset_from_self = send_offsets[target_pe];
     const int my_send_size = local_bucket_sizes[target_pe];
+    const int read_offset_from_self = send_offsets[target_pe];
 
     const long long int write_offset_into_target = hclib::shmem_longlong_fadd(
             &receive_offset, (long long int)my_send_size, target_pe);
@@ -736,8 +741,8 @@ static inline int * count_local_keys(KEY_TYPE const * const my_bucket_keys)
 #endif
 
   const unsigned nworkers = hclib::get_num_workers();
-  int *per_chunk_counts = (int *)malloc(nworkers * BUCKET_WIDTH * sizeof(int));
-  memset(per_chunk_counts, 0x00, nworkers * BUCKET_WIDTH * sizeof(int));
+  int *per_chunk_counts = (int *)calloc(nworkers * BUCKET_WIDTH, sizeof(int));
+  assert(per_chunk_counts);
 
   hclib::finish([nworkers, per_chunk_counts, my_bucket_keys, my_min_key] {
     for (unsigned c = 0; c < nworkers; c++) {
