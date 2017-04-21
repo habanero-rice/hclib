@@ -69,7 +69,13 @@ int main(int argc, char **argv) {
 
     const int keys_per_pe = atoi(argv[1]);
 
+#ifdef USE_THREAD_INITIALIZER
+    int provided;
+    shmemx_init_thread(SHMEMX_THREAD_SINGLE, &provided);
+    assert(provided == SHMEMX_THREAD_SINGLE);
+#else
     shmem_init();
+#endif
 
     const int pe = shmem_my_pe();
     const int npes = shmem_n_pes();

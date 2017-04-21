@@ -2,10 +2,11 @@
 
 #SBATCH -p debug
 #SBATCH -N 8
-#SBATCH -t 00:03:00
+#SBATCH -t 00:30:00
 #SBATCH -J binary-search
 #SBATCH --exclusive
 #SBATCH --mail-type=ALL
+#SBATCH --contiguous
 
 set -e
 
@@ -16,4 +17,11 @@ export SMA_OFI_PROVIDER=gni
 
 ulimit -c unlimited
 
-srun --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 ./binary-search 5000
+for EXE in binary-search binary-search-thread-init; do
+    echo "EXE = $EXE"
+    echo
+    for RUN in {1..3}; do
+        srun --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 ./$EXE 5000
+    done
+    echo
+done
