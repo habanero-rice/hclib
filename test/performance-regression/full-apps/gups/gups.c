@@ -159,6 +159,7 @@
 
 #include <stdio.h>
 #include <shmem.h>
+#include <shmemx.h>
 #include <time.h>
 #include <sys/time.h>
 #include <stdint.h>
@@ -255,7 +256,8 @@ static int64_t starts(uint64_t n)
   return ran;
 }
 
-static void UpdateTable(uint64_t *Table,
+static void
+UpdateTable(uint64_t *Table,
             uint64_t TableSize,
             uint64_t MinLocalTableSize,
             uint64_t Top,
@@ -286,11 +288,23 @@ static void UpdateTable(uint64_t *Table,
       }
       index = global_offset - global_start_at_pe;
 
+#ifdef USE_BXOR_ATOMICS
+      if (use_lock) {
+          shmem_set_lock((long *)&HPCC_PELock[remote_pe]);
+          remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
+          remote_val ^= ran;
+          shmem_long_p((long *)&Table[index], remote_val, remote_pe);
+          shmem_clear_lock((long *)&HPCC_PELock[remote_pe]);
+      } else {
+          shmemx_long_bxor((long *)&Table[index], ran, remote_pe);
+      }
+#else
       if (use_lock) shmem_set_lock((long *)&HPCC_PELock[remote_pe]);
       remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
       remote_val ^= ran;
       shmem_long_p((long *)&Table[index], remote_val, remote_pe);
       if (use_lock) shmem_clear_lock((long *)&HPCC_PELock[remote_pe]);
+#endif
   }
 
   shmem_barrier_all();
@@ -388,10 +402,10 @@ SHMEMRandomAccess(const int skipVerification)
 
 
   sAbort = 0;
-  HPCC_Table = (uint64_t *)shmem_malloc(LocalTableSize * sizeof(uint64_t));
+  HPCC_Table = shmem_malloc(LocalTableSize * sizeof(uint64_t));
   if (! HPCC_Table) sAbort = 1;
 
-  HPCC_PELock = (uint64_t *)shmem_malloc(sizeof(uint64_t) * NumProcs);
+  HPCC_PELock = shmem_malloc(sizeof(uint64_t) * NumProcs);
   if (! HPCC_PELock) sAbort = 1;
 
   for (i = 0; i < NumProcs; i++)
@@ -415,12 +429,12 @@ SHMEMRandomAccess(const int skipVerification)
 
   if (MyProc == 0) {
     fprintf( outFile, "Running on %d processors\n", NumProcs);
-    fprintf( outFile, "Total Main table size = 2^%llu = %llu words\n",
-             (unsigned long long)logTableSize, (unsigned long long)TableSize );
-    fprintf( outFile, "PE Main table size = (2^%llu)/%d  = %llu words/PE MAX\n",
-             (unsigned long long)logTableSize, NumProcs, (unsigned long long)LocalTableSize);
+    fprintf( outFile, "Total Main table size = 2^%" PRIu64 " = %" PRIu64 " words\n",
+             logTableSize, TableSize );
+    fprintf( outFile, "PE Main table size = (2^%" PRIu64 ")/%d  = %" PRIu64 " words/PE MAX\n",
+             logTableSize, NumProcs, LocalTableSize);
 
-    fprintf( outFile, "Default number of updates (RECOMMENDED) = %llu\n", (unsigned long long)NumUpdates_Default);
+    fprintf( outFile, "Default number of updates (RECOMMENDED) = %" PRIu64 "\n", NumUpdates_Default);
   }
 
   /* Initialize main table */
@@ -436,7 +450,8 @@ SHMEMRandomAccess(const int skipVerification)
               MinLocalTableSize,
               Top,
               Remainder,
-              ProcNumUpdates, 0);
+              ProcNumUpdates,
+              0);
 
   shmem_barrier_all();
 
@@ -462,17 +477,18 @@ SHMEMRandomAccess(const int skipVerification)
 
   /* Verification phase */
 
-  /* Begin timing here */
-
-  RealTime = -RTSEC();
-
   if (skipVerification == 0) {
+      /* Begin timing here */
+
+      RealTime = -RTSEC();
+
       UpdateTable(HPCC_Table,
                   TableSize,
                   MinLocalTableSize,
                   Top,
                   Remainder,
-                  ProcNumUpdates, 1);
+                  ProcNumUpdates,
+                  1);
 
       NumErrors = 0;
       for (i=0; i<LocalTableSize; i++){
@@ -490,13 +506,13 @@ SHMEMRandomAccess(const int skipVerification)
 
       if(MyProc == 0){
         fprintf( outFile, "Verification:  Real time used = %.6f seconds\n", RealTime);
-        fprintf( outFile, "Found %llu errors in %llu locations (%s).\n",
-                 (unsigned long long)GlbNumErrors, (unsigned long long)TableSize, (GlbNumErrors <= 0.01*TableSize) ?
+        fprintf( outFile, "Found %" PRIu64 " errors in %" PRIu64 " locations (%s).\n",
+                 GlbNumErrors, TableSize, (GlbNumErrors <= 0.01*TableSize) ?
                  "passed" : "failed");
         if (GlbNumErrors > 0.01*TableSize) Failure = 1;
       }
+      /* End verification phase */
   }
-  /* End verification phase */
 
   shmem_free( HPCC_Table );
   shmem_free( HPCC_PELock );
@@ -537,6 +553,7 @@ int main(int argc, char **argv)
           return -1;
         }
         break;
+
       case 's':
         skipVerification = 1;
         break;
