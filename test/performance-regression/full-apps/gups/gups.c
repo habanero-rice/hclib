@@ -176,6 +176,12 @@
 #include <pthread.h>
 #endif
 
+#ifdef USE_CONTEXTS
+#ifndef USE_PTHREADS
+#error Using contexts without pthreads is not useful
+#endif
+#endif
+
 /* Random number generator */
 #define POLY 0x0000000000000007UL
 #define PERIOD 1317624576693539401L
@@ -270,6 +276,9 @@ typedef struct {
     int Remainder;
     int use_lock;
     uint64_t *Table;
+#ifdef USE_CONTEXTS
+    shmemx_ctx_t ctx;
+#endif
 } thread_context;
 
 static void *ThreadBody(void *data) {
@@ -281,6 +290,9 @@ static void *ThreadBody(void *data) {
   const uint64_t MinLocalTableSize = input->MinLocalTableSize;
   const int Remainder = input->Remainder;
   const int use_lock = input->use_lock;
+#ifdef USE_CONTEXTS
+  const shmemx_ctx_t ctx = input->ctx;
+#endif
   uint64_t *Table = input->Table;
 
   uint64_t ran = input->ran;
@@ -309,7 +321,11 @@ static void *ThreadBody(void *data) {
           shmem_long_p((long *)&Table[index], remote_val, remote_pe);
           shmem_clear_lock((long *)&HPCC_PELock[remote_pe]);
       } else {
+#ifdef USE_CONTEXTS
+          shmemx_ctx_long_bxor((long *)&Table[index], ran, remote_pe, ctx);
+#else
           shmemx_long_bxor((long *)&Table[index], ran, remote_pe);
+#endif
       }
 #else
       if (use_lock) shmem_set_lock((long *)&HPCC_PELock[remote_pe]);
@@ -330,7 +346,11 @@ UpdateTable(uint64_t *Table,
             int Remainder,
             int64_t niterate,
             int use_lock,
-            int nthreads)
+            int nthreads
+#ifdef USE_CONTEXTS
+            , shmemx_ctx_t *contexts
+#endif
+            )
 {
   shmem_barrier_all();
 
@@ -358,6 +378,9 @@ UpdateTable(uint64_t *Table,
       thread_contexts[t].Remainder = Remainder;
       thread_contexts[t].use_lock = use_lock;
       thread_contexts[t].Table = Table;
+#ifdef USE_CONTEXTS
+      thread_contexts[t].ctx = contexts[t];
+#endif
   }
 
 #ifdef USE_PTHREADS
@@ -430,6 +453,18 @@ SHMEMRandomAccess(const int skipVerification, const int nthreads)
 
   NumProcs = shmem_n_pes();
   MyProc = shmem_my_pe();
+
+#ifdef USE_CONTEXTS
+  shmemx_domain_t *domains = (shmemx_domain_t *)malloc(nthreads * sizeof(shmemx_domain_t));
+  shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(nthreads * sizeof(shmemx_ctx_t));
+  assert(domains && contexts);
+  int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE, nthreads, domains);
+  assert(err == 0);
+  for (i = 0; i < nthreads; i++) {
+      err = shmemx_ctx_create(domains[i], &contexts[i]);
+      assert(err == 0);
+  }
+#endif
 
   if (0 == MyProc) {
     outFile = stdout;
@@ -527,7 +562,11 @@ SHMEMRandomAccess(const int skipVerification, const int nthreads)
               Remainder,
               ProcNumUpdates,
               0,
-              nthreads);
+              nthreads
+#ifdef USE_CONTEXTS
+              , contexts
+#endif
+              );
 
   shmem_barrier_all();
 
@@ -565,7 +604,11 @@ SHMEMRandomAccess(const int skipVerification, const int nthreads)
                   Remainder,
                   ProcNumUpdates,
                   1,
-                  nthreads);
+                  nthreads
+#ifdef USE_CONTEXTS
+                  , contexts
+#endif
+                  );
 
       NumErrors = 0;
       for (i=0; i<LocalTableSize; i++){
@@ -598,6 +641,13 @@ SHMEMRandomAccess(const int skipVerification, const int nthreads)
   if (0 == MyProc) if (outFile != stderr) fclose( outFile );
 
   shmem_barrier_all();
+
+#ifdef USE_CONTEXTS
+  for (i = 0; i < nthreads; i++) {
+      shmemx_ctx_destroy(contexts[i]);
+  }
+  shmemx_domain_destroy(nthreads, domains);
+#endif
 
   return 0;
 }

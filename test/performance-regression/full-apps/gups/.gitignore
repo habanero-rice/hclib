@@ -1,2 +1,4 @@
 gups
 gups-xor
+gups-xor-pthreads
+gups-xor-pthreads-contexts
