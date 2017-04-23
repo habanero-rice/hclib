@@ -167,8 +167,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <assert.h>
 #if 0
 #include "config.h"
+#endif
+
+#ifdef USE_PTHREADS
+#include <pthread.h>
 #endif
 
 /* Random number generator */
@@ -179,7 +184,6 @@
 #define ZERO64B 0LL
 
 uint64_t TotalMemOpt = 8192;
-int NumUpdatesOpt = 0; /* FIXME: This option is ignored */
 double SHMEMGUPs;
 double SHMEMRandomAccess_ErrorsFraction;
 double SHMEMRandomAccess_time;
@@ -192,7 +196,7 @@ uint64_t *HPCC_PELock;
 
 static uint64_t GlobalStartMyProc;
 
-int SHMEMRandomAccess(const int skipVerification);
+int SHMEMRandomAccess(const int skipVerification, const int nthreads);
 
 static double RTSEC(void)
 {
@@ -206,7 +210,8 @@ static void print_usage(void)
   fprintf(stderr, "\nOptions:\n");
   fprintf(stderr, " %-20s %s\n", "-h", "display this help message");
   fprintf(stderr, " %-20s %s\n", "-m", "memory in bytes per PE");
-  fprintf(stderr, " %-20s %s\n", "-n", "number of updates per PE");
+  fprintf(stderr, " %-20s %s\n", "-s", "skip verification");
+  fprintf(stderr, " %-20s %s\n", "-t", "number of threads per PE");
 
   return;
 }
@@ -256,29 +261,37 @@ static int64_t starts(uint64_t n)
   return ran;
 }
 
-static void
-UpdateTable(uint64_t *Table,
-            uint64_t TableSize,
-            uint64_t MinLocalTableSize,
-            uint64_t Top,
-            int Remainder,
-            int64_t niterate,
-            int use_lock)
-{
-  uint64_t iterate;
-  int index;
-  uint64_t ran, remote_val, global_offset;
-  int remote_pe;
-  int global_start_at_pe;
+typedef struct {
+    uint64_t niterations;
+    uint64_t ran;
+    uint64_t TableSize;
+    uint64_t Top;
+    uint64_t MinLocalTableSize;
+    int Remainder;
+    int use_lock;
+    uint64_t *Table;
+} thread_context;
 
-  shmem_barrier_all();
+static void *ThreadBody(void *data) {
+  thread_context *input = (thread_context *)data;
 
+  const uint64_t niterations = input->niterations;
+  const uint64_t TableSize = input->TableSize;
+  const uint64_t Top = input->Top;
+  const uint64_t MinLocalTableSize = input->MinLocalTableSize;
+  const int Remainder = input->Remainder;
+  const int use_lock = input->use_lock;
+  uint64_t *Table = input->Table;
+
+  uint64_t ran = input->ran;
   /* setup: should not really be part of this timed routine */
-  ran = starts(4*GlobalStartMyProc);
+  // uint64_t ran = starts(4 * GlobalStartMyProc);
 
-  for (iterate = 0; iterate < niterate; iterate++) {
+  for (uint64_t iterate = 0; iterate < niterations; iterate++) {
+      int remote_pe, global_start_at_pe;
+
       ran = (ran << 1) ^ ((int64_t) ran < ZERO64B ? POLY : ZERO64B);
-      global_offset = ran & (TableSize-1);
+      const uint64_t global_offset = ran & (TableSize-1);
       if (global_offset < Top) {
           remote_pe = global_offset / (MinLocalTableSize + 1);
           global_start_at_pe = (MinLocalTableSize + 1) * remote_pe;
@@ -286,12 +299,12 @@ UpdateTable(uint64_t *Table,
           remote_pe = (global_offset - Remainder) / MinLocalTableSize;
           global_start_at_pe = MinLocalTableSize * remote_pe + Remainder;
       }
-      index = global_offset - global_start_at_pe;
+      const int index = global_offset - global_start_at_pe;
 
 #ifdef USE_BXOR_ATOMICS
       if (use_lock) {
           shmem_set_lock((long *)&HPCC_PELock[remote_pe]);
-          remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
+          uint64_t remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
           remote_val ^= ran;
           shmem_long_p((long *)&Table[index], remote_val, remote_pe);
           shmem_clear_lock((long *)&HPCC_PELock[remote_pe]);
@@ -300,19 +313,78 @@ UpdateTable(uint64_t *Table,
       }
 #else
       if (use_lock) shmem_set_lock((long *)&HPCC_PELock[remote_pe]);
-      remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
+      uint64_t remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
       remote_val ^= ran;
       shmem_long_p((long *)&Table[index], remote_val, remote_pe);
       if (use_lock) shmem_clear_lock((long *)&HPCC_PELock[remote_pe]);
 #endif
   }
 
+}
+
+static void
+UpdateTable(uint64_t *Table,
+            uint64_t TableSize,
+            uint64_t MinLocalTableSize,
+            uint64_t Top,
+            int Remainder,
+            int64_t niterate,
+            int use_lock,
+            int nthreads)
+{
   shmem_barrier_all();
 
+  thread_context *thread_contexts = (thread_context *)malloc(
+          nthreads * sizeof(thread_context));
+  assert(thread_contexts);
+#ifdef USE_PTHREADS
+  pthread_t *threads = (pthread_t *)malloc(nthreads * sizeof(pthread_t));
+  assert(threads);
+#endif
+
+  const uint64_t iteration_chunk_size = (niterate + nthreads - 1) / nthreads;
+  for (int t = 0; t < nthreads; t++) {
+      const uint64_t start = t * iteration_chunk_size;
+      uint64_t end = (t + 1) * iteration_chunk_size;
+      if (end > niterate) {
+          end = niterate;
+      }
+
+      thread_contexts[t].niterations = end - start;
+      thread_contexts[t].ran = starts(4 * (GlobalStartMyProc + start));
+      thread_contexts[t].TableSize = TableSize;
+      thread_contexts[t].Top = Top;
+      thread_contexts[t].MinLocalTableSize = MinLocalTableSize;
+      thread_contexts[t].Remainder = Remainder;
+      thread_contexts[t].use_lock = use_lock;
+      thread_contexts[t].Table = Table;
+  }
+
+#ifdef USE_PTHREADS
+  for (int t = 1; t < nthreads; t++) {
+      const int perr = pthread_create(&threads[t], NULL, ThreadBody,
+              &thread_contexts[t]);
+      assert(perr == 0);
+  }
+#endif
+
+  ThreadBody(&thread_contexts[0]);
+
+#ifdef USE_PTHREADS
+  for (int t = 1; t < nthreads; t++) {
+      const int perr = pthread_join(threads[t], NULL);
+      assert(perr == 0);
+  }
+
+  free(threads);
+#endif
+  free(thread_contexts);
+
+  shmem_barrier_all();
 }
 
 int
-SHMEMRandomAccess(const int skipVerification)
+SHMEMRandomAccess(const int skipVerification, const int nthreads)
 {
   int64_t i;
   static int64_t NumErrors, GlbNumErrors;
@@ -429,6 +501,9 @@ SHMEMRandomAccess(const int skipVerification)
 
   if (MyProc == 0) {
     fprintf( outFile, "Running on %d processors\n", NumProcs);
+#ifdef USE_PTHREADS
+    fprintf( outFile, "Using %d threads per process\n", nthreads);
+#endif
     fprintf( outFile, "Total Main table size = 2^%" PRIu64 " = %" PRIu64 " words\n",
              logTableSize, TableSize );
     fprintf( outFile, "PE Main table size = (2^%" PRIu64 ")/%d  = %" PRIu64 " words/PE MAX\n",
@@ -451,7 +526,8 @@ SHMEMRandomAccess(const int skipVerification)
               Top,
               Remainder,
               ProcNumUpdates,
-              0);
+              0,
+              nthreads);
 
   shmem_barrier_all();
 
@@ -488,7 +564,8 @@ SHMEMRandomAccess(const int skipVerification)
                   Top,
                   Remainder,
                   ProcNumUpdates,
-                  1);
+                  1,
+                  nthreads);
 
       NumErrors = 0;
       for (i=0; i<LocalTableSize; i++){
@@ -529,8 +606,9 @@ int main(int argc, char **argv)
 {
   int op;
   int skipVerification = 0;
+  int nthreads = 1;
 
-  while ((op = getopt(argc, argv, "hm:n:s")) != -1) {
+  while ((op = getopt(argc, argv, "hm:st:")) != -1) {
     switch (op) {
       /*
        * memory per PE (used for determining table size)
@@ -543,19 +621,12 @@ int main(int argc, char **argv)
         }
         break;
 
-        /*
-         * num updates/PE
-         */
-      case 'n':
-        NumUpdatesOpt = atoi(optarg);
-        if (NumUpdatesOpt <= 0) {
-          print_usage();
-          return -1;
-        }
-        break;
-
       case 's':
         skipVerification = 1;
+        break;
+
+      case 't':
+        nthreads = atoi(optarg);
         break;
 
       case '?':
@@ -565,8 +636,17 @@ int main(int argc, char **argv)
     }
   }
 
+#ifndef USE_PTHREADS
+  assert(nthreads == 1);
   shmem_init();
-  SHMEMRandomAccess(skipVerification);
+#else
+  int provided;
+  shmemx_init_thread(SHMEMX_THREAD_MULTIPLE, &provided);
+  assert(provided == SHMEMX_THREAD_MULTIPLE);
+#endif
+
+  SHMEMRandomAccess(skipVerification, nthreads);
+
   shmem_finalize();
 
   return 0;

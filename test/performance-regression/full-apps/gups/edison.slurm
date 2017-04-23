@@ -21,7 +21,7 @@ export LD_LIBRARY_PATH=$OPENSHMEM_INSTALL/lib64:$LD_LIBRARY_PATH
 ulimit -c unlimited
 
 export NUPDATES=50000000
-export TABLE_SIZE=$((128 * 1024 * 1024))
+export TABLE_SIZE_PER_CORE=$((16 * 1024 * 1024))
 # export NUPDATES=65536
 # export TABLE_SIZE=1000
 
@@ -34,6 +34,8 @@ export TABLE_SIZE=$((128 * 1024 * 1024))
 
 # 5460 fails, 5465 is fine
 
-srun --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 ./gups -m $TABLE_SIZE -n $NUPDATES -s
+# srun --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 ./gups -m $TABLE_SIZE_PER_CORE -s -t 1
+# echo
+srun --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 ./gups-xor -m $TABLE_SIZE_PER_CORE -s -t 1
 echo
-srun --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 ./gups-xor -m $TABLE_SIZE -n $NUPDATES -s
+srun --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 ./gups-xor-pthreads -m $((12 * $TABLE_SIZE_PER_CORE)) -s -t 12
