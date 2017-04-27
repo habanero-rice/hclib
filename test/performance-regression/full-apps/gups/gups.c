@@ -186,6 +186,11 @@
 #define POLY 0x0000000000000007UL
 #define PERIOD 1317624576693539401L
 
+/*
+ * Workaround for out-of-memory problem in libfabric GNI provider.
+ */
+#define QUIET_FREQ 100
+
 /* Define 64-bit constants */
 #define ZERO64B 0LL
 
@@ -322,10 +327,17 @@ static void *ThreadBody(void *data) {
           shmem_clear_lock((long *)&HPCC_PELock[remote_pe]);
       } else {
 #ifdef USE_CONTEXTS
-          shmemx_ctx_long_bxor((long *)&Table[index], ran, remote_pe, ctx);
+          shmemx_ctx_uint64_atomic_xor(&Table[index], ran, remote_pe, ctx);
+          if (iterate % QUIET_FREQ == 0) {
+              shmemx_ctx_quiet(ctx);
+          }
 #else
-          shmemx_long_bxor((long *)&Table[index], ran, remote_pe);
+          shmemx_uint64_atomic_xor(&Table[index], ran, remote_pe);
+          if (iterate % QUIET_FREQ == 0) {
+              shmem_quiet();
+          }
 #endif
+
       }
 #else
       if (use_lock) shmem_set_lock((long *)&HPCC_PELock[remote_pe]);

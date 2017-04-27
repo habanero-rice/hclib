@@ -7,6 +7,7 @@
 #SBATCH --exclusive
 #SBATCH --contiguous
 #SBATCH --mail-type=ALL
+#SBATCH --export=ALL
 
 # set -e
 
@@ -14,9 +15,12 @@ export PMI_MAX_KVS_ENTRIES=$((1000 * $SLURM_NNODES))
 export SMA_SYMMETRIC_SIZE=$((1 * 1024 * 1024 * 1024))
 export SMA_OFI_PROVIDER=gni
 # export FI_LOG_LEVEL=debug
-export SMA_TRAP_ON_ABORT=on
+# export SMA_TRAP_ON_ABORT=on
+
+echo "Using OpenSHMEM installation at $OPENSHMEM_INSTALL"
 
 export LD_LIBRARY_PATH=$OPENSHMEM_INSTALL/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$OPENSHMEM_INSTALL/lib:$LD_LIBRARY_PATH
 
 ulimit -c unlimited
 
