@@ -99,6 +99,24 @@ void run_bfs(int64_t root, int64_t* pred) {
    * size. */
   int num_ranks_done;
 
+  // For debugging, print vertices
+  // {
+  //     size_t i;
+
+  //     for (i = 0; i < g.nglobalverts; i++) {
+  //         if (VERTEX_OWNER(i) == rank) {
+  //             fprintf(stderr, "HOWDY %d :", i);
+  //             size_t j, j_end = g.rowstarts[VERTEX_LOCAL(i) + 1];
+  //             for (j = g.rowstarts[VERTEX_LOCAL(i)]; j < j_end; ++j) {
+  //                 int64_t tgt = g.column[j];
+  //                 fprintf(stderr, " %d", tgt);
+  //             }
+  //             fprintf(stderr, "\n");
+  //         }
+  //         MPI_Barrier(MPI_COMM_WORLD);
+  //     }
+  // }
+
   /* Set all vertices to "not visited." */
   {size_t i; for (i = 0; i < nlocalverts; ++i) pred[i] = -1;}
 
@@ -239,6 +257,23 @@ void run_bfs(int64_t root, int64_t* pred) {
     newq_count = 0;
   }
 #undef CHECK_MPI_REQS
+
+  {
+      size_t i;
+      int count_visited = 0;
+      int count_not_visited = 0;
+      for (i = 0; i < nlocalverts; ++i) {
+          int global_id = i * size + rank;
+          if (global_id < g.nglobalverts) {
+              if (pred[i] < 0) {
+                  count_not_visited++;
+              } else {
+                  count_visited++;
+              }
+          }
+      }
+      printf("PE %d visited %d, did not visit %d\n", rank, count_visited, count_not_visited);
+  }
 }
 
 void get_vertex_distribution_for_pred(size_t count, const int64_t* vertex_p, int* owner_p, size_t* local_p) {

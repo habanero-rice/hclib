@@ -51,5 +51,8 @@ bfs_oshmem-single-mailbox-replicated: main-single-mailbox-replicated.c utilities
 bfs_oshmem-single-mailbox-omp: main-single-mailbox-omp.c utilities.c mrg.c splittable_mrg.c generator.c
 	gcc -fopenmp -I$(OPENSHMEM_INSTALL)/include $(OSHMEM_LD_FLAGS) -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE
 
+bfs_oshmem-single-mailbox-new: main-single-mailbox-new.c crc/crc.c smhasher/src/MurmurHash3.cpp cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
+	g++ -std=c++11 $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -I$(OPENSHMEM_INSTALL)/include $(OSHMEM_LD_FLAGS) -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE
+
 clean:
 	rm -f $(TARGET)
