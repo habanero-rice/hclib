@@ -4,34 +4,39 @@
 #include <string.h>
 #include <assert.h>
 #include <shmem.h>
+#include <shmemx.h>
 #include <time.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <limits.h>
+#include <pthread.h>
 
-#ifdef USE_CRC
-#include "crc.h"
-typedef int32_t size_type;
-#elif USE_MURMUR
-#include "MurmurHash3.h"
-typedef uint32_t crc;
-typedef int32_t size_type;
-#elif USE_CITY32
-#include "city.h"
-typedef uint32_t crc;
-typedef int32_t size_type;
-#elif USE_CITY64
-#include "city.h"
-typedef uint64_t crc;
-typedef int64_t size_type;
-#else
-#error No hashing algorithm specific
-#endif
+// #define VERBOSE
+
+// #ifdef USE_CRC
+// #include "crc.h"
+// typedef int32_t size_type;
+// #elif USE_MURMUR
+// #include "MurmurHash3.h"
+// typedef uint32_t crc;
+// typedef int32_t size_type;
+// #elif USE_CITY32
+// #include "city.h"
+// typedef uint32_t crc;
+// typedef int32_t size_type;
+// #elif USE_CITY64
+// #include "city.h"
+// typedef uint64_t crc;
+// typedef int64_t size_type;
+// #else
+// #error No hashing algorithm specific
+// #endif
 
 #include "mrg.h"
 #include "packed_edge.h"
@@ -56,7 +61,15 @@ typedef int64_t size_type;
 #define SEND_HEADER_SIZE (sizeof(crc) + sizeof(size_type) + sizeof(crc))
 #define SEND_BUFFER_SIZE (SEND_HEADER_SIZE + COALESCING * sizeof(packed_edge))
 
-#define BITS_PER_INT (sizeof(unsigned) * 8)
+#define BITS_PER_BYTE 8
+#define BITS_PER_INT (sizeof(unsigned) * BITS_PER_BYTE)
+
+#define MAX_ITERS 10
+
+typedef struct {
+    short steady_state;
+    short bufs[2];
+} vert_info;
 
 typedef struct _send_buf {
     unsigned char *buf;
@@ -145,31 +158,31 @@ unsigned long long duplicates_in_same_wavefront_total = 0;
 #endif
 #endif
 
-static inline crc hash(const unsigned char * const data, const size_t len) {
-#ifdef PROFILE
-    const unsigned long long start_time = current_time_ns();
-#endif
-
-    crc result;
-#ifdef USE_CRC
-    result = crcFast(data, len);
-#elif USE_MURMUR
-    MurmurHash3_x86_32(data, len, 12345, &result);
-#elif USE_CITY32
-    result = CityHash32((const char *)data, len);
-#elif USE_CITY64
-    result = CityHash64((const char *)data, len);
-#else
-#error No hashing algorithm specified
-#endif
-
-#ifdef PROFILE
-    hash_time += (current_time_ns() - start_time);
-    hash_calls++;
-#endif
-
-    return result;
-}
+// static inline crc hash(const unsigned char * const data, const size_t len) {
+// #ifdef PROFILE
+//     const unsigned long long start_time = current_time_ns();
+// #endif
+// 
+//     crc result;
+// #ifdef USE_CRC
+//     result = crcFast(data, len);
+// #elif USE_MURMUR
+//     MurmurHash3_x86_32(data, len, 12345, &result);
+// #elif USE_CITY32
+//     result = CityHash32((const char *)data, len);
+// #elif USE_CITY64
+//     result = CityHash64((const char *)data, len);
+// #else
+// #error No hashing algorithm specified
+// #endif
+// 
+// #ifdef PROFILE
+//     hash_time += (current_time_ns() - start_time);
+//     hash_calls++;
+// #endif
+// 
+//     return result;
+// }
 
 uint64_t bfs_roots[] = {240425174, 115565041, 66063943, 180487911, 11178951,
     123935973, 231036167, 373595937, 363787030, 85801485, 108275987, 69071368,
@@ -184,8 +197,6 @@ uint64_t bfs_roots[] = {240425174, 115565041, 66063943, 180487911, 11178951,
 
 volatile long long n_local_edges = 0;
 volatile long long max_n_local_edges;
-long long pWrk[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
-short pWrk_short[SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 
 static uint64_t get_vertices_per_pe(uint64_t nvertices) {
     return (nvertices + npes - 1) / npes;
@@ -255,116 +266,82 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
-static inline unsigned check_for_receives(unsigned char **iter_buf,
-        unsigned *ndone, const uint64_t nglobalverts,
-        unsigned *visited, const uint64_t local_min_vertex,
-        uint64_t *next_q, unsigned *next_q_size,
-        uint64_t *preds, const size_t visited_ints) {
-    unsigned count_messages = 0;
+static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
+        const int last_put_index, const unsigned *local_vertex_offsets,
+        const uint64_t *neighbors, const uint64_t nglobalverts,
+        unsigned *shared_visited, const size_t visited_ints,
+        const uint64_t local_min_vertex, unsigned *local_visited,
+        const int updating_index, const short *pe_plus_one_ptr,
+        shmemx_ctx_t *curr_ctx, shmemx_ctx_t *idle_ctx, int *thread_natomics,
+        unsigned long long *time_blocked_on_quiet) {
+    const short curr = verts[local_vertex_id].bufs[last_put_index];
+    // const short curr = last_put[local_vertex_id];
 
-    unsigned char *local_iter_buf = *iter_buf;
-    volatile crc *crc_ptr = (volatile crc *)local_iter_buf;
-    crc checksum = *crc_ptr;
-    crc calculated_checksum = hash(
-            (const unsigned char *)(local_iter_buf + sizeof(crc)),
-            SEND_HEADER_SIZE - sizeof(crc));
-    while (checksum == calculated_checksum) {
-        // At this point we can assume the header is intact, but not the body
-        volatile size_type *length_in_bytes_ptr = (volatile size_type *)(crc_ptr + 1);
-        const size_type length_in_bytes = *length_in_bytes_ptr;
-        volatile crc *body_crc_ptr = (volatile crc *)(length_in_bytes_ptr + 1);
-        const crc body_crc = *body_crc_ptr;
-        unsigned char *body = (unsigned char *)(body_crc_ptr + 1);
+    // if (curr > 0 && steady_state[local_vertex_id] == 0)
+    if (curr > 0 && verts[local_vertex_id].steady_state == 0)
+    {
+        const int neighbor_start = local_vertex_offsets[local_vertex_id];
+        const int neighbor_end = local_vertex_offsets[local_vertex_id + 1];
 
-        assert(length_in_bytes > 0);
+        int j;
+        for (j = neighbor_start; j < neighbor_end; j++) {
+            const uint64_t to_explore_global_id = neighbors[j];
+            const int target_pe = get_owner_pe(to_explore_global_id, nglobalverts);
+            const uint64_t to_explore_local_id = to_explore_global_id -
+                get_starting_vertex_for_pe(target_pe, nglobalverts);
+            assert(to_explore_local_id < get_vertices_per_pe(nglobalverts));
 
-        // if (length_in_bytes > 0) {
-            crc calculated_body_crc = hash((const unsigned char *)body,
-                    length_in_bytes - SEND_HEADER_SIZE);
+            const int already_visited = is_visited(
+                    to_explore_global_id, shared_visited,
+                    visited_ints, local_min_vertex) ||
+                is_visited(to_explore_global_id, local_visited,
+                        visited_ints, local_min_vertex);
 
-            if (calculated_body_crc != body_crc) {
-#ifdef PROFILE
-                wasted_hashes++;
-#endif
-                break;
-            }
+            if (!already_visited) {
+                shmemx_ctx_putmem(
+                        &(verts[to_explore_local_id].bufs[updating_index]),
+                        pe_plus_one_ptr, sizeof(*pe_plus_one_ptr), target_pe, *curr_ctx);
+                // shmemx_ctx_short_put_nbi(
+                //         &(verts[to_explore_local_id].bufs[updating_index]),
+                //         pe_plus_one_ptr, 1, target_pe, *curr_ctx);
+                // shmemx_ctx_short_put_nbi(updating + to_explore_local_id,
+                //         &pe_plus_one, 1, target_pe, curr_ctx);
+                // shmem_int_put(updating + to_explore_local_id,
+                //         &pe_plus_one, 1, target_pe);
+                // shmemx_ctx_short_p(updating + to_explore_local_id,
+                //         pe_plus_one, target_pe, curr_ctx);
+                // shmem_short_p(updating + to_explore_local_id,
+                //         pe_plus_one, target_pe);
+                int curr_n_atomics = *thread_natomics + 1;
+                *thread_natomics = curr_n_atomics;
 
-#ifdef PROFILE
-            total_packets_received++;
-            unsigned local_elements_wasted = 0;
-#endif
+                if (curr_n_atomics % 256 == 0) {
+                    const unsigned long long start_quiet = current_time_ns();
+                    shmemx_ctx_quiet(*idle_ctx);
+                    const unsigned long long elapsed_quiet = current_time_ns() - start_quiet;
+                    *time_blocked_on_quiet += elapsed_quiet;
 
-            // Intact body!
-            const unsigned nelements = SEND_BUF_SIZE_TO_NEDGES(length_in_bytes);
-            local_iter_buf = body;
-            int i;
-            for (i = 0; i < nelements; i++) {
-                packed_edge *edge = (packed_edge *)local_iter_buf;
-                const uint64_t to_explore = get_v0_from_edge(edge);
-                const uint64_t parent = get_v1_from_edge(edge);
-
-                assert(get_owner_pe(to_explore, nglobalverts) == pe);
-
-#ifdef PROFILE
-                total_elements_received++;
-#endif
-                if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
-                    preds[to_explore - local_min_vertex] = parent;
-#ifdef PROFILE
-#ifdef DETAILED_PROFILE
-                    set_visited(to_explore, wavefront_visited, visited_ints, local_min_vertex);
-#endif
-#endif
-                    set_visited(to_explore, visited, visited_ints, local_min_vertex);
-                    const unsigned q_index = *next_q_size;
-                    *next_q_size = q_index + 1;
-                    assert(q_index < QUEUE_SIZE);
-                    next_q[q_index] = to_explore;
-                } else {
-#ifdef PROFILE
-#ifdef DETAILED_PROFILE
-                    if (is_visited(to_explore, wavefront_visited, visited_ints,
-                                local_min_vertex)) {
-                        duplicates_in_same_wavefront++;
-                        duplicates_in_same_wavefront_total++;
-                    }
-#endif
-                    local_elements_wasted++;
-#endif
+                    shmemx_ctx_t tmp_ctx = *curr_ctx;
+                    *curr_ctx = *idle_ctx;
+                    *idle_ctx = *curr_ctx;
                 }
 
-                local_iter_buf += sizeof(packed_edge);
+                set_visited(to_explore_global_id, local_visited,
+                        visited_ints, local_min_vertex);
+                if (target_pe == pe) {
+                    set_visited(to_explore_global_id, shared_visited,
+                            visited_ints, local_min_vertex);
+                }
             }
+        }
 
-#ifdef PROFILE
-            n_elements_wasted += local_elements_wasted;
-            if (local_elements_wasted == nelements) n_packets_wasted++;
-#endif
-        // } else {
-        //     assert(body_crc == 0);
-        //     if (length_in_bytes < 0) {
-        //         count_messages += (-1 * length_in_bytes);
-        //     }
-
-        //     *ndone = *ndone + 1;
-        //     local_iter_buf = body;
-        // }
-
-        /*
-         * Just in case some common patterns (e.g. an empty message with no
-         * messages to report) might cause a false positive.
-         */
-        *crc_ptr = ~checksum;
-
-        crc_ptr = (volatile crc *)local_iter_buf;
-        checksum = *crc_ptr;
-        calculated_checksum = hash(
-                (const unsigned char *)(local_iter_buf + sizeof(crc)),
-                SEND_HEADER_SIZE - sizeof(crc));
+        verts[local_vertex_id].steady_state = curr;
+        verts[local_vertex_id].bufs[last_put_index] = 0;
+        // steady_state[local_vertex_id] = curr;
+        // last_put[local_vertex_id] = 0;
+        set_visited(local_min_vertex + local_vertex_id,
+                shared_visited,visited_ints, local_min_vertex);
     }
-
-    *iter_buf = local_iter_buf;
-    return count_messages;
 }
 
 int main(int argc, char **argv) {
@@ -372,8 +349,8 @@ int main(int argc, char **argv) {
     crcInit();
 #endif
 
-    if (argc < 3) {
-        fprintf(stderr, "usage: %s scale edgefactor [num-bfs-roots]\n",
+    if (argc < 4) {
+        fprintf(stderr, "usage: %s scale edgefactor num-bfs-roots\n",
                 argv[0]);
         fprintf(stderr, "    scale = log_2(# vertices)\n");
         fprintf(stderr, "    edgefactor = .5 * (average vertex degree)\n");
@@ -396,6 +373,7 @@ int main(int argc, char **argv) {
     const uint64_t edgefactor = atoi(argv[2]);
     const uint64_t nglobaledges = (uint64_t)(edgefactor << scale);
     const uint64_t nglobalverts = (uint64_t)(((uint64_t)1) << scale);
+    const int num_bfs_roots = atoi(argv[3]);
 
     // __sighandler_t serr = signal(SIGUSR1, sig_handler);
     // assert(serr != SIG_ERR);
@@ -406,9 +384,33 @@ int main(int argc, char **argv) {
     //         (void *)&kill_seconds);
     // assert(perr == 0);
 
-    shmem_init();
+    int provided;
+    shmemx_init_thread(SHMEMX_THREAD_MULTIPLE, &provided);
+    assert(provided == SHMEMX_THREAD_MULTIPLE);
+
+    int nthreads;
+#pragma omp parallel
+#pragma omp master
+    {
+        nthreads = omp_get_num_threads();
+    }
 
     uint64_t i;
+    shmemx_domain_t *domains = (shmemx_domain_t *)malloc(nthreads * sizeof(*domains));
+    shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(2 * nthreads * sizeof(*contexts));
+    assert(domains && contexts);
+
+    int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
+            nthreads, domains);
+    assert(err == 0); 
+
+    for (i = 0; i < nthreads; i++) {
+        err = shmemx_ctx_create(domains[i], contexts + (2 * i));
+        assert(err == 0);
+        err = shmemx_ctx_create(domains[i], contexts + (2 * i + 1));
+        assert(err == 0);
+    }
+
     pe = shmem_my_pe();
     npes = shmem_n_pes();
 
@@ -418,16 +420,17 @@ int main(int argc, char **argv) {
 
     const uint64_t edges_per_pe = (nglobaledges + npes - 1) / npes;
     const uint64_t start_edge_index = pe * edges_per_pe;
-    uint64_t nedges_this_pe = edges_per_pe;
+    int64_t nedges_this_pe = edges_per_pe;
     if (start_edge_index + nedges_this_pe > nglobaledges) {
         nedges_this_pe = nglobaledges - start_edge_index;
         if (nedges_this_pe < 0) nedges_this_pe = 0;
     }
 
     if (pe == 0) {
-        fprintf(stderr, "%llu: %lu total vertices, %lu total edges, %d PEs, ~%lu edges per "
-                "PE, ~%lu vertices per PE\n", current_time_ns(), nglobalverts, nglobaledges, npes,
-                edges_per_pe, get_vertices_per_pe(nglobalverts));
+        fprintf(stderr, "%llu: %lu total vertices, %lu total edges, %d PEs, "
+                "~%lu edges per PE, ~%lu vertices per PE, %d threads per PE\n",
+                current_time_ns(), nglobalverts, nglobaledges, npes,
+                edges_per_pe, get_vertices_per_pe(nglobalverts), nthreads);
     }
 
     /*
@@ -486,6 +489,11 @@ int main(int argc, char **argv) {
     fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
             SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #endif
+    int *pWrkInt = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(*pWrkInt));
+    long long *pWrkLongLong = (long long *)shmem_malloc(
+            SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(*pWrkLongLong));
+    assert(pWrkInt && pWrkLongLong);
+
     long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #ifdef VERBOSE
     fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
@@ -498,7 +506,7 @@ int main(int argc, char **argv) {
         pSync2[i] = SHMEM_SYNC_VALUE;
     }
     shmem_longlong_max_to_all((long long int *)&max_n_local_edges,
-            (long long int *)&n_local_edges, 1, 0, 0, npes, pWrk, pSync);
+            (long long int *)&n_local_edges, 1, 0, 0, npes, pWrkLongLong, pSync);
 
     if (pe == 0) {
         fprintf(stderr, "%llu: Max. # local edges = %lld\n", current_time_ns(),
@@ -513,14 +521,6 @@ int main(int argc, char **argv) {
     } else {
         n_local_vertices = local_max_vertex - local_min_vertex;
     }
-
-    // Contains parent-id + 1 for each local vertex
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
-            n_local_vertices * sizeof(uint64_t));
-#endif
-    uint64_t *preds = (uint64_t *)calloc(n_local_vertices, sizeof(uint64_t));
-    assert(preds);
 
     /*
      * Allocate buffers on each PE for storing all edges for which at least one
@@ -639,7 +639,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    // Remove duplicate edges
+    // Remove duplicate edges in neighbors
     uint64_t writing_index = 0;
     for (i = 0; i < n_local_vertices; i++) {
         const unsigned start = local_vertex_offsets[i];
@@ -686,321 +686,247 @@ int main(int argc, char **argv) {
         }
     }
 
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d found %llu duplicate edges, total endpoints = %llu\n", pe,
-            duplicates, total_endpoints);
-#endif
+    // For debugging, print all vertices
+    // {
+    //     int k;
+    //     for (k = 0; k < npes; k++) {
+    //         if (k == shmem_my_pe()) {
+    //             for (i = 0; i < n_local_vertices; i++) {
+    //                 const unsigned neighbors_start = local_vertex_offsets[i];
+    //                 const unsigned neighbors_end = local_vertex_offsets[i + 1];
+
+    //                 fprintf(stderr, "HOWDY %d :", local_min_vertex + i);
+    //                 int j;
+    //                 for (j = neighbors_start; j < neighbors_end; j++) {
+    //                     fprintf(stderr, " %d", neighbors[j]);
+    //                 }
+    //                 fprintf(stderr, "\n");
+    //             }
+
+    //         }
+    //         shmem_barrier_all();
+    //     }
+    // }
 
     shmem_free(local_edges);
 
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
-            INCOMING_MAILBOX_SIZE_IN_BYTES);
-#endif
-    unsigned char *recv_buf = (unsigned char *)shmem_malloc(
-            INCOMING_MAILBOX_SIZE_IN_BYTES);
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
-            INCOMING_MAILBOX_SIZE_IN_BYTES);
-#endif
-    unsigned char *inactive_recv_buf = (unsigned char *)shmem_malloc(
-            INCOMING_MAILBOX_SIZE_IN_BYTES);
-    assert(recv_buf && inactive_recv_buf);
-    int *recv_buf_index = (int *)shmem_malloc(sizeof(int));
-    int *inactive_recv_buf_index = (int *)shmem_malloc(sizeof(int));
-    assert(recv_buf_index && inactive_recv_buf_index);
+    int *first_traversed_by = (int *)shmem_malloc(
+            get_vertices_per_pe(nglobalverts) * sizeof(*first_traversed_by));
+    assert(first_traversed_by);
 
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
-            QUEUE_SIZE * sizeof(uint64_t));
-#endif
-    uint64_t *curr_q = (uint64_t *)malloc(QUEUE_SIZE * sizeof(uint64_t));
-    assert(curr_q);
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
-            QUEUE_SIZE * sizeof(uint64_t));
-#endif
-    uint64_t *next_q = (uint64_t *)malloc(QUEUE_SIZE * sizeof(uint64_t));
-    assert(next_q);
-    unsigned curr_q_size = 0;
-    unsigned next_q_size = 0;
-
-    unsigned char *empty_packet = (unsigned char *)shmem_malloc(
-            SEND_HEADER_SIZE);
-    assert(empty_packet);
-    *((size_type *)(empty_packet + sizeof(crc))) = 0;
-    *((crc *)(empty_packet + sizeof(crc) + sizeof(size_type))) = 0;
-    const crc empty_packet_hash = hash(
-            (const unsigned char * const)(empty_packet + sizeof(crc)),
-            SEND_HEADER_SIZE - sizeof(crc));
-
-    int *nmessages_local = (int *)shmem_malloc(sizeof(int));
-    int *nmessages_global = (int *)shmem_malloc(sizeof(int));
-    assert(nmessages_local && nmessages_global);
-    int *pWrk_int = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(int));
-    int *pWrk_int2 = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(int));
-    assert(pWrk_int && pWrk_int2);
+    int *my_n_signalled = (int *)shmem_malloc(sizeof(*my_n_signalled));
+    assert(my_n_signalled);
+    int *total_n_signalled = (int *)shmem_malloc(sizeof(*total_n_signalled));
+    assert(total_n_signalled);
+    int *my_natomics = (int *)shmem_malloc(sizeof(*my_natomics));
+    assert(my_natomics);
+    int *total_natomics = (int *)shmem_malloc(sizeof(*total_natomics));
+    assert(total_natomics);
 
     const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
             BITS_PER_INT);
     const size_t visited_bytes = visited_ints * sizeof(unsigned);
-    unsigned *visited = (unsigned *)shmem_malloc(visited_bytes);
-    unsigned *next_visited = (unsigned *)shmem_malloc(visited_bytes);
-    assert(visited && next_visited);
-#ifdef PROFILE
-#ifdef DETAILED_PROFILE
-    wavefront_visited = (unsigned *)malloc(visited_bytes);
-    assert(wavefront_visited);
-#endif
-#endif
+    unsigned *shared_visited = (unsigned *)shmem_malloc(visited_bytes);
+    assert(shared_visited);
+    unsigned *local_visited = (unsigned *)malloc(visited_bytes);
+    assert(local_visited);
 
-    // Buffers to use to transmit next wave to each other PE, output only
-    send_buf *pre_allocated_send_bufs = NULL;
-    unsigned count_pre_allocated = 0;
-    while (1) {
-        unsigned char *buf = (unsigned char *)shmem_malloc(
-                SEND_BUFFER_SIZE + SEND_HEADER_SIZE);
-        if (!buf) break;
-        send_buf *new_send_buf = (send_buf *)malloc(sizeof(send_buf));
-        new_send_buf->buf = buf;
-        new_send_buf->next = pre_allocated_send_bufs;
-        pre_allocated_send_bufs = new_send_buf;
-        count_pre_allocated++;
-    }
-    const send_buf * const save_pre_allocated_send_bufs =
-        pre_allocated_send_bufs;
+    vert_info *verts = (vert_info *)shmem_malloc(get_vertices_per_pe(nglobalverts) *
+            sizeof(*verts));
+    assert(verts);
+    // short *steady_state = (short *)shmem_malloc(get_vertices_per_pe(nglobalverts) * sizeof(*steady_state));
+    // assert(steady_state);
+    // short *last_put = (short *)shmem_malloc(get_vertices_per_pe(nglobalverts) * sizeof(*last_put));
+    // assert(last_put);
+    // short *updating = (short *)shmem_malloc(get_vertices_per_pe(nglobalverts) * sizeof(*updating));
+    // assert(updating);
 
-    send_buf **send_bufs = (send_buf **)malloc(npes * sizeof(send_buf *));
-    assert(send_bufs);
-    unsigned *send_bufs_size = (unsigned *)malloc(npes * sizeof(unsigned));
-    assert(send_bufs_size);
-
-    const unsigned num_bfs_roots = 1;
-    assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
+    int old;
 
     unsigned run;
     for (run = 0; run < num_bfs_roots; run++) {
-        memset(visited, 0x00, visited_bytes);
-        memset(preds, 0x00, n_local_vertices * sizeof(uint64_t));
-        memset(send_bufs, 0x00, npes * sizeof(send_buf *));
-        memset(send_bufs_size, 0x00, npes * sizeof(unsigned));
-        *recv_buf_index = 0;
-        *inactive_recv_buf_index = 0;
-        memset(recv_buf, 0x00, INCOMING_MAILBOX_SIZE_IN_BYTES);
-        memset(inactive_recv_buf, 0x00, INCOMING_MAILBOX_SIZE_IN_BYTES);
-        curr_q_size = 0;
-        next_q_size = 0;
 
-        // uint64_t root = bfs_roots[run];
+        memset(first_traversed_by, 0x00,
+                get_vertices_per_pe(nglobalverts) * sizeof(*first_traversed_by));
+        memset(shared_visited, 0x00, visited_bytes);
+        memset(local_visited, 0x00, visited_bytes);
+        memset(verts, 0x00, get_vertices_per_pe(nglobalverts) * sizeof(*verts));
+        // memset(steady_state, 0x00, get_vertices_per_pe(nglobalverts) * sizeof(*steady_state));
+        // memset(last_put, 0x00, get_vertices_per_pe(nglobalverts) * sizeof(*last_put));
+        // memset(updating, 0x00, get_vertices_per_pe(nglobalverts) * sizeof(*updating));
+
+        int last_put_index = 0;
         uint64_t root = 0;
+        set_visited(root, shared_visited, visited_ints, local_min_vertex);
+        set_visited(root, local_visited, visited_ints, local_min_vertex);
 
-        set_visited(root, visited, visited_ints, local_min_vertex);
         if (get_owner_pe(root, nglobalverts) == pe) {
-            /*
-             * Signal that this PE has received 1 item in its inbox, setting the
-             * parent for vertex 0 to 0.
-             */
-            curr_q[0] = root;
-            curr_q_size = 1;
+            // last_put[root - local_min_vertex] = pe + 1;
+            verts[root - local_min_vertex].bufs[last_put_index] = pe + 1;
         }
 
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
-        const uint64_t vertices_per_pe = get_vertices_per_pe(nglobalverts);
+        *my_natomics = 0;
 
-#ifdef PROFILE
-        unsigned long long accum_time = 0;
-        unsigned long long send_time = 0;
-        unsigned long long reduce_time = 0;
-#endif
+        int prev_prev_put = 0;
+        int prev_put = 0;
 
-        while (1) {
-#ifdef PROFILE
-#ifdef DETAILED_PROFILE
-            memset(wavefront_visited, 0x00, visited_bytes);
-            duplicates_in_same_wavefront = 0;
-#endif
-            const unsigned long long start_accum = current_time_ns();
-#endif
-            *nmessages_local = 0;
-            // int nmessages_local = 0;
+        do {
+            *my_n_signalled = 0;
+            // memset(my_n_signalled, 0x00, (npes + 1) * sizeof(*my_n_signalled));
+            int old; // unused
+            short pe_plus_one = pe + 1;
+            const int updating_index = (last_put_index + 1) % 2;
 
-            unsigned ndone = 0;
-            *nmessages_global = 0;
-            // unsigned nmessages_global = 0;
-            next_q_size = 0;
+            int reduced_natomics = 0;
+            unsigned long long reduced_quiet_time = 0;
 
-            unsigned char *iter_buf = recv_buf;
-            for (i = 0; i < curr_q_size; i++) {
-                /* check_for_receives(&iter_buf, &ndone,
-                        nglobalverts, visited, local_min_vertex, next_q,
-                        &next_q_size, preds, visited_ints); */
+            const int put_delta = prev_put - prev_prev_put;
 
-                uint64_t vertex = curr_q[i];
+            const unsigned long long start_iter = current_time_ns();
+#pragma omp parallel reduction(+:reduced_natomics) reduction(+:reduced_quiet_time) default(none) \
+            firstprivate(pe_plus_one, my_n_signalled, pe, \
+                    npes, local_min_vertex, local_max_vertex, verts, \
+                    local_visited, neighbors, \
+                    shared_visited, local_vertex_offsets, n_local_vertices, contexts, last_put_index, put_delta)
+            {
 
-                const int neighbor_start = local_vertex_offsets[vertex -
-                    local_min_vertex];
-                const int neighbor_end = local_vertex_offsets[vertex -
-                    local_min_vertex + 1];
+                shmemx_ctx_t curr_ctx = contexts[2 * omp_get_thread_num()];
+                shmemx_ctx_t idle_ctx = contexts[2 * omp_get_thread_num() + 1];
+                int thread_natomics = 0;
+                unsigned long long thread_quiet_time = 0;
 
-                int j;
-                for (j = neighbor_start; j < neighbor_end; j++) {
-                    const uint64_t to_explore = neighbors[j];
+                uint64_t local_vertex_id;
+                const int nchunks = 4 * omp_get_num_threads();
+                const int chunk_size = (n_local_vertices + nchunks - 1) /
+                    nchunks;
 
-                    if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
-                        const int target_pe = get_owner_pe(to_explore,
-                                nglobalverts);
-                        set_visited(to_explore, visited, visited_ints, local_min_vertex);
+                if (put_delta > 100000) {
+#pragma omp for schedule(dynamic,chunk_size)
+                    for (local_vertex_id = 0;
+                            local_vertex_id < n_local_vertices; local_vertex_id++) {
 
-                        *nmessages_local = *nmessages_local + 1;
+                        loop_body(verts, local_vertex_id, last_put_index,
+                                local_vertex_offsets, neighbors, nglobalverts,
+                                shared_visited, visited_ints, local_min_vertex,
+                                local_visited, updating_index, &pe_plus_one,
+                                &curr_ctx, &idle_ctx, &thread_natomics,
+                                &thread_quiet_time);
+                    }
+                } else {
+#pragma omp for schedule(static)
+                    for (local_vertex_id = 0;
+                            local_vertex_id < n_local_vertices; local_vertex_id++) {
 
-                        if (target_pe == pe) {
-                            preds[to_explore - local_min_vertex] = vertex;
-                            const unsigned q_index = next_q_size;
-                            next_q_size = q_index + 1;
-                            assert(q_index < QUEUE_SIZE);
-                            next_q[q_index] = to_explore;
-                        } else {
-                            if (send_bufs[target_pe] == NULL) {
-                                GET_SEND_BUF(target_pe)
-                            }
-
-                            unsigned char *write_at =
-                                send_bufs[target_pe]->buf +
-                                send_bufs_size[target_pe];
-                            write_edge((packed_edge *)write_at, to_explore,
-                                    vertex);
-                            send_bufs_size[target_pe] += sizeof(packed_edge);
-
-                            assert(send_bufs_size[target_pe] <= SEND_BUFFER_SIZE);
-                            if (SEND_BUF_SIZE_TO_NEDGES(send_bufs_size[target_pe]) == COALESCING) {
-                                // Send
-                                SEND_PACKET(target_pe)
-                            }
-                        }
+                        loop_body(verts, local_vertex_id, last_put_index,
+                                local_vertex_offsets, neighbors, nglobalverts,
+                                shared_visited, visited_ints, local_min_vertex,
+                                local_visited, updating_index, &pe_plus_one,
+                                &curr_ctx, &idle_ctx, &thread_natomics,
+                                &thread_quiet_time);
                     }
                 }
-            }
 
-#ifdef PROFILE
-            const unsigned long long end_accum = current_time_ns();
-            accum_time += (end_accum - start_accum);
-#endif
+                const size_t min_byte_to_send = local_min_vertex / BITS_PER_BYTE;
+                const size_t max_byte_to_send = local_max_vertex / BITS_PER_BYTE;
+                const size_t bytes_to_send = max_byte_to_send - min_byte_to_send + 1;
+                char *my_visited = ((char *)shared_visited) + min_byte_to_send;
 
-            // unsigned handled_in_middle = 0;
-            for (i = 1; i < npes; i++) {
-                /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
-                        nglobalverts, visited, local_min_vertex, next_q,
-                        &next_q_size, preds, visited_ints);
-
-                const int target = (pe + i) % npes;
-                if (send_bufs[target]) {
-                    SEND_PACKET(target)
+#pragma omp for schedule(static)
+                for (i = 0; i < npes - 1; i++) {
+                    if (i >= pe) {
+                        i = i + 1;
+                    }
+                    shmemx_ctx_putmem_nbi(my_visited, my_visited, bytes_to_send, i,
+                            curr_ctx);
                 }
-                // if (send_bufs[target]) {
-                //     // Send any remainders
-                //     SEND_WITH_EMPTY_PACKET(target)
-                // } else {
-                //     /*
-                //      * Send 0-length packet to signify this PE is done sending to
-                //      * target.
-                //      */
-                //     SEND_EMPTY_PACKET(target)
-                // }
+
+                reduced_natomics += thread_natomics;
+                reduced_quiet_time += thread_quiet_time;
             }
 
-#ifdef PROFILE
-            const unsigned long long end_send = current_time_ns();
-            send_time += (end_send - end_accum);
-#endif
+            const unsigned long long end_kernel = current_time_ns();
 
-            shmem_int_sum_to_all(nmessages_global, nmessages_local, 1, 0, 0,
-                    npes, pWrk_int, pSync);
-            // shmem_int_or_to_all((int *)next_visited, (int *)visited,
-            //         visited_ints, 0, 0, npes, pWrk_int2, pSync2);
+            *my_natomics += reduced_natomics;
+            *my_n_signalled = reduced_natomics;
+
+            shmem_int_sum_to_all(total_n_signalled, my_n_signalled, 1, 0, 0,
+                    npes, pWrkInt, pSync);
+
+            const unsigned long long end_reduction = current_time_ns();
+
+            for (i = 0; i < 2 * nthreads; i++) {
+                shmemx_ctx_quiet(contexts[i]);
+            }
             shmem_barrier_all();
 
-            /* nmessages_global += */ check_for_receives(&iter_buf, &ndone,
-                    nglobalverts, visited, local_min_vertex, next_q,
-                    &next_q_size, preds, visited_ints);
+            const unsigned long long end_iter = current_time_ns();
+            printf("PE %d iter %d kernel = %f ms, reduce = %f ms, barrier = %f "
+                    "ms, %d sends / %llu vertices, signalled = %d, %s, "
+                    "quiet time = %f ms\n", pe, iter,
+                    (double)(end_kernel - start_iter) / 1000000.0,
+                    (double)(end_reduction - end_kernel) / 1000000.0,
+                    (double)(end_iter - end_reduction) / 1000000.0,
+                    reduced_natomics, nglobalverts, *total_n_signalled,
+                    (put_delta > 100000 ? "dynamic" : "static"),
+                    (double)reduced_quiet_time / 1000000.0);
 
-            // while (ndone < npes - 1) {
-            //     nmessages_global += check_for_receives(&iter_buf, &ndone,
-            //             nglobalverts, visited, local_min_vertex, next_q,
-            //             &next_q_size, preds, visited_ints);
-            // }
-
-            *recv_buf_index = 0;
-            int *tmp_recv_buf_index = recv_buf_index;
-            recv_buf_index = inactive_recv_buf_index;
-            inactive_recv_buf_index = tmp_recv_buf_index;
-
-            unsigned char *tmp_recv_buf = recv_buf;
-            recv_buf = inactive_recv_buf;
-            inactive_recv_buf = tmp_recv_buf;
-
-            uint64_t *tmp_q = curr_q;
-            curr_q = next_q;
-            next_q = tmp_q;
-
-            unsigned tmp_q_size = curr_q_size;
-            curr_q_size = next_q_size;
-            next_q_size = tmp_q_size;
-
-            // unsigned *tmp_visited = visited;
-            // visited = next_visited;
-            // next_visited = tmp_visited;
-
-            // shmem_quiet();
-#ifdef PROFILE
-            const unsigned long long end_all = current_time_ns();
-            reduce_time += (end_all - end_send);
-//             fprintf(stderr, "PE %d iter %d duplicates %llu\n",
-//                     pe, iter, duplicates_in_same_wavefront);
-#endif
-
-            if (*nmessages_global == 0) {
-            // if (nmessages_local + nmessages_global == 0) {
-                break;
-            }
-
-            // Restore all send buffers to unused
-            pre_allocated_send_bufs = (send_buf *)save_pre_allocated_send_bufs;
+            // short *tmp = last_put;
+            // last_put = updating;
+            // updating = tmp;
 
             iter++;
-        }
+            last_put_index = (last_put_index + 1) % 2;
 
-        shmem_barrier_all();
+            prev_prev_put = prev_put;
+            prev_put = *total_n_signalled;
+        } while (*total_n_signalled > 0);
+
         const unsigned long long end_bfs = current_time_ns();
-        if (pe == 0) {
-            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters\n",
-                    run, root, (double)(end_bfs - start_bfs) / 1000000.0,
-                    iter + 1);
-        }
 
-#ifdef PROFILE
-        fprintf(stderr, "PE %d : %llu ms accumulating, %llu ms sending, %llu "
-                "ms reducing, %llu ms hashing for %llu calls (%llu wasted), "
-                "%llu total packets received (%llu wasted, %f%%), %llu total "
-                "elements received (%llu wasted, %f%%)"
-#ifdef DETAILED_PROFILE
-                ", %llu duplicates found in same wavefront (%f%% of total wasted elements)"
-#endif
-                "\n",
-                pe, accum_time / 1000000, send_time / 1000000,
-                reduce_time / 1000000, hash_time / 1000000, hash_calls,
-                wasted_hashes, total_packets_received, n_packets_wasted,
-                ((double)n_packets_wasted / (double)total_packets_received) * 100.0,
-                total_elements_received, n_elements_wasted,
-                ((double)n_elements_wasted / (double)total_elements_received) * 100.0
-#ifdef DETAILED_PROFILE
-                , duplicates_in_same_wavefront_total,
-                ((double)duplicates_in_same_wavefront_total / (double)n_elements_wasted) * 100.0
-#endif
-                );
-#endif
+        // For debugging on small datasets, print results
+        // for (i = 0; i < nglobalverts; i++) {
+        //     if (get_owner_pe(i, nglobalverts) == pe) {
+        //         printf("Vertex %d : traversed by %d\n", i,
+        //                 first_traversed_by[i - local_min_vertex]);
+        //     }
+        //     shmem_barrier_all();
+        // }
+
+        // Lightweight validation
+        // int count_not_set = 0;
+        // int count_not_handled = 0;
+        // int count_set = 0;
+        // for (i = 0; i < n_local_vertices; i++) {
+        //     const int curr = first_traversed_by[i];
+        //     if (curr == 0) {
+        //         count_not_set++;
+        //     } else if (curr > 0) {
+        //         count_not_handled++;
+        //     } else {
+        //         count_set++;
+        //     }
+        // }
+        // fprintf(stderr, "PE %d, run %d : set %d , not set %d , unhandled %d\n",
+        //         shmem_my_pe(), run, count_set, count_not_set, count_not_handled);
+
+        shmem_int_sum_to_all(total_natomics, my_natomics, 1, 0, 0,
+                npes, pWrkInt, pSync);
+        shmem_barrier_all();
+
+        if (pe == 0) {
+            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters, %d atomics\n",
+                    run, root, (double)(end_bfs - start_bfs) / 1000000.0,
+                    iter, *total_natomics);
+        }
     }
+
+    for (i = 0; i < nthreads; i++) {
+        shmemx_ctx_destroy(contexts[i]);
+    }
+    shmemx_domain_destroy(nthreads, domains);
 
     shmem_finalize();
 
