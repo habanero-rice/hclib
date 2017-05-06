@@ -64,7 +64,7 @@
 #define BITS_PER_BYTE 8
 #define BITS_PER_INT (sizeof(unsigned) * BITS_PER_BYTE)
 
-#define MAX_ITERS 10
+#define CONTEXTS_PER_THREAD 2
 
 typedef struct {
     short steady_state;
@@ -272,14 +272,14 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
         unsigned *shared_visited, const size_t visited_ints,
         const uint64_t local_min_vertex, unsigned *local_visited,
         const int updating_index, const short *pe_plus_one_ptr,
-        shmemx_ctx_t *curr_ctx, shmemx_ctx_t *idle_ctx, int *thread_natomics,
-        unsigned long long *time_blocked_on_quiet) {
+        int *thread_natomics,
+        unsigned long long *time_blocked_on_quiet, shmemx_ctx_t *thread_ctxs,
+        int *natomics_issued, int *curr_ctx_index) {
     const short curr = verts[local_vertex_id].bufs[last_put_index];
     // const short curr = last_put[local_vertex_id];
 
     // if (curr > 0 && steady_state[local_vertex_id] == 0)
-    if (curr > 0 && verts[local_vertex_id].steady_state == 0)
-    {
+    if (curr > 0 && verts[local_vertex_id].steady_state == 0) {
         const int neighbor_start = local_vertex_offsets[local_vertex_id];
         const int neighbor_end = local_vertex_offsets[local_vertex_id + 1];
 
@@ -298,9 +298,13 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
                         visited_ints, local_min_vertex);
 
             if (!already_visited) {
+                const int ctx_index = *curr_ctx_index;
+                const shmemx_ctx_t curr_ctx = thread_ctxs[ctx_index];
+
                 shmemx_ctx_putmem(
                         &(verts[to_explore_local_id].bufs[updating_index]),
-                        pe_plus_one_ptr, sizeof(*pe_plus_one_ptr), target_pe, *curr_ctx);
+                        pe_plus_one_ptr, sizeof(*pe_plus_one_ptr), target_pe,
+                        curr_ctx);
                 // shmemx_ctx_short_put_nbi(
                 //         &(verts[to_explore_local_id].bufs[updating_index]),
                 //         pe_plus_one_ptr, 1, target_pe, *curr_ctx);
@@ -312,19 +316,35 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
                 //         pe_plus_one, target_pe, curr_ctx);
                 // shmem_short_p(updating + to_explore_local_id,
                 //         pe_plus_one, target_pe);
-                int curr_n_atomics = *thread_natomics + 1;
+                const int curr_n_atomics = *thread_natomics + 1;
                 *thread_natomics = curr_n_atomics;
 
-                if (curr_n_atomics % 256 == 0) {
+                natomics_issued[ctx_index]++;
+
+                if (natomics_issued[ctx_index] > 512) {
+                    // Want to start quieting this one and move to the next one
+                    const int next_index = (ctx_index + 1) % CONTEXTS_PER_THREAD;
+                    shmemx_ctx_t next_ctx = thread_ctxs[next_index];
                     const unsigned long long start_quiet = current_time_ns();
-                    shmemx_ctx_quiet(*idle_ctx);
+                    // shmemx_ctx_quiet(next_ctx);
+                    if (shmemx_ctx_try_quiet(next_ctx) == 0) {
+                        natomics_issued[next_index] = 0;
+                        *curr_ctx_index = next_index;
+                    }
                     const unsigned long long elapsed_quiet = current_time_ns() - start_quiet;
                     *time_blocked_on_quiet += elapsed_quiet;
-
-                    shmemx_ctx_t tmp_ctx = *curr_ctx;
-                    *curr_ctx = *idle_ctx;
-                    *idle_ctx = *curr_ctx;
                 }
+
+                // if (curr_n_atomics % 256 == 0) {
+                //     const unsigned long long start_quiet = current_time_ns();
+                //     shmemx_ctx_quiet(*idle_ctx);
+                //     const unsigned long long elapsed_quiet = current_time_ns() - start_quiet;
+                //     *time_blocked_on_quiet += elapsed_quiet;
+
+                //     shmemx_ctx_t tmp_ctx = *curr_ctx;
+                //     *curr_ctx = *idle_ctx;
+                //     *idle_ctx = *curr_ctx;
+                // }
 
                 set_visited(to_explore_global_id, local_visited,
                         visited_ints, local_min_vertex);
@@ -397,7 +417,7 @@ int main(int argc, char **argv) {
 
     uint64_t i;
     shmemx_domain_t *domains = (shmemx_domain_t *)malloc(nthreads * sizeof(*domains));
-    shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(2 * nthreads * sizeof(*contexts));
+    shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(CONTEXTS_PER_THREAD * nthreads * sizeof(*contexts));
     assert(domains && contexts);
 
     int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
@@ -405,10 +425,12 @@ int main(int argc, char **argv) {
     assert(err == 0); 
 
     for (i = 0; i < nthreads; i++) {
-        err = shmemx_ctx_create(domains[i], contexts + (2 * i));
-        assert(err == 0);
-        err = shmemx_ctx_create(domains[i], contexts + (2 * i + 1));
-        assert(err == 0);
+        int j;
+        for (j = 0; j < CONTEXTS_PER_THREAD; j++) {
+            err = shmemx_ctx_create(domains[i],
+                    contexts + (CONTEXTS_PER_THREAD * i + j));
+            assert(err == 0);
+        }
     }
 
     pe = shmem_my_pe();
@@ -793,8 +815,11 @@ int main(int argc, char **argv) {
                     shared_visited, local_vertex_offsets, n_local_vertices, contexts, last_put_index, put_delta)
             {
 
-                shmemx_ctx_t curr_ctx = contexts[2 * omp_get_thread_num()];
-                shmemx_ctx_t idle_ctx = contexts[2 * omp_get_thread_num() + 1];
+                shmemx_ctx_t *thread_ctxs = contexts +
+                    (omp_get_thread_num() * CONTEXTS_PER_THREAD);
+                int natomics_issued[CONTEXTS_PER_THREAD] = {0};
+                int curr_ctx_index = 0;
+
                 int thread_natomics = 0;
                 unsigned long long thread_quiet_time = 0;
 
@@ -812,8 +837,9 @@ int main(int argc, char **argv) {
                                 local_vertex_offsets, neighbors, nglobalverts,
                                 shared_visited, visited_ints, local_min_vertex,
                                 local_visited, updating_index, &pe_plus_one,
-                                &curr_ctx, &idle_ctx, &thread_natomics,
-                                &thread_quiet_time);
+                                &thread_natomics,
+                                &thread_quiet_time, thread_ctxs,
+                                natomics_issued, &curr_ctx_index);
                     }
                 } else {
 #pragma omp for schedule(static)
@@ -824,8 +850,9 @@ int main(int argc, char **argv) {
                                 local_vertex_offsets, neighbors, nglobalverts,
                                 shared_visited, visited_ints, local_min_vertex,
                                 local_visited, updating_index, &pe_plus_one,
-                                &curr_ctx, &idle_ctx, &thread_natomics,
-                                &thread_quiet_time);
+                                &thread_natomics,
+                                &thread_quiet_time, thread_ctxs,
+                                natomics_issued, &curr_ctx_index);
                     }
                 }
 
@@ -839,8 +866,8 @@ int main(int argc, char **argv) {
                     if (i >= pe) {
                         i = i + 1;
                     }
-                    shmemx_ctx_putmem_nbi(my_visited, my_visited, bytes_to_send, i,
-                            curr_ctx);
+                    shmemx_ctx_putmem_nbi(my_visited, my_visited, bytes_to_send,
+                            i, thread_ctxs[0]);
                 }
 
                 reduced_natomics += thread_natomics;
@@ -857,7 +884,7 @@ int main(int argc, char **argv) {
 
             const unsigned long long end_reduction = current_time_ns();
 
-            for (i = 0; i < 2 * nthreads; i++) {
+            for (i = 0; i < CONTEXTS_PER_THREAD * nthreads; i++) {
                 shmemx_ctx_quiet(contexts[i]);
             }
             shmem_barrier_all();
