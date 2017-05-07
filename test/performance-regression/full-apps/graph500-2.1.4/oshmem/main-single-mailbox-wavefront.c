@@ -326,11 +326,11 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
                     const int next_index = (ctx_index + 1) % CONTEXTS_PER_THREAD;
                     shmemx_ctx_t next_ctx = thread_ctxs[next_index];
                     const unsigned long long start_quiet = current_time_ns();
-                    // shmemx_ctx_quiet(next_ctx);
-                    if (shmemx_ctx_try_quiet(next_ctx) == 0) {
+                    shmemx_ctx_quiet(next_ctx);
+                    // if (shmemx_ctx_try_quiet(next_ctx) == 0) {
                         natomics_issued[next_index] = 0;
                         *curr_ctx_index = next_index;
-                    }
+                    // }
                     const unsigned long long elapsed_quiet = current_time_ns() - start_quiet;
                     *time_blocked_on_quiet += elapsed_quiet;
                 }

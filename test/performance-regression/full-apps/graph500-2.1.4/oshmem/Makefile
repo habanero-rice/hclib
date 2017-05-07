@@ -52,7 +52,7 @@ bfs_oshmem-single-mailbox-omp: main-single-mailbox-omp.c utilities.c mrg.c split
 	gcc -fopenmp -I$(OPENSHMEM_INSTALL)/include $(OSHMEM_LD_FLAGS) -lrt -o $@ $^ -O3 -DGENERATOR_USE_PACKED_EDGE_TYPE
 
 bfs_oshmem-single-mailbox-atomics: main-single-mailbox-atomics.c crc/crc.c smhasher/src/MurmurHash3.cpp cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
-	g++ -std=c++11 $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -I$(OPENSHMEM_INSTALL)/include $(OSHMEM_LD_FLAGS) -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE
+	$(OPENSHMEM_INSTALL)/bin/oshcc $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE -fopenmp
 
 bfs_oshmem-single-mailbox-wavefront: main-single-mailbox-wavefront.c crc/crc.c smhasher/src/MurmurHash3.cpp cityhash/src/city.cc utilities.c mrg.c splittable_mrg.c generator.c
 	$(OPENSHMEM_INSTALL)/bin/oshcc $(FLAGS) -DUSE_CITY64 -DCRC32 -Icrc -Ismhasher/src -Icityhash/src -Icityhash -lrt -o $@ $^ -DGENERATOR_USE_PACKED_EDGE_TYPE -fopenmp

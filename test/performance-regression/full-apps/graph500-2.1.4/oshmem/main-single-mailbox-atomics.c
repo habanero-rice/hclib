@@ -8,6 +8,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #include <signal.h>
 #include <unistd.h>
@@ -17,24 +18,24 @@
 
 // #define VERBOSE
 
-#ifdef USE_CRC
-#include "crc.h"
-typedef int32_t size_type;
-#elif USE_MURMUR
-#include "MurmurHash3.h"
-typedef uint32_t crc;
-typedef int32_t size_type;
-#elif USE_CITY32
-#include "city.h"
-typedef uint32_t crc;
-typedef int32_t size_type;
-#elif USE_CITY64
-#include "city.h"
-typedef uint64_t crc;
-typedef int64_t size_type;
-#else
-#error No hashing algorithm specific
-#endif
+// #ifdef USE_CRC
+// #include "crc.h"
+// typedef int32_t size_type;
+// #elif USE_MURMUR
+// #include "MurmurHash3.h"
+// typedef uint32_t crc;
+// typedef int32_t size_type;
+// #elif USE_CITY32
+// #include "city.h"
+// typedef uint32_t crc;
+// typedef int32_t size_type;
+// #elif USE_CITY64
+// #include "city.h"
+// typedef uint64_t crc;
+// typedef int64_t size_type;
+// #else
+// #error No hashing algorithm specific
+// #endif
 
 #include "mrg.h"
 #include "packed_edge.h"
@@ -151,31 +152,31 @@ unsigned long long duplicates_in_same_wavefront_total = 0;
 #endif
 #endif
 
-static inline crc hash(const unsigned char * const data, const size_t len) {
-#ifdef PROFILE
-    const unsigned long long start_time = current_time_ns();
-#endif
-
-    crc result;
-#ifdef USE_CRC
-    result = crcFast(data, len);
-#elif USE_MURMUR
-    MurmurHash3_x86_32(data, len, 12345, &result);
-#elif USE_CITY32
-    result = CityHash32((const char *)data, len);
-#elif USE_CITY64
-    result = CityHash64((const char *)data, len);
-#else
-#error No hashing algorithm specified
-#endif
-
-#ifdef PROFILE
-    hash_time += (current_time_ns() - start_time);
-    hash_calls++;
-#endif
-
-    return result;
-}
+// static inline crc hash(const unsigned char * const data, const size_t len) {
+// #ifdef PROFILE
+//     const unsigned long long start_time = current_time_ns();
+// #endif
+// 
+//     crc result;
+// #ifdef USE_CRC
+//     result = crcFast(data, len);
+// #elif USE_MURMUR
+//     MurmurHash3_x86_32(data, len, 12345, &result);
+// #elif USE_CITY32
+//     result = CityHash32((const char *)data, len);
+// #elif USE_CITY64
+//     result = CityHash64((const char *)data, len);
+// #else
+// #error No hashing algorithm specified
+// #endif
+// 
+// #ifdef PROFILE
+//     hash_time += (current_time_ns() - start_time);
+//     hash_calls++;
+// #endif
+// 
+//     return result;
+// }
 
 uint64_t bfs_roots[] = {240425174, 115565041, 66063943, 180487911, 11178951,
     123935973, 231036167, 373595937, 363787030, 85801485, 108275987, 69071368,
@@ -259,117 +260,117 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
-static inline unsigned check_for_receives(unsigned char **iter_buf,
-        unsigned *ndone, const uint64_t nglobalverts,
-        unsigned *visited, const uint64_t local_min_vertex,
-        uint64_t *next_q, unsigned *next_q_size,
-        uint64_t *preds, const size_t visited_ints) {
-    unsigned count_messages = 0;
-
-    unsigned char *local_iter_buf = *iter_buf;
-    volatile crc *crc_ptr = (volatile crc *)local_iter_buf;
-    crc checksum = *crc_ptr;
-    crc calculated_checksum = hash(
-            (const unsigned char *)(local_iter_buf + sizeof(crc)),
-            SEND_HEADER_SIZE - sizeof(crc));
-    while (checksum == calculated_checksum) {
-        // At this point we can assume the header is intact, but not the body
-        volatile size_type *length_in_bytes_ptr = (volatile size_type *)(crc_ptr + 1);
-        const size_type length_in_bytes = *length_in_bytes_ptr;
-        volatile crc *body_crc_ptr = (volatile crc *)(length_in_bytes_ptr + 1);
-        const crc body_crc = *body_crc_ptr;
-        unsigned char *body = (unsigned char *)(body_crc_ptr + 1);
-
-        assert(length_in_bytes > 0);
-
-        // if (length_in_bytes > 0) {
-            crc calculated_body_crc = hash((const unsigned char *)body,
-                    length_in_bytes - SEND_HEADER_SIZE);
-
-            if (calculated_body_crc != body_crc) {
-#ifdef PROFILE
-                wasted_hashes++;
-#endif
-                break;
-            }
-
-#ifdef PROFILE
-            total_packets_received++;
-            unsigned local_elements_wasted = 0;
-#endif
-
-            // Intact body!
-            const unsigned nelements = SEND_BUF_SIZE_TO_NEDGES(length_in_bytes);
-            local_iter_buf = body;
-            int i;
-            for (i = 0; i < nelements; i++) {
-                packed_edge *edge = (packed_edge *)local_iter_buf;
-                const uint64_t to_explore = get_v0_from_edge(edge);
-                const uint64_t parent = get_v1_from_edge(edge);
-
-                assert(get_owner_pe(to_explore, nglobalverts) == pe);
-
-#ifdef PROFILE
-                total_elements_received++;
-#endif
-                if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
-                    preds[to_explore - local_min_vertex] = parent;
-#ifdef PROFILE
-#ifdef DETAILED_PROFILE
-                    set_visited(to_explore, wavefront_visited, visited_ints, local_min_vertex);
-#endif
-#endif
-                    set_visited(to_explore, visited, visited_ints, local_min_vertex);
-                    const unsigned q_index = *next_q_size;
-                    *next_q_size = q_index + 1;
-                    assert(q_index < QUEUE_SIZE);
-                    next_q[q_index] = to_explore;
-                } else {
-#ifdef PROFILE
-#ifdef DETAILED_PROFILE
-                    if (is_visited(to_explore, wavefront_visited, visited_ints,
-                                local_min_vertex)) {
-                        duplicates_in_same_wavefront++;
-                        duplicates_in_same_wavefront_total++;
-                    }
-#endif
-                    local_elements_wasted++;
-#endif
-                }
-
-                local_iter_buf += sizeof(packed_edge);
-            }
-
-#ifdef PROFILE
-            n_elements_wasted += local_elements_wasted;
-            if (local_elements_wasted == nelements) n_packets_wasted++;
-#endif
-        // } else {
-        //     assert(body_crc == 0);
-        //     if (length_in_bytes < 0) {
-        //         count_messages += (-1 * length_in_bytes);
-        //     }
-
-        //     *ndone = *ndone + 1;
-        //     local_iter_buf = body;
-        // }
-
-        /*
-         * Just in case some common patterns (e.g. an empty message with no
-         * messages to report) might cause a false positive.
-         */
-        *crc_ptr = ~checksum;
-
-        crc_ptr = (volatile crc *)local_iter_buf;
-        checksum = *crc_ptr;
-        calculated_checksum = hash(
-                (const unsigned char *)(local_iter_buf + sizeof(crc)),
-                SEND_HEADER_SIZE - sizeof(crc));
-    }
-
-    *iter_buf = local_iter_buf;
-    return count_messages;
-}
+// static inline unsigned check_for_receives(unsigned char **iter_buf,
+//         unsigned *ndone, const uint64_t nglobalverts,
+//         unsigned *visited, const uint64_t local_min_vertex,
+//         uint64_t *next_q, unsigned *next_q_size,
+//         uint64_t *preds, const size_t visited_ints) {
+//     unsigned count_messages = 0;
+// 
+//     unsigned char *local_iter_buf = *iter_buf;
+//     volatile crc *crc_ptr = (volatile crc *)local_iter_buf;
+//     crc checksum = *crc_ptr;
+//     crc calculated_checksum = hash(
+//             (const unsigned char *)(local_iter_buf + sizeof(crc)),
+//             SEND_HEADER_SIZE - sizeof(crc));
+//     while (checksum == calculated_checksum) {
+//         // At this point we can assume the header is intact, but not the body
+//         volatile size_type *length_in_bytes_ptr = (volatile size_type *)(crc_ptr + 1);
+//         const size_type length_in_bytes = *length_in_bytes_ptr;
+//         volatile crc *body_crc_ptr = (volatile crc *)(length_in_bytes_ptr + 1);
+//         const crc body_crc = *body_crc_ptr;
+//         unsigned char *body = (unsigned char *)(body_crc_ptr + 1);
+// 
+//         assert(length_in_bytes > 0);
+// 
+//         // if (length_in_bytes > 0) {
+//             crc calculated_body_crc = hash((const unsigned char *)body,
+//                     length_in_bytes - SEND_HEADER_SIZE);
+// 
+//             if (calculated_body_crc != body_crc) {
+// #ifdef PROFILE
+//                 wasted_hashes++;
+// #endif
+//                 break;
+//             }
+// 
+// #ifdef PROFILE
+//             total_packets_received++;
+//             unsigned local_elements_wasted = 0;
+// #endif
+// 
+//             // Intact body!
+//             const unsigned nelements = SEND_BUF_SIZE_TO_NEDGES(length_in_bytes);
+//             local_iter_buf = body;
+//             int i;
+//             for (i = 0; i < nelements; i++) {
+//                 packed_edge *edge = (packed_edge *)local_iter_buf;
+//                 const uint64_t to_explore = get_v0_from_edge(edge);
+//                 const uint64_t parent = get_v1_from_edge(edge);
+// 
+//                 assert(get_owner_pe(to_explore, nglobalverts) == pe);
+// 
+// #ifdef PROFILE
+//                 total_elements_received++;
+// #endif
+//                 if (!is_visited(to_explore, visited, visited_ints, local_min_vertex)) {
+//                     preds[to_explore - local_min_vertex] = parent;
+// #ifdef PROFILE
+// #ifdef DETAILED_PROFILE
+//                     set_visited(to_explore, wavefront_visited, visited_ints, local_min_vertex);
+// #endif
+// #endif
+//                     set_visited(to_explore, visited, visited_ints, local_min_vertex);
+//                     const unsigned q_index = *next_q_size;
+//                     *next_q_size = q_index + 1;
+//                     assert(q_index < QUEUE_SIZE);
+//                     next_q[q_index] = to_explore;
+//                 } else {
+// #ifdef PROFILE
+// #ifdef DETAILED_PROFILE
+//                     if (is_visited(to_explore, wavefront_visited, visited_ints,
+//                                 local_min_vertex)) {
+//                         duplicates_in_same_wavefront++;
+//                         duplicates_in_same_wavefront_total++;
+//                     }
+// #endif
+//                     local_elements_wasted++;
+// #endif
+//                 }
+// 
+//                 local_iter_buf += sizeof(packed_edge);
+//             }
+// 
+// #ifdef PROFILE
+//             n_elements_wasted += local_elements_wasted;
+//             if (local_elements_wasted == nelements) n_packets_wasted++;
+// #endif
+//         // } else {
+//         //     assert(body_crc == 0);
+//         //     if (length_in_bytes < 0) {
+//         //         count_messages += (-1 * length_in_bytes);
+//         //     }
+// 
+//         //     *ndone = *ndone + 1;
+//         //     local_iter_buf = body;
+//         // }
+// 
+//         /*
+//          * Just in case some common patterns (e.g. an empty message with no
+//          * messages to report) might cause a false positive.
+//          */
+//         *crc_ptr = ~checksum;
+// 
+//         crc_ptr = (volatile crc *)local_iter_buf;
+//         checksum = *crc_ptr;
+//         calculated_checksum = hash(
+//                 (const unsigned char *)(local_iter_buf + sizeof(crc)),
+//                 SEND_HEADER_SIZE - sizeof(crc));
+//     }
+// 
+//     *iter_buf = local_iter_buf;
+//     return count_messages;
+// }
 
 int main(int argc, char **argv) {
 #ifdef USE_CRC
@@ -411,9 +412,34 @@ int main(int argc, char **argv) {
     //         (void *)&kill_seconds);
     // assert(perr == 0);
 
-    shmem_init();
+    int provided;
+    shmemx_init_thread(SHMEMX_THREAD_MULTIPLE, &provided);
+    assert(provided == SHMEMX_THREAD_MULTIPLE);
+
+    int nthreads;
+#pragma omp parallel
+#pragma omp master
+    {
+        nthreads = omp_get_num_threads();
+    }
 
     uint64_t i;
+    shmemx_domain_t *domains = (shmemx_domain_t *)malloc(
+            nthreads * sizeof(*domains));
+    shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(
+            nthreads * sizeof(*contexts));
+    assert(domains && contexts);
+
+    int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
+            nthreads, domains);
+    assert(err == 0); 
+
+    for (i = 0; i < nthreads; i++) {
+        int j;
+        err = shmemx_ctx_create(domains[i], contexts + i);
+        assert(err == 0);
+    }
+
     pe = shmem_my_pe();
     npes = shmem_n_pes();
 
@@ -759,9 +785,18 @@ int main(int argc, char **argv) {
         do {
             *my_n_signalled = 0;
             *total_n_signalled = 0;
+
+
+            int this_iter_natomics = 0;
+#pragma omp parallel reduction(+:this_iter_natomics)
+            {
             int old; // unused
+            shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
+
+            int thread_natomics = 0;
 
             uint64_t local_vertex_id;
+#pragma omp for schedule(dynamic)
             for (local_vertex_id = 0; local_vertex_id < n_local_vertices;
                     local_vertex_id++) {
                 const int curr = first_traversed_by[local_vertex_id];
@@ -785,10 +820,14 @@ int main(int argc, char **argv) {
                                     visited_ints, local_min_vertex);
 
                         if (!already_visited) {
-                            shmem_int_cswap_nb(&old,
+                            shmemx_ctx_int_cswap_nbi(&old,
                                     first_traversed_by + to_explore_local_id,
-                                    0, pe + 1, target_pe);
-                            (*my_natomics)++;
+                                    0, pe + 1, target_pe, ctx);
+                            thread_natomics++;
+
+                            if (thread_natomics % 1024 == 0) {
+                                shmemx_ctx_quiet(ctx);
+                            }
 
                             *my_n_signalled = 1;
                             set_visited(to_explore_global_id, local_visited,
@@ -803,6 +842,12 @@ int main(int argc, char **argv) {
                             shared_visited,visited_ints, local_min_vertex);
                 }
             }
+            shmemx_ctx_quiet(ctx);
+
+            this_iter_natomics += thread_natomics;
+            }
+
+            *my_natomics += this_iter_natomics;
 
             const size_t min_byte_to_send = local_min_vertex / BITS_PER_BYTE;
             const size_t max_byte_to_send = local_max_vertex / BITS_PER_BYTE;
@@ -856,6 +901,11 @@ int main(int argc, char **argv) {
                     iter, *total_natomics);
         }
     }
+
+    for (i = 0; i < nthreads; i++) {
+        shmemx_ctx_destroy(contexts[i]);
+    }
+    shmemx_domain_destroy(nthreads, domains);
 
     shmem_finalize();
 
