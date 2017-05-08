@@ -62,6 +62,7 @@
 
 #define BITS_PER_BYTE 8
 #define BITS_PER_INT (sizeof(unsigned) * BITS_PER_BYTE)
+#define BITS_PER_LONGLONG (sizeof(unsigned long long) * BITS_PER_BYTE)
 
 #define MAX_ITERS 10
 
@@ -211,6 +212,24 @@ static uint64_t get_ending_vertex_for_pe(int pe, uint64_t nvertices) {
 static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
     uint64_t vertices_per_pe = get_vertices_per_pe(nvertices);
     return vertex / vertices_per_pe;
+}
+
+static inline void set_visited_longlong(const uint64_t bit_index,
+        unsigned long long *vector) {
+    const uint64_t longlong_index = bit_index / (uint64_t)BITS_PER_LONGLONG;
+    const uint64_t longlong_bit_index = bit_index % (uint64_t)BITS_PER_LONGLONG;
+    const unsigned long long mask = ((unsigned long long)1 << longlong_bit_index);
+
+    vector[longlong_index] |= mask;
+}
+
+static inline int is_visited_longlong(const uint64_t bit_index,
+        const unsigned long long *vector) {
+    const unsigned longlong_index = bit_index / (uint64_t)BITS_PER_LONGLONG;
+    const uint64_t longlong_bit_index = bit_index % (uint64_t)BITS_PER_INT;
+    const unsigned long long mask = ((unsigned long long)1 << longlong_bit_index);
+
+    return (((vector[longlong_index] & mask) > 0) ? 1 : 0);
 }
 
 static inline void set_visited(const uint64_t global_vertex_id,
@@ -751,6 +770,16 @@ int main(int argc, char **argv) {
     int *total_natomics = (int *)shmem_malloc(sizeof(*total_natomics));
     assert(total_natomics);
 
+    const size_t visited_longlongs = ((nglobalverts + BITS_PER_LONGLONG - 1) /
+            BITS_PER_LONGLONG);
+    unsigned long long *temp_visited = (unsigned long long *)shmem_malloc(
+            visited_longlongs * sizeof(long long));
+    unsigned long long *updated_global_visited = (unsigned long long *)shmem_malloc(
+            visited_longlongs * sizeof(long long));
+    unsigned long long *updating_global_visited = (unsigned long long *)shmem_malloc(
+            visited_longlongs * sizeof(long long));
+    assert(temp_visited && updated_global_visited && updating_global_visited);
+
     const size_t visited_ints = ((nglobalverts + BITS_PER_INT - 1) /
             BITS_PER_INT);
     const size_t visited_bytes = visited_ints * sizeof(unsigned);
@@ -769,11 +798,17 @@ int main(int argc, char **argv) {
         memset(shared_visited, 0x00, visited_bytes);
         memset(local_visited, 0x00, visited_bytes);
 
+        memset(temp_visited, 0x00, visited_longlongs * sizeof(long long));
+        memset(updated_global_visited, 0x00, visited_longlongs * sizeof(long long));
+        memset(updating_global_visited, 0x00, visited_longlongs * sizeof(long long));
+
         uint64_t root = 0;
         set_visited(root, shared_visited, visited_ints, local_min_vertex);
         set_visited(root, local_visited, visited_ints, local_min_vertex);
 
         if (get_owner_pe(root, nglobalverts) == pe) {
+            set_visited_longlong(root, updated_global_visited);
+
             first_traversed_by[root - local_min_vertex] = pe + 1;
         }
 
@@ -785,6 +820,13 @@ int main(int argc, char **argv) {
         do {
             *my_n_signalled = 0;
             *total_n_signalled = 0;
+
+            const size_t my_min_longlong = local_min_vertex / BITS_PER_LONGLONG;
+            const size_t my_max_longlong = local_max_vertex / BITS_PER_LONGLONG;
+            int bit_index = local_min_vertex % BITS_PER_LONGLONG;
+            for (i = my_min_longlong; i <= my_max_longlong; i++) {
+                const long long curr_longlong = 
+            }
 
 
             int this_iter_natomics = 0;
