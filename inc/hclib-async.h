@@ -226,6 +226,24 @@ inline void async_await(T&& lambda, hclib_future_t *future1,
 }
 
 template <typename T>
+inline void async_await(T&& lambda, hclib_future_t *future1,
+        hclib_future_t *future2, hclib_future_t *future3,
+        hclib_future_t *future4) {
+	MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_task_t* task = initialize_task(call_lambda<U>, new U(lambda));
+
+    int nfutures = 0;
+    hclib_future_t *futures[4];
+    if (future1) futures[nfutures++] = future1;
+    if (future2) futures[nfutures++] = future2;
+    if (future3) futures[nfutures++] = future3;
+    if (future4) futures[nfutures++] = future4;
+
+    spawn_await(task, futures, nfutures);
+}
+
+template <typename T>
 inline void async_await_at(T&& lambda, hclib_future_t *future,
         hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
@@ -254,6 +272,14 @@ inline void async_await_at(T&& lambda, hclib_future_t *future1,
 	spawn_await_at(task, futures, nfutures, locale);
 }
 
+/*
+ * Some CUDA compilers trip over the following line:
+ *
+ *      call_and_put_wrapper<T, R>::fn(lambda, event);
+ *
+ * so we disable this code if we're compiling a CUDA file with nvcc.
+ */
+#ifndef __CUDACC__
 template <typename T>
 auto async_future(T&& lambda) -> hclib::future_t<decltype(lambda())>* {
     typedef decltype(lambda()) R;
@@ -350,6 +376,7 @@ auto async_future_await_at(T&& lambda, hclib_future_t *future,
             locale);
     return event->get_future();
 }
+#endif
 
 inline void finish(std::function<void()> &&lambda) {
     hclib_start_finish();
