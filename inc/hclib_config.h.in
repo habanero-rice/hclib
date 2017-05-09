@@ -7,4 +7,7 @@
 /* Defined if C++11 std::is_trivially_copyable is supported. */
 #undef HAVE_CXX11_TRIVIAL_COPY_CHECK
 
+/* Enable X/Open 6 features. */
+#undef _XOPEN_SOURCE
+
 #endif  // HCLIB_CONFIG_H_
