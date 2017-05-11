@@ -229,12 +229,6 @@ void hclib_entrypoint() {
         log_die("Cannot create ws_key for worker-specific data");
     }
 
-    /*
-     * set pthread's concurrency. Doesn't seem to do much on Linux, only
-     * relevant when there are more pthreads than hardware cores to schedule
-     * them on. */
-    pthread_setconcurrency(hclib_context->nworkers);
-
     // Launch the worker threads
     if (hclib_stats) {
         printf("Using %d worker threads (including main thread)\n",
