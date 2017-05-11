@@ -243,8 +243,7 @@ static inline int is_visited_longlong(const uint64_t bit_index,
 }
 
 static inline void set_visited(const uint64_t global_vertex_id,
-        unsigned *visited, const unsigned visited_length,
-        const uint64_t local_min_vertex) {
+        unsigned *visited, const unsigned visited_length) {
     const int word_index = global_vertex_id / BITS_PER_INT;
     assert(word_index < visited_length);
     const int bit_index = global_vertex_id % BITS_PER_INT;
@@ -255,8 +254,7 @@ static inline void set_visited(const uint64_t global_vertex_id,
 }
 
 static inline int is_visited(const uint64_t global_vertex_id,
-        const unsigned *visited, const size_t visited_length,
-        const uint64_t local_min_vertex) {
+        const unsigned *visited, const size_t visited_length) {
     const unsigned word_index = global_vertex_id / BITS_PER_INT;
     assert(word_index < visited_length);
     const int bit_index = global_vertex_id % BITS_PER_INT;
@@ -290,19 +288,30 @@ static int compare_uint64_t(const void *a, const void *b) {
 }
 
 static inline void set_neighbors_of(const uint64_t global_vertex_id,
-        unsigned long long *marking, const unsigned *local_vertex_offsets) {
+        unsigned long long *marking, const unsigned *local_vertex_offsets,
+        const uint64_t local_min_vertex, const uint64_t *neighbors,
+        const uint64_t nglobalverts, unsigned *visited, const unsigned *shared_visited,
+        const unsigned visited_length, unsigned *count_local_atomics) {
     int j;
     const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
     const int neighbor_start = local_vertex_offsets[local_vertex_id];
     const int neighbor_end = local_vertex_offsets[local_vertex_id + 1];
+
     for (j = neighbor_start; j < neighbor_end; j++) {
         const uint64_t to_explore_global_id = neighbors[j];
-        const int target_pe = get_owner_pe(to_explore_global_id, nglobalverts);
 
-        if (target_pe == pe) {
-            set_visited_longlong_atomic(to_explore_global_id, marking, target_pe);
-        } else {
-            set_visited_longlong(to_explore_global_id, marking);
+        if (!is_visited(to_explore_global_id, visited, visited_length) &&
+                !is_visited(to_explore_global_id, shared_visited, visited_length)) {
+            set_visited(to_explore_global_id, visited, visited_length);
+
+            const int target_pe = get_owner_pe(to_explore_global_id, nglobalverts);
+
+            if (target_pe == pe) {
+                set_visited_longlong_atomic(to_explore_global_id, marking, target_pe);
+                *count_local_atomics = *count_local_atomics + 1;
+            } else {
+                set_visited_longlong(to_explore_global_id, marking);
+            }
         }
     }
 }
@@ -311,25 +320,34 @@ static inline void handle_longlong(const int initial_bit_index,
         const int last_bit_index, const int longlong_index,
         unsigned long long *last_marked, unsigned long long *marked,
         unsigned long long *marking, const unsigned *local_vertex_offsets,
-        int *count_signals) {
+        int *count_signals, const uint64_t local_min_vertex,
+        const uint64_t *neighbors, const uint64_t nglobalverts,
+        unsigned *visited, const unsigned *shared_visited, const unsigned visited_length, unsigned *count_local_atomics) {
     int bit_index = initial_bit_index;
 
-    unsigned long long new_longlong = last_marked[longlong_index];
-    unsigned long long old_longlong = marked[longlong_index];
+    const unsigned long long old_longlong = marked[longlong_index];
+    const unsigned long long new_longlong = last_marked[longlong_index];
+    const unsigned long long curr_longlong = marking[longlong_index];
     while (bit_index < last_bit_index) {
         if (is_visited_longlong(bit_index, &new_longlong) &&
-                !is_visited_longlong(bit_index, &old_longlong)) {
+                !is_visited_longlong(bit_index, &old_longlong) &&
+                !is_visited_longlong(bit_index, &curr_longlong)) {
             // New update, need to visit neighbors
             const uint64_t global_vertex_id = longlong_index *
                 BITS_PER_LONGLONG + bit_index;
-            set_neighbors_of(global_vertex_id, marking, local_vertex_offsets);
-            *count_signals++;
+
+            set_visited(global_vertex_id, visited, visited_length);
+            *count_signals = *count_signals + 1;
+
+            set_neighbors_of(global_vertex_id, marking, local_vertex_offsets,
+                    local_min_vertex, neighbors, nglobalverts, visited, shared_visited,
+                    visited_length, count_local_atomics);
         }
         bit_index++;
     }
 
-    marked[my_min_longlong] |= last_marked[my_min_longlong];
-    last_marked[my_min_longlong] = 0;
+    marked[longlong_index] |= new_longlong;
+    // last_marked[longlong_index] = 0;
 }
 
 int main(int argc, char **argv) {
@@ -376,29 +394,29 @@ int main(int argc, char **argv) {
     shmemx_init_thread(SHMEMX_THREAD_MULTIPLE, &provided);
     assert(provided == SHMEMX_THREAD_MULTIPLE);
 
-    int nthreads;
-#pragma omp parallel
-#pragma omp master
-    {
-        nthreads = omp_get_num_threads();
-    }
-
     uint64_t i;
-    shmemx_domain_t *domains = (shmemx_domain_t *)malloc(
-            nthreads * sizeof(*domains));
-    shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(
-            nthreads * sizeof(*contexts));
-    assert(domains && contexts);
-
-    int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
-            nthreads, domains);
-    assert(err == 0); 
-
-    for (i = 0; i < nthreads; i++) {
-        int j;
-        err = shmemx_ctx_create(domains[i], contexts + i);
-        assert(err == 0);
-    }
+//     int nthreads;
+// #pragma omp parallel
+// #pragma omp master
+//     {
+//         nthreads = omp_get_num_threads();
+//     }
+// 
+//     shmemx_domain_t *domains = (shmemx_domain_t *)malloc(
+//             nthreads * sizeof(*domains));
+//     shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(
+//             nthreads * sizeof(*contexts));
+//     assert(domains && contexts);
+// 
+//     int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
+//             nthreads, domains);
+//     assert(err == 0); 
+// 
+//     for (i = 0; i < nthreads; i++) {
+//         int j;
+//         err = shmemx_ctx_create(domains[i], contexts + i);
+//         assert(err == 0);
+//     }
 
     pe = shmem_my_pe();
     npes = shmem_n_pes();
@@ -651,8 +669,9 @@ int main(int argc, char **argv) {
     }
     local_vertex_offsets[n_local_vertices] = writing_index;
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d realloc-ing from %llu bytes to %llu bytes\n", shmem_my_pe(),
-            acc * 2 * sizeof(uint64_t), writing_index * sizeof(uint64_t));
+    fprintf(stderr, "PE %d realloc-ing from %llu bytes to %llu bytes with %d "
+            "local vertices\n", shmem_my_pe(), acc * 2 * sizeof(uint64_t),
+            writing_index * sizeof(uint64_t), n_local_vertices);
 #endif
     neighbors = (uint64_t *)realloc(neighbors, writing_index *
             sizeof(uint64_t));
@@ -706,10 +725,6 @@ int main(int argc, char **argv) {
     assert(my_n_signalled);
     int *total_n_signalled = (int *)shmem_malloc(sizeof(*total_n_signalled));
     assert(total_n_signalled);
-    int *my_natomics = (int *)shmem_malloc(sizeof(*my_natomics));
-    assert(my_natomics);
-    int *total_natomics = (int *)shmem_malloc(sizeof(*total_natomics));
-    assert(total_natomics);
 
     const size_t visited_longlongs = ((nglobalverts + BITS_PER_LONGLONG - 1) /
             BITS_PER_LONGLONG);
@@ -744,8 +759,7 @@ int main(int argc, char **argv) {
         memset(marking, 0x00, visited_longlongs * sizeof(long long));
 
         uint64_t root = 0;
-        set_visited(root, shared_visited, visited_ints, local_min_vertex);
-        set_visited(root, local_visited, visited_ints, local_min_vertex);
+        set_visited(root, local_visited, visited_ints);
 
         if (get_owner_pe(root, nglobalverts) == pe) {
             set_visited_longlong(root, last_marked);
@@ -754,45 +768,89 @@ int main(int argc, char **argv) {
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
-        *my_natomics = 0;
 
         do {
             *my_n_signalled = 0;
             *total_n_signalled = 0;
+            unsigned count_local_atomics = 0;
 
-            const size_t my_min_longlong = local_min_vertex / BITS_PER_LONGLONG;
-            const size_t my_max_longlong = local_max_vertex / BITS_PER_LONGLONG;
+            const unsigned long long start_handling = current_time_ns();
 
-            // Handle any bits in first longlong
-            handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
-                    BITS_PER_LONGLONG, my_min_longlong, last_marked, marked,
-                    marking, local_vertex_offsets, my_n_signalled);
+            if (n_local_vertices > 0) {
+                const size_t my_min_longlong = local_min_vertex / BITS_PER_LONGLONG;
+                const size_t my_max_longlong = local_max_vertex / BITS_PER_LONGLONG;
 
-            // Handle core bits
-            for (i = my_min_longlong + 1; i < my_max_longlong; i++) {
-                handle_longlong(0, BITS_PER_LONGLONG, i, last_marked, marked,
-                        marking, local_vertex_offsets, my_n_signalled);
+                if (my_min_longlong == my_max_longlong) {
+                    // Everything in a single long long
+                    handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
+                            (local_max_vertex % BITS_PER_LONGLONG) + 1,
+                            my_min_longlong, last_marked, marked,
+                            marking, local_vertex_offsets, my_n_signalled,
+                            local_min_vertex, neighbors, nglobalverts, local_visited,
+                            shared_visited, visited_ints, &count_local_atomics);
+                } else {
+                    // Handle any bits in first longlong
+                    handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
+                            BITS_PER_LONGLONG, my_min_longlong, last_marked, marked,
+                            marking, local_vertex_offsets, my_n_signalled,
+                            local_min_vertex, neighbors, nglobalverts, local_visited, shared_visited,
+                            visited_ints, &count_local_atomics);
+
+                    // Handle core bits
+                    for (i = my_min_longlong + 1; i < my_max_longlong; i++) {
+                        handle_longlong(0, BITS_PER_LONGLONG, i, last_marked, marked,
+                                marking, local_vertex_offsets, my_n_signalled,
+                                local_min_vertex, neighbors, nglobalverts,
+                                local_visited, shared_visited, visited_ints, &count_local_atomics);
+                    }
+
+                    // Handle any bits in last longlong
+                    handle_longlong(0, (local_max_vertex % BITS_PER_LONGLONG) + 1,
+                            my_max_longlong, last_marked, marked, marking,
+                            local_vertex_offsets, my_n_signalled, local_min_vertex,
+                            neighbors, nglobalverts, local_visited, shared_visited, visited_ints,
+                            &count_local_atomics);
+                }
             }
+            memset(last_marked, 0x00, visited_longlongs * sizeof(long long));
 
-            // Handle any bits in last longlong
-            handle_longlong(0, (local_max_vertex % BITS_PER_LONGLONG) + 1,
-                    my_max_longlong, last_marked, marked, marking,
-                    local_vertex_offsets, my_n_signalled);
+            shmem_barrier_all();
+            const unsigned long long start_atomics = current_time_ns();
 
-            for (int p = 0; p < npes; p++) {
-                if (p == pe) continue;
+            for (int p = 1; p < npes; p++) {
+                const int target_pe = (pe + p) % npes;
 
                 const size_t min_longlong =
-                    get_starting_vertex_for_pe(p, nglobalverts) /
+                    get_starting_vertex_for_pe(target_pe, nglobalverts) /
                     BITS_PER_LONGLONG;
                 const size_t max_longlong =
-                    get_ending_vertex_for_pe(p, nglobalverts) /
+                    get_ending_vertex_for_pe(target_pe, nglobalverts) /
                     BITS_PER_LONGLONG;
                 for (i = min_longlong; i <= max_longlong; i++) {
-                    if (marking[i]) {
-                        shmemx_ulonglong_atomic_or(marking + i, marking[i], p);
+                    const unsigned long long mask = marking[i];
+                    if (mask) {
+                        shmemx_ulonglong_atomic_or(marking + i, mask, target_pe);
+                        count_local_atomics++;
                     }
                 }
+            }
+
+            // For timing, to make sure we're timing completion of the bitwise atomics too
+            shmem_barrier_all();
+
+            const unsigned long long start_reduction = current_time_ns();
+
+            const size_t min_byte_to_send = local_min_vertex / BITS_PER_BYTE;
+            const size_t max_byte_to_send = local_max_vertex / BITS_PER_BYTE;
+            const size_t bytes_to_send = max_byte_to_send - min_byte_to_send + 1;
+            char *my_visited = ((char *)shared_visited) + min_byte_to_send;
+
+            for (int p = 1; p < npes; p++) {
+                const int target_pe = (pe + p) % npes;
+
+                shmem_putmem_nbi(((char *)shared_visited) + min_byte_to_send,
+                        ((char *)local_visited) + min_byte_to_send,
+                        bytes_to_send, target_pe);
             }
 
             shmem_int_sum_to_all(total_n_signalled, my_n_signalled, 1, 0, 0,
@@ -802,7 +860,23 @@ int main(int argc, char **argv) {
             marking = last_marked;
             last_marked = tmp;
 
+            const unsigned long long start_barrier = current_time_ns();
+
             shmem_barrier_all();
+
+            const unsigned long long end_all = current_time_ns();
+
+            printf("PE %d, iter %d, handling %f ms, atomics %f ms, reduction "
+                    "%f ms, barrier %f ms, %d new nodes locally, %d new nodes "
+                    "in total, %d atomics\n", pe, iter,
+                    (double)(start_atomics - start_handling) / 1000000.0,
+                    (double)(start_reduction - start_atomics) / 1000000.0,
+                    (double)(start_barrier - start_reduction) / 1000000.0,
+                    (double)(end_all - start_barrier) / 1000000.0,
+                    *my_n_signalled, *total_n_signalled, count_local_atomics);
+
+
+            // printf("PE %d, iter %d, # signals %d\n", pe, iter, *my_n_signalled);
 
             iter++;
         } while (*total_n_signalled > 0);
@@ -835,21 +909,17 @@ int main(int argc, char **argv) {
         // fprintf(stderr, "PE %d, run %d : set %d , not set %d , unhandled %d\n",
         //         shmem_my_pe(), run, count_set, count_not_set, count_not_handled);
 
-        shmem_int_sum_to_all(total_natomics, my_natomics, 1, 0, 0,
-                npes, pWrkInt, pSync);
-        shmem_barrier_all();
-
         if (pe == 0) {
-            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters, %d atomics\n",
+            fprintf(stderr, "BFS %d with root=%llu took %f ms, %d iters\n",
                     run, root, (double)(end_bfs - start_bfs) / 1000000.0,
-                    iter, *total_natomics);
+                    iter);
         }
     }
 
-    for (i = 0; i < nthreads; i++) {
-        shmemx_ctx_destroy(contexts[i]);
-    }
-    shmemx_domain_destroy(nthreads, domains);
+//     for (i = 0; i < nthreads; i++) {
+//         shmemx_ctx_destroy(contexts[i]);
+//     }
+//     shmemx_domain_destroy(nthreads, domains);
 
     shmem_finalize();
 

@@ -19,6 +19,7 @@ export LD_LIBRARY_PATH=$HCLIB_ROOT/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$HCLIB_HOME/modules/system/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$HCLIB_HOME/modules/openshmem/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$HCLIB_HOME/modules/sos/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$OFI_HOME/lib:$LD_LIBRARY_PATH
 
 export LD_PRELOAD=/opt/intel/compilers_and_libraries_2017.1.132/linux/tbb/lib/intel64/gcc4.7/libtbbmalloc.so.2
 export HCLIB_LOCALITY_FILE=$HCLIB_HOME/locality_graphs/edison.flat.json
@@ -39,7 +40,7 @@ export WORK_DIR=$(pwd)
 # srun --ntasks=$(($SLURM_NNODES * 16)) --ntasks-per-node=16 --ntasks-per-socket=8 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
 
 # export GRAPH_SIZE=27
-export GRAPH_SIZE=20
+export GRAPH_SIZE=24
 
 # export GRAPH_SIZE=28
 export SMA_SYMMETRIC_SIZE=$((6 * 256 * 1024 * 1024)) # Works with GRAPH_SIZE = 29 on bfs_oshmem-single-mailbox-concurrent
@@ -54,13 +55,13 @@ srun --ntasks=$(($SLURM_NNODES * 18)) --ntasks-per-node=18 --ntasks-per-socket=9
 # srun --ntasks=$(($SLURM_NNODES * 8)) --ntasks-per-node=8 --ntasks-per-socket=4 --cpus-per-task=3 $WORK_DIR/../mpi/graph500_mpi_replicated_csc $GRAPH_SIZE 16
 
 export OMP_NUM_THREADS=1
-srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=12 $WORK_DIR/bfs_oshmem-single-mailbox-atomics $GRAPH_SIZE 16 1
+srun --ntasks=$(($SLURM_NNODES * 18)) --ntasks-per-node=18 --ntasks-per-socket=9 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-atomics $GRAPH_SIZE 16 1
 
 ### export OMP_NUM_THREADS=4
 ### srun --ntasks=$(($SLURM_NNODES * 6)) --ntasks-per-node=6 --ntasks-per-socket=3 --cpus-per-task=4 $WORK_DIR/bfs_oshmem-single-mailbox-atomics $GRAPH_SIZE 16 1
 
-# export OMP_NUM_THREADS=1
-# srun --ntasks=$(($SLURM_NNODES * 18)) --ntasks-per-node=18 --ntasks-per-socket=9 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-wavefront $GRAPH_SIZE 16 3
+export OMP_NUM_THREADS=1
+srun --ntasks=$(($SLURM_NNODES * 18)) --ntasks-per-node=18 --ntasks-per-socket=9 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-wavefront $GRAPH_SIZE 16 1
 
 ### export OMP_NUM_THREADS=9
 ### export SMA_SYMMETRIC_SIZE=$((16 * 256 * 1024 * 1024)) # Works with GRAPH_SIZE = 29 on bfs_oshmem-single-mailbox-concurrent
