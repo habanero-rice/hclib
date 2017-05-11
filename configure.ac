@@ -133,7 +133,7 @@ if test $ac_cv_c11_lang = no; then
 fi
 # NOTE: Sadly, we can't trust __STDC_NO_ATOMICS__
 AC_CACHE_CHECK([for C11 stdatomic.h support], [ac_cv_c11_stdatomic],
-[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include  <stdatomic.h>], [])],
+[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include  <stdatomic.h>], [_Atomic int foo;])],
                    [ac_cv_c11_stdatomic=yes],
                    [ac_cv_c11_stdatomic=no])])
 if test $ac_cv_c11_stdatomic = yes; then
