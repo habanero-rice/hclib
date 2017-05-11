@@ -27,14 +27,19 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
         hclib::future_t<await_type> *future) {
     HASSERT(locale->type == get_gpu_locale_id());
 
-    return hclib::async_future_await_at([locale, functor, blocks_per_gridx, blocks_per_gridy,
+    hclib::promise_t<void> *prom = new hclib::promise_t<void>();
+
+    hclib::async_at([locale, functor, blocks_per_gridx, blocks_per_gridy,
             blocks_per_gridz, threads_per_blockx, threads_per_blocky,
-            threads_per_blockz, shared_mem] {
+            threads_per_blockz, shared_mem, prom, future] {
 #ifdef HCLIB_INSTRUMENT
     const unsigned _event_id = hclib_register_event(get_cuda_kernel_event_id(),
             START, -1);
 #endif
 
+        if (future) {
+            future->wait();
+        }
         CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
         dim3 blocks_per_grid(blocks_per_gridx, blocks_per_gridy,
@@ -44,11 +49,14 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
 
         driver_kernel<<<blocks_per_grid, threads_per_block, shared_mem>>>(functor);
         CHECK_CUDA(cudaDeviceSynchronize());
+        prom->put();
 
 #ifdef HCLIB_INSTRUMENT
         hclib_register_event(get_cuda_kernel_event_id(), END, _event_id);
 #endif
-    }, future, locale);
+    }, locale);
+
+    return prom->get_future();
 }
 
 template<class functor_type, class await_type>
