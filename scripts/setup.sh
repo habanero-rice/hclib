@@ -1,10 +1,9 @@
 #!/bin/bash
 
-export TBB_MALLOC=/home/kumar/tbb
-#export HCLIB_FLAGS="--enable-production"
-export LIBXML2_INCLUDE=/usr/include/libxml2
-export LIBXML2_LIBS=/usr/lib/x86_64-linux-gnu
-export BASE=/home/kumar/hclib
+#export TBB_MALLOC=/home/kumar/tbb
+export LIBXML2_INCLUDE=/usr/local/Cellar/libxml2/2.9.2/include/libxml2
+export LIBXML2_LIBS=/usr/local/Cellar/libxml2/2.9.2/lib
+export BASE=/Users/vivek/rice_work/projects/release/hclib
 ################################################
 #
 # DO NOT MODIFY ANYTHING BELOW UNLESS YOU ARE
