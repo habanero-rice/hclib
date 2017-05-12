@@ -61,6 +61,8 @@ hclib_promise_t **hclib_promise_create_n(size_t nb_promises,
         int null_terminated) {
     hclib_promise_t **promises = (hclib_promise_t **) malloc((sizeof(
                                      hclib_promise_t *) * nb_promises));
+    HASSERT(promises);
+
     int i = 0;
     int lg = (null_terminated) ? nb_promises - 1 : nb_promises;
     while (i < lg) {

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include "hclib.h"
 
@@ -41,7 +42,6 @@ static inline void echo_worker(const char *taskName) {
     printf("Task %s run by worker %d\n", taskName, get_current_worker());
 }
 
-hclib_promise_t **promise_list;
 hclib_future_t **future_list;
 hclib_promise_t *promise;
 int data;
@@ -76,11 +76,12 @@ void taskC(void *args) {
 }
 
 void taskMain(void *args) {
-    promise_list = hclib_promise_create_n(1, true);
-    future_list = (hclib_future_t **)malloc(1 * sizeof(hclib_future_t *));
     promise = hclib_promise_create();
-    promise_list[0] = promise;
+
+    future_list = (hclib_future_t **)malloc(2 * sizeof(hclib_future_t *));
+    assert(future_list);
     future_list[0] = hclib_get_future_for_promise(promise);
+    future_list[1] = NULL;
 
     hclib_async(&taskA, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
     hclib_async(&taskC, NULL, NO_FUTURE, NO_PHASER, ANY_PLACE, NO_PROP);
