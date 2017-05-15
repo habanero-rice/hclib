@@ -18,7 +18,6 @@
 #define HCLIB_FORASYNC_H_
 
 #include "hclib-place.h"
-#include "hclib-cuda.h"
 
 /*
  * Forasync mode to perform static chunking of the iteration space.

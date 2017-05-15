@@ -32,7 +32,7 @@ mkdir -p ${COMPTREE}
 
 cd ${COMPTREE}
 
-../configure ${PREFIX_FLAGS} ${HCUPC_FLAGS} ${HCLIB_FLAGS} ${HC_CUDA_FLAGS} $*
+../configure ${PREFIX_FLAGS} ${HCLIB_FLAGS} $*
 
 #
 # Make

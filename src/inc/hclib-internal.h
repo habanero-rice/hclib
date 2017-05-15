@@ -83,10 +83,6 @@ typedef struct hc_context {
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
-#ifdef HC_CUDA
-    hclib_memory_tree_node *pinned_host_allocs;
-    cudaStream_t stream;
-#endif
 } hc_context;
 
 #include "hclib-finish.h"
@@ -111,8 +107,7 @@ int get_current_worker();
 
 // promise
 int register_on_all_promise_dependencies(hclib_task_t *task);
-void try_schedule_async(hclib_task_t * async_task, int comm_task, int gpu_task,
-        hclib_worker_state *ws);
+void try_schedule_async(hclib_task_t * async_task, hclib_worker_state *ws);
 
 int static inline _hclib_promise_is_satisfied(hclib_promise_t *p) {
     return p->wait_list_head == SATISFIED_FUTURE_WAITLIST_PTR;

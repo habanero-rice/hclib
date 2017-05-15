@@ -37,7 +37,6 @@ typedef struct stats_t {
 
 static stats_t *status;
 static int numWorkers = -1;
-static int have_comm_worker = 0;
 #endif
 double avgtime_nstates[HCLIB_NSTATES];
 
@@ -47,10 +46,9 @@ inline double wctime() {
     return (tv.tv_sec + 1E-6 * tv.tv_usec);
 }
 
-void hclib_initStats  (int nw, int comm_w) {
+void hclib_initStats(int nw) {
 #ifdef _TIMER_ON_
     numWorkers = nw;
-    have_comm_worker = comm_w;
     status = new stats_t[numWorkers];
     for(int i=0; i<numWorkers; i++) {
         status[i].timeLast = wctime();
@@ -84,8 +82,8 @@ void hclib_setState(int wid, int state) {
 
 void find_avgtime_nstates() {
 #ifdef _TIMER_ON_
-    int start = have_comm_worker ? 1 : 0;
-    int total = have_comm_worker ? (numWorkers - 1) : numWorkers;
+    int start = 0;
+    int total = numWorkers;
     for(int j=0; j<HCLIB_NSTATES; j++) {
         avgtime_nstates[j] = 0;
         for(int i = start; i<numWorkers; i++) {

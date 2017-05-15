@@ -18,7 +18,6 @@
 #include <type_traits>
 
 #include "hclib-async-struct.h"
-#include "hcupc-support.hpp"
 #include "hclib-promise.hpp"
 
 #ifndef HCLIB_ASYNC_H_
@@ -100,12 +99,6 @@ struct LambdaFutureWrapper<T, void> {
     }
 };
 
-/*
- * Yes, the name "async_at_hpt" sounds weird
- * but using this name to differentiate with the inter-node
- * "asyncAt" in HabaneroUPC++. Feel free to give a better
- * name to async_at_hpt.
- */
 template <typename T>
 inline void async(T &&lambda) {
     MARK_OVH(current_ws()->id);
@@ -158,14 +151,6 @@ inline void async_await_at(T &&lambda, place_t *pl, future_list_t... futures) {
     lambda_await_args<U> *args = new lambda_await_args<U> { new U(lambda), fs };
     hclib_async(lambda_await_wrapper<U>, args,
             fs, nullptr, pl, 0);
-}
-
-template <typename T>
-inline void async_comm(T &&lambda) {
-    MARK_OVH(current_ws()->id);
-    typedef typename std::remove_reference<T>::type U;
-    hclib_async(lambda_wrapper<U>, new U(lambda),
-            nullptr, nullptr, nullptr, COMM_ASYNC);
 }
 
 template <typename T>

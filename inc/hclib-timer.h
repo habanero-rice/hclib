@@ -33,7 +33,7 @@
 #define HCLIB_IDLE    3
 #define HCLIB_NSTATES 4
 
-void hclib_initStats  (int numWorkers, int is_comm_worker);
+void hclib_initStats  (int numWorkers);
 void hclib_setState   (int wid, int state);
 void hclib_get_avg_time (double* tWork, double *tOvh, double* tSearch);
 

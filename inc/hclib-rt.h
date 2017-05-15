@@ -27,9 +27,6 @@
 extern "C" {
 #endif
 
-#define COMMUNICATION_WORKER_ID 1
-#define GPU_WORKER_ID 2
-
 // forward declaration
 extern pthread_key_t ws_key;
 struct hc_context;

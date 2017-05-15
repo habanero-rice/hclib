@@ -22,8 +22,6 @@
 #include "hclib-hpt.h"
 #include "hclib-internal.h"
 #include "hclib-atomics.h"
-#include "hcupc-support.hpp"
-#include "hclib-cuda.h"
 
 // #define VERBOSE
 
@@ -47,8 +45,6 @@ void *unsupported_place_type_err(place_t *pl) {
 hclib_task_t *hpt_steal_task(hclib_worker_state *ws) {
     MARK_SEARCH(ws->id); // Set the state of this worker for timing
 
-    hcupc_reset_asyncAnyInfo(ws->id);
-
     place_t *pl = ws->pl;
     while (pl != NULL) {
         hc_deque_t *deqs = pl->deques;
@@ -61,7 +57,6 @@ hclib_task_t *hpt_steal_task(hclib_worker_state *ws) {
             hclib_task_t *buff = deque_steal(&(d->deque));
             if (buff) { /* steal succeeded */
                 ws->current = get_deque_place(ws, pl);
-                hcupc_check_if_asyncAny_stolen(buff, victim, ws->id);
 
 #ifdef VERBOSE
                 printf("hpt_steal_task: worker %d successful steal from deque %p, pl %p, "
@@ -70,7 +65,6 @@ hclib_task_t *hpt_steal_task(hclib_worker_state *ws) {
                 return buff;
             }
         }
-        hcupc_inform_failedSteal(ws->id);
 
         /* Nothing found in this place, go to the parent */
         pl = pl->parent;
@@ -103,7 +97,6 @@ hclib_task_t *hpt_pop_task(hclib_worker_state *ws) {
                    "%d\n", ws->id ,current, current->pl, current->pl->level);
 #endif
             ws->current = current;
-            hcupc_check_if_asyncAny_pop(buff, ws->id);
             return buff;
         }
         if (downward) {
@@ -126,46 +119,10 @@ place_t *hclib_get_current_place() {
     return ws->current->pl;
 }
 
-#ifdef HC_CUDA
-place_t **hclib_get_nvgpu_places(int *n_nvgpu_places) {
-    place_t *root_pl = hclib_get_root_place();
-
-    int num_toplevel;
-    place_t **toplevel = hclib_get_children_of_place(root_pl, &num_toplevel);
-
-    int num_gpus = 0;
-    int i;
-    for (i = 0; i < num_toplevel; i++) {
-        if (toplevel[i]->type == NVGPU_PLACE) {
-            num_gpus++;
-        }
-    }
-
-    num_gpus = 0;
-    place_t **gpu_places = malloc(num_gpus * sizeof(place_t *));
-    for (i = 0; i < num_toplevel; i++) {
-        if (toplevel[i]->type == NVGPU_PLACE) {
-            gpu_places[num_gpus++] = toplevel[i];
-        }
-    }
-
-    *n_nvgpu_places = num_gpus;
-    return gpu_places;
-}
-#endif
-
 const char *cpu_place_name = "CPU";
 char *hclib_get_place_name(place_t *pl) {
     if (is_cpu_place(pl)) {
         return (char *)cpu_place_name;
-#ifdef HC_CUDA
-    } else if (is_nvgpu_place(pl)) {
-        struct cudaDeviceProp props;
-        CHECK_CUDA(cudaGetDeviceProperties(&props, pl->cuda_id));
-        char *gpu_name = (char *)malloc(sizeof(props.name));
-        memcpy(gpu_name, props.name, sizeof(props.name));
-        return gpu_name;
-#endif
     } else {
         return unsupported_place_type_err(pl);
     }
@@ -287,181 +244,6 @@ inline void init_hc_deque_t(hc_deque_t *hcdeq, place_t *pl) {
 #endif
 }
 
-#ifdef HC_CUDA
-void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags) {
-    HASSERT(pl);
-    HASSERT(nbytes > 0);
-#ifdef VERBOSE
-    fprintf(stderr, "hclib_allocate_at: pl=%p nbytes=%lu flags=%d, is_cpu? %s",
-            pl, (unsigned long)nbytes, flags,
-            is_cpu_place(pl) ? "true" : "false");
-#ifdef HC_CUDA
-    fprintf(stderr, ", is_nvgpu? %s, cuda_id=%d",
-            is_nvgpu_place(pl) ? "true" : "false", pl->cuda_id);
-#endif
-    fprintf(stderr, "\n");
-#endif
-
-    if (is_cpu_place(pl)) {
-#ifdef HC_CUDA
-        if (flags & PHYSICAL) {
-            void *ptr;
-            const cudaError_t alloc_err = cudaMallocHost((void **)&ptr, nbytes);
-            if (alloc_err != cudaSuccess) {
-#ifdef VERBOSE
-                fprintf(stderr, "Physical allocation at CPU place failed with "
-                        "reason \"%s\"\n", cudaGetErrorString(alloc_err));
-#endif
-                return NULL;
-            } else {
-                hclib_memory_tree_insert(ptr, nbytes,
-                                         &hclib_context->pinned_host_allocs);
-                return ptr;
-            }
-        }
-#else
-        HASSERT(flags == NONE);
-#endif
-        return malloc(nbytes);
-#ifdef HC_CUDA
-    } else if (is_nvgpu_place(pl)) {
-        HASSERT(flags == NONE);
-        void *ptr;
-        HASSERT(pl->cuda_id >= 0);
-        CHECK_CUDA(cudaSetDevice(pl->cuda_id));
-        const cudaError_t alloc_err = cudaMalloc((void **)&ptr, nbytes);
-        if (alloc_err != cudaSuccess) {
-#ifdef VERBOSE
-            fprintf(stderr, "Allocation at NVGPU place failed with reason "
-                    "\"%s\"\n", cudaGetErrorString(alloc_err));
-#endif
-            return NULL;
-        } else {
-            return ptr;
-        }
-#endif
-    } else {
-        unsupported_place_type_err(pl);
-        return NULL; // will never reach here
-    }
-}
-
-int is_pinned_cpu_mem(void *ptr) {
-    return hclib_memory_tree_contains(ptr, &hclib_context->pinned_host_allocs);
-}
-
-void hclib_free_at(place_t *pl, void *ptr) {
-    if (is_cpu_place(pl)) {
-        if (is_pinned_cpu_mem(ptr)) {
-            hclib_memory_tree_remove(ptr, &hclib_context->pinned_host_allocs);
-            CHECK_CUDA(cudaFreeHost(ptr));
-        } else {
-            free(ptr);
-        }
-#ifdef HC_CUDA
-    } else if (is_nvgpu_place(pl)) {
-        CHECK_CUDA(cudaFree(ptr));
-#endif
-    } else {
-        unsupported_place_type_err(pl);
-    }
-}
-
-// Used to wrap the creation of an async copy task that is dependent on some promises
-static void async_gpu_task_launcher(void *arg) {
-    gpu_task_t *task = (gpu_task_t *)arg;
-    spawn_gpu_task((hclib_task_t *)task);
-}
-
-/*
- * TODO Currently doesn't support await on other promises, nor do communication
- * tasks
- */
-
-void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
-                             void *src, size_t nbytes, hclib_future_t **future_list,
-                             void *user_arg, hclib_promise_t *out_promise) {
-    gpu_task_t *task = malloc(sizeof(gpu_task_t));
-    task->t._fp = NULL;
-    task->t.is_asyncAnyType = 0;
-    task->t.future_list = NULL;
-    task->t.args = NULL;
-    task->t.place = NULL;
-
-    hclib_promise_init(out_promise);
-    task->gpu_type = GPU_COMM_TASK;
-    task->promise_to_put = out_promise;
-    task->arg_to_put = user_arg;
-
-    task->gpu_task_def.comm_task.src_pl = src_pl;
-    task->gpu_task_def.comm_task.dst_pl = dst_pl;
-    task->gpu_task_def.comm_task.src = src;
-    task->gpu_task_def.comm_task.dst = dst;
-    task->gpu_task_def.comm_task.nbytes = nbytes;
-
-#ifdef VERBOSE
-    fprintf(stderr, "hclib_async_copy: dst_pl=%p dst=%p src_pl=%p src=%p "
-            "nbytes=%lu future_list=%p\n", dst_pl, dst, src_pl, src,
-            (unsigned long)nbytes, future_list);
-#endif
-
-    if (future_list) {
-        hclib_async(async_gpu_task_launcher, task, future_list, NULL, NULL, 0);
-    } else {
-        spawn_gpu_task((hclib_task_t *)task);
-    }
-}
-
-hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst, place_t *src_pl,
-                                  void *src, size_t nbytes, hclib_future_t **future_list,
-                                  void *user_arg) {
-    hclib_promise_t *promise = hclib_promise_create();
-    hclib_async_copy_helper(dst_pl, dst, src_pl, src, nbytes, future_list,
-                            user_arg, promise);
-    return promise;
-}
-
-void hclib_async_memset_helper(place_t *pl, void *ptr, int val, size_t nbytes,
-                               hclib_future_t **future_list, void *user_arg,
-                               hclib_promise_t *out_promise) {
-    gpu_task_t *task = malloc(sizeof(gpu_task_t));
-    task->t._fp = NULL;
-    task->t.is_asyncAnyType = 0;
-    task->t.future_list = NULL;
-    task->t.args = NULL;
-    task->t.place = NULL;
-
-    hclib_promise_init(out_promise);
-    task->gpu_type = GPU_MEMSET_TASK;
-    task->promise_to_put = out_promise;
-    task->arg_to_put = user_arg;
-
-    task->gpu_task_def.memset_task.pl = pl;
-    task->gpu_task_def.memset_task.ptr = ptr;
-    task->gpu_task_def.memset_task.val = val;
-    task->gpu_task_def.memset_task.nbytes = nbytes;
-
-#ifdef VERBOSE
-    fprintf(stderr, "hclib_async_memset: pl=%p ptr=%p nbytes=%lu\n", pl, ptr,
-            (unsigned long)nbytes);
-#endif
-
-    if (future_list) {
-        hclib_async(async_gpu_task_launcher, task, future_list, NULL, NULL, 0);
-    } else {
-        spawn_gpu_task((hclib_task_t *)task);
-    }
-}
-
-hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
-                                    size_t nbytes, hclib_future_t **future_list, void *user_arg) {
-    hclib_promise_t *promise = hclib_promise_create();
-    hclib_async_memset_helper(pl, ptr, val, nbytes, future_list, user_arg,
-                              promise);
-    return promise;
-}
-#endif
-
 static const char *MEM_PLACE_STR   = "MEM_PLACE";
 static const char *CACHE_PLACE_STR = "CACHE_PLACE";
 static const char *NVGPU_PLACE_STR = "NVGPU_PLACE";
@@ -537,25 +319,6 @@ void hc_hpt_init(hc_context *context) {
      * this does make lookups of the deque in a place for a given worker
      * constant time based on offset in place->deques.
      */
-#ifdef HC_CUDA
-    int ngpus = 0;
-    int gpu_counter = 0;
-    cudaError_t cuda_err = cudaGetDeviceCount(&ngpus);
-    if (cuda_err == cudaErrorNoDevice) {
-        ngpus = 0;
-    }
-
-    for (i = 0; i < context->nplaces; i++) {
-        place_t *pl = context->places[i];
-        pl->cuda_id = -1;
-        if (is_nvgpu_place(pl)) {
-            pl->cuda_id = gpu_counter++;
-            CHECK_CUDA(cudaSetDevice(pl->cuda_id));
-            CHECK_CUDA(cudaStreamCreate(&pl->cuda_stream));
-        }
-    }
-#endif
-
     for (i = 0; i < context->nworkers; i++) {
         hclib_worker_state *ws = context->workers[i];
         const int id = ws->id;
@@ -564,12 +327,6 @@ void hc_hpt_init(hc_context *context) {
             if (is_cpu_place(pl)) {
                 hc_deque_t *hc_deq = &(pl->deques[id]);
                 hc_deq->ws = ws;
-#ifdef HC_CUDA
-            } else if (is_nvgpu_place(pl)) {
-                hc_deque_t *hc_deq = &(pl->deques[id]);
-                hc_deq->ws = ws;
-
-#endif
             } else {
                 /* unhandled or ignored situation */
                 HASSERT(0);
