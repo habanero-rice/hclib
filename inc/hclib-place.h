@@ -17,10 +17,6 @@
 #ifndef HCLIB_PLACE_H_
 #define HCLIB_PLACE_H_
 
-#ifdef HC_CUDA
-#include <driver_types.h>
-#endif
-
 struct hc_deque_t;
 
 typedef enum place_type {
@@ -48,10 +44,6 @@ typedef struct place_t {
 	int level; /* Level in the HPT tree. Logical root is level 0. */
 	int nChildren;
 	short type;
-#ifdef HC_CUDA
-    int cuda_id;
-    cudaStream_t cuda_stream;
-#endif
 } place_t ;
 
 typedef enum place_alloc_flags {
@@ -87,32 +79,9 @@ extern void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
  */
 extern void hclib_free_at(place_t *pl, void *ptr);
 
-#ifdef HC_CUDA
-
-extern place_t **hclib_get_nvgpu_places(int *n_nvgpu_places);
-extern hclib_promise_t *hclib_async_copy(place_t *dst_pl, void *dst,
-        place_t *src_pl, void *src, size_t nbytes,
-        hclib_future_t **future_list, void *user_arg);
-extern void hclib_async_copy_helper(place_t *dst_pl, void *dst, place_t *src_pl,
-        void *src, size_t nbytes, hclib_future_t **future_list,
-        void *user_arg, hclib_promise_t *out_promise);
-extern hclib_promise_t *hclib_async_memset(place_t *pl, void *ptr, int val,
-        size_t nbytes, hclib_future_t **future_list, void *user_arg);
-extern void hclib_async_memset_helper(place_t *pl, void *ptr, int val,
-        size_t nbytes, hclib_future_t **future_list, void *user_arg,
-        hclib_promise_t *out_promise);
-#endif
-
 inline short is_cpu_place(place_t * pl) {
     HASSERT(pl);
     return (pl->type == MEM_PLACE || pl->type == CACHE_PLACE);
 }
-
-#ifdef HC_CUDA
-inline short is_nvgpu_place(place_t * pl) {
-    HASSERT(pl);
-    return (pl->type == NVGPU_PLACE);
-}
-#endif
 
 #endif /* HCLIB_PLACE_H_ */

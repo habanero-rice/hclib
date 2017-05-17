@@ -60,22 +60,8 @@ void hclib_async(generic_frame_ptr fp, void *arg, hclib_future_t **future_list,
         if (place) {
             spawn_at_hpt(place, task);
         } else {
-            if(property == 0) spawn(task);
-            /*
-             * ^^^^^ TODO: Presently this path executed only for HabaneroOpenSHMEM++ ^^^^^^
-             * This else part is executed only if hclib::launch() is called from
-             * HabaneroUPC++ or HabaneroOpenSHMEM++. This task is essentially the main()
-             * function which has the finish_spmd(). This finish_spmd is only allowed
-                 * to execute on a comm_async and not on a regular async. Regular async
-             * would allow this finish_spmd to be executed by computation worker.
-             */
-            else {
-                // currently only using "awating" version of "escaping" async
-                HASSERT(!(property & ESCAPING_ASYNC));
-                // FIXME - add an HASSERT here to check that the property
-                // is the expected value (whatever HC/SHMEM sets it to)
-                spawn_comm_task(task);
-            }
+            HASSERT(property == 0);
+            spawn(task);
         }
     }
 }

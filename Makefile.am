@@ -15,10 +15,10 @@ library_include_HEADERS = inc/hclib-timer.h inc/hclib-rt.h inc/hclib.h \
 						  inc/hclib_config.h \
 						  inc/hclib-mak/hclib.mak inc/hclib-async.hpp src/inc/hclib-hpt.h \
 						  inc/hclib-forasync.hpp inc/hclib-promise.h inc/hclib-promise.hpp \
-						  src/inc/hclib-atomics.h inc/hclib-place.h inc/hcupc-support.hpp \
+						  src/inc/hclib-atomics.h inc/hclib-place.h \
 						  inc/hclib-async-struct.h inc/hclib.hpp inc/hclib-future.hpp \
 						  inc/hclib-task.h inc/hclib_common.h src/inc/litectx.h \
-						  src/fcontext/fcontext.h src/inc/hclib-tree.h src/inc/hclib-cuda.h
+						  src/fcontext/fcontext.h src/inc/hclib-tree.h
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \
