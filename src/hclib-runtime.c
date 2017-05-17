@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-#include <pthread.h>
-#include <sys/time.h>
-#include <stddef.h>
-
 #include <hclib.h>
 #include <hclib-internal.h>
 #include <hclib-atomics.h>
 #include <hclib-finish.h>
 #include <hclib-hpt.h>
+
+// These includes must come AFTER hclib-internal.h
+// to ensure that the hclib_config.h settings are included.
+#include <pthread.h>
+#include <sys/time.h>
+#include <stddef.h>
 
 // #define VERBOSE
 

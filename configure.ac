@@ -108,6 +108,9 @@ fi
 CXXFLAGS="${_old_CXXFLAGS}"
 ### End C++11 features check
 
+# We require at least POSIX.1-2001 for the pthread_setconcurrency function
+AC_DEFINE(_XOPEN_SOURCE, 600, [Enable X/Open 6 features.])
+
 # Variable substitutions.
 AC_SUBST([ac_aux_dir])
 AC_SUBST([abs_top_srcdir])
