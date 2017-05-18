@@ -829,8 +829,8 @@ int main(int argc, char **argv) {
             }
             memset(last_marked, 0x00, visited_longlongs * sizeof(long long));
 
-            for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
-            shmem_barrier_all();
+            // for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
+            // shmem_barrier_all();
             const unsigned long long start_atomics = current_time_ns();
 
 #pragma omp parallel reduction(+:count_local_atomics) default(none) \
@@ -875,8 +875,8 @@ int main(int argc, char **argv) {
              * For timing, to make sure we're timing completion of the bitwise
              * atomics too.
              */
-            for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
-            shmem_barrier_all();
+            // for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
+            // shmem_barrier_all();
 
             const unsigned long long start_reduction = current_time_ns();
 
