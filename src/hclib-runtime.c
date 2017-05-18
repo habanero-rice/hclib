@@ -24,8 +24,6 @@
 #include <hclib-finish.h>
 #include <hclib-hpt.h>
 
-// #define VERBOSE
-
 static double benchmark_start_time_stats = 0;
 static double user_specified_timer = 0;
 // TODO use __thread on Linux?
@@ -211,15 +209,11 @@ void hclib_signal_join(int nb_workers) {
 
 void hclib_join(int nb_workers) {
     // Join the workers
-#ifdef VERBOSE
-    fprintf(stderr, "hclib_join: nb_workers = %d\n", nb_workers);
-#endif
+    LOG_DEBUG("hclib_join: nb_workers = %d\n", nb_workers);
     for (int i = 1; i < nb_workers; i++) {
         pthread_join(hclib_context->workers[i]->t, NULL);
     }
-#ifdef VERBOSE
-    fprintf(stderr, "hclib_join: finished\n");
-#endif
+    LOG_DEBUG("hclib_join: finished\n");
 }
 
 void hclib_cleanup() {
@@ -260,9 +254,7 @@ static inline void execute_task(hclib_task_t *task) {
     CURRENT_WS_INTERNAL->current_finish = current_finish;
 
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
-#ifdef VERBOSE
-    fprintf(stderr, "execute_task: task=%p fp=%p\n", task, task->_fp);
-#endif
+    LOG_DEBUG("execute_task: task=%p fp=%p\n", task, task->_fp);
     (task->_fp)(task->args);
     check_out_finish(current_finish);
     free(task);
@@ -270,30 +262,24 @@ static inline void execute_task(hclib_task_t *task) {
 
 static inline void rt_schedule_async(hclib_task_t *async_task,
                                      hclib_worker_state *ws) {
-#ifdef VERBOSE
-    fprintf(stderr, "rt_schedule_async: async_task=%p "
-            "place=%p\n", async_task, async_task->place);
-#endif
+    LOG_DEBUG("rt_schedule_async: async_task=%p place=%p\n",
+            async_task, async_task->place);
 
     // push on worker deq
     if (async_task->place) {
         deque_push_place(ws, async_task->place, async_task);
     } else {
         const int wid = get_current_worker();
-#ifdef VERBOSE
-        fprintf(stderr, "rt_schedule_async: scheduling on worker wid=%d "
+        LOG_DEBUG("rt_schedule_async: scheduling on worker wid=%d "
                 "hclib_context=%p\n", wid, hclib_context);
-#endif
         if (!deque_push(&(hclib_context->workers[wid]->current->deque),
                         async_task)) {
             // TODO: deque is full, so execute in place
             printf("WARNING: deque full, local execution\n");
             execute_task(async_task);
         }
-#ifdef VERBOSE
-        fprintf(stderr, "rt_schedule_async: finished scheduling on worker wid=%d\n",
+        LOG_DEBUG("rt_schedule_async: finished scheduling on worker wid=%d\n",
                 wid);
-#endif
     }
 }
 
@@ -306,10 +292,8 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
  * been satisfied.
  */
 static inline int is_eligible_to_schedule(hclib_task_t *async_task) {
-#ifdef VERBOSE
-    fprintf(stderr, "is_eligible_to_schedule: async_task=%p future_list=%p\n",
+    LOG_DEBUG("is_eligible_to_schedule: async_task=%p future_list=%p\n",
             async_task, async_task->future_list);
-#endif
     if (async_task->future_list != NULL) {
         return register_on_all_promise_dependencies(async_task);
     } else {
@@ -342,9 +326,7 @@ void spawn_handler(hclib_task_t *task, place_t *pl, bool escaping) {
         HASSERT(task->current_finish == NULL);
     }
 
-#ifdef VERBOSE
-    fprintf(stderr, "spawn_handler: task=%p\n", task);
-#endif
+    LOG_DEBUG("spawn_handler: task=%p\n", task);
 
     try_schedule_async(task, ws);
 }
@@ -466,10 +448,8 @@ static void *worker_routine(void *args) {
     // Swap in the newCtx lite context
     ctx_swap(currentCtx, newCtx, __func__);
 
-#ifdef VERBOSE
-    fprintf(stderr, "worker_routine: worker %d exiting, cleaning up proxy %p "
+    LOG_DEBUG("worker_routine: worker %d exiting, cleaning up proxy %p "
             "and lite ctx %p\n", get_current_worker(), currentCtx, newCtx);
-#endif
 
     // free resources
     LiteCtx_destroy(currentCtx->prev);
@@ -499,10 +479,8 @@ static void _finish_ctx_resume(void *arg) {
     LiteCtx *finishCtx = arg;
     ctx_swap(currentCtx, finishCtx, __func__);
 
-#ifdef VERBOSE
-    fprintf(stderr, "Should not have reached here, currentCtx=%p "
+    LOG_DEBUG("Should not have reached here, currentCtx=%p "
             "finishCtx=%p\n", currentCtx, finishCtx);
-#endif
     HASSERT(0);
 }
 
@@ -549,9 +527,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
      * the async must ESCAPE, otherwise this finish scope will deadlock on
      * itself).
      */
-#ifdef VERBOSE
-    printf("_help_finish_ctx: ctx = %p, ctx->arg = %p\n", ctx, ctx->arg);
-#endif
+    LOG_DEBUG("_help_finish_ctx: ctx = %p, ctx->arg = %p\n", ctx, ctx->arg);
     finish_t *finish = ctx->arg;
     LiteCtx *hclib_finish_ctx = ctx->prev;
 
@@ -665,9 +641,7 @@ void help_finish(finish_t *finish) {
             LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
             newCtx->arg = finish;
 
-#ifdef VERBOSE
-            printf("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
-#endif
+            LOG_DEBUG("help_finish: newCtx = %p, newCtx->arg = %p\n", newCtx, newCtx->arg);
             ctx_swap(currentCtx, newCtx, __func__);
 
             // note: the other context checks out of the current finish scope
