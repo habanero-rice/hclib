@@ -322,12 +322,11 @@ static inline void set_neighbors_of(const uint64_t global_vertex_id,
         unsigned long long *marking, const unsigned *local_vertex_offsets,
         const uint64_t local_min_vertex, const uint64_t *neighbors,
         const unsigned long long *marked) {
-    int j;
     const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
     const int neighbor_start = local_vertex_offsets[local_vertex_id];
     const int neighbor_end = local_vertex_offsets[local_vertex_id + 1];
 
-    for (j = neighbor_start; j < neighbor_end; j++) {
+    for (int j = neighbor_start; j < neighbor_end; j++) {
         const uint64_t to_explore_global_id = neighbors[j];
 
         if (!is_visited_longlong(to_explore_global_id, marked)) {
@@ -347,18 +346,16 @@ static inline void handle_longlong(const int initial_bit_index,
         unsigned long long *marking, const unsigned *local_vertex_offsets,
         int *count_signals, const uint64_t local_min_vertex,
         const uint64_t *neighbors) {
-    int bit_index = initial_bit_index;
 
     const unsigned long long old_longlong = marked[longlong_index];
     const unsigned long long new_longlong = last_marked[longlong_index];
-    // const unsigned long long curr_longlong = marking[longlong_index];
 
     marked[longlong_index] |= new_longlong;
 
-    while (bit_index < last_bit_index) {
+    for (int bit_index = initial_bit_index; bit_index < last_bit_index;
+            bit_index++) {
         if (is_visited_longlong(bit_index, &new_longlong) &&
-                !is_visited_longlong(bit_index, &old_longlong) /*&&
-                !is_visited_longlong(bit_index, &curr_longlong) */ ) {
+                !is_visited_longlong(bit_index, &old_longlong)) {
             // New update, need to visit neighbors
             const uint64_t global_vertex_id = longlong_index *
                 BITS_PER_LONGLONG + bit_index;
@@ -372,7 +369,6 @@ static inline void handle_longlong(const int initial_bit_index,
             set_neighbors_of(global_vertex_id, marking, local_vertex_offsets,
                     local_min_vertex, neighbors, marked);
         }
-        bit_index++;
     }
 }
 
