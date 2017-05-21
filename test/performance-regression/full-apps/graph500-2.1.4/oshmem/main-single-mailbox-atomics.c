@@ -215,8 +215,9 @@ static inline int get_owner_pe(uint64_t vertex, uint64_t nvertices) {
 }
 
 static inline void set_visited_longlong(const uint64_t bit_index,
-        unsigned long long *vector) {
+        unsigned long long *vector, const unsigned length) {
     const uint64_t longlong_index = bit_index / (uint64_t)BITS_PER_LONGLONG;
+    assert(longlong_index >= 0 && longlong_index < length);
     const uint64_t longlong_bit_index = bit_index % (uint64_t)BITS_PER_LONGLONG;
     const unsigned long long mask = ((unsigned long long)1 << longlong_bit_index);
 
@@ -233,11 +234,10 @@ static inline void set_visited_longlong_atomic(const uint64_t bit_index,
     shmemx_ctx_ulonglong_atomic_or(vector + longlong_index, mask, target_pe, ctx);
 }
 
-
 static inline int is_visited_longlong(const uint64_t bit_index,
         const unsigned long long *vector) {
     const unsigned longlong_index = bit_index / (uint64_t)BITS_PER_LONGLONG;
-    const uint64_t longlong_bit_index = bit_index % (uint64_t)BITS_PER_INT;
+    const uint64_t longlong_bit_index = bit_index % (uint64_t)BITS_PER_LONGLONG;
     const unsigned long long mask = ((unsigned long long)1 << longlong_bit_index);
 
     return (((vector[longlong_index] & mask) > 0) ? 1 : 0);
@@ -246,9 +246,6 @@ static inline int is_visited_longlong(const uint64_t bit_index,
 static inline void set_visited(const uint64_t global_vertex_id,
         unsigned *visited, const unsigned visited_length) {
     const int word_index = global_vertex_id / BITS_PER_INT;
-    if (word_index >= visited_length) {
-        fprintf(stderr, "%d %u\n", word_index, visited_length);
-    }
     assert(word_index < visited_length);
     const int bit_index = global_vertex_id % BITS_PER_INT;
     const int mask = (1 << bit_index);
@@ -315,13 +312,98 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
+static inline int count_bits_set(const unsigned long long vec,
+        const int starting_bit_index, const int ending_bit_index) {
+    int count = 0;
+
+    for (uint64_t bit_index = starting_bit_index; bit_index <= ending_bit_index;
+            bit_index++) {
+        const unsigned long long mask = ((unsigned long long)1 << bit_index);
+        if ((vec & mask) > 0) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+static inline int traverse_all_verts(const uint64_t nglobalverts,
+        unsigned long long *marked, unsigned long long *last_marked,
+        unsigned long long *marking,
+        int *global_vert_to_local_neighbors_offsets,
+        int *global_vert_to_local_neighbors, const uint64_t local_min_vertex,
+        const uint64_t local_max_vertex, const unsigned longlong_length) { 
+
+#pragma omp parallel for default(none) schedule(dynamic) \
+    firstprivate(marked, last_marked, marking, \
+            global_vert_to_local_neighbors_offsets, \
+            global_vert_to_local_neighbors)
+    for (size_t longlong_index = 0; longlong_index < longlong_length;
+            longlong_index++) {
+        for (int bit_index = 0; bit_index < BITS_PER_LONGLONG; bit_index++) {
+            const uint64_t global_vertex = longlong_index * BITS_PER_LONGLONG +
+                bit_index;
+            if (global_vertex < nglobalverts && !is_visited_longlong(global_vertex, marked)) {
+                const int local_neighbors_start = global_vert_to_local_neighbors_offsets[global_vertex];
+                const int local_neighbors_end = global_vert_to_local_neighbors_offsets[global_vertex + 1];
+
+                for (int i = local_neighbors_start; i < local_neighbors_end; i++) {
+                    const int local_vertex = global_vert_to_local_neighbors[i];
+                    const uint64_t neighbor_global_vertex = local_min_vertex + local_vertex;
+                    const unsigned longlong_index = neighbor_global_vertex / (uint64_t)BITS_PER_LONGLONG;
+                    const uint64_t bit_index = neighbor_global_vertex % (uint64_t)BITS_PER_LONGLONG;
+                    const unsigned long long old_longlong = marked[longlong_index];
+                    const unsigned long long new_longlong = last_marked[longlong_index];
+
+                    if (is_visited_longlong(bit_index, &new_longlong) &&
+                            !is_visited_longlong(bit_index, &old_longlong)) {
+                        set_visited_longlong(global_vertex, marking, longlong_length);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    const size_t my_min_longlong = local_min_vertex / BITS_PER_LONGLONG;
+    const size_t my_max_longlong = (local_max_vertex - 1) / BITS_PER_LONGLONG;
+    const uint64_t starting_bit_index = local_min_vertex % (uint64_t)BITS_PER_LONGLONG;
+    const uint64_t ending_bit_index = (local_max_vertex - 1) % (uint64_t)BITS_PER_LONGLONG;
+
+    int count_signals = 0;
+
+    if (my_min_longlong == my_max_longlong) {
+        count_signals += count_bits_set(last_marked[my_min_longlong],
+                starting_bit_index, ending_bit_index);
+        marked[my_min_longlong] |= last_marked[my_min_longlong];
+    } else {
+        count_signals += count_bits_set(last_marked[my_min_longlong],
+                starting_bit_index, BITS_PER_LONGLONG);
+        marked[my_min_longlong] |= last_marked[my_min_longlong];
+#pragma omp parallel for simd default(none) schedule(static) \
+        firstprivate(last_marked, marked) reduction(+:count_signals)
+        for (size_t longlong_index = my_min_longlong + 1;
+                longlong_index < my_max_longlong;
+                longlong_index++) {
+            const unsigned long long curr = last_marked[longlong_index];
+            count_signals += count_bits_set(curr, 0, BITS_PER_LONGLONG);
+            marked[longlong_index] |= curr;
+        }
+        count_signals += count_bits_set(last_marked[my_max_longlong],
+                0, ending_bit_index);
+        marked[my_max_longlong] |= last_marked[my_max_longlong];
+    }
+
+    return count_signals;
+}
+
 /*
  * Performs random writes to marking.
  */
 static inline void set_neighbors_of(const uint64_t global_vertex_id,
         unsigned long long *marking, const unsigned *local_vertex_offsets,
         const uint64_t local_min_vertex, const uint64_t *neighbors,
-        const unsigned long long *marked) {
+        const unsigned long long *marked, const unsigned longlong_length) {
     const uint64_t local_vertex_id = global_vertex_id - local_min_vertex;
     const int neighbor_start = local_vertex_offsets[local_vertex_id];
     const int neighbor_end = local_vertex_offsets[local_vertex_id + 1];
@@ -330,7 +412,7 @@ static inline void set_neighbors_of(const uint64_t global_vertex_id,
         const uint64_t to_explore_global_id = neighbors[j];
 
         if (!is_visited_longlong(to_explore_global_id, marked)) {
-            set_visited_longlong(to_explore_global_id, marking);
+            set_visited_longlong(to_explore_global_id, marking, longlong_length);
         }
     }
 }
@@ -345,7 +427,7 @@ static inline void handle_longlong(const int initial_bit_index,
         unsigned long long *last_marked, unsigned long long *marked,
         unsigned long long *marking, const unsigned *local_vertex_offsets,
         int *count_signals, const uint64_t local_min_vertex,
-        const uint64_t *neighbors) {
+        const uint64_t *neighbors, const unsigned longlong_length) {
 
     const unsigned long long old_longlong = marked[longlong_index];
     const unsigned long long new_longlong = last_marked[longlong_index];
@@ -367,7 +449,7 @@ static inline void handle_longlong(const int initial_bit_index,
             *count_signals = *count_signals + 1;
 
             set_neighbors_of(global_vertex_id, marking, local_vertex_offsets,
-                    local_min_vertex, neighbors, marked);
+                    local_min_vertex, neighbors, marked, longlong_length);
         }
     }
 }
@@ -711,6 +793,44 @@ int main(int argc, char **argv) {
         }
     }
 
+    int *global_vert_to_local_neighbors_offsets = (int *)malloc(
+            (nglobalverts + 1) * sizeof(*global_vert_to_local_neighbors_offsets));
+    assert(global_vert_to_local_neighbors_offsets);
+    memset(global_vert_to_local_neighbors_offsets, 0x00,
+            (nglobalverts + 1) * sizeof(*global_vert_to_local_neighbors_offsets));
+
+    int *global_vert_to_local_neighbors = (int *)malloc(
+            writing_index * sizeof(*global_vert_to_local_neighbors));
+    assert(writing_index == 0 || global_vert_to_local_neighbors);
+
+    for (int i = 0; i < n_local_vertices; i++) {
+        const unsigned neighbors_start = local_vertex_offsets[i];
+        const unsigned neighbors_end = local_vertex_offsets[i + 1];
+        for (int j = neighbors_start; j < neighbors_end; j++) {
+            uint64_t neighbor = neighbors[j];
+            global_vert_to_local_neighbors_offsets[neighbor]++;
+        }
+    }
+
+    for (int i = 1; i < nglobalverts; i++) {
+        global_vert_to_local_neighbors_offsets[i] +=
+            global_vert_to_local_neighbors_offsets[i - 1];
+    }
+    global_vert_to_local_neighbors_offsets[nglobalverts] =
+        global_vert_to_local_neighbors_offsets[nglobalverts - 1];
+
+    for (int i = 0; i < n_local_vertices; i++) {
+        const unsigned neighbors_start = local_vertex_offsets[i];
+        const unsigned neighbors_end = local_vertex_offsets[i + 1];
+        for (int j = neighbors_start; j < neighbors_end; j++) {
+            uint64_t neighbor = neighbors[j];
+            const int neighbor_offset = global_vert_to_local_neighbors_offsets[neighbor] - 1;
+            assert(neighbor_offset >= 0 && neighbor_offset < writing_index);
+            global_vert_to_local_neighbors[neighbor_offset] = i;
+            global_vert_to_local_neighbors_offsets[neighbor] = neighbor_offset;
+        }
+    }
+
     size_t n_local_edges = 0;
     size_t n_remote_edges = 0;
 
@@ -764,6 +884,17 @@ int main(int argc, char **argv) {
     //         }
     //         shmem_barrier_all();
     //     }
+
+    //     for (k = 0; k < npes; k++) {
+    //         if (k == shmem_my_pe()) {
+    //             for (i = 0; i < nglobalverts; i++) {
+    //                 const int start = global_vert_to_local_neighbors_offsets[i];
+    //                 const int end = global_vert_to_local_neighbors_offsets[i + 1];
+    //                 fprintf(stderr, "FOO %d %d : %d -> %d\n", shmem_my_pe(), i, start, end);
+    //             }
+    //         }
+    //         shmem_barrier_all();
+    //     }
     // }
 
     shmem_free(local_edges);
@@ -802,7 +933,7 @@ int main(int argc, char **argv) {
         uint64_t root = 0;
 
         if (get_owner_pe(root, nglobalverts) == pe) {
-            set_visited_longlong(root, last_marked);
+            set_visited_longlong(root, last_marked, visited_longlongs);
         }
 
         const size_t my_min_longlong = local_min_vertex / BITS_PER_LONGLONG;
@@ -816,7 +947,7 @@ int main(int argc, char **argv) {
             my_max_longlong;
         unsigned long long *body_ptr = ((unsigned long long *)marked) +
             (my_min_longlong + 1);
-        const size_t longlong_to_send = my_max_longlong - my_min_longlong - 1;
+        const ssize_t longlong_to_send = my_max_longlong - my_min_longlong - 1;
 
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
@@ -832,39 +963,44 @@ int main(int argc, char **argv) {
             if (n_local_vertices > 0) {
                 memset(local_marking, 0x00, visited_longlongs * sizeof(long long));
 
-                if (my_min_longlong == my_max_longlong) {
-                    // Everything in a single long long
-                    handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
-                            local_max_vertex % BITS_PER_LONGLONG,
-                            my_min_longlong, last_marked, marked,
-                            local_marking, local_vertex_offsets, my_n_signalled,
-                            local_min_vertex, neighbors);
-                } else {
-                    // Handle any bits in first longlong
-                    handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
-                            BITS_PER_LONGLONG, my_min_longlong, last_marked, marked,
-                            local_marking, local_vertex_offsets, my_n_signalled,
-                            local_min_vertex, neighbors);
+                *my_n_signalled = traverse_all_verts(nglobalverts, marked, last_marked,
+                        local_marking, global_vert_to_local_neighbors_offsets,
+                        global_vert_to_local_neighbors, local_min_vertex,
+                        local_max_vertex, visited_longlongs);
 
-                    // Handle core bits
-// #pragma omp parallel
-                    {
-                    const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
-
-// #pragma omp for schedule(static)
-                    for (i = my_min_longlong + 1; i < my_max_longlong; i++) {
-                        handle_longlong(0, BITS_PER_LONGLONG, i, last_marked,
-                                marked, local_marking, local_vertex_offsets,
-                                my_n_signalled, local_min_vertex, neighbors);
-                    }
-                    }
-
-                    // Handle any bits in last longlong
-                    handle_longlong(0, local_max_vertex % BITS_PER_LONGLONG,
-                            my_max_longlong, last_marked, marked, local_marking,
-                            local_vertex_offsets, my_n_signalled, local_min_vertex,
-                            neighbors);
-                }
+//                 if (my_min_longlong == my_max_longlong) {
+//                     // Everything in a single long long
+//                     handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
+//                             local_max_vertex % BITS_PER_LONGLONG,
+//                             my_min_longlong, last_marked, marked,
+//                             local_marking, local_vertex_offsets, my_n_signalled,
+//                             local_min_vertex, neighbors, visited_longlongs);
+//                 } else {
+//                     // Handle any bits in first longlong
+//                     handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
+//                             BITS_PER_LONGLONG, my_min_longlong, last_marked, marked,
+//                             local_marking, local_vertex_offsets, my_n_signalled,
+//                             local_min_vertex, neighbors, visited_longlongs);
+// 
+//                     // Handle core bits
+// // #pragma omp parallel
+//                     {
+//                     const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
+// 
+// // #pragma omp for schedule(static)
+//                     for (i = my_min_longlong + 1; i < my_max_longlong; i++) {
+//                         handle_longlong(0, BITS_PER_LONGLONG, i, last_marked,
+//                                 marked, local_marking, local_vertex_offsets,
+//                                 my_n_signalled, local_min_vertex, neighbors, visited_longlongs);
+//                     }
+//                     }
+// 
+//                     // Handle any bits in last longlong
+//                     handle_longlong(0, local_max_vertex % BITS_PER_LONGLONG,
+//                             my_max_longlong, last_marked, marked, local_marking,
+//                             local_vertex_offsets, my_n_signalled, local_min_vertex,
+//                             neighbors, visited_longlongs);
+//                 }
             }
             // memset(last_marked, 0x00, visited_longlongs * sizeof(long long));
 
