@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include <limits.h>
 
-// #define VERBOSE
+#define VERBOSE
 
 // #ifdef USE_CRC
 // #include "crc.h"
@@ -224,16 +224,6 @@ static inline void set_visited_longlong(const uint64_t bit_index,
     vector[longlong_index] |= mask;
 }
 
-static inline void set_visited_longlong_atomic(const uint64_t bit_index,
-        unsigned long long *vector, const int target_pe,
-        const shmemx_ctx_t ctx) {
-    const uint64_t longlong_index = bit_index / (uint64_t)BITS_PER_LONGLONG;
-    const uint64_t longlong_bit_index = bit_index % (uint64_t)BITS_PER_LONGLONG;
-    const unsigned long long mask = ((unsigned long long)1 << longlong_bit_index);
-
-    shmemx_ctx_ulonglong_atomic_or(vector + longlong_index, mask, target_pe, ctx);
-}
-
 static inline int is_visited_longlong(const uint64_t bit_index,
         const unsigned long long *vector) {
     const unsigned longlong_index = bit_index / (uint64_t)BITS_PER_LONGLONG;
@@ -264,30 +254,6 @@ static inline int is_visited(const uint64_t global_vertex_id,
     return (((visited[word_index] & mask) > 0) ? 1 : 0);
 }
 
-static void recursively_label(const uint64_t global_vertex, const int label,
-        int *labels, uint64_t local_min_vertex, uint64_t *neighbors,
-        const unsigned *local_vertex_offsets, const uint64_t nglobalverts) {
-    int curr_label = labels[global_vertex - local_min_vertex];
-    assert(curr_label == 0 || curr_label == label);
-    if (curr_label == label) {
-        return;
-    }
-
-    labels[global_vertex - local_min_vertex] = label;
-
-    const unsigned neighbors_start = local_vertex_offsets[global_vertex - local_min_vertex];
-    const unsigned neighbors_end = local_vertex_offsets[global_vertex - local_min_vertex + 1];
-
-    int j;
-    for (j = neighbors_start; j < neighbors_end; j++) {
-        uint64_t neighbor = neighbors[j];
-        if (get_owner_pe(neighbor, nglobalverts) == pe) {
-            recursively_label(neighbor, label, labels, local_min_vertex,
-                    neighbors, local_vertex_offsets, nglobalverts);
-        }
-    }
-}
-
 /* Spread the two 64-bit numbers into five nonzero values in the correct
  * range. */
 static void make_mrg_seed(uint64_t userseed1, uint64_t userseed2,
@@ -312,34 +278,40 @@ static int compare_uint64_t(const void *a, const void *b) {
     }
 }
 
-static inline int count_bits_set(const unsigned long long vec,
-        const int starting_bit_index, const int ending_bit_index) {
-    int count = 0;
+static inline unsigned count_set_bits(uint32_t i) {
+    i = i - ((i >> 1) & 0x55555555);
+    i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+    return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+}
 
-    for (uint64_t bit_index = starting_bit_index; bit_index <= ending_bit_index;
-            bit_index++) {
-        const unsigned long long mask = ((unsigned long long)1 << bit_index);
-        if ((vec & mask) > 0) {
-            count++;
-        }
-    }
-
-    return count;
+static inline unsigned count_set_bits_ulonglong(unsigned long long i) {
+    uint32_t *ptr = (uint32_t *)(&i);
+    return count_set_bits(ptr[0]) + count_set_bits(ptr[1]);
 }
 
 static inline int traverse_all_verts(const uint64_t nglobalverts,
-        unsigned long long *marked, unsigned long long *last_marked,
-        unsigned long long *marking,
-        int *global_vert_to_local_neighbors_offsets,
-        int *global_vert_to_local_neighbors, const uint64_t local_min_vertex,
-        const uint64_t local_max_vertex, const unsigned longlong_length) { 
+        unsigned long long * restrict marked, unsigned long long * restrict last_marked,
+        unsigned long long * restrict marking, unsigned long long * restrict actual_marking,
+        int * restrict global_vert_to_local_neighbors_offsets,
+        int * restrict global_vert_to_local_neighbors, const uint64_t local_min_vertex,
+        const uint64_t local_max_vertex, const unsigned longlong_length,
+        unsigned long long * restrict setting_time,
+        unsigned long long * restrict saving_time, shmemx_ctx_t *contexts) { 
+    const unsigned long long start_setting = current_time_ns();
 
-#pragma omp parallel for default(none) schedule(dynamic) \
-    firstprivate(marked, last_marked, marking, \
-            global_vert_to_local_neighbors_offsets, \
-            global_vert_to_local_neighbors)
+    int count_signals = 0;
+
+#pragma omp parallel default(none) firstprivate(marked, last_marked, marking, \
+            actual_marking, global_vert_to_local_neighbors_offsets, \
+            global_vert_to_local_neighbors, contexts) reduction(+:count_signals)
+    {
+        const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
+        unsigned count_local_signals = 0;
+
+#pragma omp for schedule(static)
     for (size_t longlong_index = 0; longlong_index < longlong_length;
             longlong_index++) {
+
         for (int bit_index = 0; bit_index < BITS_PER_LONGLONG; bit_index++) {
             const uint64_t global_vertex = longlong_index * BITS_PER_LONGLONG +
                 bit_index;
@@ -348,51 +320,60 @@ static inline int traverse_all_verts(const uint64_t nglobalverts,
                 const int local_neighbors_end = global_vert_to_local_neighbors_offsets[global_vertex + 1];
 
                 for (int i = local_neighbors_start; i < local_neighbors_end; i++) {
-                    const int local_vertex = global_vert_to_local_neighbors[i];
-                    const uint64_t neighbor_global_vertex = local_min_vertex + local_vertex;
-                    const unsigned longlong_index = neighbor_global_vertex / (uint64_t)BITS_PER_LONGLONG;
-                    const uint64_t bit_index = neighbor_global_vertex % (uint64_t)BITS_PER_LONGLONG;
-                    const unsigned long long old_longlong = marked[longlong_index];
-                    const unsigned long long new_longlong = last_marked[longlong_index];
+                    const uint64_t neighbor_global_vertex = local_min_vertex +
+                        global_vert_to_local_neighbors[i];
 
-                    if (is_visited_longlong(bit_index, &new_longlong) &&
-                            !is_visited_longlong(bit_index, &old_longlong)) {
+                    if (is_visited_longlong(neighbor_global_vertex, last_marked) &&
+                            !is_visited_longlong(neighbor_global_vertex, marked)) {
                         set_visited_longlong(global_vertex, marking, longlong_length);
+
+                        const uint64_t longlong_index = global_vertex / (uint64_t)BITS_PER_LONGLONG;
+                        if (count_set_bits_ulonglong(marking[longlong_index]) > 8) {
+                            shmemx_ctx_ulonglong_atomic_or(
+                                    actual_marking + longlong_index,
+                                    marking[longlong_index],
+                                    get_owner_pe(global_vertex, nglobalverts),
+                                    ctx);
+                            count_local_signals++;
+                            if (count_local_signals % 128 == 0) {
+                                shmemx_ctx_quiet(ctx);
+                            }
+                            marking[longlong_index] = 0;
+                        }
+
+                        count_signals++;
                         break;
                     }
                 }
             }
         }
-    }
+    } // omp for
+
+    } // omp parallel
+
+    const unsigned long long start_saving = current_time_ns();
 
     const size_t my_min_longlong = local_min_vertex / BITS_PER_LONGLONG;
     const size_t my_max_longlong = (local_max_vertex - 1) / BITS_PER_LONGLONG;
-    const uint64_t starting_bit_index = local_min_vertex % (uint64_t)BITS_PER_LONGLONG;
-    const uint64_t ending_bit_index = (local_max_vertex - 1) % (uint64_t)BITS_PER_LONGLONG;
-
-    int count_signals = 0;
 
     if (my_min_longlong == my_max_longlong) {
-        count_signals += count_bits_set(last_marked[my_min_longlong],
-                starting_bit_index, ending_bit_index);
         marked[my_min_longlong] |= last_marked[my_min_longlong];
     } else {
-        count_signals += count_bits_set(last_marked[my_min_longlong],
-                starting_bit_index, BITS_PER_LONGLONG);
-        marked[my_min_longlong] |= last_marked[my_min_longlong];
-#pragma omp parallel for simd default(none) schedule(static) \
-        firstprivate(last_marked, marked) reduction(+:count_signals)
-        for (size_t longlong_index = my_min_longlong + 1;
-                longlong_index < my_max_longlong;
+#pragma omp simd
+        for (size_t longlong_index = my_min_longlong;
+                longlong_index <= my_max_longlong;
                 longlong_index++) {
-            const unsigned long long curr = last_marked[longlong_index];
-            count_signals += count_bits_set(curr, 0, BITS_PER_LONGLONG);
-            marked[longlong_index] |= curr;
+            const unsigned long long new_val = last_marked[longlong_index];
+            if (new_val) {
+                marked[longlong_index] |= new_val;
+            }
         }
-        count_signals += count_bits_set(last_marked[my_max_longlong],
-                0, ending_bit_index);
-        marked[my_max_longlong] |= last_marked[my_max_longlong];
     }
+
+    const unsigned long long end_saving = current_time_ns();
+
+    *setting_time = start_saving - start_setting;
+    *saving_time = end_saving - start_saving;
 
     return count_signals;
 }
@@ -548,7 +529,7 @@ int main(int argc, char **argv) {
      * PEs.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d malloc-ing %llu bytes (E)\n", shmem_my_pe(),
             nedges_this_pe * sizeof(packed_edge));
 #endif
     packed_edge *actual_buf = (packed_edge *)malloc(
@@ -562,7 +543,7 @@ int main(int argc, char **argv) {
      * each PE.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d calloc-ing %llu bytes (A)\n", shmem_my_pe(),
             npes * sizeof(long long));
 #endif
     long long *count_edges_shared_with_pe = (long long *)calloc(npes,
@@ -582,7 +563,7 @@ int main(int argc, char **argv) {
      * ownership.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d malloc-ing %llu bytes (F)\n", shmem_my_pe(),
             npes * sizeof(long long));
 #endif
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
@@ -596,7 +577,7 @@ int main(int argc, char **argv) {
     shmem_barrier_all();
 
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes (A)\n", shmem_my_pe(),
             SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #endif
     int *pWrkInt = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(*pWrkInt));
@@ -606,7 +587,7 @@ int main(int argc, char **argv) {
 
     long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes (B)\n", shmem_my_pe(),
             SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #endif
     long *pSync2 = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
@@ -638,40 +619,85 @@ int main(int argc, char **argv) {
      * be provided by other PEs.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
-            max_n_local_edges * sizeof(packed_edge));
+    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes (C), nedges_this_pe = "
+            "%ld\n", shmem_my_pe(), max_n_local_edges * sizeof(packed_edge),
+            nedges_this_pe);
 #endif
     packed_edge *local_edges = (packed_edge *)shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
     assert(local_edges);
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d done qsort-ing\n", shmem_my_pe());
+#endif
+
     /*
      * Send out to each PE based on the vertices each owns, all edges that have
-     * a vertix on that node. This means that vertices which have one vertix on
-     * one node and one vertix on another will be sent to two different nodes.
+     * a vertex on that node. This means that vertices which have one vertex on
+     * one node and one vertex on another will be sent to two different nodes.
      */
-    for (i = 0; i < nedges_this_pe; i++) {
-        int64_t v0 = get_v0_from_edge(actual_buf + i);
-        int64_t v1 = get_v1_from_edge(actual_buf + i);
-        int v0_pe = get_owner_pe(v0, nglobalverts);
-        int v1_pe = get_owner_pe(v1, nglobalverts);
-        shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
-                sizeof(packed_edge), v0_pe);
-        remote_offsets[v0_pe]++;
-        shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
-                sizeof(packed_edge), v1_pe);
-        remote_offsets[v1_pe]++;
+
+    packed_edge *tmp_buf = (packed_edge *)malloc(
+            2 * nedges_this_pe * sizeof(packed_edge));
+    assert(tmp_buf);
+
+    for (int p = 0; p < npes; p++) {
+        int count = 0;
+        for (i = 0; i < nedges_this_pe; i++) {
+            int64_t v0 = get_v0_from_edge(actual_buf + i);
+            int64_t v1 = get_v1_from_edge(actual_buf + i);
+            int v0_pe = get_owner_pe(v0, nglobalverts);
+            int v1_pe = get_owner_pe(v1, nglobalverts);
+
+            if (v0_pe == p) {
+                memcpy(tmp_buf + count, actual_buf + i, sizeof(packed_edge));
+                count++;
+            }
+
+            if (v1_pe == p) {
+                memcpy(tmp_buf + count, actual_buf + i, sizeof(packed_edge));
+                count++;
+            }
+        }
+
+        shmem_putmem(local_edges + remote_offsets[p], tmp_buf,
+                count * sizeof(packed_edge), p);
         shmem_quiet();
+
+#ifdef VERBOSE
+        fprintf(stderr, "PE %d sent %llu bytes to PE %d\n", shmem_my_pe(),
+                count * sizeof(packed_edge), p);
+#endif
     }
 
+    free(tmp_buf);
+
+    // for (i = 0; i < nedges_this_pe; i++) {
+    //     int64_t v0 = get_v0_from_edge(actual_buf + i);
+    //     int64_t v1 = get_v1_from_edge(actual_buf + i);
+    //     int v0_pe = get_owner_pe(v0, nglobalverts);
+    //     int v1_pe = get_owner_pe(v1, nglobalverts);
+    //     shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
+    //             sizeof(packed_edge), v0_pe);
+    //     remote_offsets[v0_pe]++;
+    //     shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
+    //             sizeof(packed_edge), v1_pe);
+    //     remote_offsets[v1_pe]++;
+    //     shmem_quiet();
+    // }
+
     free(remote_offsets);
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d done sending edges\n", shmem_my_pe());
+#endif
 
     shmem_barrier_all();
 
     free(actual_buf);
 
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d calloc-ing %llu bytes (B)\n", shmem_my_pe(),
             (n_local_vertices + 1) * sizeof(unsigned));
 #endif
     unsigned *local_vertex_offsets = (unsigned *)calloc(
@@ -729,7 +755,7 @@ int main(int argc, char **argv) {
      *       local_vertex_offsets[i] and ends at local_vertex_offsets[i + 1]
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "PE %d malloc-ing %llu bytes (D)\n", shmem_my_pe(),
             acc * 2 * sizeof(uint64_t));
 #endif
     uint64_t *neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
@@ -781,18 +807,6 @@ int main(int argc, char **argv) {
             sizeof(uint64_t));
     assert(writing_index == 0 || neighbors);
 
-    int next_label = 1;
-    int *labels = (int *)malloc(n_local_vertices * sizeof(int));
-    assert(labels);
-    memset(labels, 0x00, n_local_vertices * sizeof(int));
-
-    for (i = 0; i < n_local_vertices; i++) {
-        if (labels[i] == 0) {
-            recursively_label(local_min_vertex + i, next_label++, labels,
-                    local_min_vertex, neighbors, local_vertex_offsets, nglobalverts);
-        }
-    }
-
     int *global_vert_to_local_neighbors_offsets = (int *)malloc(
             (nglobalverts + 1) * sizeof(*global_vert_to_local_neighbors_offsets));
     assert(global_vert_to_local_neighbors_offsets);
@@ -812,6 +826,10 @@ int main(int argc, char **argv) {
         }
     }
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d computed neighbor counts\n", shmem_my_pe());
+#endif
+
     for (int i = 1; i < nglobalverts; i++) {
         global_vert_to_local_neighbors_offsets[i] +=
             global_vert_to_local_neighbors_offsets[i - 1];
@@ -819,9 +837,14 @@ int main(int argc, char **argv) {
     global_vert_to_local_neighbors_offsets[nglobalverts] =
         global_vert_to_local_neighbors_offsets[nglobalverts - 1];
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d computed neighbor prefix sums\n", shmem_my_pe());
+#endif
+
     for (int i = 0; i < n_local_vertices; i++) {
         const unsigned neighbors_start = local_vertex_offsets[i];
         const unsigned neighbors_end = local_vertex_offsets[i + 1];
+
         for (int j = neighbors_start; j < neighbors_end; j++) {
             uint64_t neighbor = neighbors[j];
             const int neighbor_offset = global_vert_to_local_neighbors_offsets[neighbor] - 1;
@@ -831,6 +854,10 @@ int main(int argc, char **argv) {
         }
     }
 
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d computed neighbor offsets\n", shmem_my_pe());
+#endif
+
     size_t n_local_edges = 0;
     size_t n_remote_edges = 0;
 
@@ -838,8 +865,6 @@ int main(int argc, char **argv) {
     for (i = 0; i < n_local_vertices; i++) {
         const unsigned neighbors_start = local_vertex_offsets[i];
         const unsigned neighbors_end = local_vertex_offsets[i + 1];
-        const int my_label = labels[i];
-        assert(my_label > 0);
 
         int j;
         for (j = neighbors_start; j < neighbors_end; j++) {
@@ -851,7 +876,6 @@ int main(int argc, char **argv) {
             }
 
             if (get_owner_pe(neighbors[j], nglobalverts) == pe) {
-                assert(labels[neighbors[j] - local_min_vertex] == my_label);
                 n_local_edges++;
             } else {
                 n_remote_edges++;
@@ -859,9 +883,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    fprintf(stderr, "PE %d created %d unique labels for %d local vertices. %lu "
+    fprintf(stderr, "PE %d has %d local vertices. %lu "
             "local edges, %lu remote edges. min vertex = %lu, max_vertex = "
-            "%lu\n", pe, next_label - 1, n_local_vertices, n_local_edges,
+            "%lu\n", pe, n_local_vertices, n_local_edges,
             n_remote_edges, local_min_vertex, local_max_vertex);
 
     // For debugging, print all vertices
@@ -945,9 +969,6 @@ int main(int argc, char **argv) {
             my_min_longlong;
         unsigned long long *max_longlong_ptr = ((unsigned long long *)marked) +
             my_max_longlong;
-        unsigned long long *body_ptr = ((unsigned long long *)marked) +
-            (my_min_longlong + 1);
-        const ssize_t longlong_to_send = my_max_longlong - my_min_longlong - 1;
 
         shmem_barrier_all();
         const unsigned long long start_bfs = current_time_ns();
@@ -959,68 +980,42 @@ int main(int argc, char **argv) {
             unsigned count_local_atomics = 0;
 
             const unsigned long long start_handling = current_time_ns();
+            unsigned long long setting_time, saving_time;
+            ssize_t min_written_index = my_min_longlong;
+            ssize_t max_written_index = my_max_longlong;
 
             if (n_local_vertices > 0) {
                 memset(local_marking, 0x00, visited_longlongs * sizeof(long long));
 
                 *my_n_signalled = traverse_all_verts(nglobalverts, marked, last_marked,
-                        local_marking, global_vert_to_local_neighbors_offsets,
+                        local_marking, marking, global_vert_to_local_neighbors_offsets,
                         global_vert_to_local_neighbors, local_min_vertex,
-                        local_max_vertex, visited_longlongs);
-
-//                 if (my_min_longlong == my_max_longlong) {
-//                     // Everything in a single long long
-//                     handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
-//                             local_max_vertex % BITS_PER_LONGLONG,
-//                             my_min_longlong, last_marked, marked,
-//                             local_marking, local_vertex_offsets, my_n_signalled,
-//                             local_min_vertex, neighbors, visited_longlongs);
-//                 } else {
-//                     // Handle any bits in first longlong
-//                     handle_longlong(local_min_vertex % BITS_PER_LONGLONG,
-//                             BITS_PER_LONGLONG, my_min_longlong, last_marked, marked,
-//                             local_marking, local_vertex_offsets, my_n_signalled,
-//                             local_min_vertex, neighbors, visited_longlongs);
-// 
-//                     // Handle core bits
-// // #pragma omp parallel
-//                     {
-//                     const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
-// 
-// // #pragma omp for schedule(static)
-//                     for (i = my_min_longlong + 1; i < my_max_longlong; i++) {
-//                         handle_longlong(0, BITS_PER_LONGLONG, i, last_marked,
-//                                 marked, local_marking, local_vertex_offsets,
-//                                 my_n_signalled, local_min_vertex, neighbors, visited_longlongs);
-//                     }
-//                     }
-// 
-//                     // Handle any bits in last longlong
-//                     handle_longlong(0, local_max_vertex % BITS_PER_LONGLONG,
-//                             my_max_longlong, last_marked, marked, local_marking,
-//                             local_vertex_offsets, my_n_signalled, local_min_vertex,
-//                             neighbors, visited_longlongs);
-//                 }
+                        local_max_vertex, visited_longlongs, &setting_time,
+                        &saving_time, contexts);
             }
-            // memset(last_marked, 0x00, visited_longlongs * sizeof(long long));
 
-            // for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
-            // shmem_barrier_all();
             const unsigned long long start_atomics = current_time_ns();
             unsigned long long start_reduction;
+            unsigned long long total_bits = 0;
+            unsigned long long total_set_bits = 0;
 
-#pragma omp parallel reduction(+:count_local_atomics) default(none) \
+#pragma omp parallel reduction(+:count_local_atomics) reduction(+:total_bits) \
+            reduction(+:total_set_bits) default(none) \
             firstprivate(contexts, npes, pe, local_marking, marking, iter, \
-                    min_longlong_ptr, max_longlong_ptr, longlong_to_send, body_ptr, last_marked) \
-            shared(start_reduction)
+                    min_longlong_ptr, max_longlong_ptr, last_marked, \
+                    min_written_index, max_written_index, marked, nthreads) \
+                    shared(start_reduction)
             {
             const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
             unsigned count_thread_atomics = 0;
 
-#pragma omp for schedule(static)
+#pragma omp for simd schedule(static)
             for (int i = 0; i < visited_longlongs; i++) {
                 last_marked[i] = 0;
             }
+
+            unsigned long long count_bits = 0;
+            unsigned long long count_set_bits = 0;
 
 #pragma omp for schedule(static)
             for (int p = 0; p < npes; p++) {
@@ -1035,33 +1030,35 @@ int main(int argc, char **argv) {
 
                 for (int l = min_longlong; l <= max_longlong; l++) {
                     const unsigned long long mask = local_marking[l];
+                    count_bits += (sizeof(long long) * 8);
+
                     if (mask) {
                         shmemx_ctx_ulonglong_atomic_or(marking + l, mask,
                                 target_pe, ctx);
+                        count_set_bits += count_set_bits_ulonglong(mask);
+
                         count_thread_atomics++;
-                        if (count_thread_atomics % 16 == 0) {
+                        if (count_thread_atomics % 128 == 0) {
                             shmemx_ctx_quiet(ctx);
                         }
                     }
                 }
             } // end omp for
 
-            // printf("PE %d iter %d thread %d atomics %d\n", pe, iter,
-            //         omp_get_thread_num(), count_thread_atomics);
-
             count_local_atomics += count_thread_atomics;
 
-            /*
-             * For timing, to make sure we're timing completion of the bitwise
-             * atomics too.
-             */
-            // for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
-            // shmem_barrier_all();
+// #pragma omp master
+//             {
+//                 // for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
+//                 // shmem_barrier_all();
+//                 start_reduction = current_time_ns();
+//             }
 
-#pragma omp master
-            {
-                start_reduction = current_time_ns();
-            }
+            const ssize_t longlong_to_send = my_max_longlong -
+                my_min_longlong - 1;
+            unsigned long long *min_longlong_ptr = marked + my_min_longlong;
+            unsigned long long *max_longlong_ptr = marked + my_max_longlong;
+            unsigned long long *body_ptr = marked + my_min_longlong + 1;
 
 #pragma omp for schedule(static)
             for (int p = 1; p < npes; p++) {
@@ -1077,16 +1074,10 @@ int main(int argc, char **argv) {
                             longlong_to_send * sizeof(unsigned long long),
                             target_pe, ctx);
                 }
-
-
-                // shmemx_ctx_uint_atomic_or(min_word_ptr, *min_word_ptr, target_pe, ctx);
-                // shmemx_ctx_uint_atomic_or(max_word_ptr, *max_word_ptr, target_pe, ctx);
-
-                // if (words_to_send > 0) {
-                //     shmemx_ctx_putmem_nbi(body_ptr, body_ptr,
-                //             words_to_send * sizeof(unsigned), target_pe, ctx);
-                // }
             }
+
+            total_bits += count_bits;
+            total_set_bits += count_set_bits;
 
             } // end omp parallel
 
@@ -1104,14 +1095,17 @@ int main(int argc, char **argv) {
 
             const unsigned long long end_all = current_time_ns();
 
-            printf("PE %d, iter %d, handling %f ms, atomics %f ms, reduction "
+            printf("PE %d, iter %d, handling %f ms (%f ms, %f ms), atomics %f ms, reduction "
                     "%f ms, barrier %f ms, %d new nodes locally, %d new nodes "
-                    "in total, %d atomics\n", pe, iter,
+                    "in total, %d atomics, %ld -> %ld, %f%% bits set\n", pe, iter,
                     (double)(start_atomics - start_handling) / 1000000.0,
+                    (double)setting_time / 1000000.0, (double)saving_time / 1000000.0,
                     (double)(start_reduction - start_atomics) / 1000000.0,
                     (double)(start_barrier - start_reduction) / 1000000.0,
                     (double)(end_all - start_barrier) / 1000000.0,
-                    *my_n_signalled, *total_n_signalled, count_local_atomics);
+                    *my_n_signalled, *total_n_signalled, count_local_atomics,
+                    min_written_index, max_written_index,
+                    100.0 * ((double)total_set_bits / (double)total_bits));
 
 
             // printf("PE %d, iter %d, # signals %d\n", pe, iter, *my_n_signalled);
