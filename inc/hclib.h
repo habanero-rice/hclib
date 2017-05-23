@@ -17,13 +17,13 @@
 #ifndef HCLIB_H_
 #define HCLIB_H_
 
-#include "hclib_common.h"
-#include "hclib-task.h"
-#include "hclib-promise.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "hclib_common.h"
+#include "hclib-task.h"
+#include "hclib-promise.h"
 
 /**
  * @file Interface to HCLIB
