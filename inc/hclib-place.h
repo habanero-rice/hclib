@@ -79,7 +79,7 @@ extern void *hclib_allocate_at(place_t *pl, size_t nbytes, int flags);
  */
 extern void hclib_free_at(place_t *pl, void *ptr);
 
-inline short is_cpu_place(place_t * pl) {
+static inline short is_cpu_place(place_t * pl) {
     HASSERT(pl);
     return (pl->type == MEM_PLACE || pl->type == CACHE_PLACE);
 }
