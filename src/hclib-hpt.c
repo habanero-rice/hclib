@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
+#include "hclib-hpt.h"
+#include "hclib-internal.h"
+#include "hclib-atomics.h"
+
+#include <string.h>
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <unistd.h>
-
-#include "hclib-hpt.h"
-#include "hclib-internal.h"
-#include "hclib-atomics.h"
 
 // #define VERBOSE
 
