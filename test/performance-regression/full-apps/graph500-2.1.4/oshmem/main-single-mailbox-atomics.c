@@ -47,6 +47,7 @@
 
 // #define INCOMING_MAILBOX_SIZE_IN_BYTES 100663296
 #define INCOMING_MAILBOX_SIZE_IN_BYTES (200 * 1024 * 1024)
+#define CONTEXTS_PER_THREAD 2
 
 /*
  * Header format:
@@ -305,7 +306,9 @@ static inline int traverse_all_verts(const uint64_t nglobalverts,
             actual_marking, global_vert_to_local_neighbors_offsets, \
             global_vert_to_local_neighbors, contexts) reduction(+:count_signals)
     {
-        const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
+        int active_ctx_index = 0;
+        shmemx_ctx_t ctx = contexts[
+            omp_get_thread_num() * CONTEXTS_PER_THREAD + active_ctx_index];
         unsigned count_local_signals = 0;
 
 #pragma omp for schedule(static)
@@ -336,6 +339,10 @@ static inline int traverse_all_verts(const uint64_t nglobalverts,
                                     ctx);
                             count_local_signals++;
                             if (count_local_signals % 128 == 0) {
+                                active_ctx_index = (active_ctx_index + 1) %
+                                    CONTEXTS_PER_THREAD;
+                                ctx = contexts[omp_get_thread_num() *
+                                    CONTEXTS_PER_THREAD + active_ctx_index];
                                 shmemx_ctx_quiet(ctx);
                             }
                             marking[longlong_index] = 0;
@@ -490,7 +497,7 @@ int main(int argc, char **argv) {
     shmemx_domain_t *domains = (shmemx_domain_t *)malloc(
             nthreads * sizeof(*domains));
     shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(
-            nthreads * sizeof(*contexts));
+            nthreads * CONTEXTS_PER_THREAD * sizeof(*contexts));
     assert(domains && contexts);
 
     int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
@@ -498,9 +505,11 @@ int main(int argc, char **argv) {
     assert(err == 0); 
 
     for (i = 0; i < nthreads; i++) {
-        int j;
-        err = shmemx_ctx_create(domains[i], contexts + i);
-        assert(err == 0);
+        for (int j = 0; j < CONTEXTS_PER_THREAD; j++) {
+            err = shmemx_ctx_create(domains[i],
+                    contexts + (i * CONTEXTS_PER_THREAD + j));
+            assert(err == 0);
+        }
     }
 
     pe = shmem_my_pe();
@@ -1006,7 +1015,9 @@ int main(int argc, char **argv) {
                     min_written_index, max_written_index, marked, nthreads) \
                     shared(start_reduction)
             {
-            const shmemx_ctx_t ctx = contexts[omp_get_thread_num()];
+            int active_ctx_index = 0;
+            const shmemx_ctx_t ctx = contexts[omp_get_thread_num() *
+                CONTEXTS_PER_THREAD + active_ctx_index];
             unsigned count_thread_atomics = 0;
 
 #pragma omp for simd schedule(static)
@@ -1039,6 +1050,10 @@ int main(int argc, char **argv) {
 
                         count_thread_atomics++;
                         if (count_thread_atomics % 128 == 0) {
+                            active_ctx_index = (active_ctx_index + 1) %
+                                CONTEXTS_PER_THREAD;
+                            ctx = contexts[omp_get_thread_num() *
+                                CONTEXTS_PER_THREAD + active_ctx_index];
                             shmemx_ctx_quiet(ctx);
                         }
                     }
@@ -1090,7 +1105,9 @@ int main(int argc, char **argv) {
 
             const unsigned long long start_barrier = current_time_ns();
 
-            for (int i = 0; i < nthreads; i++) shmemx_ctx_quiet(contexts[i]);
+            for (int i = 0; i < CONTEXTS_PER_THREAD * nthreads; i++) {
+                shmemx_ctx_quiet(contexts[i]);
+            }
             shmem_barrier_all();
 
             const unsigned long long end_all = current_time_ns();
@@ -1148,7 +1165,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    for (i = 0; i < nthreads; i++) {
+    for (i = 0; i < nthreads * CONTEXTS_PER_THREAD; i++) {
         shmemx_ctx_destroy(contexts[i]);
     }
     shmemx_domain_destroy(nthreads, domains);
