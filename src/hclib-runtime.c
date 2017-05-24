@@ -141,7 +141,7 @@ static inline fcontext_state_t *_get_curr_fiber() {
 static inline _Noreturn void _fiber_exit(fcontext_state_t *current,
                                          fcontext_t next) {
     fcontext_swap(next, current);
-    HASSERT(0); // UNREACHABLE
+    HC_UNREACHABLE;
 }
 
 static __inline__ void _fiber_suspend(fcontext_state_t *current,
@@ -589,10 +589,10 @@ static void _hclib_finalize_ctx(fcontext_transfer_t fiber_data) {
     hclib_signal_join(hclib_context->nworkers);
     // Jump back to the system thread context for this worker
     _fiber_exit(_get_curr_fiber(), CURRENT_WS_INTERNAL->root_ctx);
-    HASSERT(0); // Should never return here
+    HC_UNREACHABLE; // Should never return here
 }
 
-static void core_work_loop(void) {
+static _Noreturn void core_work_loop(void) {
     uint64_t wid;
     do {
         hclib_worker_state *ws = CURRENT_WS_INTERNAL;
@@ -602,13 +602,13 @@ static void core_work_loop(void) {
 
     // Jump back to the system thread context for this worker
     _fiber_exit(_get_curr_fiber(), CURRENT_WS_INTERNAL->root_ctx);
-    HASSERT(0); // Should never return here
+    HC_UNREACHABLE; // Should never return here
 }
 
-static void crt_work_loop(fcontext_transfer_t fiber_data) {
+static _Noreturn void crt_work_loop(fcontext_transfer_t fiber_data) {
     CURRENT_WS_INTERNAL->root_ctx = fiber_data.prev_context;
     core_work_loop(); // this function never returns
-    HASSERT(0); // Should never return here
+    HC_UNREACHABLE; // Should never return here
 }
 
 static void *worker_routine(void *args) {
@@ -655,7 +655,7 @@ static void *worker_routine(void *args) {
 static void _finish_ctx_resume(void *arg) {
     fcontext_t finishCtx = arg;
     _fiber_exit(_get_curr_fiber(), finishCtx);
-    HASSERT(0); // UNREACHABLE
+    HC_UNREACHABLE;
 }
 
 // Based on _help_finish_ctx
@@ -668,7 +668,7 @@ static void _help_wait(fcontext_transfer_t fiber_data) {
             NO_PHASER, ANY_PLACE, ESCAPING_ASYNC);
 
     core_work_loop();
-    HASSERT(0); // UNREACHABLE
+    HC_UNREACHABLE;
 }
 
 void *hclib_future_wait(hclib_future_t *future) {
@@ -756,7 +756,7 @@ static void _help_finish_ctx(fcontext_transfer_t fiber_data) {
 
     // keep work-stealing until this context gets swapped out and destroyed
     core_work_loop(); // this function never returns
-    HASSERT(0); // we should never return here
+    HC_UNREACHABLE; // we should never return here
 }
 
 static inline void _worker_finish_help(finish_t *finish) {

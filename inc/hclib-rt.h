@@ -80,6 +80,8 @@ typedef struct hclib_worker_state hclib_worker_state;
     } \
 } while (0);
 
+#define HC_UNREACHABLE abort()
+
 #define CURRENT_WS_INTERNAL ((hclib_worker_state *) pthread_getspecific(ws_key))
 
 int get_current_worker();
