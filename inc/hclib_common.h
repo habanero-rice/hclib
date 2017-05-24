@@ -18,6 +18,7 @@
 #define HCLIB_COMMON_H_
 
 #include "hclib_config.h"
+#include "hclib-worker-config.h"
 
 /*
  * Default async arguments
@@ -39,8 +40,5 @@
 #define PHASER_TRANSMIT_ALL ((int) 0x1) 
 /** @brief No accumulator argument provided. */
 #define NO_ACCUM NULL
-
-#define HCLIB_LITECTX_STRATEGY 1
-// #define VERBOSE 1
 
 #endif

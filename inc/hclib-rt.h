@@ -57,6 +57,12 @@ typedef struct hclib_worker_state {
 #define HCLIB_MACRO_CONCAT(x, y) _HCLIB_MACRO_CONCAT_IMPL(x, y)
 #define _HCLIB_MACRO_CONCAT_IMPL(x, y) x ## y
 
+#ifdef HCLIB_DEBUG
+#define HC_DEBUG_ENABLED 1
+#else
+#define HC_DEBUG_ENABLED 0
+#endif
+
 #ifdef HC_ASSERTION_CHECK
 #define HC_ASSERTION_CHECK_ENABLED 1
 #else

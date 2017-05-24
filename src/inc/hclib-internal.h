@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include "hclib_config.h"
+#include "hclib-worker-config.h"
 #include "hclib-tree.h"
 #include "hclib-deque.h"
 #include "hclib.h"

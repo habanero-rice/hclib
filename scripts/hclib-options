@@ -1,0 +1,129 @@
+#!/usr/bin/env python
+#
+# Copyright 2017 Rice University
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import print_function
+import argparse, os, re, sys
+
+strategies_map = {}
+options_map = {}
+
+current_description = ""
+
+def parse_worker_strategy_config(header_file):
+
+    # Patterns
+    p_description = re.compile('^\s*//(.*)$')
+    p_strategy = re.compile('^\s*#define\s+HCLIB_WORKER_STRATEGY_(\w+)\s+(\w+)')
+    p_option = re.compile('^\s*#define\s+HCLIB_WORKER_OPTIONS_(\w+)\s+(\w+)')
+
+    # Helper functions
+    def add_to_desc(desc):
+        global current_description
+        current_description += desc
+    def consume_desc():
+        global current_description
+        desc = current_description.strip()
+        current_description = ""
+        return desc
+    def as_name(x):
+        return x.lower()
+    def as_opt(x):
+        return '--' + x.lower().replace('_', '-')
+    def add_to_map(mapping, match):
+        opt_info = {'name': as_name(match.group(1)),
+                    'flag': as_opt(match.group(1)),
+                    'value': int(match.group(2), 0),
+                    'desc': consume_desc()}
+        mapping[opt_info['flag']] = opt_info
+
+    # Parse
+    for line in header_file:
+        # Description
+        match = p_description.match(line)
+        if match is not None:
+            add_to_desc(match.group(1))
+            continue
+        # Strategy
+        match = p_strategy.match(line)
+        if match is not None:
+            add_to_map(strategies_map, match)
+            continue
+        # Option
+        match = p_option.match(line)
+        if match is not None:
+            add_to_map(options_map, match)
+            continue
+
+# Try searching the current directory as the source root
+header_paths = ["./inc/hclib-worker-config.h"]
+
+# Also try searching HClib install root
+hclib_root = os.getenv('HCLIB_ROOT')
+if hclib_root is not None:
+    header_paths.append(hclib_root + "/include/hclib-worker-config.h")
+
+# Locate the header file
+for header_path in header_paths:
+    try:
+        with open(header_path) as f:
+            parse_worker_strategy_config(f)
+    except IOError: pass
+    else: break # found it!
+else: # didn't find the header file
+    sys.exit("Could not read \"{}\". Make sure HCLIB_ROOT is set correctly."
+             .format(header_path))
+
+worker_ctx_strategy = None
+worker_ctx_options  = 0x0
+
+class MapperAction(argparse.Action):
+    def __init__(self, option_strings, dest, info, **kwargs):
+        kwargs['nargs'] = 0
+        kwargs['help'] = info['desc']
+        super(MapperAction, self).__init__(option_strings, dest, **kwargs)
+
+class SetStrategy(MapperAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        global worker_ctx_strategy
+        worker_ctx_strategy = strategies_map[option_string]['value']
+
+class AddOption(MapperAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        global worker_ctx_options
+        worker_ctx_options |= options_map[option_string]['value']
+
+program_description = """Set HClib worker context options.
+
+Sample usage:
+
+    env $({} --threads --help-finish) ./your-hclib-app
+""".format(os.path.basename(__file__))
+
+parser = argparse.ArgumentParser(
+        description=program_description,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+
+strategy_group = parser.add_mutually_exclusive_group(required=True)
+for strategy, info in strategies_map.iteritems():
+    strategy_group.add_argument(strategy, info=info, action=SetStrategy)
+
+for option, info in options_map.iteritems():
+    parser.add_argument(option, info=info, action=AddOption)
+
+parser.parse_args()
+
+print("HCLIB_SET_WORKER_STRATEGY={:#x} HCLIB_SET_WORKER_OPTIONS={:#x}"
+      .format(worker_ctx_strategy, worker_ctx_options))

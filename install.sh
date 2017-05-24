@@ -60,9 +60,11 @@ if [ -z `command -v xml2-config` ]; then
 fi
 
 mkdir -p `dirname ${HCLIB_ENV_SETUP_SCRIPT}`
+cp ../scripts/hclib-options ${INSTALL_PREFIX}/bin/
 cat > "${HCLIB_ENV_SETUP_SCRIPT}" <<EOI
 # HClib environment setup
 export HCLIB_ROOT='${INSTALL_PREFIX}'
+export PATH="\${HCLIB_ROOT}/bin:\${PATH}"
 EOI
 
 cat <<EOI
