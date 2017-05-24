@@ -1,12 +1,13 @@
-The assembly files in this directory are copied directly from Boost.Context.
-
+The assembly files in this directory are copied directly from Boost.Context:
 https://github.com/boostorg/context/
+
+The file fcontext.h is copied directly from the standalone fcontext repository:
+https://github.com/DaoWen/fcontext/
 
 We have only included the assembly files for x86/64 Linux and OS X.
 If you are using a different platform, you can check for the corresponding
-implementation of the API in the Boost.Context GitHub repository:
-
-https://github.com/boostorg/context/tree/boost-1.59.0/src/asm
+implementation of the API in the Boost.Context GitHub repository.
+See the instructions included at the top of fcontext.h for more details.
 
 This code is distributed under the Boost Software License, version 1.0.
 See the accompanying LICENSE_1_0.txt for details.

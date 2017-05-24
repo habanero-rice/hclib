@@ -25,8 +25,6 @@
 
 #include "hclib_common.h"
 
-#include "litectx.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

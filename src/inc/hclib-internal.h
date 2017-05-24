@@ -24,7 +24,24 @@
 #include "hclib-tree.h"
 #include "hclib-deque.h"
 #include "hclib.h"
-#include "litectx.h"
+
+/** runtime worker threading strategies */
+#define HCLIB_WORKER_STRATEGY_FIXED    0x01
+#define HCLIB_WORKER_STRATEGY_FIBERS   0x02
+#define HCLIB_WORKER_STRATEGY_THREADS  0x03
+
+/** runtime worker threading options */
+#define HCLIB_WORKER_OPTIONS_HELP_GLOBAL  0x01
+#define HCLIB_WORKER_OPTIONS_HELP_FINISH  0x02
+#define HCLIB_WORKER_OPTIONS_NO_JOIN      0x04
+
+/** default strategy */
+#ifndef HCLIB_WORKER_STRATEGY
+#define HCLIB_WORKER_STRATEGY  HCLIB_WORKER_STRATEGY_FIBERS
+#define HCLIB_WORKER_OPTIONS   HCLIB_WORKER_OPTIONS_HELP_FINISH
+#endif  // HCLIB_WORKER_STRATEGY
+
+#include "fcontext.h"
 
 #define LOG_LEVEL_FATAL         1
 #define LOG_LEVEL_WARN          2
@@ -84,8 +101,8 @@ typedef struct hclib_worker_state {
         struct hc_deque_t * deques;
         int id; // The id, identify a worker
         int did; // the mapping device id
-        LiteCtx *curr_ctx;
-        LiteCtx *root_ctx;
+        fcontext_state_t *curr_ctx;
+        fcontext_t root_ctx;
 } hclib_worker_state;
 
 /*

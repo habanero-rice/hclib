@@ -118,21 +118,34 @@ static inline void check_out_finish(finish_t *finish) {
     }
 }
 
-static void set_curr_lite_ctx(LiteCtx *ctx) {
+static inline void _set_curr_fiber(fcontext_state_t *ctx) {
     CURRENT_WS_INTERNAL->curr_ctx = ctx;
 }
 
-static LiteCtx *get_curr_lite_ctx() {
+static inline fcontext_state_t *_get_curr_fiber() {
     return CURRENT_WS_INTERNAL->curr_ctx;
 }
 
-static __inline__ void ctx_swap(LiteCtx *current, LiteCtx *next,
-                                const char *lbl) {
+static inline _Noreturn void _fiber_exit(fcontext_state_t *current,
+                                         fcontext_t next) {
+    fcontext_swap(next, current);
+    HASSERT(0); // UNREACHABLE
+}
+
+static __inline__ void _fiber_suspend(fcontext_state_t *current,
+                                      fcontext_fn_t transfer_fn,
+                                      void *arg) {
     // switching to new context
-    set_curr_lite_ctx(next);
-    LiteCtx_swap(current, next, lbl);
+    fcontext_state_t *fresh_fiber = fcontext_create(transfer_fn);
+    _set_curr_fiber(fresh_fiber);
+    fcontext_transfer_t swap_data = fcontext_swap(fresh_fiber->context, arg);
     // switched back to this context
-    set_curr_lite_ctx(current);
+    _set_curr_fiber(current);
+    // destroy the context that resumed this one since it's now defunct
+    // (there are no other handles to it, and it will never be resumed)
+    // (NOTE: fresh_fiber might differ from prev_fiber)
+    fcontext_state_t *prev_fiber = swap_data.data;
+    fcontext_destroy(prev_fiber);
 }
 
 hclib_worker_state *current_ws() {
@@ -557,12 +570,13 @@ void find_and_run_task(hclib_worker_state *ws) {
     }
 }
 
-static void _hclib_finalize_ctx(LiteCtx *ctx) {
+static void _hclib_finalize_ctx(fcontext_transfer_t fiber_data) {
+    CURRENT_WS_INTERNAL->root_ctx = fiber_data.prev_context;
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hclib_signal_join(hclib_context->nworkers);
     // Jump back to the system thread context for this worker
-    ctx_swap(ctx, CURRENT_WS_INTERNAL->root_ctx, __func__);
+    _fiber_exit(_get_curr_fiber(), CURRENT_WS_INTERNAL->root_ctx);
     HASSERT(0); // Should never return here
 }
 
@@ -575,13 +589,12 @@ static void core_work_loop(void) {
     } while (hclib_context->done_flags[wid].flag);
 
     // Jump back to the system thread context for this worker
-    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
-    HASSERT(ws->root_ctx);
-    ctx_swap(get_curr_lite_ctx(), ws->root_ctx, __func__);
+    _fiber_exit(_get_curr_fiber(), CURRENT_WS_INTERNAL->root_ctx);
     HASSERT(0); // Should never return here
 }
 
-static void crt_work_loop(LiteCtx *ctx) {
+static void crt_work_loop(fcontext_transfer_t fiber_data) {
+    CURRENT_WS_INTERNAL->root_ctx = fiber_data.prev_context;
     core_work_loop(); // this function never returns
     HASSERT(0); // Should never return here
 }
@@ -600,25 +613,9 @@ static void *worker_routine(void *args) {
     // back to the proxy task to clean up this worker thread when the
     // worker thread is signaled to exit.
     if (HCLIB_WORKER_STRATEGY == HCLIB_WORKER_STRATEGY_FIBERS) {
-        // Create proxy original context to switch from
-        LiteCtx *currentCtx = LiteCtx_proxy_create(__func__);
-        CURRENT_WS_INTERNAL->root_ctx = currentCtx;
-
-        /*
-         * Create the new proxy we will be switching to, which will start with
-         * crt_work_loop at the top of the stack.
-         */
-        LiteCtx *newCtx = LiteCtx_create(crt_work_loop);
-        newCtx->arg = args;
-
-        ctx_swap(currentCtx, newCtx, __func__);
-
-        LOG_DEBUG("worker_routine: worker %d exiting, cleaning up proxy %p "
-                "and lite ctx %p\n", get_current_worker(), currentCtx, newCtx);
-
-        // free resources
-        LiteCtx_destroy(currentCtx->prev);
-        LiteCtx_proxy_destroy(currentCtx);
+         // Create the new fiber we will be switching to,
+         // which will start with crt_work_loop at the top of the stack.
+        _fiber_suspend(NULL, crt_work_loop, NULL);
     }
 
     else {
@@ -644,26 +641,22 @@ static void *worker_routine(void *args) {
 }
 
 static void _finish_ctx_resume(void *arg) {
-    LiteCtx *currentCtx = get_curr_lite_ctx();
-    LiteCtx *finishCtx = arg;
-    ctx_swap(currentCtx, finishCtx, __func__);
-
-    LOG_DEBUG("Should not have reached here, currentCtx=%p "
-            "finishCtx=%p\n", currentCtx, finishCtx);
-    HASSERT(0);
+    fcontext_t finishCtx = arg;
+    _fiber_exit(_get_curr_fiber(), finishCtx);
+    HASSERT(0); // UNREACHABLE
 }
 
 // Based on _help_finish_ctx
-void _help_wait(LiteCtx *ctx) {
-    hclib_future_t **continuation_deps = ctx->arg;
-    LiteCtx *wait_ctx = ctx->prev;
+static void _help_wait(fcontext_transfer_t fiber_data) {
+    hclib_future_t **continuation_deps = fiber_data.data;
+    fcontext_t wait_ctx = fiber_data.prev_context;
 
     // reusing _finish_ctx_resume
     hclib_async(_finish_ctx_resume, wait_ctx, continuation_deps,
             NO_PHASER, ANY_PLACE, ESCAPING_ASYNC);
 
     core_work_loop();
-    HASSERT(0);
+    HASSERT(0); // UNREACHABLE
 }
 
 void *hclib_future_wait(hclib_future_t *future) {
@@ -679,12 +672,7 @@ void *hclib_future_wait(hclib_future_t *future) {
 
         if (HCLIB_WORKER_STRATEGY == HCLIB_WORKER_STRATEGY_FIBERS) {
             hclib_future_t *continuation_deps[] = { future, NULL };
-            LiteCtx *currentCtx = get_curr_lite_ctx();
-            HASSERT(currentCtx);
-            LiteCtx *newCtx = LiteCtx_create(_help_wait);
-            newCtx->arg = continuation_deps;
-            ctx_swap(currentCtx, newCtx, __func__);
-            LiteCtx_destroy(currentCtx->prev);
+            _fiber_suspend(_get_curr_fiber(), _help_wait, continuation_deps);
         }
         else {
             HASSERT(HCLIB_WORKER_STRATEGY == HCLIB_WORKER_STRATEGY_THREADS);
@@ -729,15 +717,16 @@ void *hclib_future_wait(hclib_future_t *future) {
     return future->owner->datum;
 }
 
-static void _help_finish_ctx(LiteCtx *ctx) {
+static void _help_finish_ctx(fcontext_transfer_t fiber_data) {
     /*
      * Set up previous context to be stolen when the finish completes (note that
      * the async must ESCAPE, otherwise this finish scope will deadlock on
      * itself).
      */
-    LOG_DEBUG("_help_finish_ctx: ctx = %p, ctx->arg = %p\n", ctx, ctx->arg);
-    finish_t *finish = ctx->arg;
-    LiteCtx *hclib_finish_ctx = ctx->prev;
+    finish_t *finish = fiber_data.data;
+    fcontext_t hclib_finish_ctx = fiber_data.prev_context;
+    LOG_DEBUG("_help_finish_ctx: ctx = %p, ctx->arg = %p\n",
+              hclib_finish_ctx, finish);
 
     /*
      * Create an async to handle the continuation after the finish, whose state
@@ -817,19 +806,9 @@ void help_finish(finish_t *finish) {
                 hclib_future_t *finish_deps[] = { &finish_promise.future, NULL };
                 finish->finish_deps = finish_deps;
 
-                LiteCtx *currentCtx = get_curr_lite_ctx();
-                HASSERT(currentCtx);
-                LiteCtx *newCtx = LiteCtx_create(_help_finish_ctx);
-                newCtx->arg = finish;
-
-                LOG_DEBUG("help_finish: newCtx = %p, newCtx->arg = %p\n",
-                        newCtx, newCtx->arg);
-                ctx_swap(currentCtx, newCtx, __func__);
+                LOG_DEBUG("help_finish: finish = %p\n", finish);
+                _fiber_suspend(_get_curr_fiber(), _help_finish_ctx, finish);
                 // note: the other context checks out of the current finish scope
-
-                // destroy the context that resumed this one since it's now defunct
-                // (there are no other handles to it, and it will never be resumed)
-                LiteCtx_destroy(currentCtx->prev);
             }
             else {
                 HASSERT(HCLIB_WORKER_STRATEGY == HCLIB_WORKER_STRATEGY_THREADS);
@@ -1046,13 +1025,7 @@ static void hclib_init() {
 
 static void hclib_finalize() {
     if (HCLIB_WORKER_STRATEGY == HCLIB_WORKER_STRATEGY_FIBERS) {
-        LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
-        LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
-        CURRENT_WS_INTERNAL->root_ctx = finalize_ctx;
-        ctx_swap(finalize_ctx, finish_ctx, __func__);
-        // free resources
-        LiteCtx_destroy(finalize_ctx->prev);
-        LiteCtx_proxy_destroy(finalize_ctx);
+        _fiber_suspend(NULL, _hclib_finalize_ctx, NULL);
     }
     else {
         hclib_end_finish();
@@ -1080,8 +1053,8 @@ static void hclib_finalize() {
  * that the current parent is a fiber, and therefore its lifetime is already
  * managed by the runtime. If we allowed both system-managed threads (i.e. the
  * main thread) and fibers to reach end-finishes, we would have to know to
- * create a LiteCtx from the system-managed stacks and save them, but to not do
- * so when the calling context is already a LiteCtx. While this could be
+ * create a fiber from the system-managed stacks and save them, but to not do
+ * so when the calling context is already a fiber. While this could be
  * supported, this introduces unnecessary complexity into the runtime code. It
  * is simpler to use hclib_launch to ensure that finish scopes are only ever
  * reached from a fiber context, allowing us to assume that it is safe to simply
