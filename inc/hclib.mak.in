@@ -1,0 +1,31 @@
+ifeq ("$(HCLIB_ROOT)", "")
+  $(error Please set the HCLIB_ROOT environment variable.)
+endif
+
+PROJECT_BASE_FLAGS = -I$(HCLIB_ROOT)/include \
+                     -pthread $(shell xml2-config --cflags)
+PROJECT_CFLAGS     = -std=c11 $(PROJECT_BASE_FLAGS)
+PROJECT_CXXFLAGS   = -std=c++11 $(PROJECT_BASE_FLAGS)
+PROJECT_LDFLAGS    = -L$(HCLIB_ROOT)/lib
+PROJECT_LDLIBS    := -Wl,-rpath,$(HCLIB_ROOT)/lib $(shell xml2-config --libs) -lpthread
+
+
+# release target signals that production flags should be used
+.PHONY: release
+
+ifeq (,$(filter $(MAKECMDGOALS),release))
+  # debug flags
+  PROJECT_TARGET_TYPE  = debug
+  PROJECT_BASE_FLAGS  += -g -O@dbg_flag_lvl@ -DHCLIB_DEBUG
+  PROJECT_LDLIBS      := -lhclib_dbg $(PROJECT_LDLIBS)
+else
+  # release flags
+  PROJECT_TARGET_TYPE  = release
+  PROJECT_BASE_FLAGS  += -O3 -DNDEBUG
+  PROJECT_LDLIBS      := -lhclib $(PROJECT_LDLIBS)
+endif
+
+ifdef TBB_MALLOC
+  PROJECT_LDFLAGS += -L$(TBB_MALLOC)
+  PROJECT_LDLIBS  += -ltbbmalloc_proxy
+endif

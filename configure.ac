@@ -9,7 +9,7 @@ AC_CONFIG_SRCDIR([inc/hclib.h])
 
 AC_CONFIG_AUX_DIR([config])
 
-AM_INIT_AUTOMAKE([1.9 tar-ustar no-define foreign dist-bzip2])
+AM_INIT_AUTOMAKE([1.9 tar-ustar no-define foreign dist-bzip2 subdir-objects])
 
 AC_COPYRIGHT([])
 
@@ -50,19 +50,37 @@ AS_IF([test "x$with_verbose" != xno],
 AM_CONDITIONAL(HC_VERBOSE, test "x$with_verbose" != xno)
 ### End verbose
 
-### ENABLE PRODUCTION SETTINGS
-AC_ARG_ENABLE(production,
-    AS_HELP_STRING([--enable-production],
-    [disable assertion and statistics (Default is true)]),
-    [with_production=$enableval],
-    [with_production=no;])
+### ENABLE STATISTICS COLLECTION
+AC_ARG_ENABLE(hc_runtime_stats,
+    AS_HELP_STRING([--enable-runtime-stats],
+    [disable assertion and statistics (Default is false)]),
+    [with_hc_runtime_stats=$enableval],
+    [with_hc_runtime_stats=no;])
 
-AS_IF([test "x$with_production" != xno],
-      [ AC_MSG_NOTICE([Production settings enabled]) ],
-      [ AC_MSG_NOTICE([Production settings disabled]) ])
+AS_IF([test "x$hc_runtime_stats" = "x$enableval"],
+      [ AC_MSG_NOTICE([Runtime statistics enabled]) ],
+      [ AC_MSG_NOTICE([Runtime statistics disabled]) ])
 
-AM_CONDITIONAL(PRODUCTION_SETTINGS, test "x$with_production" != xno)
-### End PRODUCTION settings
+AM_CONDITIONAL(HC_RUNTIME_STATS, test "x$with_hc_runtime_stats" = "x$enableval")
+### End STATISTICS COLLECTION settings
+
+### Compiler debug-level optimization flag check
+AC_LANG_PUSH(C)
+_old_CFLAGS="${CFLAGS}"
+CFLAGS="${_old_CFLAGS} -Og"
+AC_CACHE_CHECK([for basic C11 support], [ac_cv_og_flag],
+[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])],
+                   [ac_cv_og_flag=yes],
+                   [ac_cv_og_flag=no])])
+AS_IF([test "x$ac_cv_og_flag" = "x$enableval"],
+      [ AC_MSG_NOTICE([Runtime -Og supported]) ]
+      [ AC_SUBST(dbg_flag_lvl,g) ],
+      [ AC_MSG_NOTICE([Runtime -Og not supported, using -O0]) ]
+      [ AC_SUBST(dbg_flag_lvl,0) ])
+
+CFLAGS="${_old_CFLAGS}"
+AC_LANG_POP(C)
+### End Compiler debug-level optimization flag check
 
 ### C11 features check
 AC_LANG_PUSH(C)
@@ -109,6 +127,22 @@ fi
 CXXFLAGS="${_old_CXXFLAGS}"
 ### End C++11 features check
 
+### Check for HClib worker strategy settings
+AC_ARG_VAR([HCLIB_SET_WORKER_STRATEGY], [HClib worker strategy])
+AM_CONDITIONAL([HAS_HCLIB_WORKER_STRATEGY],
+               [test "x$HCLIB_SET_WORKER_STRATEGY" != "x"])
+AM_COND_IF([HAS_HCLIB_WORKER_STRATEGY],
+           [AC_MSG_NOTICE([HCLIB_SET_WORKER_STRATEGY=$HCLIB_SET_WORKER_STRATEGY])],
+           [AC_MSG_NOTICE([HCLIB_SET_WORKER_STRATEGY not set])])
+
+AC_ARG_VAR([HCLIB_SET_WORKER_OPTIONS], [HClib worker strategy options])
+AM_CONDITIONAL([HAS_HCLIB_WORKER_OPTIONS],
+               [test "x$HCLIB_SET_WORKER_OPTIONS" != "x"])
+AM_COND_IF([HAS_HCLIB_WORKER_OPTIONS],
+           [AC_MSG_NOTICE([HCLIB_SET_WORKER_OPTIONS=$HCLIB_SET_WORKER_OPTIONS])],
+           [AC_MSG_NOTICE([HCLIB_SET_WORKER_OPTIONS not set])])
+### END Check for HClib worker strategy settings
+
 # Variable substitutions.
 AC_SUBST([ac_aux_dir])
 AC_SUBST([abs_top_srcdir])
@@ -119,6 +153,7 @@ AC_SUBST([abs_top_srcdir])
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+inc/hclib.mak
 ])
 
 # Header files
