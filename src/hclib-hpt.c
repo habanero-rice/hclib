@@ -493,9 +493,8 @@ place_t *parse_place_element(xmlNode *plNode) {
     place_t *pllast = NULL;
     hclib_worker_state *wslast = NULL;
 
-#ifdef HC_ASSERTION_CHECK
     unsigned nchildren = 0;
-#endif
+
     while (child != NULL) {
         if (!xmlStrcmp(child->name, (const xmlChar *) "place")) {
             place_t *tmp = parse_place_element(child);
