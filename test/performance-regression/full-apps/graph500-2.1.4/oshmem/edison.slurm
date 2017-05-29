@@ -46,13 +46,13 @@ export GRAPH_SIZE=28
 export SMA_SYMMETRIC_SIZE=$((6 * 256 * 1024 * 1024)) # Works with GRAPH_SIZE = 29 on bfs_oshmem-single-mailbox-concurrent
 # srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent $GRAPH_SIZE 16
 
-# echo
-# echo Starting old OpenSHMEM version
-# srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
-# 
-# echo
-# echo Starting MPI version
-# srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
+echo
+echo Starting old OpenSHMEM version
+srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
+
+### echo
+### echo Starting MPI version
+### srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
 
 echo
 export OMP_NUM_THREADS=12
