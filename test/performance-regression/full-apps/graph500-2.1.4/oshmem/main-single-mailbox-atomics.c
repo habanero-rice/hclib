@@ -491,6 +491,7 @@ int main(int argc, char **argv) {
 #ifdef VERBOSE
     fprintf(stderr, "PE %d calloc-ing %llu bytes (A)\n", shmem_my_pe(),
             npes * sizeof(long long));
+    const unsigned long long start_counting_edges = current_time_ns();
 #endif
     long long *count_edges_shared_with_pe = (long long *)calloc(npes,
             sizeof(long long));
@@ -511,6 +512,9 @@ int main(int argc, char **argv) {
 #ifdef VERBOSE
     fprintf(stderr, "PE %d malloc-ing %llu bytes (F)\n", shmem_my_pe(),
             npes * sizeof(long long));
+    const unsigned long long start_getting_offsets = current_time_ns();
+    fprintf(stderr, "PE %d time to count edges = %f ms\n", shmem_my_pe(),
+            (double)(start_counting_edges - start_getting_offsets) / 1000000.0);
 #endif
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
     assert(remote_offsets);
@@ -568,14 +572,13 @@ int main(int argc, char **argv) {
     fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes (C), nedges_this_pe = "
             "%ld\n", shmem_my_pe(), max_n_local_edges * sizeof(packed_edge),
             nedges_this_pe);
+    const unsigned long long start_sending_edges = current_time_ns();
+    fprintf(stderr, "PE %d time to get offsets = %f ms\n", shmem_my_pe(),
+            (double)(start_sending_edges - start_getting_offsets) / 1000000.0);
 #endif
     packed_edge *local_edges = (packed_edge *)shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
     assert(local_edges);
-
-#ifdef VERBOSE
-    fprintf(stderr, "PE %d done qsort-ing\n", shmem_my_pe());
-#endif
 
     /*
      * Send out to each PE based on the vertices each owns, all edges that have
@@ -645,6 +648,9 @@ int main(int argc, char **argv) {
 #ifdef VERBOSE
     fprintf(stderr, "PE %d calloc-ing %llu bytes (B)\n", shmem_my_pe(),
             (n_local_vertices + 1) * sizeof(unsigned));
+    const unsigned long long start_calcing_offsets = current_time_ns();
+    fprintf(stderr, "PE %d time to send edges = %f ms\n", shmem_my_pe(),
+            (double)(start_calcing_offsets - start_sending_edges) / 1000000.0);
 #endif
     unsigned *local_vertex_offsets = (unsigned *)calloc(
             (n_local_vertices + 1), sizeof(unsigned));
@@ -748,6 +754,10 @@ int main(int argc, char **argv) {
     fprintf(stderr, "PE %d realloc-ing from %llu bytes to %llu bytes with %d "
             "local vertices\n", shmem_my_pe(), acc * 2 * sizeof(uint64_t),
             writing_index * sizeof(uint64_t), n_local_vertices);
+    const unsigned long long start_calcing_global_vert_to_local_neighbors_offsets =
+        current_time_ns();
+    fprintf(stderr, "PE %d time to calc offsets = %f ms\n", shmem_my_pe(),
+            (double)(start_calcing_global_vert_to_local_neighbors_offsets - start_calcing_offsets) / 1000000.0);
 #endif
     neighbors = (uint64_t *)realloc(neighbors, writing_index *
             sizeof(uint64_t));
@@ -802,6 +812,9 @@ int main(int argc, char **argv) {
 
 #ifdef VERBOSE
     fprintf(stderr, "PE %d computed neighbor offsets\n", shmem_my_pe());
+    const unsigned long long start_double_checking = current_time_ns();
+    fprintf(stderr, "PE %d time to calc local neighbor offsets = %f ms\n", shmem_my_pe(),
+            (double)(start_double_checking - start_calcing_global_vert_to_local_neighbors_offsets) / 1000000.0);
 #endif
 
     size_t n_local_edges = 0;
@@ -944,11 +957,8 @@ int main(int argc, char **argv) {
 
             const unsigned long long start_atomics = current_time_ns();
             unsigned long long start_reduction;
-            unsigned long long total_bits = 0;
-            unsigned long long total_set_bits = 0;
 
-#pragma omp parallel reduction(+:count_local_atomics) reduction(+:total_bits) \
-            reduction(+:total_set_bits) default(none) \
+#pragma omp parallel reduction(+:count_local_atomics) default(none) \
             firstprivate(contexts, npes, pe, local_marking, marking, iter, \
                     min_longlong_ptr, max_longlong_ptr, last_marked, \
                     min_written_index, max_written_index, marked, nthreads) \
@@ -964,9 +974,6 @@ int main(int argc, char **argv) {
                 last_marked[i] = 0;
             }
 
-            unsigned long long count_bits = 0;
-            unsigned long long count_set_bits = 0;
-
 #pragma omp for schedule(static)
             for (int p = 0; p < npes; p++) {
                 const int target_pe = (pe + p) % npes;
@@ -980,12 +987,10 @@ int main(int argc, char **argv) {
 
                 for (int l = min_longlong; l <= max_longlong; l++) {
                     const unsigned long long mask = local_marking[l];
-                    count_bits += (sizeof(long long) * 8);
 
                     if (mask) {
                         shmemx_ctx_ulonglong_atomic_or(marking + l, mask,
                                 target_pe, ctx);
-                        count_set_bits += count_set_bits_ulonglong(mask);
 
                         count_thread_atomics++;
                         if (count_thread_atomics % 128 == 0) {
@@ -1030,9 +1035,6 @@ int main(int argc, char **argv) {
                 }
             }
 
-            total_bits += count_bits;
-            total_set_bits += count_set_bits;
-
             } // end omp parallel
 
             shmem_longlong_sum_to_all(total_n_signalled, my_n_signalled, 1, 0, 0,
@@ -1055,15 +1057,14 @@ int main(int argc, char **argv) {
 
             printf("PE %d, iter %d, handling %f ms (%f ms, %f ms), atomics %f ms, reduction "
                     "%f ms, barrier %f ms, %lld new nodes locally, %lld new nodes "
-                    "in total, %d atomics, %ld -> %ld, %f%% bits set\n", pe, iter,
+                    "in total, %d atomics, %ld -> %ld\n", pe, iter,
                     (double)(start_atomics - start_handling) / 1000000.0,
                     (double)setting_time / 1000000.0, (double)saving_time / 1000000.0,
                     (double)(start_reduction - start_atomics) / 1000000.0,
                     (double)(start_barrier - start_reduction) / 1000000.0,
                     (double)(end_all - start_barrier) / 1000000.0,
                     *my_n_signalled, *total_n_signalled, count_local_atomics,
-                    min_written_index, max_written_index,
-                    100.0 * ((double)total_set_bits / (double)total_bits));
+                    min_written_index, max_written_index);
 
 
             // printf("PE %d, iter %d, # signals %d\n", pe, iter, *my_n_signalled);
