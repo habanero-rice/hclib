@@ -514,7 +514,7 @@ int main(int argc, char **argv) {
             npes * sizeof(long long));
     const unsigned long long start_getting_offsets = current_time_ns();
     fprintf(stderr, "PE %d time to count edges = %f ms\n", shmem_my_pe(),
-            (double)(start_counting_edges - start_getting_offsets) / 1000000.0);
+            (double)(start_getting_offsets - start_counting_edges) / 1000000.0);
 #endif
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
     assert(remote_offsets);
