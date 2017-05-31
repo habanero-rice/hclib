@@ -278,7 +278,6 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
     const short curr = verts[local_vertex_id].bufs[last_put_index];
     // const short curr = last_put[local_vertex_id];
 
-    // if (curr > 0 && steady_state[local_vertex_id] == 0)
     if (curr > 0 && verts[local_vertex_id].steady_state == 0) {
         const int neighbor_start = local_vertex_offsets[local_vertex_id];
         const int neighbor_end = local_vertex_offsets[local_vertex_id + 1];
@@ -305,17 +304,6 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
                         &(verts[to_explore_local_id].bufs[updating_index]),
                         pe_plus_one_ptr, sizeof(*pe_plus_one_ptr), target_pe,
                         curr_ctx);
-                // shmemx_ctx_short_put_nbi(
-                //         &(verts[to_explore_local_id].bufs[updating_index]),
-                //         pe_plus_one_ptr, 1, target_pe, *curr_ctx);
-                // shmemx_ctx_short_put_nbi(updating + to_explore_local_id,
-                //         &pe_plus_one, 1, target_pe, curr_ctx);
-                // shmem_int_put(updating + to_explore_local_id,
-                //         &pe_plus_one, 1, target_pe);
-                // shmemx_ctx_short_p(updating + to_explore_local_id,
-                //         pe_plus_one, target_pe, curr_ctx);
-                // shmem_short_p(updating + to_explore_local_id,
-                //         pe_plus_one, target_pe);
                 const int curr_n_atomics = *thread_natomics + 1;
                 *thread_natomics = curr_n_atomics;
 
@@ -335,17 +323,6 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
                     *time_blocked_on_quiet += elapsed_quiet;
                 }
 
-                // if (curr_n_atomics % 256 == 0) {
-                //     const unsigned long long start_quiet = current_time_ns();
-                //     shmemx_ctx_quiet(*idle_ctx);
-                //     const unsigned long long elapsed_quiet = current_time_ns() - start_quiet;
-                //     *time_blocked_on_quiet += elapsed_quiet;
-
-                //     shmemx_ctx_t tmp_ctx = *curr_ctx;
-                //     *curr_ctx = *idle_ctx;
-                //     *idle_ctx = *curr_ctx;
-                // }
-
                 set_visited(to_explore_global_id, local_visited,
                         visited_ints, local_min_vertex);
                 if (target_pe == pe) {
@@ -357,8 +334,6 @@ static inline void loop_body(vert_info *verts, const uint64_t local_vertex_id,
 
         verts[local_vertex_id].steady_state = curr;
         verts[local_vertex_id].bufs[last_put_index] = 0;
-        // steady_state[local_vertex_id] = curr;
-        // last_put[local_vertex_id] = 0;
         set_visited(local_min_vertex + local_vertex_id,
                 shared_visited,visited_ints, local_min_vertex);
     }

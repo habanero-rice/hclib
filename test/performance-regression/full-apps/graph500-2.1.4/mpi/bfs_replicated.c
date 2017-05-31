@@ -27,8 +27,8 @@ static unsigned long* g_out_queue;
 static unsigned long* g_out_queue_summary;
 static unsigned long* g_visited;
 
-const int ulong_bits = sizeof(unsigned long) * CHAR_BIT;
-const int ulong_bits_squared = sizeof(unsigned long) * sizeof(unsigned long) * CHAR_BIT * CHAR_BIT;
+const int64_t ulong_bits = sizeof(unsigned long) * CHAR_BIT;
+const int64_t ulong_bits_squared = sizeof(unsigned long) * sizeof(unsigned long) * CHAR_BIT * CHAR_BIT;
 
 static void allocate_memory(void) {
   int64_t maxlocalverts = g.max_nlocalverts;
