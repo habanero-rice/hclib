@@ -2,7 +2,7 @@
 
 #SBATCH -p debug
 #SBATCH -N 8
-#SBATCH -t 00:20:00
+#SBATCH -t 00:30:00
 #SBATCH -J asyncshmem-g500
 #SBATCH --exclusive
 #SBATCH --contiguous
@@ -36,34 +36,33 @@ export WORK_DIR=$(pwd)
 
 # 2 sockets x 12-core CPUs
 
-# export GRAPH_SIZE=28
-export GRAPH_SIZE=27
+export GRAPH_SIZE=28
+
+echo
+export OMP_NUM_THREADS=1
+echo Starting MPI version
+export SMA_SYMMETRIC_SIZE=$((6 * 256 * 1024 * 1024))
+time srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
+
+echo
+export OMP_NUM_THREADS=12
+echo Starting replicated MPI version with $OMP_NUM_THREADS threads per PE
+srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 $WORK_DIR/../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
+
+echo
+export OMP_NUM_THREADS=1
+echo Starting old OpenSHMEM version
+export SMA_SYMMETRIC_SIZE=$((6 * 256 * 1024 * 1024))
+time srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
+
+echo
+export OMP_NUM_THREADS=12
+echo Starting atomics version with $OMP_NUM_THREADS threads per PE
+export SMA_SYMMETRIC_SIZE=$((13 * 512 * 1024 * 1024)) # Works with GRAPH_SIZE = 28 on bfs_oshmem-single-mailbox-atomics
+time srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 $WORK_DIR/bfs_oshmem-single-mailbox-atomics $GRAPH_SIZE 16 1
 
 echo
 export OMP_NUM_THREADS=12
 echo Starting wavefront version with $OMP_NUM_THREADS threads per PE
 export SMA_SYMMETRIC_SIZE=$((13 * 512 * 1024 * 1024)) # Works with GRAPH_SIZE = 28 on bfs_oshmem-single-mailbox-atomics
-srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 $WORK_DIR/bfs_oshmem-single-mailbox-wavefront $GRAPH_SIZE 16 1
-
-### echo
-### export OMP_NUM_THREADS=1
-### echo Starting MPI version
-### export SMA_SYMMETRIC_SIZE=$((6 * 256 * 1024 * 1024))
-### time srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/../mpi/graph500_mpi_simple $GRAPH_SIZE 16
-### 
-### echo
-### export OMP_NUM_THREADS=12
-### echo Starting replicated MPI version with $OMP_NUM_THREADS threads per PE
-### srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 $WORK_DIR/../mpi/graph500_mpi_replicated $GRAPH_SIZE 16
-### 
-### echo
-### export OMP_NUM_THREADS=1
-### echo Starting old OpenSHMEM version
-### export SMA_SYMMETRIC_SIZE=$((6 * 256 * 1024 * 1024))
-### time srun --ntasks=$(($SLURM_NNODES * 24)) --ntasks-per-node=24 --ntasks-per-socket=12 --cpus-per-task=1 $WORK_DIR/bfs_oshmem-single-mailbox-concurrent-crc $GRAPH_SIZE 16
-### 
-### echo
-### export OMP_NUM_THREADS=12
-### echo Starting atomics version with $OMP_NUM_THREADS threads per PE
-### export SMA_SYMMETRIC_SIZE=$((13 * 512 * 1024 * 1024)) # Works with GRAPH_SIZE = 28 on bfs_oshmem-single-mailbox-atomics
-### time srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 $WORK_DIR/bfs_oshmem-single-mailbox-atomics $GRAPH_SIZE 16 1
+time srun --ntasks=$(($SLURM_NNODES * 2)) --ntasks-per-node=2 --ntasks-per-socket=1 --cpus-per-task=12 $WORK_DIR/bfs_oshmem-single-mailbox-wavefront $GRAPH_SIZE 16 1
