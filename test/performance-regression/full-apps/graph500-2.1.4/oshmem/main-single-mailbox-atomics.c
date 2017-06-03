@@ -286,14 +286,14 @@ static inline long long traverse_all_verts(const uint64_t nglobalverts,
         int * restrict global_vert_to_local_neighbors, const uint64_t local_min_vertex,
         const uint64_t local_max_vertex, const unsigned longlong_length,
         unsigned long long * restrict setting_time,
-        unsigned long long * restrict saving_time, shmemx_ctx_t *contexts,
+        unsigned long long * restrict saving_time,
         unsigned *local_vertex_offsets, uint64_t *neighbors,
-        const long long last_n_new_nodes, long *preds) {
+        const long long iter, long *preds) {
     const unsigned long long start_setting = current_time_ns();
 
     long long count_signals = 0;
 
-    if (last_n_new_nodes < 300000) {
+    if (iter != 2 && iter != 3) {
         const unsigned nlocalverts = local_max_vertex - local_min_vertex;
 
         for (unsigned local_vert = 0; local_vert < nlocalverts; local_vert++) {
@@ -313,17 +313,11 @@ static inline long long traverse_all_verts(const uint64_t nglobalverts,
             }
         }
     } else {
-#pragma omp parallel default(none) firstprivate(marked, last_marked, marking, \
-                actual_marking, global_vert_to_local_neighbors_offsets, \
-                global_vert_to_local_neighbors, contexts, preds) \
+#pragma omp parallel for schedule(static) default(none) \
+        firstprivate(marked, last_marked, marking, actual_marking, \
+                global_vert_to_local_neighbors_offsets, \
+                global_vert_to_local_neighbors, preds) \
                 reduction(+:count_signals)
-        {
-            int active_ctx_index = 0;
-            shmemx_ctx_t ctx = contexts[
-                omp_get_thread_num() * CONTEXTS_PER_THREAD + active_ctx_index];
-            unsigned count_local_signals = 0;
-
-#pragma omp for schedule(static)
         for (size_t longlong_index = 0; longlong_index < longlong_length;
                 longlong_index++) {
 
@@ -350,8 +344,6 @@ static inline long long traverse_all_verts(const uint64_t nglobalverts,
                 }
             }
         } // omp for
-
-        } // omp parallel
     }
 
     const unsigned long long start_saving = current_time_ns();
@@ -1011,6 +1003,8 @@ int main(int argc, char **argv) {
         const unsigned long long start_bfs = current_time_ns();
         int iter = 0;
         long long last_n_new_nodes = 1;
+        long long delta_new_nodes = 1;
+        long long delta_delta_new_nodes = 0;
 
         do {
             *my_n_signalled = 0;
@@ -1029,8 +1023,8 @@ int main(int argc, char **argv) {
                         local_marking, marking, global_vert_to_local_neighbors_offsets,
                         global_vert_to_local_neighbors, local_min_vertex,
                         local_max_vertex, visited_longlongs, &setting_time,
-                        &saving_time, contexts, local_vertex_offsets, neighbors,
-                        last_n_new_nodes, preds);
+                        &saving_time, local_vertex_offsets, neighbors,
+                        iter, preds);
             }
 
             const unsigned long long start_atomics = current_time_ns();
@@ -1046,12 +1040,12 @@ int main(int argc, char **argv) {
                 CONTEXTS_PER_THREAD + active_ctx_index];
             unsigned count_thread_atomics = 0;
 
-#pragma omp for simd schedule(static)
+#pragma omp for simd schedule(static) nowait
             for (int i = 0; i < visited_longlongs; i++) {
                 last_marked[i] = 0;
             }
 
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic,1) nowait
             for (int p = 0; p < npes; p++) {
                 const int target_pe = (pe + p) % npes;
 
@@ -1066,7 +1060,8 @@ int main(int argc, char **argv) {
                     const unsigned long long mask = local_marking[l];
 
                     if (mask) {
-                        shmemx_ctx_ulonglong_atomic_or(marking + l, mask, target_pe, ctx);
+                        shmemx_ctx_ulonglong_atomic_or(marking + l, mask,
+                                target_pe, ctx);
 
                         count_thread_atomics++;
                         if (count_thread_atomics % 200 == 0) {
@@ -1091,7 +1086,7 @@ int main(int argc, char **argv) {
             unsigned long long *max_longlong_ptr = marked + my_max_longlong;
             unsigned long long *body_ptr = marked + my_min_longlong + 1;
 
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic,1) nowait
             for (int p = 1; p < npes; p++) {
                 const int target_pe = (pe + p) % npes;
 
@@ -1105,7 +1100,7 @@ int main(int argc, char **argv) {
                             longlong_to_send * sizeof(unsigned long long),
                             target_pe, ctx);
                 }
-            }
+            } // end omp for
 
             } // end omp parallel
 
@@ -1123,19 +1118,22 @@ int main(int argc, char **argv) {
             }
             shmem_barrier_all();
 
+            delta_delta_new_nodes = (*total_n_signalled - last_n_new_nodes) - delta_new_nodes;
+            delta_new_nodes = *total_n_signalled - last_n_new_nodes;
             last_n_new_nodes = *total_n_signalled;
 
             const unsigned long long end_all = current_time_ns();
 
             printf("PE %d, iter %d, handling %f ms (%f ms, %f ms), atomics %f ms, reduction "
                     "%f ms, barrier %f ms, %lld new nodes locally, %lld new nodes "
-                    "in total, %d atomics, %ld -> %ld\n", pe, iter,
+                    "in total (%lld delta, %lld delta delta), %d atomics, %ld -> %ld\n", pe, iter,
                     (double)(start_atomics - start_handling) / 1000000.0,
                     (double)setting_time / 1000000.0, (double)saving_time / 1000000.0,
                     (double)(start_reduction - start_atomics) / 1000000.0,
                     (double)(start_barrier - start_reduction) / 1000000.0,
                     (double)(end_all - start_barrier) / 1000000.0,
-                    *my_n_signalled, *total_n_signalled, count_local_atomics,
+                    *my_n_signalled, *total_n_signalled, delta_new_nodes,
+                    delta_delta_new_nodes, count_local_atomics,
                     min_written_index, max_written_index);
 
 
