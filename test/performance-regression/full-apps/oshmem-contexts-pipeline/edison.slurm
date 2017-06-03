@@ -1,0 +1,21 @@
+#!/bin/bash -l
+
+#SBATCH -p debug
+#SBATCH -N 2
+#SBATCH -t 00:05:00
+#SBATCH -J shmem_ctx_pipelined_reduce
+#SBATCH --exclusive
+#SBATCH --mail-type=ALL
+#SBATCH --contiguous
+
+export PMI_MAX_KVS_ENTRIES=$((1000 * $SLURM_NNODES))
+export SMA_SYMMETRIC_SIZE=$((1024 * 1024 * 1024))
+export SMA_OFI_PROVIDER=gni
+# export FI_LOG_PROV=gni
+# export FI_LOG_LEVEL=info
+# export FI_LOG_SUBSYS=ep_data
+
+ulimit -c unlimited
+
+# srun --ntasks-per-node=24 --ntasks-per-socket=12 ./shmem_ctx_pipelined_reduce
+srun --ntasks-per-node=4 --ntasks-per-socket=2 ./shmem_ctx_pipelined_reduce
