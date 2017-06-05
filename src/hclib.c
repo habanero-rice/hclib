@@ -472,6 +472,13 @@ hclib_future_t *hclib_forasync_future(void *forasync_fct, void *argv,
     return hclib_end_finish_nonblocking();
 }
 
+void hclib_get_curr_task_info(void (**fp_out)(void *), void **args_out) {
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    hclib_task_t *curr_task = (hclib_task_t *)ws->curr_task;
+    *fp_out = curr_task->_fp;
+    *args_out = curr_task->args;
+}
+
 /*** END FORASYNC IMPLEMENTATION ***/
 
 #ifdef __cplusplus

@@ -226,6 +226,12 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event);
  */
 void hclib_yield(hclib_locale_t *locale);
 
+/*
+ * Fetch information on the entrypoint of the current task and the user-provided
+ * arguments that were passed to the entrypoint.
+ */
+void hclib_get_curr_task_info(void (**fp_out)(void *), void **args_out);
+
 /**
  * @}
  */

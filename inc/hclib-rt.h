@@ -104,6 +104,11 @@ typedef struct _hclib_worker_state {
      */
     int base_intra_socket_workers;
     int limit_intra_socket_workers;
+
+    /*
+     * Information on currently executing task.
+     */
+    void *curr_task;
 } __attribute__ ((aligned (128))) hclib_worker_state;
 
 #define HCLIB_MACRO_CONCAT(x, y) _HCLIB_MACRO_CONCAT_IMPL(x, y)

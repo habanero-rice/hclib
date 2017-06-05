@@ -438,7 +438,10 @@ static inline void execute_task(hclib_task_t *task) {
      * currently executing task so that any asyncs spawned from the currently
      * executing task are registered on the same finish.
      */
-    CURRENT_WS_INTERNAL->current_finish = current_finish;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    ws->current_finish = current_finish;
+    ws->curr_task = task;
+
 #ifdef VERBOSE
     fprintf(stderr, "execute_task: setting current finish of %p to %p for task "
             "%p\n", CURRENT_WS_INTERNAL, current_finish, task);
@@ -931,6 +934,7 @@ void *hclib_future_wait(hclib_future_t *future) {
     // save current finish scope (in case of worker swap)
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     finish_t *current_finish = ws->current_finish;
+    hclib_task_t *current_task = ws->curr_task;
 
     hclib_task_t *need_to_swap_ctx = NULL;
     while (future->owner->satisfied == 0 &&
@@ -954,7 +958,9 @@ void *hclib_future_wait(hclib_future_t *future) {
         LiteCtx_destroy(currentCtx->prev);
     }
     // restore current finish scope (in case of worker swap)
-    CURRENT_WS_INTERNAL->current_finish = current_finish;
+    ws = CURRENT_WS_INTERNAL;
+    ws->current_finish = current_finish;
+    ws->curr_task = current_task;
 
     HASSERT(future->owner->satisfied);
     return future->owner->datum;
@@ -1078,6 +1084,7 @@ static void yield_helper(LiteCtx *ctx) {
 void hclib_yield(hclib_locale_t *locale) {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     finish_t *old_finish = ws->current_finish;
+    hclib_task_t *old_task = ws->curr_task;
 
     hclib_task_t *task;
     do {
@@ -1117,7 +1124,9 @@ void hclib_yield(hclib_locale_t *locale) {
         }
     } while (task);
 
-    CURRENT_WS_INTERNAL->current_finish = old_finish;
+    ws = CURRENT_WS_INTERNAL;
+    ws->current_finish = old_finish;
+    ws->curr_task = old_task;
 }
 
 void hclib_start_finish() {
@@ -1151,7 +1160,9 @@ void hclib_start_finish() {
 }
 
 void hclib_end_finish() {
-    finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    finish_t *current_finish = ws->current_finish;
+    hclib_task_t *current_task = ws->curr_task;
 #ifdef VERBOSE
     fprintf(stderr, "hclib_end_finish: ending finish %p on worker %p\n",
             current_finish, CURRENT_WS_INTERNAL);
@@ -1172,13 +1183,18 @@ void hclib_end_finish() {
             current_finish->parent, current_finish);
 #endif
     // Don't reuse worker-state! (we might not be on the same worker anymore)
-    CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
+    ws = CURRENT_WS_INTERNAL;
+    ws->current_finish = current_finish->parent;
+    ws->curr_task = current_task;
     free(current_finish);
 }
 
 // Based on help_finish
 void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
-    finish_t *current_finish = CURRENT_WS_INTERNAL->current_finish;
+    hclib_worker_state *ws = CURRENT_WS_INTERNAL;
+    finish_t *current_finish = ws->current_finish;
+    hclib_task_t *current_task = ws->curr_task;
+
 #ifdef HCLIB_STATS
     worker_stats[CURRENT_WS_INTERNAL->id].count_end_finishes_nonblocking++;
 #endif
@@ -1193,7 +1209,9 @@ void hclib_end_finish_nonblocking_helper(hclib_promise_t *event) {
 
     // Check out the current finish from its parent
     check_out_finish(current_finish->parent);
-    CURRENT_WS_INTERNAL->current_finish = current_finish->parent;
+    ws = CURRENT_WS_INTERNAL;
+    ws->current_finish = current_finish->parent;
+    ws->curr_task = current_task;
 #ifdef VERBOSE
     fprintf(stderr, "hclib_end_finish_nonblocking_helper: out of finish, "
             "setting current finish of %p to %p from %p\n", CURRENT_WS_INTERNAL,

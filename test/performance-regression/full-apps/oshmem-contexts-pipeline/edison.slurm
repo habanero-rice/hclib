@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 #SBATCH -p debug
-#SBATCH -N 2
-#SBATCH -t 00:05:00
+#SBATCH -N 4
+#SBATCH -t 00:02:00
 #SBATCH -J shmem_ctx_pipelined_reduce
 #SBATCH --exclusive
 #SBATCH --mail-type=ALL
@@ -18,4 +18,9 @@ export SMA_OFI_PROVIDER=gni
 ulimit -c unlimited
 
 # srun --ntasks-per-node=24 --ntasks-per-socket=12 ./shmem_ctx_pipelined_reduce
-srun --ntasks-per-node=4 --ntasks-per-socket=2 ./shmem_ctx_pipelined_reduce
+
+for EXE in shmem_ctx_pipelined_reduce shmem_ctx_pipelined_reduce_no_context; do
+    echo Running $EXE
+    srun --ntasks-per-node=12 --ntasks-per-socket=6 ./$EXE
+    echo
+done
