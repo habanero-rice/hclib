@@ -2,6 +2,8 @@
 
 set -e
 
+export DYLD_LIBRARY_PATH=$HCLIB_HOME/modules/system/lib:$DYLD_LIBRARY_PATH
+
 make clean
 make -j
 
