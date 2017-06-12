@@ -15,12 +15,12 @@ export SMA_OFI_PROVIDER=gni
 ulimit -c unlimited
 
 for THREADS in 23; do
-    for BLOCKING in on off; do
-        for CONTEXTS in no_contexts contexts pipelining; do
-            # for BALANCE_GRANULARITY in 4096 8192 16384; do
-            for BALANCE_GRANULARITY in 128 16384; do
+    for BALANCE_GRANULARITY in 1024 16384; do
+        for BLOCKING in on off; do
+            for CONTEXTS in no_contexts contexts pipelining; do
 
-                ARGS="-t $THREADS -w 32768 -h 32768 -j $BALANCE_GRANULARITY"
+                # ARGS="-t $THREADS -w 32768 -h 32768 -j $BALANCE_GRANULARITY"
+                ARGS="-t $THREADS -w 65536 -h 65536 -j $BALANCE_GRANULARITY"
 
                 if [[ $CONTEXTS == contexts ]]; then
                     ARGS="$ARGS -c"

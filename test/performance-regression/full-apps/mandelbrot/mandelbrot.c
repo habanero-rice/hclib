@@ -67,8 +67,8 @@
 #define IMAGE_PE 0
 
 // Default values for width and height
-int width = 4096;
-int height = 4096;
+unsigned long long width = 4096;
+unsigned long long height = 4096;
 
 // An interesting transition point is job_points*sizeof(int) being
 // smaller/bigger than max_volatile size for Portals implementation
@@ -105,7 +105,7 @@ static long getTime()
 }
 
 static void fileDump() {
-    int i, j;
+    unsigned long long i, j;
     FILE *fp;
     fp = fopen("mandelbrot.pgm", "w");
 
@@ -115,7 +115,7 @@ static void fileDump() {
     }
 
     fprintf(fp,"P2\n");
-    fprintf(fp,"%d %d\n", width, height);
+    fprintf(fp,"%llu %llu\n", width, height);
     fprintf(fp,"%d\n", MAX_ITERATIONS);
 
     for (j = 0; j < height; j++) {
@@ -136,8 +136,8 @@ static int computeSingle(int cx, int cy) {
     // cx is in range [-2.5, 1.5] (x range = 4.0)
     // cy is in range [-2.0, 2.0] (y range = 4.0)
 
-    x0 = -2.5 + cx * (4.0 / width);
-    y0 = -2.0 + cy * (4.0 / height);
+    x0 = -2.5 + cx * (4.0 / (double)width);
+    y0 = -2.0 + cy * (4.0 / (double)height);
 
     x = 0;
     y = 0;

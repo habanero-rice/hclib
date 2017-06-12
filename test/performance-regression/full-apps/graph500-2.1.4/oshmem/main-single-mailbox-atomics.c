@@ -419,20 +419,21 @@ int main(int argc, char **argv) {
     assert(provided == SHMEMX_THREAD_MULTIPLE);
 
     uint64_t i;
-    int nthreads;
+    int nthreads, err;
 #pragma omp parallel
 #pragma omp master
     {
         nthreads = omp_get_num_threads();
     }
 
+#ifndef RUNTIME_SAFETY
     shmemx_domain_t *domains = (shmemx_domain_t *)malloc(
             nthreads * sizeof(*domains));
     shmemx_ctx_t *contexts = (shmemx_ctx_t *)malloc(
             nthreads * CONTEXTS_PER_THREAD * sizeof(*contexts));
     assert(domains && contexts);
 
-    int err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
+    err = shmemx_domain_create(SHMEMX_THREAD_SINGLE,
             nthreads, domains);
     assert(err == 0); 
 
@@ -443,6 +444,10 @@ int main(int argc, char **argv) {
             assert(err == 0);
         }
     }
+#else
+    shmemx_ctx_t *contexts = NULL;
+    shmemx_domain_t *domains = NULL;
+#endif
 
     pe = shmem_my_pe();
     npes = shmem_n_pes();
@@ -620,11 +625,14 @@ int main(int argc, char **argv) {
             nthreads * max_count * sizeof(packed_edge));
     assert(tmp_buf);
 
-#pragma omp parallel for default(none) firstprivate(npes, remote_offsets, contexts, nedges_this_pe, actual_buf, local_edges, tmp_buf, max_count)
+#pragma omp parallel for default(none) firstprivate(npes, remote_offsets, \
+        contexts, nedges_this_pe, actual_buf, local_edges, tmp_buf, max_count)
     for (int p = 0; p < npes; p++) {
         packed_edge *my_tmp_buf = tmp_buf + (omp_get_thread_num() * max_count);
+#ifndef RUNTIME_SAFETY
         const shmemx_ctx_t ctx = contexts[omp_get_thread_num() *
             CONTEXTS_PER_THREAD];
+#endif
 
         int count = 0;
         for (unsigned i = 0; i < nedges_this_pe; i++) {
@@ -644,51 +652,18 @@ int main(int argc, char **argv) {
             }
         }
 
+#ifndef RUNTIME_SAFETY
         shmemx_ctx_putmem(local_edges + remote_offsets[p], my_tmp_buf,
                 count * sizeof(packed_edge), p, ctx);
         shmemx_ctx_quiet(ctx);
+#else
+        shmem_putmem(local_edges + remote_offsets[p], my_tmp_buf,
+                count * sizeof(packed_edge), p);
+        shmem_quiet();
+#endif
     }
 
     free(tmp_buf);
-
-
-// // #pragma omp parallel for default(none) firstprivate(npes, remote_offsets, contexts, nedges_this_pe, actual_buf, local_edges)
-//     for (int p = 0; p < npes; p++) {
-//         const shmemx_ctx_t ctx = contexts[omp_get_thread_num() *
-//             CONTEXTS_PER_THREAD];
-// 
-//         packed_edge *tmp_buf = (packed_edge *)malloc(
-//                 2 * nedges_this_pe * sizeof(packed_edge));
-//         assert(tmp_buf);
-//         unsigned count = 0;
-// 
-//         for (uint64_t i = 0; i < nedges_this_pe; i++) {
-//             int64_t v0 = get_v0_from_edge(actual_buf + i);
-//             int64_t v1 = get_v1_from_edge(actual_buf + i);
-//             int v0_pe = get_owner_pe(v0, nglobalverts);
-//             int v1_pe = get_owner_pe(v1, nglobalverts);
-// 
-//             if (v0_pe == p) {
-//                 memcpy(tmp_buf + count, actual_buf + i, sizeof(packed_edge));
-//                 count++;
-//             }
-// 
-//             if (v1_pe == p) {
-//                 memcpy(tmp_buf + count, actual_buf + i, sizeof(packed_edge));
-//                 count++;
-//             }
-//         }
-// 
-//         shmem_putmem(local_edges + remote_offsets[p], tmp_buf,
-//                 count * sizeof(packed_edge), p);
-//         shmem_quiet();
-//         // shmemx_ctx_putmem(local_edges + remote_offsets[p], tmp_buf,
-//         //         count * sizeof(packed_edge), p, ctx);
-//         // shmemx_ctx_quiet(ctx);
-// 
-//         free(tmp_buf);
-//     }
-
     free(remote_offsets);
 
 #ifdef VERBOSE
@@ -1035,9 +1010,12 @@ int main(int argc, char **argv) {
                     min_longlong_ptr, max_longlong_ptr, last_marked, \
                     min_written_index, max_written_index, marked, nthreads) shared(start_reduction)
             {
+#ifndef RUNTIME_SAFETY
             int active_ctx_index = 0;
             shmemx_ctx_t ctx = contexts[omp_get_thread_num() *
                 CONTEXTS_PER_THREAD + active_ctx_index];
+#endif
+
             unsigned count_thread_atomics = 0;
 
 #pragma omp for simd schedule(static) nowait
@@ -1060,17 +1038,24 @@ int main(int argc, char **argv) {
                     const unsigned long long mask = local_marking[l];
 
                     if (mask) {
+#ifndef RUNTIME_SAFETY
                         shmemx_ctx_ulonglong_atomic_or(marking + l, mask,
                                 target_pe, ctx);
+#else
+                        shmemx_ulonglong_atomic_or(marking + l, mask,
+                                target_pe);
+#endif
 
                         count_thread_atomics++;
-                        if (count_thread_atomics % 200 == 0) {
+#ifndef RUNTIME_SAFETY
+                        if (count_thread_atomics % 1 == 0) {
                             active_ctx_index = (active_ctx_index + 1) %
                                 CONTEXTS_PER_THREAD;
                             ctx = contexts[omp_get_thread_num() *
                                 CONTEXTS_PER_THREAD + active_ctx_index];
                             shmemx_ctx_quiet(ctx);
                         }
+#endif
                     }
                 }
             } // end omp for
@@ -1090,6 +1075,7 @@ int main(int argc, char **argv) {
             for (int p = 1; p < npes; p++) {
                 const int target_pe = (pe + p) % npes;
 
+#ifndef RUNTIME_SAFETY
                 shmemx_ctx_ulonglong_atomic_or(min_longlong_ptr,
                         *min_longlong_ptr, target_pe, ctx);
                 shmemx_ctx_ulonglong_atomic_or(max_longlong_ptr,
@@ -1100,6 +1086,18 @@ int main(int argc, char **argv) {
                             longlong_to_send * sizeof(unsigned long long),
                             target_pe, ctx);
                 }
+#else
+                shmemx_ulonglong_atomic_or(min_longlong_ptr,
+                        *min_longlong_ptr, target_pe);
+                shmemx_ulonglong_atomic_or(max_longlong_ptr,
+                        *max_longlong_ptr, target_pe);
+
+                if (longlong_to_send > 0) {
+                    shmem_putmem_nbi(body_ptr, body_ptr,
+                            longlong_to_send * sizeof(unsigned long long),
+                            target_pe);
+                }
+#endif
             } // end omp for
 
             } // end omp parallel
@@ -1113,9 +1111,11 @@ int main(int argc, char **argv) {
 
             const unsigned long long start_barrier = current_time_ns();
 
+#ifndef RUNTIME_SAFETY
             for (int i = 0; i < CONTEXTS_PER_THREAD * nthreads; i++) {
                 shmemx_ctx_quiet(contexts[i]);
             }
+#endif
             shmem_barrier_all();
 
             delta_delta_new_nodes = (*total_n_signalled - last_n_new_nodes) - delta_new_nodes;
@@ -1177,10 +1177,12 @@ int main(int argc, char **argv) {
         }
     }
 
+#ifndef RUNTIME_SAFETY
     for (i = 0; i < nthreads * CONTEXTS_PER_THREAD; i++) {
         shmemx_ctx_destroy(contexts[i]);
     }
     shmemx_domain_destroy(nthreads, domains);
+#endif
 
     shmem_finalize();
 
