@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hclib-internal.h"
 #include "hclib-atomics.h"
 
-void deque_init(deque_t *deq, void *init_value) {
+void deque_init(hclib_internal_deque_t *deq, void *init_value) {
     deq->head = 0;
     deq->tail = 0;
 }
@@ -47,7 +47,7 @@ void deque_init(deque_t *deq, void *init_value) {
 /*
  * push an entry onto the tail of the deque
  */
-int deque_push(deque_t *deq, void *entry) {
+int deque_push(hclib_internal_deque_t *deq, void *entry) {
     int size = deq->tail - deq->head;
     if (size == INIT_DEQUE_CAPACITY) { /* deque looks full */
         /* may not grow the deque if some interleaving steal occur */
@@ -63,14 +63,14 @@ int deque_push(deque_t *deq, void *entry) {
     return 1;
 }
 
-void deque_destroy(deque_t *deq) {
+void deque_destroy(hclib_internal_deque_t *deq) {
     free(deq);
 }
 
 /*
  * the steal protocol
  */
-hclib_task_t *deque_steal(deque_t *deq) {
+hclib_task_t *deque_steal(hclib_internal_deque_t *deq) {
     /* Cannot read deq->data[head] here
      * Can happen that head=tail=0, then the owner of the deq pushes
      * a new task when stealer is here in the code, resulting in head=0, tail=1
@@ -98,7 +98,7 @@ hclib_task_t *deque_steal(deque_t *deq) {
 /*
  * pop the task out of the deque from the tail
  */
-hclib_task_t *deque_pop(deque_t *deq) {
+hclib_task_t *deque_pop(hclib_internal_deque_t *deq) {
     hc_mfence();
     int tail = deq->tail;
     tail--;
@@ -128,7 +128,7 @@ hclib_task_t *deque_pop(deque_t *deq) {
     return t;
 }
 
-unsigned deque_size(deque_t *deq) {
+unsigned deque_size(hclib_internal_deque_t *deq) {
     const int size = deq->tail - deq->head;
     if (size <= 0) return 0;
     else return (unsigned)size;

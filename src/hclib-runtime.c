@@ -52,8 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-internal.h>
 #include <hclib-atomics.h>
 #include <hclib-finish.h>
-#include <hclib-hpt.h>
-#include <hclib-cuda.h>
 #include <hclib-locality-graph.h>
 #include <hclib-module.h>
 #include <hclib-instrument.h>

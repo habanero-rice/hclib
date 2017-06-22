@@ -748,7 +748,7 @@ size_t workers_backlog(hclib_worker_state *ws) {
     size_t sum_work = 0;
     for (i = 0; i < pop->path_length; i++) {
         hclib_locale_t *locale = pop->locales[i];
-        deque_t *deq = &(locale->deques[wid].deque);
+        hclib_internal_deque_t *deq = &(locale->deques[wid].deque);
         const int tail = deq->tail;
         const int head = deq->head;
         sum_work += (tail - head);

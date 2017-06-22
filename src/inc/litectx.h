@@ -1,6 +1,16 @@
 #ifndef _LITECTX_H_
 #define _LITECTX_H_
 
+#ifdef malloc
+#undef malloc
+#endif
+#ifdef free
+#undef free
+#endif
+#ifdef exit
+#undef exit
+#endif
+
 #include "hclib_common.h"
 #include "fcontext.h"
 #include <string.h>

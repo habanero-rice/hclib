@@ -48,17 +48,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // #define INIT_DEQUE_CAPACITY 16384
 #define INIT_DEQUE_CAPACITY 262144
 
-typedef struct deque_t {
+typedef struct hclib_internal_deque_t {
     volatile int head;
     volatile int tail;
     volatile hclib_task_t* data[INIT_DEQUE_CAPACITY];
-} deque_t;
+} hclib_internal_deque_t;
 
-void deque_init(deque_t *deq, void *initValue);
-int deque_push(deque_t *deq, void *entry);
-hclib_task_t* deque_pop(deque_t *deq);
-hclib_task_t* deque_steal(deque_t *deq);
-void deque_destroy(deque_t *deq);
-unsigned deque_size(deque_t *deq);
+void deque_init(hclib_internal_deque_t *deq, void *initValue);
+int deque_push(hclib_internal_deque_t *deq, void *entry);
+hclib_task_t* deque_pop(hclib_internal_deque_t *deq);
+hclib_task_t* deque_steal(hclib_internal_deque_t *deq);
+void deque_destroy(hclib_internal_deque_t *deq);
+unsigned deque_size(hclib_internal_deque_t *deq);
 
 #endif /* HCLIB_DEQUE_H_ */

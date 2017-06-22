@@ -54,8 +54,7 @@ extern pthread_key_t ws_key;
 struct hc_context;
 struct hclib_options;
 struct place_t;
-struct deque_t;
-struct hc_deque_t;
+struct hclib_deque_t;
 struct finish_t;
 struct _hclib_worker_paths;
 
