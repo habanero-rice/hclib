@@ -165,7 +165,7 @@ for (int _hclib_reserved_symbol=(hclib_start_finish(), 1); \
                 _hclib_reserved_symbol; \
                 END_FUNC, --_hclib_reserved_symbol)
 #define HCLIB_FINISH _HCLIB_FINISH_IMPL(hclib_end_finish())
-#define HCLIB_FINISH_NONBLOCKING(OUT_VAR) _HCLIB_FINISH_IMPL(hclib_end_finish_nonblocking(OUT_VAR))
+#define HCLIB_FINISH_NONBLOCKING(OUT_VAR) _HCLIB_FINISH_IMPL(hclib_end_finish_nonblocking_helper(OUT_VAR))
 
 /**
  * @}
