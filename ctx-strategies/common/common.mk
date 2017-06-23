@@ -1,6 +1,10 @@
 # default to release build
 PROJECT_GOALS := release
 
+ifndef BASE_TARGET
+BASE_TARGET := $(shell basename $$PWD)
+endif
+
 include $(HCLIB_ROOT)/include/hclib.mak
 
 ALL_TARGETS := $(BASE_TARGET) nb_$(BASE_TARGET) hclang_$(BASE_TARGET) $(EXTRA_TARGETS)
