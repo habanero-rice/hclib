@@ -20,7 +20,7 @@
 #include <hclib.h>
 #include <assert.h>
 
-#include "hclib.h"
+#include "hclib.hpp"
 
 ////////////////////////////////////
 // TIMING HELPER FUNCTIONS
@@ -63,7 +63,7 @@ typedef struct {
 } FibArgs;
 
 void fib(void * raw_args) {
-    FibArgs *args = raw_args;
+    FibArgs *args = (FibArgs*) raw_args;
     if (args->n < 2) {
         args->res = args->n;
     }

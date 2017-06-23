@@ -20,7 +20,7 @@
 #include <hclib.h>
 #include <assert.h>
 
-#include "hclib.h"
+#include "hclib.hpp"
 
 ////////////////////////////////////
 // FINISH SCOPE MACRO
@@ -80,7 +80,7 @@ typedef struct {
 } FibDDtArgs;
 
 static FibDDtArgs *setup_fib_ddt_args(int n) {
-    FibDDtArgs *args = malloc(sizeof(*args));
+    FibDDtArgs *args = new FibDDtArgs;
     args->n = n;
     args->res = hclib_promise_create();
     args->subres[2] = NULL;
@@ -89,7 +89,7 @@ static FibDDtArgs *setup_fib_ddt_args(int n) {
 
 static void free_ddt_args(FibDDtArgs *args) {
     hclib_promise_free(args->res);
-    free(args);
+    delete args;
 }
 
 static inline void *promise_get(hclib_promise_t *p) {
@@ -97,15 +97,15 @@ static inline void *promise_get(hclib_promise_t *p) {
 }
 
 static inline hclib_future_t **ps2fs(hclib_promise_t **ps) {
-    _Static_assert(offsetof(hclib_promise_t, future) == 0,
+    static_assert(offsetof(hclib_promise_t, future) == 0,
             "can cast promise ptr directly to future ptr");
     return (hclib_future_t **)ps;
 }
 
 void fib_ddt_res(void * raw_args) {
-    FibDDtArgs *args = raw_args;
-    FibDDtArgs *lhs = promise_get(args->subres[0]);
-    FibDDtArgs *rhs = promise_get(args->subres[1]);
+    FibDDtArgs *args = (FibDDtArgs*) raw_args;
+    FibDDtArgs *lhs = (FibDDtArgs*) promise_get(args->subres[0]);
+    FibDDtArgs *rhs = (FibDDtArgs*) promise_get(args->subres[1]);
     args->resval =  lhs->resval + rhs->resval;
     hclib_promise_put(args->res, args);
     // cleanup
@@ -114,7 +114,7 @@ void fib_ddt_res(void * raw_args) {
 }
 
 void fib_ddt(void * raw_args) {
-    FibDDtArgs *args = raw_args;
+    FibDDtArgs *args = (FibDDtArgs*) raw_args;
     if (args->n < 2) {
         args->resval = args->n;
         hclib_promise_put(args->res, args);
@@ -141,7 +141,7 @@ void fib_ddt_root_await(void * raw_args) { /* no-op */ }
 double t_start, t_end;
 
 void taskMain(void *raw_args) {
-    FibDDtArgs *args = raw_args;
+    FibDDtArgs *args = (FibDDtArgs*) raw_args;
     t_start = get_seconds();
     hclib_async(fib_ddt, args, NO_FUTURE, NO_PHASER, ANY_PLACE, MY_ESCAPE_PROP);
     args->subres[0] = NULL; // null terminate after res

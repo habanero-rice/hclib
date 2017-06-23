@@ -7,7 +7,8 @@ endif
 
 include $(HCLIB_ROOT)/include/hclib.mak
 
-ALL_TARGETS := $(BASE_TARGET) nb_$(BASE_TARGET) hclang_$(BASE_TARGET)
+TARGET_PREFIXES := f fh t th nb hclang
+ALL_TARGETS := $(BASE_TARGET) $(patsubst %,%_$(BASE_TARGET),$(TARGET_PREFIXES))
 
 COMMON_FLAGS := -O3
 
@@ -18,17 +19,24 @@ CC_CMD  = $(CC) $(PROJECT_CFLAGS) $(PROJECT_LDFLAGS) $(COMMON_FLAGS) $(CFLAGS) $
 CXX_CMD = $(CXX) $(PROJECT_CXXFLAGS) $(PROJECT_LDFLAGS) $(COMMON_FLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(PROJECT_LDLIBS)
 
 %: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/default
-%: %.c $(PROJECT_EXTRA_DEPS)
-	$(CC_CMD)
-
-%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/default
 %: %.cpp $(PROJECT_EXTRA_DEPS)
-	echo $< $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
-nb_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
-nb_%: nb_%.c $(PROJECT_EXTRA_DEPS)
-	$(CC_CMD)
+f_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/fibers
+f_%: %.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
+
+fh_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/fibers-help
+fh_%: %.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
+
+t_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/threads
+t_%: %.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
+
+th_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/threads-help
+th_%: %.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
 
 nb_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
 nb_%: nb_%.cpp $(PROJECT_EXTRA_DEPS)

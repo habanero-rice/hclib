@@ -1,3 +1,6 @@
 # HCC-compiler generated files
 rose_*.c
 .hcc.tmp.*
+
+# ignore log directories
+log

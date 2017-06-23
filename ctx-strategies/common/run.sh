@@ -11,9 +11,19 @@ do_test() {
     fi
 }
 
-export HCLIB_WORKERS=4
-do_test $PROJECT_NAME
-do_test nb_$PROJECT_NAME
-# --wf -> work first
-# --hf -> help first
-HC_BIN_FLAGS="--nproc $HCLIB_WORKERS --hf" do_test hclang_$PROJECT_NAME
+
+export HCLIB_WORKERS=8
+mkdir log
+
+
+for prefix in f fh t th nb hclang; do
+    if [ $prefix = hclang ]; then
+        # --wf -> work first
+        # --hf -> help first
+        export HC_BIN_FLAGS="--nproc $HCLIB_WORKERS --hf" 
+    fi
+    for i in {1..30}; do
+        echo "===> $prefix $i"
+        do_test ${prefix}_${PROJECT_NAME}
+    done &>log/${prefix}_data.txt
+done
