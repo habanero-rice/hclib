@@ -6,6 +6,7 @@ do_test() {
     set -x
     eval make $1 $PROJECT_MAKE_ARGS
     eval ./$1 $HC_BIN_FLAGS $PROJECT_RUN_ARGS
+    [ "$PROJECT_VERIFY" ] && eval $PROJECT_VERIFY
 }
 
 export HCLIB_WORKERS=4

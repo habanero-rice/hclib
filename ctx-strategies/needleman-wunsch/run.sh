@@ -43,6 +43,7 @@ fi
 fi
 fi
 
+export EXPECTED_RESULT
 export PROJECT_RUN_ARGS="${INPUT_FILE_1} ${INPUT_FILE_2} ${TILE_WIDTH} ${TILE_HEIGHT}"
 
 source ../common/run.sh
