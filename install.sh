@@ -4,6 +4,9 @@ set -e
 
 # Bootstrap, Configure, Make and Install
 
+# Ensure we can find the hclib-options script during install
+export HCLIB_SCRIPTS_PATH="$PWD/scripts"
+
 #
 # Defining some variables
 #
@@ -19,7 +22,6 @@ export AUTOHEADER="echo autoheader disabled"
 #
 # if install root has been specified, add --prefix option to configure
 echo "[${PROJECT_NAME}] Bootstrap..."
-
 
 if type libtoolize &>/dev/null; then
     LIBTOOLIZE=`command -v libtoolize`
@@ -61,6 +63,9 @@ make -j${NPROC}
 echo "[${PROJECT_NAME}] Make install... to ${INSTALL_PREFIX}"
 make -j${NPROC} install
 
+mkdir -p ${INSTALL_PREFIX}/bin
+cp ${HCLIB_SCRIPTS_PATH}/hclib-options ${INSTALL_PREFIX}/bin/
+
 #
 # Create environment setup script
 #
@@ -73,8 +78,6 @@ if [ -z `command -v xml2-config` ]; then
     exit 1
 fi
 
-mkdir -p `dirname ${HCLIB_ENV_SETUP_SCRIPT}`
-cp ../scripts/hclib-options ${INSTALL_PREFIX}/bin/
 cat > "${HCLIB_ENV_SETUP_SCRIPT}" <<EOI
 # HClib environment setup
 export HCLIB_ROOT='${INSTALL_PREFIX}'

@@ -7,22 +7,24 @@ PROJECT_BASE_FLAGS = -I$(HCLIB_ROOT)/include \
 PROJECT_CFLAGS     = -std=c11 $(PROJECT_BASE_FLAGS)
 PROJECT_CXXFLAGS   = -std=c++11 $(PROJECT_BASE_FLAGS)
 PROJECT_LDFLAGS    = -L$(HCLIB_ROOT)/lib
-PROJECT_LDLIBS    := -Wl,-rpath,$(HCLIB_ROOT)/lib $(shell xml2-config --libs) -lpthread
+PROJECT_LDLIBS     = -l$(PROJECT_HCLIB) -Wl,-rpath,$(HCLIB_ROOT)/lib $(shell xml2-config --libs) -lpthread
 
 
 # release target signals that production flags should be used
 .PHONY: release
 
-ifeq (,$(filter $(MAKECMDGOALS),release))
+PROJECT_GOALS ?= $(MAKECMDGOALS)
+
+ifeq (,$(filter $(PROJECT_GOALS),release))
   # debug flags
+  PROJECT_HCLIB        = hclib_dbg
   PROJECT_TARGET_TYPE  = debug
   PROJECT_BASE_FLAGS  += -g -O@dbg_flag_lvl@ -DHCLIB_DEBUG
-  PROJECT_LDLIBS      := -lhclib_dbg $(PROJECT_LDLIBS)
 else
   # release flags
+  PROJECT_HCLIB        = hclib
   PROJECT_TARGET_TYPE  = release
   PROJECT_BASE_FLAGS  += -O3 -DNDEBUG
-  PROJECT_LDLIBS      := -lhclib $(PROJECT_LDLIBS)
 endif
 
 ifdef TBB_MALLOC
