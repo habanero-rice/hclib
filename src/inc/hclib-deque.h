@@ -24,7 +24,7 @@
 /* DEQUE API                                        */
 /****************************************************/
 
-#define INIT_DEQUE_CAPACITY 8096
+#define INIT_DEQUE_CAPACITY (1<<18)
 
 typedef struct deque_t {
     _Atomic int head;
