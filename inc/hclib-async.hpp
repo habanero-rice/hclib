@@ -36,13 +36,13 @@ namespace hclib {
  */
 
 /* raw function pointer for calling lambdas */
-template<typename T>
+template<typename T, bool auto_duration = false>
 void lambda_wrapper(void *arg) {
     T *lambda = static_cast<T*>(arg);
     MARK_BUSY(get_current_worker());
     (*lambda)(); // !!! May cause a worker-swap !!!
     MARK_OVH(get_current_worker());
-    delete lambda;
+    if (!auto_duration) delete lambda;
 }
 
 
@@ -52,15 +52,17 @@ struct lambda_await_args {
     T* lambda;
     hclib_future_t **future_list;
 };
-template<typename T>
+template<typename T, bool auto_duration = false>
 void lambda_await_wrapper(void *raw_arg) {
     auto arg = static_cast<lambda_await_args<T>*>(raw_arg);
-    delete[] arg->future_list;
+    if (!auto_duration) delete[] arg->future_list;
     MARK_BUSY(get_current_worker());
     (*arg->lambda)(); // !!! May cause a worker-swap !!!
     MARK_OVH(get_current_worker());
-    delete arg->lambda;
-    delete arg;
+    if (!auto_duration) {
+        delete arg->lambda;
+        delete arg;
+    }
 }
 
 /* this version also puts the result of the lambda into a promise */
@@ -100,10 +102,22 @@ struct LambdaFutureWrapper<T, void> {
 };
 
 template <typename T>
-inline void async(T &&lambda) {
+inline void async_auto(T &lambda) {
     MARK_OVH(get_current_worker());
+    hclib_async(lambda_wrapper<T, true>, &lambda, nullptr, nullptr, nullptr, 0);
+}
+
+template <typename T>
+inline void async(T *lambda) {
+    MARK_OVH(get_current_worker());
+    hclib_async(lambda_wrapper<T>, lambda, nullptr, nullptr, nullptr, 0);
+}
+
+template <typename T>
+inline void async(T &&lambda) {
     typedef typename std::remove_reference<T>::type U;
-    hclib_async(lambda_wrapper<U>, new U(lambda), nullptr, nullptr, nullptr, 0);
+    MARK_OVH(get_current_worker());
+    async(new U(lambda));
 }
 
 template <typename T>
@@ -134,6 +148,13 @@ inline void async_await(T &&lambda, future_list_t... futures) {
     lambda_await_args<U> *args = new lambda_await_args<U> { new U(lambda), fs };
     hclib_async(lambda_await_wrapper<U>, args,
             fs, nullptr, nullptr, 0);
+}
+
+template <typename T>
+inline void async_await_auto(lambda_await_args<T> &args) {
+    MARK_OVH(get_current_worker());
+    hclib_async(lambda_await_wrapper<T, true>, &args,
+            args.future_list, nullptr, nullptr, 0);
 }
 
 template <typename T>
