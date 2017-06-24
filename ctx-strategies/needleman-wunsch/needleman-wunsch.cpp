@@ -16,7 +16,8 @@
 
 #define USE_AUTO_LAMBDAS 0
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstddef>
 #include <sys/time.h>
 #include <time.h>
 #include "hclib.hpp"
@@ -26,10 +27,11 @@
 #define TRANSVERSION_PENALTY -4
 #define MATCH 2
 
+static_assert(offsetof(hclib_promise_t, future) == 0,
+        "can cast promise ptr directly to future ptr");
+
 template <typename T>
 static inline hclib_future_t** ps2fs(hclib::promise_t<T>** ps) {
-    _Static_assert(offsetof(hclib_promise_t, future) == 0,
-                   "can cast promise ptr directly to future ptr");
     return reinterpret_cast<hclib_future_t**>(ps);
 }
 
