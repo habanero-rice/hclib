@@ -68,31 +68,41 @@ void deque_destroy(hclib_internal_deque_t *deq) {
 }
 
 /*
- * the steal protocol
+ * The steal protocol. Returns the number of tasks stolen, up to
+ * STEAL_CHUNK_SIZE. stolen must have enough space to store up to
+ * STEAL_CHUNK_SIZE task pointers.
  */
-hclib_task_t *deque_steal(hclib_internal_deque_t *deq) {
+int deque_steal(hclib_internal_deque_t *deq, void **stolen) {
     /* Cannot read deq->data[head] here
      * Can happen that head=tail=0, then the owner of the deq pushes
      * a new task when stealer is here in the code, resulting in head=0, tail=1
      * All other checks down-below will be valid, but the old value of the buffer head
      * would be returned by the steal rather than the new pushed value.
      */
-    const int head = deq->head;
 
-    hc_mfence();
+    int nstolen = 0;
 
-    const int tail = deq->tail;
-    if ((tail - head) <= 0) {
-        return NULL;
-    }
+    int success;
+    do {
+        const int head = deq->head;
+        hc_mfence();
+        const int tail = deq->tail;
 
-    hclib_task_t *t = (hclib_task_t *) deq->data[head % INIT_DEQUE_CAPACITY];
-    /* compete with other thieves and possibly the owner (if the size == 1) */
-    const int old = hc_cas(&deq->head, head, head + 1);
-    if (old == head) {
-        return t;
-    }
-    return NULL;
+        if ((tail - head) <= 0) {
+            success = 0;
+        } else {
+            hclib_task_t *t = (hclib_task_t *) deq->data[head % INIT_DEQUE_CAPACITY];
+            /* compete with other thieves and possibly the owner (if the size == 1) */
+            const int old = hc_cas(&deq->head, head, head + 1);
+            if (old == head) {
+                success = 1;
+                stolen[nstolen++] = t;
+            }
+
+        }
+    } while (success && nstolen < STEAL_CHUNK_SIZE);
+
+    return nstolen;
 }
 
 /*

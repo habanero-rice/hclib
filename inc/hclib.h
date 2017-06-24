@@ -232,6 +232,13 @@ void hclib_yield(hclib_locale_t *locale);
  */
 void hclib_get_curr_task_info(void (**fp_out)(void *), void **args_out);
 
+/*
+ * Print runtime statistics on HClib to the provided file pointer. If HClib
+ * statistics are not enabled at compilation through the --enable-stats
+ * configuration flag, this call is a no-op.
+ */
+void hclib_print_runtime_stats(FILE *fp);
+
 /**
  * @}
  */

@@ -79,8 +79,11 @@ static hwloc_topology_t topology;
 static int profile_launch_body = 0;
 #ifdef HCLIB_STATS
 typedef struct _per_worker_stats {
-    size_t count_tasks;
+    size_t executed_tasks;
+    size_t spawned_tasks;
     size_t count_steals;
+    size_t stolen_tasks;
+    size_t *stolen_tasks_per_thread;
 
     /*
      * Blocking operations that imply context creation and switching, which can
@@ -90,6 +93,8 @@ typedef struct _per_worker_stats {
     size_t count_future_waits;
     size_t count_end_finishes_nonblocking;
     size_t count_ctx_creates;
+    size_t count_yields;
+    size_t count_yield_iterations;
 } per_worker_stats;
 static per_worker_stats *worker_stats = NULL;
 #endif
@@ -353,6 +358,11 @@ static void hclib_entrypoint(const char **module_dependencies,
     worker_stats = (per_worker_stats *)calloc(hc_context->nworkers,
             sizeof(*worker_stats));
     HASSERT(worker_stats);
+    for (int i = 0; i < hc_context->nworkers; i++) {
+        worker_stats[i].stolen_tasks_per_thread = (size_t *)calloc(
+                hc_context->nworkers, sizeof(size_t));
+        HASSERT(worker_stats[i].stolen_tasks_per_thread);
+    }
 #endif
 
     // Launch the worker threads
@@ -447,7 +457,7 @@ static inline void execute_task(hclib_task_t *task) {
 #endif
 
 #ifdef HCLIB_STATS
-    worker_stats[CURRENT_WS_INTERNAL->id].count_tasks++;
+    worker_stats[CURRENT_WS_INTERNAL->id].executed_tasks++;
 #endif
 
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
@@ -461,6 +471,10 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
 #ifdef VERBOSE
     fprintf(stderr, "rt_schedule_async: async_task=%p locale=%p\n", async_task,
             async_task->locale);
+#endif
+
+#ifdef HCLIB_STATS
+    worker_stats[ws->id].spawned_tasks++;
 #endif
 
     if (async_task->locale) {
@@ -595,16 +609,25 @@ void spawn_await(hclib_task_t *task, hclib_future_t **futures,
 static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
         const int on_fresh_ctx, volatile int *flag, const int flag_val,
         finish_t *current_finish) {
+    hclib_task_t *stolen[STEAL_CHUNK_SIZE];
     hclib_task_t *task = locale_pop_task(ws);
 
     if (!task) {
         while (*flag != flag_val) {
             // try to steal
-            task = locale_steal_task(ws);
-            if (task) {
+            // task = locale_steal_task(ws);
+            int victim;
+            const int nstolen = locale_steal_task(ws, (void **)stolen, &victim);
+            if (nstolen) {
 #ifdef HCLIB_STATS
                 worker_stats[ws->id].count_steals++;
+                worker_stats[ws->id].stolen_tasks += nstolen;
+                worker_stats[ws->id].stolen_tasks_per_thread[victim]++;
 #endif
+                task = stolen[0];
+                for (int i = 1; i < nstolen; i++) {
+                    rt_schedule_async(stolen[i], ws);
+                }
                 break;
             }
         }
@@ -1080,16 +1103,39 @@ static void yield_helper(LiteCtx *ctx) {
  */
 
 void hclib_yield(hclib_locale_t *locale) {
+    hclib_task_t *stolen[STEAL_CHUNK_SIZE];
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     finish_t *old_finish = ws->current_finish;
     hclib_task_t *old_task = ws->curr_task;
 
+#ifdef HCLIB_STATS
+    worker_stats[ws->id].count_yields++;
+#endif
+
     hclib_task_t *task;
     do {
         ws = CURRENT_WS_INTERNAL;
+
+#ifdef HCLIB_STATS
+    worker_stats[ws->id].count_yield_iterations++;
+#endif
+
         task = locale_pop_task(ws);
         if (!task) {
-            task = locale_steal_task(ws);
+            int victim;
+            const int nstolen = locale_steal_task(ws, (void **)stolen, &victim);
+            if (nstolen) {
+#ifdef HCLIB_STATS
+                worker_stats[ws->id].count_steals++;
+                worker_stats[ws->id].stolen_tasks += nstolen;
+                worker_stats[ws->id].stolen_tasks_per_thread[victim]++;
+#endif
+                task = stolen[0];
+                for (int i = 1; i < nstolen; i++) {
+                    rt_schedule_async(stolen[i], ws);
+                }
+            }
+            // task = locale_steal_task(ws);
         }
 
         if (task) {
@@ -1278,6 +1324,43 @@ size_t hclib_current_worker_backlog() {
     return workers_backlog(ws);
 }
 
+void hclib_print_runtime_stats(FILE *fp) {
+#ifdef HCLIB_STATS
+    int i;
+    printf("===== HClib statistics: =====\n");
+    size_t sum_end_finishes = 0;
+    size_t sum_future_waits = 0;
+    size_t sum_end_finishes_nonblocking = 0;
+    size_t sum_ctx_creates = 0;
+    size_t sum_yields = 0;
+    size_t sum_yield_iters = 0;
+    for (i = 0; i < hc_context->nworkers; i++) {
+        printf("  Worker %d: %lu tasks executed, %lu tasks created, "
+                "%lu steals, %lu stolen tasks, %f tasks per steal, stolen from "
+                "= [ ", i, worker_stats[i].executed_tasks, worker_stats[i].spawned_tasks,
+                worker_stats[i].count_steals, worker_stats[i].stolen_tasks,
+                (double)worker_stats[i].stolen_tasks / (double)worker_stats[i].count_steals);
+        for (int j = 0; j < hc_context->nworkers; j++) {
+            printf("%lu ", worker_stats[i].stolen_tasks_per_thread[j]);
+        }
+        printf("]\n");
+        sum_end_finishes += worker_stats[i].count_end_finishes;
+        sum_future_waits += worker_stats[i].count_future_waits;
+        sum_end_finishes_nonblocking += worker_stats[i].count_end_finishes_nonblocking;
+        sum_ctx_creates += worker_stats[i].count_ctx_creates;
+        sum_yields += worker_stats[i].count_yields;
+        sum_yield_iters += worker_stats[i].count_yield_iterations;
+    }
+
+    printf("Total: %lu end finishes, %lu future waits, %lu non-blocking end "
+            "finishes, %lu ctx creates, %lu yields, %f iters per yield on "
+            "average\n", sum_end_finishes, sum_future_waits,
+            sum_end_finishes_nonblocking, sum_ctx_creates, sum_yields,
+            sum_yields == 0 ? 0.0 : (double)sum_yield_iters / (double)sum_yields);
+    free(worker_stats);
+#endif
+}
+
 static void hclib_finalize(const int instrument) {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
@@ -1296,26 +1379,7 @@ static void hclib_finalize(const int instrument) {
 
     hclib_join(hc_context->nworkers);
 
-#ifdef HCLIB_STATS
-    int i;
-    printf("===== HClib statistics: =====\n");
-    size_t sum_end_finishes = 0;
-    size_t sum_future_waits = 0;
-    size_t sum_end_finishes_nonblocking = 0;
-    size_t sum_ctx_creates = 0;
-    for (i = 0; i < hc_context->nworkers; i++) {
-        printf("  Worker %d: %lu tasks, %lu steals\n", i,
-                worker_stats[i].count_tasks, worker_stats[i].count_steals);
-        sum_end_finishes += worker_stats[i].count_end_finishes;
-        sum_future_waits += worker_stats[i].count_future_waits;
-        sum_end_finishes_nonblocking += worker_stats[i].count_end_finishes_nonblocking;
-        sum_ctx_creates += worker_stats[i].count_ctx_creates;
-    }
-    printf("Total: %lu end finishes, %lu future waits, %lu non-blocking end "
-            "finishes, %lu ctx creates\n", sum_end_finishes, sum_future_waits,
-            sum_end_finishes_nonblocking, sum_ctx_creates);
-    free(worker_stats);
-#endif
+    hclib_print_runtime_stats(stdout);
 
     if (instrument) {
         finalize_instrumentation();

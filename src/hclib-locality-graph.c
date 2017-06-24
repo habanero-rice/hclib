@@ -840,7 +840,7 @@ void hclib_locale_mark_special(hclib_locale_t *locale,
  * Try to find new work by stealing work from some other worker. We traverse the
  * steal path for the current worker and check all deques at each locale.
  */
-hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
+int locale_steal_task(hclib_worker_state *ws, void **stolen, int *out_victim) {
     int i, j;
     const int wid = ws->id;
     const int nworkers = ws->nworkers;
@@ -854,8 +854,8 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
 
     MARK_SEARCH(wid); // Set the state of this worker for timing
 
-    const int last_successful_locale = paths->last_successful_steal_locale;
     const int steal_path_length = steal->path_length;
+    const int last_successful_locale = paths->last_successful_steal_locale;
     for (i = 0; i < steal_path_length; i++) {
         const int locale_index = (last_successful_locale + i) % steal_path_length;
         hclib_locale_t *locale = steal->locales[locale_index];
@@ -863,10 +863,11 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
 
         for (j = ws->base_intra_socket_workers; j < ws->limit_intra_socket_workers; j++) {
             const int victim = j;
-            hclib_task_t *task = deque_steal(&(deqs[victim].deque));
-            if (task) {
+            const int nstolen = deque_steal(&(deqs[victim].deque), stolen);
+            if (nstolen) {
                 paths->last_successful_steal_locale = locale_index;
-                return task;
+                *out_victim = victim;
+                return nstolen;
             }
         }
 
@@ -874,15 +875,16 @@ hclib_task_t *locale_steal_task(hclib_worker_state *ws) {
                 ws->base_intra_socket_workers);
         for (j = 0; j < leftover; j++) {
             const int victim = (ws->limit_intra_socket_workers + j) % nworkers;
-            hclib_task_t *task = deque_steal(&(deqs[victim].deque));
-            if (task) {
+            const int nstolen = deque_steal(&(deqs[victim].deque), stolen);
+            if (nstolen) {
                 paths->last_successful_steal_locale = locale_index;
-                return task;
+                *out_victim = victim;
+                return nstolen;
             }
         }
     }
 
-    return NULL;
+    return 0;
 }
 
 /*

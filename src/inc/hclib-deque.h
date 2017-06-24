@@ -45,19 +45,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* DEQUE API                                        */
 /****************************************************/
 
+#define STEAL_CHUNK_SIZE 10
+
 // #define INIT_DEQUE_CAPACITY 16384
 #define INIT_DEQUE_CAPACITY 262144
 
 typedef struct hclib_internal_deque_t {
+    /*
+     * Head is shared by all threads, both stealers and the thread local to this
+     * deque. Head points to the slot containing the oldest created task.
+     * Stealing a task implies reading the task pointed to by head and then
+     * safely incrementing head.
+     */
     volatile int head;
+
+    /*
+     * Tail is only manipulated by the thread owning a deque. New tasks are
+     * pushed into the slot pointed to by tail, followed by an increment of
+     * tail. Local tasks may be acquired by decrementing tail and grabbing the
+     * task at the slot pointed to post-decrement.
+     */
     volatile int tail;
+
     volatile hclib_task_t* data[INIT_DEQUE_CAPACITY];
 } hclib_internal_deque_t;
 
 void deque_init(hclib_internal_deque_t *deq, void *initValue);
 int deque_push(hclib_internal_deque_t *deq, void *entry);
 hclib_task_t* deque_pop(hclib_internal_deque_t *deq);
-hclib_task_t* deque_steal(hclib_internal_deque_t *deq);
+int deque_steal(hclib_internal_deque_t *deq, void **stolen);
 void deque_destroy(hclib_internal_deque_t *deq);
 unsigned deque_size(hclib_internal_deque_t *deq);
 
