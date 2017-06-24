@@ -4,17 +4,21 @@
 
 do_test() {
     set -x
-    eval make $1 $PROJECT_MAKE_ARGS
-    eval ./$1 $HC_BIN_FLAGS $PROJECT_RUN_ARGS
+    if ! [ -f $1 ]; then
+        eval make $1 $PROJECT_MAKE_ARGS
+    fi
+    eval timeout 60s ./$1 $HC_BIN_FLAGS $PROJECT_RUN_ARGS
     if [ "$PROJECT_VERIFY" ]; then
         eval $PROJECT_VERIFY
     fi
 }
 
 
-export HCLIB_WORKERS=8
-mkdir log
+if [ -z "$HCLIB_WORKERS" ]; then
+    export HCLIB_WORKERS=8
+fi
 
+mkdir -p log
 
 for prefix in f fh t th nb hclang; do
     if [ $prefix = hclang ]; then
@@ -25,5 +29,5 @@ for prefix in f fh t th nb hclang; do
     for i in {1..30}; do
         echo "===> $prefix $i"
         do_test ${prefix}_${PROJECT_NAME}
-    done &>log/${prefix}_data.txt
+    done &>log/${prefix}_${HCLIB_WORKERS}_data.txt
 done
