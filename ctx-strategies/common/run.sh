@@ -20,7 +20,7 @@ fi
 
 mkdir -p log
 
-for prefix in f fh t th nb hclang; do
+for prefix in ${MY_PREFIXES:-f fh t th nb gh hclang}; do
     if [ $prefix = hclang ]; then
         # --wf -> work first
         # --hf -> help first

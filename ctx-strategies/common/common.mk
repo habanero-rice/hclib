@@ -7,7 +7,7 @@ endif
 
 include $(HCLIB_ROOT)/include/hclib.mak
 
-TARGET_PREFIXES := f fh t th nb hclang
+TARGET_PREFIXES := f fh t th nb gh hclang
 ALL_TARGETS := $(BASE_TARGET) $(patsubst %,%_$(BASE_TARGET),$(TARGET_PREFIXES))
 
 COMMON_FLAGS := -O3
@@ -38,12 +38,16 @@ th_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/threads-help
 th_%: %.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
+gh_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
+gh_%: %.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
+
 nb_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
 nb_%: nb_%.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
 hclang_%: %.hc $(PROJECT_EXTRA_DEPS)
-	hcc $(COMMON_FLAGS) $(CFLAGS) -o $@ $< $(LDFLAGS)
+	rhcc $(COMMON_FLAGS) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 .PHONY: clean
 clean:
