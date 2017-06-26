@@ -762,7 +762,7 @@ static void _help_finish_ctx(fcontext_transfer_t fiber_data) {
 static inline void _worker_finish_help(finish_t *finish) {
     if ((HCLIB_WORKER_OPTIONS) & HCLIB_WORKER_OPTIONS_HELP_FINISH) {
         // Try to execute a sub-task of the current finish scope
-        do {
+        while (_hclib_atomic_load_relaxed(&finish->counter) > 1) {
             hclib_worker_state *ws = CURRENT_WS_INTERNAL;
             hclib_task_t *task = hpt_pop_task(ws);
             // Fall through if we have no local tasks.
@@ -784,7 +784,7 @@ static inline void _worker_finish_help(finish_t *finish) {
                 deque_push_place(ws, NULL, task);
                 break;
             }
-        } while (finish->counter > 1);
+        }
     }
 }
 
