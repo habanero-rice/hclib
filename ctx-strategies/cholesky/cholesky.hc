@@ -190,23 +190,23 @@ int main(int argc, char** argv) {
     struct timeval b;
     gettimeofday(&a, 0);
 
-    for (int k = 0; k < numTiles; ++k) {
+    { int k; for (k = 0; k < numTiles; ++k) {
         TileBlock* prevPivotTile = lkji[k][k][k];
         TileBlock* currPivotTile = lkji[k][k][k + 1];
 
         sequential_cholesky(k, tileSize, prevPivotTile, currPivotTile);
         // Taking this malloc f_out from triSolve method
-        for (int j = k + 1; j < numTiles; ++j) {
+        { int j; for (j = k + 1; j < numTiles; ++j) {
             TileBlock* currPivotColumnTile = lkji[j][k][k + 1];
             currPivotColumnTile->matrixBlock =
                     malloc(tileSize * sizeof(double*));
             for (i = 0; i < tileSize; ++i)
                 currPivotColumnTile->matrixBlock[i] =
                         malloc(tileSize * sizeof(double));
-        }
+        } }
 
         finish {
-            for (int j = k + 1; j < numTiles; ++j) {
+         { int j; for (j = k + 1; j < numTiles; ++j) {
                 TileBlock* prevPivotColumnTile = lkji[j][k][k];
                 TileBlock* currPivotColumnTile = lkji[j][k][k + 1];
 
@@ -215,13 +215,13 @@ int main(int argc, char** argv) {
                     trisolve(k, j, tileSize, prevPivotColumnTile, currPivotTile,
                              currPivotColumnTile);
                 }
-            }
+            } }
         }
         finish {
-            for (int j = k + 1; j < numTiles; ++j) {
+         { int j; for (j = k + 1; j < numTiles; ++j) {
                 TileBlock* prevPivotColumnTile = lkji[j][k][k];
                 TileBlock* currPivotColumnTile = lkji[j][k][k + 1];
-                for (int i = k + 1; i < j; ++i) {
+                { int i; for (i = k + 1; i < j; ++i) {
                     TileBlock* prevTileForUpdate = lkji[j][i][k];
                     TileBlock* currTileForUpdate = lkji[j][i][k + 1];
                     TileBlock* currPivotColumnOtherTile = lkji[i][k][k + 1];
@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
                                            currPivotColumnTile,
                                            currTileForUpdate);
                     }
-                }
+                } }
                 TileBlock* prevDiagonalTileForUpdate = lkji[j][j][k];
                 TileBlock* currDiagonalTileForUpdate = lkji[j][j][k + 1];
 
@@ -244,9 +244,9 @@ int main(int argc, char** argv) {
                             k, j, j, tileSize, prevDiagonalTileForUpdate,
                             currPivotColumnTile, currDiagonalTileForUpdate);
                 }
-            }
+            } }
         }
-    }
+    } }
 
     gettimeofday(&b, 0);
     printf("The computation took %f seconds\r\n",
