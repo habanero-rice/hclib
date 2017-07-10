@@ -1,1 +1,0 @@
-nqueens.cpp

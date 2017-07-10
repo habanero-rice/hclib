@@ -41,11 +41,15 @@ th_%: %.cpp $(PROJECT_EXTRA_DEPS)
 gh_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
 gh_%: gh_%.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
+# fall back to default implementation if gh_*.cpp doesn't exit
 gh_%: %.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
 nb_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
 nb_%: nb_%.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
+# fall back to default implementation if nb_*.cpp doesn't exit
+nb_%: %.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
 hclang_%: %.hc $(PROJECT_EXTRA_DEPS)
