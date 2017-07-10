@@ -112,6 +112,100 @@ typedef struct {
     DDF_t* bottom_right;
 } Tile_t;
 
+void compute_tile(Tile_t **tile_matrix, int i, int j,
+        int n_tiles_height, int tile_width, int tile_height,
+        signed char *string_1, signed char *string_2) {
+    int index, ii, jj;
+    int* above_tile_bottom_row =
+            (int*)DDF_GET(tile_matrix[i - 1][j].bottom_row);
+    int* left_tile_right_column =
+            (int*)DDF_GET(tile_matrix[i][j - 1].right_column);
+    int* diagonal_tile_bottom_right = (int*)DDF_GET(
+            tile_matrix[i - 1][j - 1].bottom_right);
+
+    int* curr_tile_tmp = (int*)malloc(
+            sizeof(int) * (1 + tile_width) * (1 + tile_height));
+    int** curr_tile =
+            (int**)malloc(sizeof(int*) * (1 + tile_height));
+    for (index = 0; index < tile_height + 1; ++index) {
+        curr_tile[index] =
+                &curr_tile_tmp[index * (1 + tile_width)];
+    }
+
+    curr_tile[0][0] = diagonal_tile_bottom_right[0];
+    for (index = 1; index < tile_height + 1; ++index) {
+        curr_tile[index][0] = left_tile_right_column[index - 1];
+    }
+
+    for (index = 1; index < tile_width + 1; ++index) {
+        curr_tile[0][index] = above_tile_bottom_row[index - 1];
+    }
+
+    for (ii = 1; ii < tile_height + 1; ++ii) {
+        for (jj = 1; jj < tile_width + 1; ++jj) {
+            signed char char_from_1 =
+                    string_1[(j - 1) * tile_width + (jj - 1)];
+            signed char char_from_2 =
+                    string_2[(i - 1) * tile_height + (ii - 1)];
+
+            int diag_score =
+                    curr_tile[ii - 1][jj - 1] +
+                    alignment_score_matrix[char_from_2]
+                                          [char_from_1];
+            int left_score =
+                    curr_tile[ii][jj - 1] +
+                    alignment_score_matrix[char_from_1][GAP];
+            int top_score =
+                    curr_tile[ii - 1][jj] +
+                    alignment_score_matrix[GAP][char_from_2];
+
+            int bigger_of_left_top = (left_score > top_score)
+                                             ? left_score
+                                             : top_score;
+            curr_tile[ii][jj] =
+                    (bigger_of_left_top > diag_score)
+                            ? bigger_of_left_top
+                            : diag_score;
+        }
+    }
+
+    int* curr_bottom_right = (int*)malloc(sizeof(int));
+    curr_bottom_right[0] = curr_tile[tile_height][tile_width];
+    DDF_PUT(tile_matrix[i][j].bottom_right, curr_bottom_right);
+
+    int* curr_right_column =
+            (int*)malloc(sizeof(int) * tile_height);
+    for (index = 0; index < tile_height; ++index) {
+        curr_right_column[index] =
+                curr_tile[index + 1][tile_width];
+    }
+    DDF_PUT(tile_matrix[i][j].right_column, curr_right_column);
+
+    int* curr_bottom_row =
+            (int*)malloc(sizeof(int) * tile_width);
+    for (index = 0; index < tile_width; ++index) {
+        curr_bottom_row[index] =
+                curr_tile[tile_height][index + 1];
+    }
+    DDF_PUT(tile_matrix[i][j].bottom_row, curr_bottom_row);
+
+    if (i < n_tiles_height) {
+        // create task for tile on the next row down
+        i += 1;
+        async IN(i, j, tile_matrix, n_tiles_height,
+                tile_width, tile_height, string_1, string_2)
+                AWAIT(tile_matrix[i][j - 1].right_column,
+                      tile_matrix[i - 1][j].bottom_row,
+                      tile_matrix[i - 1][j - 1].bottom_right) {
+            compute_tile(tile_matrix, i, j, n_tiles_height,
+                    tile_width, tile_height, string_1, string_2);
+        }
+    }
+
+    free(curr_tile);
+    free(curr_tile_tmp);
+}
+
 int main(int argc, char* argv[]) {
     int i, j;
 
@@ -210,90 +304,15 @@ int main(int argc, char* argv[]) {
 
     finish {
         gettimeofday(&begin, 0);
-        for (int i = 1; i < n_tiles_height + 1; ++i) {
-            for (int j = 1; j < n_tiles_width + 1; ++j) {
-                async IN(i, j, tile_matrix, tile_width, tile_height, string_1,
-                         string_2)
-                        AWAIT(tile_matrix[i][j - 1].right_column,
-                              tile_matrix[i - 1][j].bottom_row,
-                              tile_matrix[i - 1][j - 1].bottom_right) {
-                    int index, ii, jj;
-                    int* above_tile_bottom_row =
-                            (int*)DDF_GET(tile_matrix[i - 1][j].bottom_row);
-                    int* left_tile_right_column =
-                            (int*)DDF_GET(tile_matrix[i][j - 1].right_column);
-                    int* diagonal_tile_bottom_right = (int*)DDF_GET(
-                            tile_matrix[i - 1][j - 1].bottom_right);
-
-                    int* curr_tile_tmp = (int*)malloc(
-                            sizeof(int) * (1 + tile_width) * (1 + tile_height));
-                    int** curr_tile =
-                            (int**)malloc(sizeof(int*) * (1 + tile_height));
-                    for (index = 0; index < tile_height + 1; ++index) {
-                        curr_tile[index] =
-                                &curr_tile_tmp[index * (1 + tile_width)];
-                    }
-
-                    curr_tile[0][0] = diagonal_tile_bottom_right[0];
-                    for (index = 1; index < tile_height + 1; ++index) {
-                        curr_tile[index][0] = left_tile_right_column[index - 1];
-                    }
-
-                    for (index = 1; index < tile_width + 1; ++index) {
-                        curr_tile[0][index] = above_tile_bottom_row[index - 1];
-                    }
-
-                    for (ii = 1; ii < tile_height + 1; ++ii) {
-                        for (jj = 1; jj < tile_width + 1; ++jj) {
-                            signed char char_from_1 =
-                                    string_1[(j - 1) * tile_width + (jj - 1)];
-                            signed char char_from_2 =
-                                    string_2[(i - 1) * tile_height + (ii - 1)];
-
-                            int diag_score =
-                                    curr_tile[ii - 1][jj - 1] +
-                                    alignment_score_matrix[char_from_2]
-                                                          [char_from_1];
-                            int left_score =
-                                    curr_tile[ii][jj - 1] +
-                                    alignment_score_matrix[char_from_1][GAP];
-                            int top_score =
-                                    curr_tile[ii - 1][jj] +
-                                    alignment_score_matrix[GAP][char_from_2];
-
-                            int bigger_of_left_top = (left_score > top_score)
-                                                             ? left_score
-                                                             : top_score;
-                            curr_tile[ii][jj] =
-                                    (bigger_of_left_top > diag_score)
-                                            ? bigger_of_left_top
-                                            : diag_score;
-                        }
-                    }
-
-                    int* curr_bottom_right = (int*)malloc(sizeof(int));
-                    curr_bottom_right[0] = curr_tile[tile_height][tile_width];
-                    DDF_PUT(tile_matrix[i][j].bottom_right, curr_bottom_right);
-
-                    int* curr_right_column =
-                            (int*)malloc(sizeof(int) * tile_height);
-                    for (index = 0; index < tile_height; ++index) {
-                        curr_right_column[index] =
-                                curr_tile[index + 1][tile_width];
-                    }
-                    DDF_PUT(tile_matrix[i][j].right_column, curr_right_column);
-
-                    int* curr_bottom_row =
-                            (int*)malloc(sizeof(int) * tile_width);
-                    for (index = 0; index < tile_width; ++index) {
-                        curr_bottom_row[index] =
-                                curr_tile[tile_height][index + 1];
-                    }
-                    DDF_PUT(tile_matrix[i][j].bottom_row, curr_bottom_row);
-
-                    free(curr_tile);
-                    free(curr_tile_tmp);
-                }
+        int i = 1, j;
+        for (j = 1; j <= n_tiles_width; ++j) {
+            async IN(i, j, tile_matrix, n_tiles_height,
+                    tile_width, tile_height, string_1, string_2)
+                    AWAIT(tile_matrix[  i  ][j - 1].right_column,
+                          tile_matrix[i - 1][  j  ].bottom_row,
+                          tile_matrix[i - 1][j - 1].bottom_right) {
+                compute_tile(tile_matrix, i, j, n_tiles_height,
+                        tile_width, tile_height, string_1, string_2);
             }
         }
     }

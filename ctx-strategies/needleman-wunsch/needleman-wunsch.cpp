@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#define USE_AUTO_LAMBDAS 0
-
 #include <cstdio>
 #include <cstddef>
 #include <sys/time.h>
@@ -122,6 +120,106 @@ typedef struct {
     hclib::promise_t<int*>* right_column;
     hclib::promise_t<int*>* bottom_right;
 } Tile_t;
+
+
+
+void compute_tile(Tile_t **tile_matrix, int i, int j,
+        int n_tiles_height, int tile_width, int tile_height,
+        signed char *string_1, signed char *string_2) {
+    int index, ii, jj;
+    int* above_tile_bottom_row =
+            tile_matrix[i - 1][j]
+                    .bottom_row->get_future()
+                    ->get();
+    int* left_tile_right_column =
+            tile_matrix[i][j - 1]
+                    .right_column->get_future()
+                    ->get();
+    int* diagonal_tile_bottom_right =
+            tile_matrix[i - 1][j - 1]
+                    .bottom_right->get_future()
+                    ->get();
+
+    int* curr_tile_tmp = (int*)malloc(
+            sizeof(int) * (1 + tile_width) * (1 + tile_height));
+    int** curr_tile =
+            (int**)malloc(sizeof(int*) * (1 + tile_height));
+    for (index = 0; index < tile_height + 1; ++index) {
+        curr_tile[index] =
+                &curr_tile_tmp[index * (1 + tile_width)];
+    }
+
+    curr_tile[0][0] = diagonal_tile_bottom_right[0];
+    for (index = 1; index < tile_height + 1; ++index) {
+        curr_tile[index][0] = left_tile_right_column[index - 1];
+    }
+
+    for (index = 1; index < tile_width + 1; ++index) {
+        curr_tile[0][index] = above_tile_bottom_row[index - 1];
+    }
+
+    for (ii = 1; ii < tile_height + 1; ++ii) {
+        for (jj = 1; jj < tile_width + 1; ++jj) {
+            signed char char_from_1 =
+                    string_1[(j - 1) * tile_width + (jj - 1)];
+            signed char char_from_2 =
+                    string_2[(i - 1) * tile_height + (ii - 1)];
+
+            int diag_score =
+                    curr_tile[ii - 1][jj - 1] +
+                    alignment_score_matrix[char_from_2]
+                                          [char_from_1];
+            int left_score =
+                    curr_tile[ii][jj - 1] +
+                    alignment_score_matrix[char_from_1][GAP];
+            int top_score =
+                    curr_tile[ii - 1][jj] +
+                    alignment_score_matrix[GAP][char_from_2];
+
+            int bigger_of_left_top = (left_score > top_score)
+                                             ? left_score
+                                             : top_score;
+            curr_tile[ii][jj] =
+                    (bigger_of_left_top > diag_score)
+                            ? bigger_of_left_top
+                            : diag_score;
+        }
+    }
+
+    int* curr_bottom_right = (int*)malloc(sizeof(int));
+    curr_bottom_right[0] = curr_tile[tile_height][tile_width];
+    tile_matrix[i][j].bottom_right->put(curr_bottom_right);
+
+    int* curr_right_column =
+            (int*)malloc(sizeof(int) * tile_height);
+    for (index = 0; index < tile_height; ++index) {
+        curr_right_column[index] =
+                curr_tile[index + 1][tile_width];
+    }
+    tile_matrix[i][j].right_column->put(curr_right_column);
+
+    int* curr_bottom_row =
+            (int*)malloc(sizeof(int) * tile_width);
+    for (index = 0; index < tile_width; ++index) {
+        curr_bottom_row[index] =
+                curr_tile[tile_height][index + 1];
+    }
+    tile_matrix[i][j].bottom_row->put(curr_bottom_row);
+
+    if (i < n_tiles_height) {
+        // create task for tile on the next row down
+        hclib::async_await([=] {
+                    compute_tile(tile_matrix, i+1, j, n_tiles_height,
+                            tile_width, tile_height, string_1, string_2);
+                },
+                tile_matrix[i + 1][j - 1].right_column->get_future(),
+                tile_matrix[  i  ][  j  ].bottom_row->get_future(),
+                tile_matrix[  i  ][j - 1].bottom_right->get_future());
+    }
+
+    free(curr_tile);
+    free(curr_tile_tmp);
+}
 
 int main(int argc, char* argv[]) {
     int i, j;
@@ -230,126 +328,15 @@ int main(int argc, char* argv[]) {
 
     hclib::launch([=, &begin]() {
         gettimeofday(&begin, 0);
-        for (int i = 1; i < n_tiles_height + 1; ++i) {
-            for (int j = 1; j < n_tiles_width + 1; ++j) {
-                auto& wrapped_arg =
-                        arg_list[(i - 1) * n_tiles_height + (j - 1)];
-#if USE_AUTO_LAMBDAS
-                wrapped_arg.ps[0] = tile_matrix[i][j - 1].right_column;
-                wrapped_arg.ps[1] = tile_matrix[i - 1][j].bottom_row;
-                wrapped_arg.ps[2] = tile_matrix[i - 1][j - 1].bottom_right;
-                wrapped_arg.ps[3] = nullptr;
-#endif
-                auto fn = new (wrapped_arg.buf_fn) auto([=]() {
-                    int index, ii, jj;
-                    int* above_tile_bottom_row =
-                            tile_matrix[i - 1][j]
-                                    .bottom_row->get_future()
-                                    ->get();
-                    int* left_tile_right_column =
-                            tile_matrix[i][j - 1]
-                                    .right_column->get_future()
-                                    ->get();
-                    int* diagonal_tile_bottom_right =
-                            tile_matrix[i - 1][j - 1]
-                                    .bottom_right->get_future()
-                                    ->get();
+        for (int i = 1, j = 1; j <= n_tiles_width; ++j) {
 
-                    int* curr_tile_tmp = (int*)malloc(
-                            sizeof(int) * (1 + tile_width) * (1 + tile_height));
-                    int** curr_tile =
-                            (int**)malloc(sizeof(int*) * (1 + tile_height));
-                    for (index = 0; index < tile_height + 1; ++index) {
-                        curr_tile[index] =
-                                &curr_tile_tmp[index * (1 + tile_width)];
-                    }
-
-                    curr_tile[0][0] = diagonal_tile_bottom_right[0];
-                    for (index = 1; index < tile_height + 1; ++index) {
-                        curr_tile[index][0] = left_tile_right_column[index - 1];
-                    }
-
-                    for (index = 1; index < tile_width + 1; ++index) {
-                        curr_tile[0][index] = above_tile_bottom_row[index - 1];
-                    }
-
-                    for (ii = 1; ii < tile_height + 1; ++ii) {
-                        for (jj = 1; jj < tile_width + 1; ++jj) {
-                            signed char char_from_1 =
-                                    string_1[(j - 1) * tile_width + (jj - 1)];
-                            signed char char_from_2 =
-                                    string_2[(i - 1) * tile_height + (ii - 1)];
-
-                            int diag_score =
-                                    curr_tile[ii - 1][jj - 1] +
-                                    alignment_score_matrix[char_from_2]
-                                                          [char_from_1];
-                            int left_score =
-                                    curr_tile[ii][jj - 1] +
-                                    alignment_score_matrix[char_from_1][GAP];
-                            int top_score =
-                                    curr_tile[ii - 1][jj] +
-                                    alignment_score_matrix[GAP][char_from_2];
-
-                            int bigger_of_left_top = (left_score > top_score)
-                                                             ? left_score
-                                                             : top_score;
-                            curr_tile[ii][jj] =
-                                    (bigger_of_left_top > diag_score)
-                                            ? bigger_of_left_top
-                                            : diag_score;
-                        }
-                    }
-
-                    int* curr_bottom_right = (int*)malloc(sizeof(int));
-                    curr_bottom_right[0] = curr_tile[tile_height][tile_width];
-                    tile_matrix[i][j].bottom_right->put(curr_bottom_right);
-
-                    int* curr_right_column =
-                            (int*)malloc(sizeof(int) * tile_height);
-                    for (index = 0; index < tile_height; ++index) {
-                        curr_right_column[index] =
-                                curr_tile[index + 1][tile_width];
-                    }
-                    tile_matrix[i][j].right_column->put(curr_right_column);
-
-                    int* curr_bottom_row =
-                            (int*)malloc(sizeof(int) * tile_width);
-                    for (index = 0; index < tile_width; ++index) {
-                        curr_bottom_row[index] =
-                                curr_tile[tile_height][index + 1];
-                    }
-                    tile_matrix[i][j].bottom_row->put(curr_bottom_row);
-
-                    free(curr_tile);
-                    free(curr_tile_tmp);
-                });
-
-                typedef typename std::remove_reference<decltype(*fn)>::type U;
-                hclib::lambda_await_args<U>* arg =
-                        reinterpret_cast<decltype(arg)>(wrapped_arg.buf_arg);
-
-                // Ensure the buffer is big enough!
-                // if (i==1 && j==1) printf("SIZE FN:  %ld\n",
-                // (long)sizeof(*fn));
-                static_assert(sizeof(wrapped_arg.buf_fn) >= sizeof(*fn),
-                              "Buffer needs to be big enough for lambda");
-                // if (i==1 && j==1) printf("SIZE ARG: %ld\n",
-                // (long)sizeof(*arg));
-                static_assert(sizeof(wrapped_arg.buf_arg) >= sizeof(*arg),
-                              "Buffer needs to be big enough for arg");
-
-#if USE_AUTO_LAMBDAS
-                arg->lambda = fn;
-                arg->future_list = ps2fs(wrapped_arg.ps);
-                hclib::async_await_auto(*arg);
-#else
-                hclib::async_await(
-                        *fn, tile_matrix[i][j - 1].right_column->get_future(),
-                        tile_matrix[i - 1][j].bottom_row->get_future(),
-                        tile_matrix[i - 1][j - 1].bottom_right->get_future());
-#endif
-            }
+            hclib::async_await([=] {
+                        compute_tile(tile_matrix, i, j, n_tiles_height,
+                                tile_width, tile_height, string_1, string_2);
+                    },
+                    tile_matrix[ i ][j - 1].right_column->get_future(),
+                    tile_matrix[i - 1][  j  ].bottom_row->get_future(),
+                    tile_matrix[i - 1][j - 1].bottom_right->get_future());
         }
     });
 

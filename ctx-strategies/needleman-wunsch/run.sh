@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 if [ $# -eq 1 ]; then
 SIZE=$1
 else
@@ -45,5 +43,6 @@ fi
 
 export EXPECTED_RESULT
 export PROJECT_RUN_ARGS="${INPUT_FILE_1} ${INPUT_FILE_2} ${TILE_WIDTH} ${TILE_HEIGHT}"
+echo "ARGS: $PROJECT_RUN_ARGS"
 
 source ../common/run.sh
