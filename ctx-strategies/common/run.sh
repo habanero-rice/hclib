@@ -2,8 +2,9 @@
 
 [ -z "$PROJECT_NAME" ] && PROJECT_NAME=$(basename $PWD)
 
+set -x
+
 do_test() {
-    set -x
     if ! [ -f $1 ]; then
         eval make $1 $PROJECT_MAKE_ARGS
     fi
