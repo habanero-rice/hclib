@@ -115,6 +115,17 @@ typedef struct {
 void compute_tile(Tile_t **tile_matrix, int i, int j,
         int n_tiles_height, int tile_width, int tile_height,
         signed char *string_1, signed char *string_2) {
+
+    // block for inputs
+    // (we use future.wait() for this in hclib)
+    finish {
+        async IN(i, j, tile_matrix, n_tiles_height,
+                tile_width, tile_height, string_1, string_2)
+                AWAIT(tile_matrix[i][j - 1].right_column,
+                      tile_matrix[i - 1][j].bottom_row,
+                      tile_matrix[i - 1][j - 1].bottom_right) { }
+    }
+
     int index, ii, jj;
     int* above_tile_bottom_row =
             (int*)DDF_GET(tile_matrix[i - 1][j].bottom_row);
@@ -193,10 +204,7 @@ void compute_tile(Tile_t **tile_matrix, int i, int j,
         // create task for tile on the next row down
         i += 1;
         async IN(i, j, tile_matrix, n_tiles_height,
-                tile_width, tile_height, string_1, string_2)
-                AWAIT(tile_matrix[i][j - 1].right_column,
-                      tile_matrix[i - 1][j].bottom_row,
-                      tile_matrix[i - 1][j - 1].bottom_right) {
+                tile_width, tile_height, string_1, string_2) {
             compute_tile(tile_matrix, i, j, n_tiles_height,
                     tile_width, tile_height, string_1, string_2);
         }
@@ -307,10 +315,7 @@ int main(int argc, char* argv[]) {
         int i = 1, j;
         for (j = 1; j <= n_tiles_width; ++j) {
             async IN(i, j, tile_matrix, n_tiles_height,
-                    tile_width, tile_height, string_1, string_2)
-                    AWAIT(tile_matrix[  i  ][j - 1].right_column,
-                          tile_matrix[i - 1][  j  ].bottom_row,
-                          tile_matrix[i - 1][j - 1].bottom_right) {
+                    tile_width, tile_height, string_1, string_2) {
                 compute_tile(tile_matrix, i, j, n_tiles_height,
                         tile_width, tile_height, string_1, string_2);
             }

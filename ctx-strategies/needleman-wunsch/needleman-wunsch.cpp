@@ -127,18 +127,20 @@ void compute_tile(Tile_t **tile_matrix, int i, int j,
         int n_tiles_height, int tile_width, int tile_height,
         signed char *string_1, signed char *string_2) {
     int index, ii, jj;
+
+    // blocking-gets on inputs
     int* above_tile_bottom_row =
             tile_matrix[i - 1][j]
                     .bottom_row->get_future()
-                    ->get();
+                    ->wait();
     int* left_tile_right_column =
             tile_matrix[i][j - 1]
                     .right_column->get_future()
-                    ->get();
+                    ->wait();
     int* diagonal_tile_bottom_right =
             tile_matrix[i - 1][j - 1]
                     .bottom_right->get_future()
-                    ->get();
+                    ->wait();
 
     int* curr_tile_tmp = (int*)malloc(
             sizeof(int) * (1 + tile_width) * (1 + tile_height));
@@ -209,12 +211,9 @@ void compute_tile(Tile_t **tile_matrix, int i, int j,
     if (i < n_tiles_height) {
         // create task for tile on the next row down
         hclib::async_await([=] {
-                    compute_tile(tile_matrix, i+1, j, n_tiles_height,
-                            tile_width, tile_height, string_1, string_2);
-                },
-                tile_matrix[i + 1][j - 1].right_column->get_future(),
-                tile_matrix[  i  ][  j  ].bottom_row->get_future(),
-                tile_matrix[  i  ][j - 1].bottom_right->get_future());
+            compute_tile(tile_matrix, i+1, j, n_tiles_height,
+                    tile_width, tile_height, string_1, string_2);
+        });
     }
 
     free(curr_tile);
@@ -331,12 +330,9 @@ int main(int argc, char* argv[]) {
         for (int i = 1, j = 1; j <= n_tiles_width; ++j) {
 
             hclib::async_await([=] {
-                        compute_tile(tile_matrix, i, j, n_tiles_height,
-                                tile_width, tile_height, string_1, string_2);
-                    },
-                    tile_matrix[ i ][j - 1].right_column->get_future(),
-                    tile_matrix[i - 1][  j  ].bottom_row->get_future(),
-                    tile_matrix[i - 1][j - 1].bottom_right->get_future());
+                compute_tile(tile_matrix, i, j, n_tiles_height,
+                        tile_width, tile_height, string_1, string_2);
+            });
         }
     });
 
