@@ -39,6 +39,8 @@ th_%: %.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
 gh_%: HCLIB_ROOT:=$(HCLIB_ROOT)/multi/non-blocking
+gh_%: gh_%.cpp $(PROJECT_EXTRA_DEPS)
+	$(CXX_CMD)
 gh_%: %.cpp $(PROJECT_EXTRA_DEPS)
 	$(CXX_CMD)
 
