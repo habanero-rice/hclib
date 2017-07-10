@@ -10,7 +10,7 @@ include $(HCLIB_ROOT)/include/hclib.mak
 TARGET_PREFIXES := f fh t th nb gh hclang
 ALL_TARGETS := $(BASE_TARGET) $(patsubst %,%_$(BASE_TARGET),$(TARGET_PREFIXES))
 
-COMMON_FLAGS := -O3
+COMMON_FLAGS := -O3 -I../common
 
 .PHONY: all
 all: $(ALL_TARGETS)
