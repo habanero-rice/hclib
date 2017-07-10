@@ -145,7 +145,10 @@ void taskMain(void *raw_args) {
     t_start = get_seconds();
     hclib_async(fib_ddt, args, NO_FUTURE, NO_PHASER, ANY_PLACE, MY_ESCAPE_PROP);
     args->subres[0] = NULL; // null terminate after res
-    hclib_async(fib_ddt_root_await, args, ps2fs(&args->res), NO_PHASER, ANY_PLACE, NO_PROP);
+    HCLIB_FINISH { // top-level sync before measuring end-time
+        hclib_async(fib_ddt_root_await, args, ps2fs(&args->res), NO_PHASER, ANY_PLACE, NO_PROP);
+    }
+    t_end = get_seconds();
 }
 
 int main(int argc, char ** argv) {
@@ -158,7 +161,6 @@ int main(int argc, char ** argv) {
     FibDDtArgs *args = setup_fib_ddt_args(n);
     hclib_launch(taskMain, args);
     // finish
-    t_end = get_seconds();
     answer = args->resval;
     print_throughput(fnp1, t_end - t_start);
     // check results

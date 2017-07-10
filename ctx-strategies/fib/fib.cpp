@@ -87,6 +87,7 @@ double t_start, t_end;
 void taskMain(void *raw_args) {
     t_start = get_seconds();
     fib(raw_args);
+    t_end = get_seconds();
 }
 
 int main(int argc, char ** argv) {
@@ -99,7 +100,6 @@ int main(int argc, char ** argv) {
     FibArgs args = { n, 0 };
     hclib_launch(taskMain, &args);
     // finish
-    t_end = get_seconds();
     answer = args.res;
     print_throughput(fnp1, t_end - t_start);
     // check results
