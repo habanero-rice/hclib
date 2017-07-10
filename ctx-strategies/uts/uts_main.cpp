@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
         /* time parallel search */
         t1 = uts_wctime();
 
-        hclib::finish([=] {
+        HCLIB_FINISH {
             hclib::async([=]() {
                 int wid = hclib::current_worker();
                 /* initialize root node and push on thread 0 stack */
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
 
                 parTreeSearch();
             });
-        });
+        }
 
         t2 = uts_wctime();
 
