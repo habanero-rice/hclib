@@ -1,0 +1,7 @@
+cholesky
+cilksort
+fib
+needleman-wunsch
+nqueens
+qsort
+uts
