@@ -86,24 +86,26 @@ int main(int argc, char** argv) {
     long start = get_usecs();
 
     hclib::launch([=]() {
-        sort(data, 0, N - 1, threshold);
+        HCLIB_FINISH {
+            sort(data, 0, N - 1, threshold);
+        }
+
+        long end = get_usecs();
+        double dur = ((double)(end - start)) / 1000000;
+
+        ELEMENT_T a = 0, b;
+        bool ok = true;
+        for (int k = 0; k < N; k++) {
+            b = data[k];
+            ok &= (a <= b);
+            a = b;
+        }
+        if (ok) {
+            printf("QuickSort passed, Time = %f\n", dur);
+        } else {
+            printf("QuickSort failed, Time = %f\n", dur);
+        }
     });
-
-    long end = get_usecs();
-    double dur = ((double)(end - start)) / 1000000;
-
-    ELEMENT_T a = 0, b;
-    bool ok = true;
-    for (int k = 0; k < N; k++) {
-        b = data[k];
-        ok &= (a <= b);
-        a = b;
-    }
-    if (ok) {
-        printf("QuickSort passed, Time = %f\n", dur);
-    } else {
-        printf("QuickSort failed, Time = %f\n", dur);
-    }
 
     return 0;
 }
