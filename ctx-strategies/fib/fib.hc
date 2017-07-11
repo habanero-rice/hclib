@@ -74,7 +74,7 @@ long fib(int n) {
 
 int main(int argc, char** argv) {
     // set up
-    int n = 30;
+    int n = 35;
     long fn = fib_iter(n);
     long fnp1 = fib_iter(n + 1);
     long answer;
