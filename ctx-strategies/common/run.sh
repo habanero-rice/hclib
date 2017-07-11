@@ -8,7 +8,7 @@ do_test() {
     if ! [ -f $1 ]; then
         eval make $1 $PROJECT_MAKE_ARGS
     fi
-    eval timeout 60s ./$1 $HC_BIN_FLAGS $PROJECT_RUN_ARGS
+    eval timeout 360s ./$1 $HC_BIN_FLAGS $PROJECT_RUN_ARGS
     if [ "$PROJECT_VERIFY" ]; then
         eval $PROJECT_VERIFY
     fi
