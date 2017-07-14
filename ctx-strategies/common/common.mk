@@ -8,9 +8,12 @@ endif
 include $(HCLIB_ROOT)/include/hclib.mak
 
 TARGET_PREFIXES := f fh t th nb gh hclang
-ALL_TARGETS := $(BASE_TARGET) $(patsubst %,%_$(BASE_TARGET),$(TARGET_PREFIXES))
+ALL_TARGETS := $(BASE_TARGET) $(patsubst %,%_$(BASE_TARGET),$(TARGET_PREFIXES)) $(EXTRA_TARGETS)
 
 COMMON_FLAGS := -O3 -I../common
+
+CC  = gcc
+CXX = g++
 
 .PHONY: all
 all: $(ALL_TARGETS)
