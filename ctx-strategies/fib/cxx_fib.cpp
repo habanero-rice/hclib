@@ -93,7 +93,7 @@ void taskMain(void *raw_args) {
 
 int main(int argc, char ** argv) {
     // set up
-    int n = argv[1] ? atoi(argv[1]) : 30;
+    int n = argv[1] ? atoi(argv[1]) : 35;
     const long fn = fib_iter(n);
     const long fnp1 = fib_iter(n+1);
     long answer;
