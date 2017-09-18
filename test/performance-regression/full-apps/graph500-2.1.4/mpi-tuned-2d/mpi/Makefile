@@ -7,16 +7,16 @@
 #  Authors: Jeremiah Willcock                                             
 #           Andrew Lumsdaine                                              
 
-CFLAGS_COMMON = -g -Ofast -fopenmp -march=native -DNDEBUG -Wall -Wextra -Wno-unused -Drestrict=__restrict__ -DGRAPH_GENERATOR_MPI -DMPICH_SKIP_MPICXX -DOMPI_SKIP_MPICXX -I$(MPI_HOME)/include
+CFLAGS_COMMON = -g -O3 -fopenmp -Wall -Wextra -Wno-unused -Drestrict=__restrict__ -DGRAPH_GENERATOR_MPI -DMPICH_SKIP_MPICXX -DOMPI_SKIP_MPICXX -I$(MPI_HOME)/include
 CFLAGS = $(CFLAGS_COMMON)
 CXXFLAGS = $(CFLAGS_COMMON)
-LDFLAGS = -Ofast -fopenmp -lhugetlbfs -L$(MPI_HOME)/lib -lmpich
-MPICC = icc
-MPICXX = icpc
-KERNELCC = icc
-KERNELCFLAGS = -Ofast -DNDEBUG -std=gnu99 -g -march=native -DUSE_ASM_VERSIONS_FOR_MATVEC
+LDFLAGS = -O3 -fopenmp -L$(MPI_HOME)/lib -Drestrict=__restrict__ -lmpich -lstdc++
+MPICC = gcc
+MPICXX = gcc
+KERNELCC = gcc
+KERNELCFLAGS = -O3 -std=gnu99 -g -DUSE_ASM_VERSIONS_FOR_MATVEC -Drestrict=__restrict__
 
-SIZES = 1024 2 8 32 128 512 1352 2048 2592 5408 8192 10368 32768
+SIZES = 2 8 16 32 128 512 1352 2048 2592 5408 8192 10368 32768
 EXES = $(SIZES:%=graph500_mpi_custom_%)
 all: $(EXES)
 

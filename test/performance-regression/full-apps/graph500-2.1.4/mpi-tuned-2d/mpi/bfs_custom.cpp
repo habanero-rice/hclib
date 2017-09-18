@@ -92,6 +92,7 @@ template <unsigned int N, typename Enable = void> struct ct_log2 {};
 template <unsigned int N> struct ct_log2<N, typename enable_if<N != 0 && (N & (N - 1)) == 0>::type>: ct_log2_rounded_up<N> {};
 #endif
 
+// Max (August 5 2017): this doesn't work and never worked?
 template <unsigned int N, unsigned int LB = 1, unsigned int UB_minus_LB = (N + 1) / 2 - 1>
 struct integer_sqrt_rounded_down {
   static const unsigned int middle = LB + UB_minus_LB / 2;
@@ -134,7 +135,9 @@ static const unsigned int subsplit_side = (1 << lg_subsplit_side);
 static const unsigned int nsubranks_1d = 2;
 static const unsigned int nlocal_slots = 1 << (2 * lg_subsplit_side + 1);
 #else
+
 static const unsigned int triangle_side = integer_sqrt_rounded_down<2 * constant_size>::value;
+
 // static const unsigned int lg_triangle_side_up = ct_log2_rounded_up<actual_triangle_side>::value;
 // static const unsigned int rounded_triangle_side = 1U << lg_triangle_side_up;
 // Make these non-static to avoid "unused variable" warnings on xlC

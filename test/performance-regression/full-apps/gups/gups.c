@@ -340,11 +340,20 @@ static void *ThreadBody(void *data) {
 
       }
 #else
+#ifdef USE_CONTEXTS
+      if (use_lock) shmem_set_lock(&HPCC_PELock[remote_pe]);
+      uint64_t remote_val = (uint64_t) shmemx_ctx_long_g((long *)&Table[index], remote_pe, ctx);
+      remote_val ^= ran;
+      shmemx_ctx_long_p((long *)&Table[index], remote_val, remote_pe, ctx);
+      if (use_lock) shmem_clear_lock(&HPCC_PELock[remote_pe]);
+
+#else
       if (use_lock) shmem_set_lock(&HPCC_PELock[remote_pe]);
       uint64_t remote_val = (uint64_t) shmem_long_g((long *)&Table[index], remote_pe);
       remote_val ^= ran;
       shmem_long_p((long *)&Table[index], remote_val, remote_pe);
       if (use_lock) shmem_clear_lock(&HPCC_PELock[remote_pe]);
+#endif
 #endif
   }
 

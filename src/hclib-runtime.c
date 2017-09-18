@@ -81,6 +81,7 @@ static int profile_launch_body = 0;
 typedef struct _per_worker_stats {
     size_t executed_tasks;
     size_t spawned_tasks;
+    size_t scheduled_tasks;
     size_t count_steals;
     size_t stolen_tasks;
     size_t *stolen_tasks_per_thread;
@@ -457,7 +458,7 @@ static inline void execute_task(hclib_task_t *task) {
 #endif
 
 #ifdef HCLIB_STATS
-    worker_stats[CURRENT_WS_INTERNAL->id].executed_tasks++;
+    worker_stats[ws->id].executed_tasks++;
 #endif
 
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
@@ -474,7 +475,7 @@ static inline void rt_schedule_async(hclib_task_t *async_task,
 #endif
 
 #ifdef HCLIB_STATS
-    worker_stats[ws->id].spawned_tasks++;
+    worker_stats[ws->id].scheduled_tasks++;
 #endif
 
     if (async_task->locale) {
@@ -540,6 +541,11 @@ void try_schedule_async(hclib_task_t *async_task, hclib_worker_state *ws) {
 #ifdef VERBOSE
     fprintf(stderr, "try_schedule_async: async_task=%p ws=%p\n", async_task, ws);
 #endif
+
+#ifdef HCLIB_STATS
+    worker_stats[ws->id].spawned_tasks++;
+#endif
+
     if (is_eligible_to_schedule(async_task)) {
         rt_schedule_async(async_task, ws);
     }
@@ -622,7 +628,7 @@ static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
 #ifdef HCLIB_STATS
                 worker_stats[ws->id].count_steals++;
                 worker_stats[ws->id].stolen_tasks += nstolen;
-                worker_stats[ws->id].stolen_tasks_per_thread[victim]++;
+                worker_stats[ws->id].stolen_tasks_per_thread[victim] += nstolen;
 #endif
                 task = stolen[0];
                 for (int i = 1; i < nstolen; i++) {
@@ -1128,7 +1134,7 @@ void hclib_yield(hclib_locale_t *locale) {
 #ifdef HCLIB_STATS
                 worker_stats[ws->id].count_steals++;
                 worker_stats[ws->id].stolen_tasks += nstolen;
-                worker_stats[ws->id].stolen_tasks_per_thread[victim]++;
+                worker_stats[ws->id].stolen_tasks_per_thread[victim] += nstolen;
 #endif
                 task = stolen[0];
                 for (int i = 1; i < nstolen; i++) {
@@ -1334,11 +1340,14 @@ void hclib_print_runtime_stats(FILE *fp) {
     size_t sum_ctx_creates = 0;
     size_t sum_yields = 0;
     size_t sum_yield_iters = 0;
+    size_t sum_tasks = 0;
     for (i = 0; i < hc_context->nworkers; i++) {
-        printf("  Worker %d: %lu tasks executed, %lu tasks created, "
-                "%lu steals, %lu stolen tasks, %f tasks per steal, stolen from "
-                "= [ ", i, worker_stats[i].executed_tasks, worker_stats[i].spawned_tasks,
-                worker_stats[i].count_steals, worker_stats[i].stolen_tasks,
+        printf("  Worker %d: %lu tasks executed, %lu tasks spawned, "
+                "%lu tasks scheduled, %lu steals, %lu stolen tasks, "
+                "%f tasks per steal, stolen from = [ ", i,
+                worker_stats[i].executed_tasks, worker_stats[i].spawned_tasks,
+                worker_stats[i].scheduled_tasks, worker_stats[i].count_steals,
+                worker_stats[i].stolen_tasks,
                 (double)worker_stats[i].stolen_tasks / (double)worker_stats[i].count_steals);
         for (int j = 0; j < hc_context->nworkers; j++) {
             printf("%lu ", worker_stats[i].stolen_tasks_per_thread[j]);
@@ -1350,12 +1359,14 @@ void hclib_print_runtime_stats(FILE *fp) {
         sum_ctx_creates += worker_stats[i].count_ctx_creates;
         sum_yields += worker_stats[i].count_yields;
         sum_yield_iters += worker_stats[i].count_yield_iterations;
+        sum_tasks += worker_stats[i].executed_tasks;
     }
 
-    printf("Total: %lu end finishes, %lu future waits, %lu non-blocking end "
-            "finishes, %lu ctx creates, %lu yields, %f iters per yield on "
-            "average\n", sum_end_finishes, sum_future_waits,
-            sum_end_finishes_nonblocking, sum_ctx_creates, sum_yields,
+    printf("Total: %lu tasks, %lu end finishes, %lu future waits, "
+            "%lu non-blocking end finishes, %lu ctx creates, %lu yields, "
+            "%f iters per yield on average\n", sum_tasks, sum_end_finishes,
+            sum_future_waits, sum_end_finishes_nonblocking, sum_ctx_creates,
+            sum_yields,
             sum_yields == 0 ? 0.0 : (double)sum_yield_iters / (double)sum_yields);
     free(worker_stats);
 #endif

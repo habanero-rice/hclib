@@ -2,7 +2,7 @@
 
 #SBATCH -p debug
 #SBATCH -N 16
-#SBATCH -t 00:10:00
+#SBATCH -t 00:30:00
 #SBATCH -J mandelbrot
 #SBATCH --exclusive
 #SBATCH --mail-type=ALL
@@ -15,7 +15,7 @@ export SMA_OFI_PROVIDER=gni
 ulimit -c unlimited
 
 for THREADS in 23; do
-    for BALANCE_GRANULARITY in 1024 16384; do
+    for BALANCE_GRANULARITY in 128 1024 16384; do
         for BLOCKING in on off; do
             for CONTEXTS in no_contexts contexts pipelining; do
 

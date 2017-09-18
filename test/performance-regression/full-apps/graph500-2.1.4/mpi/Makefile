@@ -1,7 +1,7 @@
 CFLAGS = -L$(OPENSHMEM_INSTALL)/lib -lmpich -I$(OPENSHMEM_INSTALL)/include -I$(MPI_HOME)/include -fopenmp -g -Wall -Drestrict=__restrict__ -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI -DGENERATOR_USE_PACKED_EDGE_TYPE -O3 # -g -pg
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI
 LDFLAGS = -L$(MPI_HOME)/lib -fopenmp -g # -g -pg
-MPICC = gcc
+MPICC = cc
 
 all: graph500_mpi_simple graph500_mpi_one_sided graph500_mpi_replicated graph500_mpi_replicated_csc graph500_mpi_custom graph500_mpi_replicated_hiper
 

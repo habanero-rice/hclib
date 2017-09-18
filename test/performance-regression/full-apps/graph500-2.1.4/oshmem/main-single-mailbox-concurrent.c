@@ -18,7 +18,7 @@
 #define QUEUE_SIZE 2097152
 
 // #define INCOMING_MAILBOX_SIZE_IN_BYTES 201326592
-#define INCOMING_MAILBOX_SIZE_IN_BYTES (200 * 1024 * 1024)
+#define INCOMING_MAILBOX_SIZE_IN_BYTES (300 * 1024 * 1024)
 
 /*
  * Header format:
@@ -606,7 +606,7 @@ int main(int argc, char **argv) {
     unsigned * restrict visited = (unsigned *)malloc(visited_bytes);
     assert(visited);
 
-    const unsigned num_bfs_roots = 3;
+    const unsigned num_bfs_roots = 1;
     assert(num_bfs_roots <= sizeof(bfs_roots) / sizeof(bfs_roots[0]));
 
     unsigned run;

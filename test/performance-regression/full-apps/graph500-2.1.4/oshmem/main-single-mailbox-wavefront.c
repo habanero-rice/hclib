@@ -17,7 +17,7 @@
 #include <limits.h>
 #include <pthread.h>
 
-// #define VERBOSE
+#define VERBOSE
 
 // #ifdef USE_CRC
 // #include "crc.h"
@@ -435,7 +435,7 @@ int main(int argc, char **argv) {
      * PEs.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "A> PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
             nedges_this_pe * sizeof(packed_edge));
 #endif
     packed_edge *actual_buf = (packed_edge *)malloc(
@@ -449,8 +449,9 @@ int main(int argc, char **argv) {
      * each PE.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "B> PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
             npes * sizeof(long long));
+    const unsigned long long start_counting_edges = current_time_ns();
 #endif
     long long *count_edges_shared_with_pe = (long long *)calloc(npes,
             sizeof(long long));
@@ -469,8 +470,11 @@ int main(int argc, char **argv) {
      * ownership.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "C> PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
             npes * sizeof(long long));
+    const unsigned long long start_getting_offsets = current_time_ns();
+    fprintf(stderr, "PE %d time to count edges = %f ms\n", shmem_my_pe(),
+            (double)(start_getting_offsets - start_counting_edges) / 1000000.0);
 #endif
     long long *remote_offsets = (long long *)malloc(npes * sizeof(long long));
     assert(remote_offsets);
@@ -483,7 +487,7 @@ int main(int argc, char **argv) {
     shmem_barrier_all();
 
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "D> PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
             SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #endif
     int *pWrkInt = (int *)shmem_malloc(SHMEM_REDUCE_MIN_WRKDATA_SIZE * sizeof(*pWrkInt));
@@ -493,7 +497,7 @@ int main(int argc, char **argv) {
 
     long *pSync = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "E> PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
             SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
 #endif
     long *pSync2 = (long *)shmem_malloc(SHMEM_REDUCE_SYNC_SIZE * sizeof(long));
@@ -525,8 +529,11 @@ int main(int argc, char **argv) {
      * be provided by other PEs.
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "F> PE %d shmem_malloc-ing %llu bytes\n", shmem_my_pe(),
             max_n_local_edges * sizeof(packed_edge));
+    const unsigned long long start_sending_edges = current_time_ns();
+    fprintf(stderr, "PE %d time to get offsets = %f ms\n", shmem_my_pe(),
+            (double)(start_sending_edges - start_getting_offsets) / 1000000.0);
 #endif
     packed_edge *local_edges = (packed_edge *)shmem_malloc(
             max_n_local_edges * sizeof(packed_edge));
@@ -537,28 +544,116 @@ int main(int argc, char **argv) {
      * a vertix on that node. This means that vertices which have one vertix on
      * one node and one vertix on another will be sent to two different nodes.
      */
-    for (i = 0; i < nedges_this_pe; i++) {
-        int64_t v0 = get_v0_from_edge(actual_buf + i);
-        int64_t v1 = get_v1_from_edge(actual_buf + i);
-        int v0_pe = get_owner_pe(v0, nglobalverts);
-        int v1_pe = get_owner_pe(v1, nglobalverts);
-        shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
-                sizeof(packed_edge), v0_pe);
-        remote_offsets[v0_pe]++;
-        shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
-                sizeof(packed_edge), v1_pe);
-        remote_offsets[v1_pe]++;
-        shmem_quiet();
+//     for (i = 0; i < nedges_this_pe; i++) {
+//         int64_t v0 = get_v0_from_edge(actual_buf + i);
+//         int64_t v1 = get_v1_from_edge(actual_buf + i);
+//         int v0_pe = get_owner_pe(v0, nglobalverts);
+//         int v1_pe = get_owner_pe(v1, nglobalverts);
+//         shmem_putmem(local_edges + remote_offsets[v0_pe], actual_buf + i,
+//                 sizeof(packed_edge), v0_pe);
+//         remote_offsets[v0_pe]++;
+//         shmem_putmem(local_edges + remote_offsets[v1_pe], actual_buf + i,
+//                 sizeof(packed_edge), v1_pe);
+//         remote_offsets[v1_pe]++;
+//         shmem_quiet();
+//     }
+// 
+//     free(remote_offsets);
+// 
+//     shmem_barrier_all();
+// 
+//     free(actual_buf);
+
+    unsigned max_count = 0;
+
+#pragma omp parallel default(none) reduction(max:max_count) \
+    firstprivate(actual_buf, npes, nedges_this_pe)
+    {
+        unsigned local_max_count = 0;
+
+#pragma omp for
+        for (int p = 0; p < npes; p++) {
+
+            unsigned count = 0;
+            for (int i = 0; i < nedges_this_pe; i++) {
+                int64_t v0 = get_v0_from_edge(actual_buf + i);
+                int64_t v1 = get_v1_from_edge(actual_buf + i);
+                int v0_pe = get_owner_pe(v0, nglobalverts);
+                int v1_pe = get_owner_pe(v1, nglobalverts);
+
+                if (v0_pe == p) {
+                    count++;
+                }
+
+                if (v1_pe == p) {
+                    count++;
+                }
+            }
+            if (count > local_max_count) {
+                local_max_count = count;
+            }
+        }
+
+        max_count = local_max_count;
     }
 
+    packed_edge *tmp_buf = (packed_edge *)malloc(
+            nthreads * max_count * sizeof(packed_edge));
+    assert(tmp_buf);
+
+#pragma omp parallel for default(none) firstprivate(npes, remote_offsets, \
+        contexts, nedges_this_pe, actual_buf, local_edges, tmp_buf, max_count)
+    for (int p = 0; p < npes; p++) {
+        packed_edge *my_tmp_buf = tmp_buf + (omp_get_thread_num() * max_count);
+#ifndef RUNTIME_SAFETY
+        const shmemx_ctx_t ctx = contexts[omp_get_thread_num() *
+            CONTEXTS_PER_THREAD];
+#endif
+
+        int count = 0;
+        for (unsigned i = 0; i < nedges_this_pe; i++) {
+            int64_t v0 = get_v0_from_edge(actual_buf + i);
+            int64_t v1 = get_v1_from_edge(actual_buf + i);
+            int v0_pe = get_owner_pe(v0, nglobalverts);
+            int v1_pe = get_owner_pe(v1, nglobalverts);
+
+            if (v0_pe == p) {
+                memcpy(my_tmp_buf + count, actual_buf + i, sizeof(packed_edge));
+                count++;
+            }
+
+            if (v1_pe == p) {
+                memcpy(my_tmp_buf + count, actual_buf + i, sizeof(packed_edge));
+                count++;
+            }
+        }
+
+#ifndef RUNTIME_SAFETY
+        shmemx_ctx_putmem(local_edges + remote_offsets[p], my_tmp_buf,
+                count * sizeof(packed_edge), p, ctx);
+        shmemx_ctx_quiet(ctx);
+#else
+        shmem_putmem(local_edges + remote_offsets[p], my_tmp_buf,
+                count * sizeof(packed_edge), p);
+        shmem_quiet();
+#endif
+    }
+
+    free(tmp_buf);
     free(remote_offsets);
+
+#ifdef VERBOSE
+    fprintf(stderr, "PE %d done sending edges\n", shmem_my_pe());
+#endif
 
     shmem_barrier_all();
 
     free(actual_buf);
 
+    // End paste
+
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "G> PE %d calloc-ing %llu bytes\n", shmem_my_pe(),
             (n_local_vertices + 1) * sizeof(unsigned));
 #endif
     unsigned *local_vertex_offsets = (unsigned *)calloc(
@@ -584,6 +679,10 @@ int main(int argc, char **argv) {
             local_vertex_offsets[v1 - local_min_vertex]++;
         }
     }
+
+#ifdef VERBOSE
+    fprintf(stderr, "GG> PE %d done getting offsets\n", shmem_my_pe());
+#endif
 
     /*
      * After this loop, location i in local_vertex_offsets stores a global
@@ -616,7 +715,7 @@ int main(int argc, char **argv) {
      *       local_vertex_offsets[i] and ends at local_vertex_offsets[i + 1]
      */
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "H> PE %d malloc-ing %llu bytes\n", shmem_my_pe(),
             acc * 2 * sizeof(uint64_t));
 #endif
     uint64_t *neighbors = (uint64_t *)malloc(acc * 2 * sizeof(uint64_t));
@@ -635,6 +734,8 @@ int main(int argc, char **argv) {
             local_vertex_offsets[v1 - local_min_vertex]--;
         }
     }
+
+    fprintf(stderr, "I> PE %d done computing local vertex offsets\n");
 
     // Remove duplicate edges in neighbors
     uint64_t writing_index = 0;
@@ -660,7 +761,7 @@ int main(int argc, char **argv) {
     }
     local_vertex_offsets[n_local_vertices] = writing_index;
 #ifdef VERBOSE
-    fprintf(stderr, "PE %d realloc-ing from %llu bytes to %llu bytes\n", shmem_my_pe(),
+    fprintf(stderr, "J> PE %d realloc-ing from %llu bytes to %llu bytes\n", shmem_my_pe(),
             acc * 2 * sizeof(uint64_t), writing_index * sizeof(uint64_t));
 #endif
     neighbors = (uint64_t *)realloc(neighbors, writing_index *

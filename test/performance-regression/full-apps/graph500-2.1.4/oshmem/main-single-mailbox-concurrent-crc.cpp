@@ -42,7 +42,7 @@ typedef int64_t size_type;
 #define QUEUE_SIZE 1048576
 
 // #define INCOMING_MAILBOX_SIZE_IN_BYTES 100663296
-#define INCOMING_MAILBOX_SIZE_IN_BYTES (200 * 1024 * 1024)
+#define INCOMING_MAILBOX_SIZE_IN_BYTES (250 * 1024 * 1024)
 
 /*
  * Header format:

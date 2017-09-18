@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* DEQUE API                                        */
 /****************************************************/
 
-#define STEAL_CHUNK_SIZE 10
+#define STEAL_CHUNK_SIZE 1
 
 // #define INIT_DEQUE_CAPACITY 16384
 #define INIT_DEQUE_CAPACITY 262144

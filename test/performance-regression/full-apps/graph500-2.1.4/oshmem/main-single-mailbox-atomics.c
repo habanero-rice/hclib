@@ -1018,10 +1018,11 @@ int main(int argc, char **argv) {
 
             unsigned count_thread_atomics = 0;
 
-#pragma omp for simd schedule(static) nowait
-            for (int i = 0; i < visited_longlongs; i++) {
-                last_marked[i] = 0;
-            }
+            memset(last_marked, 0x00, visited_longlongs * sizeof(*last_marked));
+// #pragma omp for simd schedule(static) nowait
+//             for (int i = 0; i < visited_longlongs; i++) {
+//                 last_marked[i] = 0;
+//             }
 
 #pragma omp for schedule(dynamic,1) nowait
             for (int p = 0; p < npes; p++) {
