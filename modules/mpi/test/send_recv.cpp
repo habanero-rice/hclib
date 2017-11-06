@@ -1,14 +1,14 @@
 #include "hclib_cpp.h"
 #include "hclib_mpi.h"
-#include "hclib_system.h"
 
 #include <assert.h>
 #include <iostream>
 
 int main(int argc, char **argv) {
-    hclib::launch([] {
-        hclib::locale_t *rank = hclib::MPI_Comm_rank(MPI_COMM_WORLD);
-        const int mpi_rank = hclib::integer_rank_for_locale(rank);
+    const char *deps[] = { "system" };
+    hclib::launch(deps, 1, [] () {
+        int mpi_rank;
+        hclib::MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
         int nranks;
         MPI_Comm_size(MPI_COMM_WORLD, &nranks);
@@ -20,19 +20,17 @@ int main(int argc, char **argv) {
 
         assert(nranks % 2 == 0);
 
-        if (hclib::integer_rank_for_locale(rank) % 2 == 0) {
+        if (mpi_rank % 2 == 0) {
             std::cout << "Rank " << mpi_rank << " sending message to " <<
                 (mpi_rank + 1) << std::endl;
             hclib::MPI_Send(&data, 1, MPI_INT,
-                hclib::MPI_Comm_remote(MPI_COMM_WORLD, mpi_rank + 1), 0,
-                MPI_COMM_WORLD);
+                mpi_rank + 1, 0, MPI_COMM_WORLD);
         } else {
             std::cout << "Rank " << mpi_rank << " receiving message from " <<
                 (mpi_rank - 1) << std::endl;
             MPI_Status status;
             hclib::MPI_Recv(&data, 1, MPI_INT,
-                hclib::MPI_Comm_remote(MPI_COMM_WORLD, mpi_rank - 1), 0,
-                MPI_COMM_WORLD, &status);
+                mpi_rank - 1, 0, MPI_COMM_WORLD, &status);
             assert(data == mpi_rank - 1);
         }
     });
