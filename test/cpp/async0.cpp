@@ -23,13 +23,18 @@
 
 #include "hclib.hpp"
 
+using namespace hclib;
+
 int ran = 0;
 
 int main (int argc, char ** argv) {
-    hclib::launch([]() {
-        hclib::finish([]() {
-            printf("Hello\n");
-            hclib::async([=](){ ran = 1; });
+    launch([]() {
+        finish([]() {
+            async([=](){ 
+		printf("Hello from Async");
+		ran = 1; 
+	    });
+            printf("Hello from Main\n");
         });
     });
     assert(ran == 1);
