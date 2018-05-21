@@ -4,11 +4,11 @@
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Habanero-C Library: A Compiler-Free Approach to Task Parallelism" />
+    <meta name="description" content="Habanero-C++: a Compiler-free Work-Stealing Library " />
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>Habanero-C/title>
+    <title>Habanero-C++</title>
   </head>
 
   <body>
@@ -28,14 +28,9 @@
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
         <p>
-HCLib is a compiler-free work-stealing library, which supports <a href="https://wiki.rice.edu/confluence/display/HABANERO/Habanero-C">Habanero-C</a> work-stealing constructs. This library implementation supports two different runtimes: a) light-weight standalone work-stealing runtime; and b) <a href="https://xstackwiki.modelado.org/Extreme_Scale_Software_Stack">X-Stack</a> Open Community Runtime (<a href="https://xstackwiki.modelado.org/Open_Community_Runtime">OCR</a>).
-		
-There are two versions of the Habanero-C library: a pure C library that only requires a C compiler, and a Habanero-C++ library which requires a modern C++ compiler.
-		
-		The pure C version of the library is simple, and can be deployed on pretty much any Linux system. 
+Habanero-C++ is a compiler-free work-stealing library, which supports <a href="https://wiki.rice.edu/confluence/display/HABANERO/Habanero-C">Habanero-C</a> work-stealing constructs. This library implementation supports two different runtimes: a) light-weight standalone work-stealing runtime; and b) <a href="https://xstackwiki.modelado.org/Extreme_Scale_Software_Stack">X-Stack</a> Open Community Runtime (<a href="https://xstackwiki.modelado.org/Open_Community_Runtime">OCR</a>).
 
 Habanero-C++ makes heavy use of C++11 lambda functions in its APIs. C++11 lambdas avoid the need for compiler support while still retaining the syntactic convenience of language-based approaches.
-		It requires a system with a C++ compiler that supports C++11 lambdas.
 	</p>
 
 <h3><a href="./overview.html">Habanero-C++ Overview</a></h3>
