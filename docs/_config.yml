@@ -1,5 +1,5 @@
 # Site settings
-title:  "HCLib
+title:  "HCLib"
 email:  zoran@rice.edu	      
 description:  "Habanero-C Library: A Compiler Free Task Parallel Library for C and C++"
 baseurl:  "/hclib" # the subpath of your site, e.g. /blog
