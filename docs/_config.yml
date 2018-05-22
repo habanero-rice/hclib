@@ -1,15 +1,14 @@
 # Site settings
-title: HCLib: A Compiler-Free Task Parallel Library
-email: zoran@rice.edu	      
-description: > 
-  Habanero-C Library: A Compiler Free Task Parallel Library for C and C++
-baseurl: "/hclib" # the subpath of your site, e.g. /blog
-url: "localhost:4000" # the base hostname & protocol for your site, e.g. http://example.com
+title:  HCLib: A Compiler-Free Task Parallel Library
+email:  zoran@rice.edu	      
+description:  Habanero-C Library: A Compiler Free Task Parallel Library for C and C++
+baseurl:  "/hclib" # the subpath of your site, e.g. /blog
+url:  "localhost:4000" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  budimlic
 
 # Build settings
 markdown: kramdown
-theme: minima
+theme:  minima
 gems:
   - jekyll-feed
 exclude:
