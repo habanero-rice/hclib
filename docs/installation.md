@@ -1,5 +1,5 @@
 ---
-layout: home
+layout: default
 title: Download and Installation
 permalink: /installation/
 ---
