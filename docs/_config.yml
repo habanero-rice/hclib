@@ -8,7 +8,7 @@ github_username:  budimlic
 
 # Build settings
 markdown: kramdown
-theme:  minima
+theme:  jekyll-theme-tactile
 gems:
   - jekyll-feed
 exclude:
