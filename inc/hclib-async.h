@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *      Acknowledgments: https://wiki.rice.edu/confluence/display/HABANERO/People
  */
 #include <functional>
+#include <vector>
 
 #include "hclib.h"
 #include "hclib-async-struct.h"
@@ -148,6 +149,16 @@ inline hclib_task_t* _allocate_async(T *lambda) {
 }
 
 template <typename T>
+inline void async_await_at_helper(T&& lambda, hclib_future_t **futures,
+        const int nfutures, hclib_locale_t *locale, const int non_blocking) {
+    MARK_OVH(current_ws()->id);
+    typedef typename std::remove_reference<T>::type U;
+    hclib_task_t* task = initialize_task(call_lambda<U>, new U(lambda));
+    task->non_blocking = non_blocking;
+    spawn_await_at(task, futures, nfutures, locale);
+}
+
+template <typename T>
 inline void async(T &&lambda) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
@@ -189,6 +200,16 @@ inline void async_nb_await(T&& lambda, hclib_future_t *future) {
 }
 
 template <typename T>
+inline void async_nb_await(T&& lambda, std::vector<hclib_future_t *> &futures) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 1);
+}
+
+template <typename T>
+inline void async_nb_await(T&& lambda, std::vector<hclib_future_t *> &&futures) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 1);
+}
+
+template <typename T>
 inline void async_nb_await_at(T&& lambda, hclib_future_t *fut,
         hclib_locale_t *locale) {
     MARK_OVH(current_ws()->id);
@@ -196,6 +217,18 @@ inline void async_nb_await_at(T&& lambda, hclib_future_t *fut,
     hclib_task_t *task = initialize_task(call_lambda<U>, new U(lambda));
     task->non_blocking = 1;
     spawn_await_at(task, fut ? &fut : NULL, fut ? 1 : 0, locale);
+}
+
+template <typename T>
+inline void async_nb_await_at(T&& lambda, std::vector<hclib_future_t *> &futures,
+        hclib_locale_t *locale) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), locale, 1);
+}
+
+template <typename T>
+inline void async_nb_await_at(T&& lambda, std::vector<hclib_future_t *> &&futures,
+        hclib_locale_t *locale) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), locale, 1);
 }
 
 template <typename T>
@@ -244,6 +277,16 @@ inline void async_await(T&& lambda, hclib_future_t *future1,
 }
 
 template <typename T>
+inline void async_await(T&& lambda, std::vector<hclib_future_t *> &futures) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
+}
+
+template <typename T>
+inline void async_await(T&& lambda, std::vector<hclib_future_t *> &&futures) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
+}
+
+template <typename T>
 inline void async_await_at(T&& lambda, hclib_future_t *future,
         hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
@@ -272,6 +315,18 @@ inline void async_await_at(T&& lambda, hclib_future_t *future1,
 	spawn_await_at(task, futures, nfutures, locale);
 }
 
+template <typename T>
+inline void async_await_at(T&& lambda, std::vector<hclib_future_t *> &futures,
+        hclib_locale_t *locale) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), locale, 0);
+}
+
+template <typename T>
+inline void async_await_at(T&& lambda, std::vector<hclib_future_t *> &&futures,
+        hclib_locale_t *locale) {
+    async_await_at_helper(lambda, futures.data(), futures.size(), locale, 0);
+}
+
 /*
  * Some CUDA compilers trip over the following line:
  *
@@ -280,6 +335,30 @@ inline void async_await_at(T&& lambda, hclib_future_t *future1,
  * so we disable this code if we're compiling a CUDA file with nvcc.
  */
 #ifndef __CUDACC__
+template <typename T>
+auto async_future_await_at_helper(T&& lambda, hclib_future_t **futures,
+        const int nfutures, hclib_locale_t *locale,
+        const int non_blocking) -> hclib::future_t<decltype(lambda())>* {
+    MARK_OVH(current_ws()->id);
+    typedef decltype(lambda()) R;
+
+    hclib::promise_t<R> *event = new hclib::promise_t<R>();
+    /*
+     * TODO creating this closure may be inefficient. While the capture list is
+     * precise, if the user-provided lambda is large then copying it by value
+     * will also take extra time.
+     */
+    auto wrapper = [event, lambda]() {
+        call_and_put_wrapper<T, R>::fn(lambda, event);
+    };
+    typedef decltype(wrapper) U;
+
+    hclib_task_t* task = initialize_task(call_lambda<U>, new U(wrapper));
+    task->non_blocking = non_blocking;
+    spawn_await_at(task, futures, nfutures, locale);
+    return event->get_future();
+}
+
 template <typename T>
 auto async_future(T&& lambda) -> hclib::future_t<decltype(lambda())>* {
     typedef decltype(lambda()) R;
@@ -319,6 +398,18 @@ auto async_future_await(T&& lambda, hclib_future_t *future) ->
     hclib_task_t* task = initialize_task(call_lambda<U>, new U(wrapper));
     spawn_await(task, future ? &future : NULL, future ? 1 : 0);
     return event->get_future();
+}
+
+template <typename T>
+auto async_future_await(T&& lambda, std::vector<hclib_future_t *> &futures) ->
+        hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
+}
+
+template <typename T>
+auto async_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) ->
+        hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
 }
 
 template <typename T>
@@ -375,6 +466,18 @@ auto async_future_await_at(T&& lambda, hclib_future_t *future,
     spawn_await_at(task, future ? &future : NULL, future ? 1 : 0,
             locale);
     return event->get_future();
+}
+
+template <typename T>
+auto async_future_await_at(T&& lambda, std::vector<hclib_future_t *> &futures,
+        hclib_locale_t *locale) -> hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(), locale, 0);
+}
+
+template <typename T>
+auto async_future_await_at(T&& lambda, std::vector<hclib_future_t *> &&futures,
+        hclib_locale_t *locale) -> hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(), locale, 0);
 }
 #endif
 

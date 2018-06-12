@@ -21,3 +21,4 @@ atomic_sum
 capture?
 copies?
 promise/async_future_await_at
+promise/asyncAwait?Vector
