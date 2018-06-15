@@ -59,9 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
  * The maximum number of future objects a task can wait on.
  */
-#ifndef MAX_NUM_WAITS
 #define MAX_NUM_WAITS 4
-#endif
 
 /**
  * @brief Opaque type for promises.

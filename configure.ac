@@ -92,18 +92,6 @@ AS_IF([test "x$with_production" != xno],
 AM_CONDITIONAL(PRODUCTION_SETTINGS, test "x$with_production" != xno)
 ### End PRODUCTION settings
 
-### SET DEPENDENCY COUNT
-AC_ARG_WITH(max-dependency,
-    AS_HELP_STRING([--with-max-dependency],
-    [maximum number of dependencies for a task (Default is 4)]),
-    [with_maxdependency=$withval
-    AC_MSG_NOTICE([Maximum number of dependencies for a task is $with_maxdependency])
-    AC_SUBST(MAX_DEPENDENCY, $with_maxdependency)
-    AM_CONDITIONAL(HC_MAX_DEPENDENCY, true)],
-    [AC_MSG_NOTICE([Maximum number of dependencies for a task uses default value])
-    AM_CONDITIONAL(HC_MAX_DEPENDENCY, false)])
-### End DEPENDENCY COUNT
-
 ### C++11 features check
 _old_CXXFLAGS="${CXXFLAGS}"
 CXXFLAGS="${_old_CXXFLAGS} -std=c++11"
