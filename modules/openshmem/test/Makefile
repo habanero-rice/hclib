@@ -13,7 +13,7 @@ all: $(TARGETS)
 %: %.cpp
 	$(OPENSHMEM_INSTALL)/bin/oshcc -std=c++11 $^ -I$(HCLIB_ROOT)/include \
 		-I$(HCLIB_ROOT)/../modules/openshmem/inc -I$(HCLIB_ROOT)/../modules/system/inc \
-		-lstdc++ -lhclib -lhclib_openshmem -L$(HCLIB_ROOT)/lib -L../lib $(JSMN_HOME)/libjsmn.a -o $@
+		-lstdc++ -lhclib -lhclib_openshmem -L$(HCLIB_ROOT)/lib -L../lib -o $@
 	# g++ -std=c++11 $(HCLIB_CFLAGS) $(HCLIB_OSHMEM_CFLAGS) $(HCLIB_LDFLAGS) $(HCLIB_OSHMEM_LDFLAGS) -o $@ $^ $(HCLIB_LDLIBS) $(HCLIB_OSHMEM_LDLIBS)
 
 clean:
