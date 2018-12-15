@@ -291,18 +291,18 @@ void hclib_global_init() {
 static void load_dependencies(const char **module_dependencies,
         int n_module_dependencies) {
     int i;
-    char *hclib_home = getenv("HCLIB_HOME");
-    if (hclib_home == NULL) {
-        fprintf(stderr, "Expected environment variable HCLIB_HOME to be set to "
-                "the root directory of the checked out HClib repo\n");
+    char *hclib_root = getenv("HCLIB_ROOT");
+    if (hclib_root == NULL) {
+        fprintf(stderr, "Expected environment variable HCLIB_ROOT to be set to "
+                "the root installation directory of HClib\n");
         exit(1);
     }
 
     char module_path_buf[1024];
     for (i = 0; i < n_module_dependencies; i++) {
         const char *module_name = module_dependencies[i];
-        sprintf(module_path_buf, "%s/modules/%s/lib/libhclib_%s.so", hclib_home,
-                module_name, module_name);
+        sprintf(module_path_buf, "%s/lib/libhclib_%s.so", hclib_root,
+                module_name);
         void *handle = dlopen(module_path_buf, RTLD_LAZY);
         if (handle == NULL) {
             fprintf(stderr, "WARNING: Failed dynamically loading %s for \"%s\" "

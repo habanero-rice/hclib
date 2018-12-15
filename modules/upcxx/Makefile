@@ -19,3 +19,7 @@ obj/hclib_upcxx.o: src/hclib_upcxx.cpp
 
 clean:
 	rm -f obj/*.o lib/*
+
+install: $(TARGETS)
+	cp lib/*.a lib/*.so $(HCLIB_ROOT)/lib
+	cp inc/*.h $(HCLIB_ROOT)/include/
