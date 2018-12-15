@@ -19,7 +19,7 @@ graph500_mpi_replicated: bfs_replicated.c $(SOURCES) $(HEADERS) $(GENERATOR_SOUR
 	$(MPICC) $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated bfs_replicated.c $(SOURCES) $(GENERATOR_SOURCES) -lm
 
 graph500_mpi_replicated_hiper: bfs_replicated_hiper.c $(SOURCES) $(HEADERS) $(GENERATOR_SOURCES)
-	g++ -std=c++11 $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated_hiper bfs_replicated_hiper.c $(SOURCES) $(GENERATOR_SOURCES) -lm -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/mpi/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/mpi/lib -lhclib -lhclib_mpi $(JSMN_HOME)/jsmn.c
+	g++ -std=c++11 $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated_hiper bfs_replicated_hiper.c $(SOURCES) $(GENERATOR_SOURCES) -lm -I$(HCLIB_ROOT)/include -I$(HCLIB_HOME)/modules/system/inc -I$(HCLIB_HOME)/modules/mpi/inc -L$(HCLIB_ROOT)/lib -L$(HCLIB_HOME)/modules/mpi/lib -lhclib -lhclib_mpi
 
 graph500_mpi_replicated_csc: bfs_replicated_csc.c $(SOURCES) $(HEADERS) $(GENERATOR_SOURCES)
 	$(MPICC) $(CFLAGS) $(LDFLAGS) -o graph500_mpi_replicated_csc bfs_replicated_csc.c $(SOURCES) $(GENERATOR_SOURCES) -lm

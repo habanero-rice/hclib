@@ -20,7 +20,7 @@ library_include_HEADERS = inc/hclib-timer.h inc/hclib-rt.h inc/hclib.h \
 						  inc/hclib-task.h inc/hclib_common.h src/inc/litectx.h \
 						  src/fcontext/fcontext.h src/inc/hclib-tree.h \
 						  inc/hclib-locality-graph.h inc/hclib-module.h src/inc/hclib-fptr-list.h \
-						  inc/hclib_atomic.h inc/hclib-instrument.h
+						  inc/hclib_atomic.h inc/hclib-instrument.h src/jsmn/jsmn.h
 
 MAINTAINERCLEANFILES = Makefile.in \
 	aclocal.m4 \

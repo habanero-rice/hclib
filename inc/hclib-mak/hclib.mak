@@ -14,11 +14,10 @@ endif
 UNAME_S := $(shell uname -s)
 ifneq ($(UNAME_S),Darwin)
     IS_MAC_OS = 0
-    HCLIB_LDLIBS=-lhclib $(JSMN_HOME)/libjsmn.a -lrt -ldl
+    HCLIB_LDLIBS=-lhclib -lrt -ldl
 else
     IS_MAC_OS = 1
-    HCLIB_LDLIBS=-lhclib $(call GET_LINK_FLAG,-force_load) \
-				   $(call GET_LINK_FLAG,$(JSMN_HOME)/libjsmn.a)
+    HCLIB_LDLIBS=-lhclib $(call GET_LINK_FLAG,-force_load)
 endif
 
 ifdef TBB_MALLOC

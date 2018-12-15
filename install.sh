@@ -27,6 +27,7 @@ echo "[${PROJECT_NAME}] Bootstrap..."
 #
 echo "[${PROJECT_NAME}] Configure..."
 
+REPO_ROOT=$PWD
 COMPTREE=$PWD/compileTree
 mkdir -p ${COMPTREE}
 
@@ -57,6 +58,7 @@ mkdir -p `dirname ${HCLIB_ENV_SETUP_SCRIPT}`
 cat > "${HCLIB_ENV_SETUP_SCRIPT}" <<EOI
 # HClib environment setup
 export HCLIB_ROOT='${INSTALL_PREFIX}'
+export HCLIB_HOME='${REPO_ROOT}'
 EOI
 
 cat <<EOI
