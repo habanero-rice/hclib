@@ -18,6 +18,5 @@ before_install:
 script:
 - ./install.sh
 - . hclib-install/bin/hclib_setup_env.sh
-- pushd modules/system && make && popd
 - pushd test/c/   && ./test_all.sh && popd
 - pushd test/cpp/ && ./test_all.sh && popd

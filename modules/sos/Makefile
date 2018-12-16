@@ -21,3 +21,7 @@ obj/hclib_sos.o: src/hclib_sos.cpp
 
 clean:
 	rm -f obj/*.o lib/*
+
+install: $(TARGETS)
+	cp lib/*.a lib/*.so $(HCLIB_ROOT)/lib
+	cp inc/*.h $(HCLIB_ROOT)/include/

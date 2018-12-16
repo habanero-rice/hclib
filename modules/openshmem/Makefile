@@ -21,3 +21,7 @@ obj/hclib_openshmem.o: src/hclib_openshmem.cpp
 
 clean:
 	rm -f obj/*.o lib/*
+
+install: $(TARGETS)
+	cp lib/*.a lib/*.so $(HCLIB_ROOT)/lib
+	cp inc/*.h $(HCLIB_ROOT)/include/

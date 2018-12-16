@@ -8,7 +8,8 @@ set -e
 # Defining some variables
 #
 PROJECT_NAME=hclib
-PREFIX_FLAGS="--prefix=${INSTALL_PREFIX:=${PWD}/${PROJECT_NAME}-install}"
+INSTALL_PREFIX=${INSTALL_PREFIX:=${PWD}/${PROJECT_NAME}-install}
+PREFIX_FLAGS="--prefix=$INSTALL_PREFIX"
 : ${NPROC:=1}
 
 # Don't clobber our custom header template
@@ -33,7 +34,7 @@ mkdir -p ${COMPTREE}
 
 cd ${COMPTREE}
 
-../configure ${PREFIX_FLAGS} ${HCUPC_FLAGS} ${HCLIB_FLAGS} ${HC_CUDA_FLAGS} $*
+../configure ${PREFIX_FLAGS} $*
 
 #
 # Make
@@ -48,6 +49,10 @@ make -j${NPROC}
 echo "[${PROJECT_NAME}] Make install... to ${INSTALL_PREFIX}"
 make -j${NPROC} install
 
+echo "[${PROJECT_NAME}] Building system module..."
+cd ../modules/system
+HCLIB_ROOT=$INSTALL_PREFIX make install
+
 #
 # Create environment setup script
 #
@@ -58,7 +63,13 @@ mkdir -p `dirname ${HCLIB_ENV_SETUP_SCRIPT}`
 cat > "${HCLIB_ENV_SETUP_SCRIPT}" <<EOI
 # HClib environment setup
 export HCLIB_ROOT='${INSTALL_PREFIX}'
-export HCLIB_HOME='${REPO_ROOT}'
+
+MY_OS=\$(uname -s)
+if [ \${MY_OS} = "Darwin" ]; then
+    export DYLD_LIBRARY_PATH=\${HCLIB_ROOT}/lib:\$DYLD_LIBRARY_PATH
+else
+    export LD_LIBRARY_PATH=\${HCLIB_ROOT}/lib:\$LD_LIBRARY_PATH
+fi
 EOI
 
 cat <<EOI
