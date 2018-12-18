@@ -104,11 +104,6 @@ void *hclib_future_get(hclib_future_t *future) {
     return future->owner->datum;
 }
 
-void *hclib_future_wait_and_get(hclib_future_t *future) {
-    hclib_future_wait(future);
-    return hclib_future_get(future);
-}
-
 /**
  * @brief Destruct a promise.
  * @param[in] nb_promises                           Size of the promise array

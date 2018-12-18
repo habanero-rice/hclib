@@ -11,10 +11,10 @@ static void helper() {
     const int N = 256;
 
     hclib::future_t<void*> *allocation = hclib::allocate_at(N * sizeof(int), gpu_locale);
-    int *dArr = (int *)allocation->wait_and_get();
+    int *dArr = (int *)allocation->wait();
 
     allocation = hclib::allocate_at(N * sizeof(int), cpu_locale);
-    int *hArr = (int *)allocation->wait_and_get();
+    int *hArr = (int *)allocation->wait();
 
     hclib::future_t<void> *kernel_future = hclib::async_simd([=] __host__ __device__ (int id, int width) {
         dArr[id] = width;
