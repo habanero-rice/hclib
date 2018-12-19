@@ -30,12 +30,6 @@ struct future_t: public hclib_future_t {
         return tmp.val;
     }
 
-    T wait_and_get() {
-        _ValUnion tmp;
-        tmp.vp = hclib_future_wait_and_get(this);
-        return tmp.val;
-    }
-
     bool test() {
         return hclib_future_is_satisfied(this);
     }
@@ -51,10 +45,6 @@ struct future_t<T*>: public hclib_future_t {
     T *wait() {
         return static_cast<T*>(hclib_future_wait(this));
     }
-
-    T *wait_and_get() {
-        return static_cast<T*>(hclib_future_wait_and_get(this));
-    }
 };
 
 // Specialized for references
@@ -66,10 +56,6 @@ struct future_t<T&>: public hclib_future_t {
 
     T &wait() {
         return *static_cast<T*>(hclib_future_wait(this));
-    }
-
-    T &wait_and_get() {
-        return *static_cast<T*>(hclib_future_wait_and_get(this));
     }
 };
 

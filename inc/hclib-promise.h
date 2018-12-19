@@ -150,8 +150,6 @@ void hclib_promise_put(hclib_promise_t *promise, void *datum);
  */
 void *hclib_future_wait(hclib_future_t *future);
 
-void *hclib_future_wait_and_get(hclib_future_t *future);
-
 /*
  * Check if a value has been put on the corresponding promise.
  */

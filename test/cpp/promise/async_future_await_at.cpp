@@ -22,7 +22,7 @@ int main(int argc, char ** argv) {
                 [prom, locale]() -> int { return prom->get_future()->get() + 1; }, prom->get_future(), locale);
 
             prom->put(PUT_VALUE);
-            int result = fut->wait_and_get();
+            int result = fut->wait();
             assert(result == PUT_VALUE + 1);
         });
     });
