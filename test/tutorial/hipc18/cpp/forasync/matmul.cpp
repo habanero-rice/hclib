@@ -1,16 +1,11 @@
 #include "hclib_cpp.h"
 #include <sys/time.h>
 
-double **a, **b, **c;
-
 /*
- * Timer routine
+ * Multiplication two square matrices in parallel using forasync2D
  */
-long get_usecs (void) {
-   struct timeval t;
-   gettimeofday(&t,NULL);
-   return t.tv_sec*1000000+t.tv_usec;
-}
+
+double **a, **b, **c;
 
 /*
  * Intialize input matrices and the output matrix
@@ -20,7 +15,7 @@ void init(int n) {
   b = new double*[n];
   c = new double*[n];
 
-  // Demonstration of forasync1D
+  /* Demonstration of forasync1D */
   hclib::loop_domain_1d* loop1 = new hclib::loop_domain_1d(n);
   hclib::finish([&]() {
     hclib::forasync1D(loop1, [=](int i) {
@@ -31,7 +26,7 @@ void init(int n) {
   });
   delete loop1;
   
-  // Demonstration of forasync2D
+  /* Demonstration of forasync2D */
   hclib::loop_domain_2d* loop2 = new hclib::loop_domain_2d(n, n);
   hclib::finish([&]() {
     hclib::forasync2D(loop2, [=](int i, int j) {
@@ -73,7 +68,7 @@ int verify(int n) {
 }
 
 void multiply(int n) {
-  // Demonstration of forasync2D
+  /* Demonstration of forasync2D */
   hclib::loop_domain_2d* loop = new hclib::loop_domain_2d(n, n);
   hclib::finish([=]() {
     hclib::forasync2D(loop, [=](int i, int j) {
@@ -90,19 +85,19 @@ int main(int argc, char** argv) {
   printf("Size = %d\n",n);
   char const *deps[] = { "system" }; 
   hclib::launch(deps, 1, [&]() {
-    // initialize
+    /* initialize */
     init(n);
-    //start timer
-    long start = get_usecs();
-    //multiply matrices
+    /* start timer */
+    long start = hclib_current_time_ms();
+    /* multiply matrices */
     multiply(n);
-    //end timer
-    long end = get_usecs();
-    double dur = ((double)(end-start))/1000000;
-    //validate result
+    /* end timer */
+    long end = hclib_current_time_ms();
+    double dur = ((double)(end-start))/1000;
+    /* validate result */
     int result = verify(n);
     printf("MatrixMultiplication result = %d, Time = %.3f\n",result, dur);
-    //release memory
+    /* release memory */
     freeall(n);
   });
   return 0;

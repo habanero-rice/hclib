@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 /*
- * This program is computing the following task graph using futures
+ * This program is computing the following task graph using async_future
  *
  *       (A)
  *       /\

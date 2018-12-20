@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 /*
- * This program is computing the following task graph using data driven tasks
+ * This program is computing the following task graph using promises, futures and async_await
  *
  *       (A)
  *       /\
