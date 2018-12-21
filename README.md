@@ -87,6 +87,14 @@ Dependencies
 * gcc >= 4.8.4, or clang >= 3.5
   (must support -std=c++11)
 
+Tutorial
+---------------------------------------------
+
+If you are new to HClib then take a look of `hclib/tutorial` directory.
+It contains presentations and simple examples that appeared in our
+past tutorials on HClib. You can follow the README inside sub-directories
+there to build and run those examples.
+
 
 Testing
 ---------------------------------------------

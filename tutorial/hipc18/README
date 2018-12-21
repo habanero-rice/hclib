@@ -1,0 +1,9 @@
+This directory contains some basic examples to demonstrate HClib APIs. 
+
+You must install HClib before building these examples. Please follow the instructions inside $PWD/../../README.md to install HClib.
+
+For building these examples, run the make command inside each subdirectory containing the examples.
+
+For running these examples, use the below command:
+
+HCLIB_WORKERS=<number of threads> ./executable_name [command line arguments (if any)]
