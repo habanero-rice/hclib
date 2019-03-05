@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Any frontend dependencies
+include("${CMAKE_CURRENT_LIST_DIR}/hclibTargets.cmake")
+
+
+
+

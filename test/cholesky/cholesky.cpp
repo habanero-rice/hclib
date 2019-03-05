@@ -90,17 +90,17 @@ void entrypoint(void *arg) {
                 currPivotColumnTile->matrixBlock[i] = (double*) malloc (sizeof(double)*tileSize);
         }
 
-        finish ([=]() {
+        hclib_finish ([=]() {
                 for(int j = k + 1 ; j < numTiles ; ++j ) {
                 TileBlock *prevPivotColumnTile = lkji[j][k][k];
                 TileBlock *currPivotColumnTile = lkji[j][k][k+1];
 
-                async([=]() {
+                hclib_async([=]() {
                         trisolve (k, j, tileSize , prevPivotColumnTile, currPivotTile, currPivotColumnTile);
                         });
                 }
                 });
-        finish([=]() {
+        hclib_finish([=]() {
                 for(int j = k + 1 ; j < numTiles ; ++j ) {
                 TileBlock *prevPivotColumnTile = lkji[j][k][k];
                 TileBlock *currPivotColumnTile = lkji[j][k][k+1];
@@ -109,14 +109,14 @@ void entrypoint(void *arg) {
                 TileBlock *currTileForUpdate = lkji[j][i][k+1];
                 TileBlock *currPivotColumnOtherTile = lkji[i][k][k+1];
 
-                async([=]() {
+                hclib_async([=]() {
                         update_nondiagonal ( k, j, i, tileSize, prevTileForUpdate, currPivotColumnOtherTile, currPivotColumnTile, currTileForUpdate);
                         });
                 }
                 TileBlock *prevDiagonalTileForUpdate = lkji[j][j][k];
                 TileBlock *currDiagonalTileForUpdate = lkji[j][j][k+1];
 
-                async([=]() {
+                hclib_async([=]() {
                         update_diagonal ( k, j, j, tileSize , prevDiagonalTileForUpdate, currPivotColumnTile, currDiagonalTileForUpdate);
                         });
                 }

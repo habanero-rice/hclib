@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <iostream>
-#include "hclib_cpp.h"
+#include "hclib.h"
 
 using namespace hclib;
 
