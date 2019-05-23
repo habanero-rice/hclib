@@ -26,10 +26,15 @@ FILE(GLOB INC_LIST inc/*.h)
 list(APPEND HEADERS ${INC_LIST})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-message("Compiling for Mac OS X (Darwin)")
-list(APPEND SOURCES 
-  fcontext/jump_x86_64_sysv_macho_gas.S
-  fcontext/make_x86_64_sysv_macho_gas.S)
+  message("Compiling for Mac OS X (Darwin)")
+  list(APPEND SOURCES
+    fcontext/jump_x86_64_sysv_macho_gas.S
+    fcontext/make_x86_64_sysv_macho_gas.S)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message("Compiling for Linux")
+  list(APPEND SOURCES
+    fcontext/jump_x86_64_sysv_elf_gas.S
+    fcontext/make_x86_64_sysv_elf_gas.S)
 endif()
 
 add_library(hclib ${SOURCES})
@@ -85,6 +90,12 @@ endif(HCLIB_ENABLE_VERBOSE)
 
 if (HCLIB_ENABLE_PRODUCTION)
 target_compile_definitions(hclib HC_ASSERTION_CHECK)
+endif()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(hclib PUBLIC pthread)
+  target_link_libraries(hclib PUBLIC dl)
+  target_link_libraries(hclib PUBLIC rt)
 endif()
 
 install(FILES ${HEADERS} DESTINATION include)
