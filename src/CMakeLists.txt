@@ -1,3 +1,4 @@
+enable_language(C ASM)
 
 set(SOURCES
   hclib-runtime.c 
@@ -8,11 +9,11 @@ set(SOURCES
   hclib.c 
   hclib-tree.c 
   hclib-locality-graph.c 
-	hclib_module.c 
+  hclib_module.c
   hclib-fptr-list.c 
   hclib-mem.c 
   hclib-instrument.c 
-	hclib_atomic.c 
+  hclib_atomic.c
   jsmn/jsmn.c
 )
 
@@ -27,13 +28,19 @@ list(APPEND HEADERS ${INC_LIST})
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 message("Compiling for Mac OS X (Darwin)")
 list(APPEND SOURCES 
-  fcontext/jump_ppc64_sysv_macho_gas.S 
-  fcontext/make_ppc64_sysv_macho_gas.S)
+  fcontext/jump_x86_64_sysv_macho_gas.S
+  fcontext/make_x86_64_sysv_macho_gas.S)
 endif()
 
 add_library(hclib ${SOURCES})
 
+target_compile_features(hclib PUBLIC c_std_11)
 target_compile_features(hclib PUBLIC cxx_std_11)
+
+#set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_BUILD_TYPE "Debug")
+string(APPEND CMAKE_C_FLAGS " -g -O3 ")
+string(APPEND CMAKE_CXX_FLAGS " -g -O3 ")
 
 set(INCLUDE_DIRS
  ${CMAKE_SOURCE_DIR}/src/inc

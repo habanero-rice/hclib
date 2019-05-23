@@ -1,0 +1,15 @@
+
+To Build HClib
+
+cmake -DCMAKE_INSTALL_PREFIX=$PWD/hclib-install .
+make
+make install
+export HCLIB_ROOT=$PWD/hclib-install
+
+
+To Build example inside test/cpp
+
+cd test/cpp
+cmake -DCMAKE_PREFIX_PATH=$HCLIB_ROOT .
+make
+./async0

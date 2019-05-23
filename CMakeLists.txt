@@ -54,3 +54,10 @@ install(
   ${CMAKE_CURRENT_BINARY_DIR}/inc/hclib_config.h
   DESTINATION include
 )
+
+FILE(GLOB INCL_LIST ${CMAKE_CURRENT_SOURCE_DIR}/inc/*.h)
+install(
+  FILES ${INCL_LIST}
+  DESTINATION include
+)
+
