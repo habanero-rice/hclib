@@ -37,7 +37,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     fcontext/make_x86_64_sysv_elf_gas.S)
 endif()
 
-add_library(hclib ${SOURCES})
+add_library(hclib SHARED ${SOURCES})
 
 target_compile_features(hclib PUBLIC c_std_11)
 target_compile_features(hclib PUBLIC cxx_std_11)
@@ -73,24 +73,13 @@ install(EXPORT hclib
         DESTINATION cmake)
 
 
+target_compile_definitions(hclib PRIVATE COMPILE_DEFINITIONS)
+
 if (HCLIB_ENABLE_HWLOC)
-target_compile_definitions(hclib USE_HWLOC)
 target_include_directories(hclib ${HWLOC_HOME}/include)
 target_link_directories(hclib PUBLIC ${HWLOC_HOME}/lib)
 target_link_libraries(hclib PUBLIC hwloc)
 endif(HCLIB_ENABLE_HWLOC)
-
-if (HCLIB_ENABLE_STATS)
-target_compile_definitions(hclib HCLIB_STATS)
-endif(HCLIB_ENABLE_STATS)
-
-if (HCLIB_ENABLE_VERBOSE)
-target_compile_definitions(hclib VERBOSE)
-endif(HCLIB_ENABLE_VERBOSE)
-
-if (HCLIB_ENABLE_PRODUCTION)
-target_compile_definitions(hclib HC_ASSERTION_CHECK)
-endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
   target_link_libraries(hclib PUBLIC pthread)

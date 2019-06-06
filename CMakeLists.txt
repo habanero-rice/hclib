@@ -20,10 +20,37 @@ set (HCLIB_VERSION_MINOR 1)
 
 enable_testing()
 
+
 option(HCLIB_ENABLE_VERBOSE     "whether verbose HC runtime"          OFF)
 option(HCLIB_ENABLE_STATS       "whether to turn on HC runtime stats" OFF)
 option(HCLIB_ENABLE_HWLOC       "whether to enable HWLoc"             OFF)
 option(HCLIB_ENABLE_PRODUCTION  "disable assertions and stats"        OFF)
+
+set(COMPILE_DEFINITIONS "")
+
+if (HCLIB_ENABLE_HWLOC)
+    list(APPEND COMPILE_DEFINITIONS USE_HWLOC)
+endif(HCLIB_ENABLE_HWLOC)
+
+if (HCLIB_ENABLE_STATS)
+    list(APPEND COMPILE_DEFINITIONS HCLIB_STATS)
+endif(HCLIB_ENABLE_STATS)
+
+if (HCLIB_ENABLE_VERBOSE)
+    list(APPEND COMPILE_DEFINITIONS VERBOSE)
+endif(HCLIB_ENABLE_VERBOSE)
+
+if (HCLIB_ENABLE_PRODUCTION)
+    list(APPEND COMPILE_DEFINITIONS HC_ASSERTION_CHECK)
+endif()
+
+
+
+set(HCLIB_MODULES "system" CACHE STRING "A semicolon separated list of modules to compile")
+
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/hclib-install" CACHE PATH "default install path" FORCE )
+endif()
 
 configure_file(
  ${CMAKE_CURRENT_SOURCE_DIR}/inc/hclib_config.h.in
@@ -31,6 +58,10 @@ configure_file(
 )
 
 add_subdirectory(src)
+
+foreach(_mod ${HCLIB_MODULES})
+    add_subdirectory("modules/${_mod}")
+endforeach()
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/hclibConfig.cmake.in
