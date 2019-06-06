@@ -120,3 +120,12 @@ auto-formatter. Simply cd to tools/astyle and execute the run.sh script from
 there. This assumes you have astyle installed and it is on your path.
 
 [1] https://sourceforge.net/projects/cppcheck/
+
+Honeycomb simulator
+---------------------------------------------
+To install HClib that runs on Honeycomb simulator, simply run:
+    ./install.sh --host=honey64-unknown-hcos
+
+To build and run applications using HClib on the Honeycomb
+simulator refer to ./tools/honeycomb/Makefile
+

@@ -23,6 +23,22 @@ echo "[${PROJECT_NAME}] Bootstrap..."
 
 ./bootstrap.sh
 
+for i in "$@"
+do
+case $i in
+    --host=*)
+    HOST="${i#*=}"
+    echo "HOST is [${HOST}]"
+    if [ "$HOST" = "honey64-unknown-hcos" ]; then
+        cp tools/honeycomb/config.sub config/
+    fi
+    ;;
+    *)
+          # skip option
+    ;;
+esac
+done
+
 #
 # Configure
 #
@@ -49,9 +65,12 @@ make -j${NPROC}
 echo "[${PROJECT_NAME}] Make install... to ${INSTALL_PREFIX}"
 make -j${NPROC} install
 
-echo "[${PROJECT_NAME}] Building system module..."
-cd ../modules/system
-HCLIB_ROOT=$INSTALL_PREFIX make install
+
+if [ "$HOST" != "honey64-unknown-hcos" ]; then
+    echo "[${PROJECT_NAME}] Building system module..."
+    cd ../modules/system
+    HCLIB_ROOT=$INSTALL_PREFIX make install
+fi
 
 #
 # Create environment setup script
