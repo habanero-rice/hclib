@@ -100,6 +100,7 @@ typedef struct _per_worker_stats {
 static per_worker_stats *worker_stats = NULL;
 #endif
 
+finish_t *root_finish;
 void hclib_start_finish();
 static void set_up_worker_thread_affinities(const int wid);
 static void create_hwloc_cpusets();
@@ -283,8 +284,11 @@ void hclib_global_init() {
         ws->id = i;
         ws->nworkers = hc_context->nworkers;
         ws->paths = worker_paths + i;
+        ws->is_terminator = 0;
+        ws->root_counter_val = 0;
         hc_context->done_flags[i].flag = 1;
         hc_context->workers[i] = ws;
+        hc_context->root_done_flag = 0;
     }
 }
 
@@ -393,6 +397,14 @@ static void hclib_entrypoint(const char **module_dependencies,
 
     // allocate root finish
     hclib_start_finish();
+    CURRENT_WS_INTERNAL->root_counter_val = 2;
+    root_finish = CURRENT_WS_INTERNAL->current_finish;
+    hc_mfence();
+}
+
+void *hclib_signal_root_task_done(void *arg) {
+    hc_context->root_done_flag = 1;
+    hc_mfence();
 }
 
 void hclib_signal_join(int nb_workers) {
@@ -400,6 +412,7 @@ void hclib_signal_join(int nb_workers) {
     for (i = 0; i < nb_workers; i++) {
         hc_context->done_flags[i].flag = 0;
     }
+    hc_mfence();
 }
 
 void hclib_join(int nb_workers) {
@@ -593,6 +606,11 @@ void spawn(hclib_task_t *task) {
     spawn_handler(task, NULL, NULL, 0, 0);
 }
 
+void spawn_root(hclib_task_t *task) {
+    hclib_future_t *root_future = hclib_async_future(task->_fp, task->args, NULL, 0, hclib_get_closest_locale());
+    hclib_async(hclib_signal_root_task_done, NULL, root_future, 1, NULL);
+}
+
 void spawn_escaping(hclib_task_t *task, hclib_future_t *future) {
     spawn_handler(task, NULL, &future, 1, 1);
 }
@@ -620,6 +638,12 @@ static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
 
     if (!task) {
         while (*flag != flag_val) {
+            if (ws->is_terminator) {
+                if (hc_context->root_done_flag && ws->current_finish && ws->current_finish == root_finish) { 
+                    if (ws->current_finish->counter == ws->root_counter_val)
+                        break;
+                }
+            }
             // try to steal
             // task = locale_steal_task(ws);
             int victim;
@@ -663,6 +687,7 @@ static hclib_task_t *find_and_run_task(hclib_worker_state *ws,
 }
 
 static void _hclib_finalize_ctx(LiteCtx *ctx) {
+    CURRENT_WS_INTERNAL->is_terminator = 1;
     hclib_end_finish();
     // Signal shutdown to all worker threads
     hclib_signal_join(hc_context->nworkers);
@@ -683,6 +708,15 @@ static void core_work_loop(hclib_task_t *starting_task) {
         hclib_task_t *must_be_null = find_and_run_task(ws, 1,
                 &(hc_context->done_flags[wid].flag), 0, NULL);
         HASSERT(must_be_null == NULL);
+        // This work falls in this loop through within hclib_finalize
+        if (ws->is_terminator) {
+            // If the root task has been completed and the current context is running under the root finish,
+            // this work should exit this loop to initiate hclib_signal_join
+            if (hc_context->root_done_flag && ws->current_finish && ws->current_finish == root_finish) {
+                if (ws->current_finish->counter == ws->root_counter_val) 
+                    break;
+            }
+        }
     } while (hc_context->done_flags[wid].flag);
 
     // Jump back to the system thread context for this worker
@@ -1027,7 +1061,7 @@ static void _help_finish_ctx(LiteCtx *ctx) {
 
     // The task that is the body of the finish is now complete, so check it out.
     check_out_finish(finish);
-
+    CURRENT_WS_INTERNAL->root_counter_val = 1;
     // keep workstealing until this context gets swapped out and destroyed
     core_work_loop(starting_task); // this function never returns
     HASSERT(0); // we should never return here
@@ -1055,6 +1089,12 @@ void help_finish(finish_t *finish) {
     while (finish->counter > 1 && need_to_swap_ctx == NULL) {
         need_to_swap_ctx = find_and_run_task(ws, 0, &(finish->counter), 1,
                 finish);
+        if (ws->is_terminator) {
+            if (hc_context->root_done_flag && ws->current_finish && ws->current_finish == root_finish) { // handling when core_work_loop is running under the finish && This loop is running under the root finish    
+                if (ws->current_finish->counter == ws->root_counter_val) // The root finish becomes 1 after singal_join
+                    break;
+            }
+        }
     }
 
     if (need_to_swap_ctx) {
@@ -1078,13 +1118,11 @@ void help_finish(finish_t *finish) {
          * destroy the context that resumed this one since it's now defunct
          * (there are no other handles to it, and it will never be resumed)
          */
-        LiteCtx_destroy(currentCtx->prev);
+        LiteCtx_destroy(get_curr_lite_ctx()->prev);
         hclib_promise_free(finish_promise);
 
         HASSERT(finish->counter == 0);
-    } else {
-        HASSERT(finish->counter == 1);
-    }
+    } 
 }
 
 static void yield_helper(LiteCtx *ctx) {
@@ -1432,7 +1470,13 @@ void hclib_launch(generic_frame_ptr fct_ptr, void *arg, const char **deps,
     if (profile_launch_body) {
         start_time = current_time_ns();
     }
-    hclib_async(fct_ptr, arg, NULL, 0, hclib_get_closest_locale());
+    if (fct_ptr != spawn_root){
+        hclib_future_t *root_future = hclib_async_future(fct_ptr, arg, NULL, 0, hclib_get_closest_locale());
+        // Create a task to signal workers that the root task is completed
+        hclib_async(hclib_signal_root_task_done, NULL, root_future, 1, NULL);
+    } else {
+        hclib_async(fct_ptr, arg, NULL, 0, hclib_get_closest_locale());
+    }
     hclib_finalize(instrument);
     if (profile_launch_body) {
         end_time = current_time_ns();

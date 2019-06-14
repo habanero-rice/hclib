@@ -98,6 +98,8 @@ typedef struct hclib_context {
     /* a simple implementation of wait/wakeup condition */
     volatile int workers_wait_cond;
     worker_done_t *done_flags;
+    /* flag to indicate whether the root task is completed */
+    int root_done_flag;
 #ifdef HC_CUDA
     hclib_memory_tree_node *pinned_host_allocs;
     cudaStream_t stream;

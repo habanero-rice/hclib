@@ -17,7 +17,7 @@ template <typename T>
 inline void launch(const char **deps, int ndeps, T &&lambda) {
     typedef typename std::remove_reference<T>::type U;
     hclib_task_t *user_task = _allocate_async(new U(lambda));
-    hclib_launch((generic_frame_ptr)spawn, user_task, deps, ndeps);
+    hclib_launch((generic_frame_ptr)spawn_root, user_task, deps, ndeps);
 }
 
 template <typename T>
@@ -30,7 +30,7 @@ inline void launch(const int nworkers, const char **deps, int ndeps,
     sprintf(nworkers_str, "%d", nworkers);
     setenv("HCLIB_WORKERS", nworkers_str, 1);
 
-    hclib_launch((generic_frame_ptr)spawn, user_task, deps, ndeps);
+    hclib_launch((generic_frame_ptr)spawn_root, user_task, deps, ndeps);
 }
 
 extern hclib_worker_state *current_ws();
