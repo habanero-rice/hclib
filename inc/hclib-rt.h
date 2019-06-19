@@ -108,11 +108,6 @@ typedef struct _hclib_worker_state {
      * Information on currently executing task.
      */
     void *curr_task;
-    /* Indicate whether this work is initiating hclib_finalize */ 
-    int is_terminator;
-
-    /* This value is used to get ouf of the core_work_loop and find_and_run_task under the root finish */
-    int root_counter_val;
 } __attribute__ ((aligned (128))) hclib_worker_state;
 
 #define HCLIB_MACRO_CONCAT(x, y) _HCLIB_MACRO_CONCAT_IMPL(x, y)

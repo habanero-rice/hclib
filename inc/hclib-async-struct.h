@@ -47,7 +47,6 @@ extern "C" {
 #endif
 
 extern void spawn(hclib_task_t * task);
-extern void spawn_root(hclib_task_t * task);
 extern void spawn_await_at(hclib_task_t *task, hclib_future_t **futures,
         const int nfutures, hclib_locale_t *locale);
 extern void spawn_at(hclib_task_t *task, hclib_locale_t *locale);
