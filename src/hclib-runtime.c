@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <dlfcn.h>
 #include <stddef.h>
 
 #include <hclib.h>
@@ -55,6 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-locality-graph.h>
 #include <hclib-module.h>
 #include <hclib-instrument.h>
+
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
 
 #ifdef USE_HWLOC
 #include <hwloc.h>
@@ -294,6 +297,7 @@ void hclib_global_init() {
 
 static void load_dependencies(const char **module_dependencies,
         int n_module_dependencies) {
+#ifdef HAVE_DLFCN_H
     int i;
     char *hclib_root = getenv("HCLIB_ROOT");
     if (hclib_root == NULL) {
@@ -313,6 +317,7 @@ static void load_dependencies(const char **module_dependencies,
                     "dependency\n", module_path_buf, module_name);
         }
     }
+#endif
 }
 
 static void hclib_entrypoint(const char **module_dependencies,

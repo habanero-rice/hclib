@@ -1,5 +1,8 @@
 /* inc/hclib_config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have the <aio.h> header file. */
+#undef HAVE_AIO_H
+
 /* Defined if C++11 std::is_trivially_copyable is supported. */
 #undef HAVE_CXX11_TRIVIAL_COPY_CHECK
 
@@ -24,6 +27,9 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#undef HAVE_SYS_MMAN_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
@@ -33,8 +39,7 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Define to the address where bug reports for this package should be sent. */
