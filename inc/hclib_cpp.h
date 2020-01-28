@@ -13,6 +13,15 @@ namespace hclib {
 
 typedef hclib_locale_t locale_t;
 
+inline void init(const char **module_dependencies,
+		 int n_module_dependencies, const int instrument) {
+  hclib_init(module_dependencies, n_module_dependencies, instrument);
+}
+
+inline void finalize(const int instrument) {
+  hclib_finalize(instrument);
+}
+
 template <typename T>
 inline void launch(const char **deps, int ndeps, T &&lambda) {
     typedef typename std::remove_reference<T>::type U;
