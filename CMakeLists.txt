@@ -25,6 +25,7 @@ option(HCLIB_ENABLE_VERBOSE     "whether verbose HC runtime"          OFF)
 option(HCLIB_ENABLE_STATS       "whether to turn on HC runtime stats" OFF)
 option(HCLIB_ENABLE_HWLOC       "whether to enable HWLoc"             OFF)
 option(HCLIB_ENABLE_PRODUCTION  "disable assertions and stats"        OFF)
+option(HCLIB_PRIVATIZE_C_STD_11    "whether to publicize c_std_11 compiler features" OFF)
 
 set(COMPILE_DEFINITIONS "")
 

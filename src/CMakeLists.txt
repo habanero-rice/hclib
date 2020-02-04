@@ -39,7 +39,12 @@ endif()
 
 add_library(hclib SHARED ${SOURCES})
 
-target_compile_features(hclib PUBLIC c_std_11)
+if(HCLIB_PRIVATIZE_C_STD_11)
+  target_compile_features(hclib PRIVATE c_std_11)
+else()
+  target_compile_features(hclib PUBLIC c_std_11)
+endif(HCLIB_PRIVATIZE_C_STD_11)
+
 target_compile_features(hclib PUBLIC cxx_std_11)
 
 #set(CMAKE_BUILD_TYPE "Release")

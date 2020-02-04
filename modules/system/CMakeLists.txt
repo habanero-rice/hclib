@@ -7,7 +7,12 @@ ADD_LIBRARY("hclib_${MODULE_NAME}" MODULE "${SOURCES}")
 
 target_link_libraries("hclib_${MODULE_NAME}" PRIVATE hclib)
 
-target_compile_features("hclib_${MODULE_NAME}" PUBLIC c_std_11)
+if(HCLIB_PRIVATIZE_C_STD_11)
+  target_compile_features("hclib_${MODULE_NAME}" PRIVATE c_std_11)
+else()
+  target_compile_features("hclib_${MODULE_NAME}" PUBLIC c_std_11)
+endif(HCLIB_PRIVATIZE_C_STD_11)
+
 target_compile_features("hclib_${MODULE_NAME}" PUBLIC cxx_std_11)
 
 target_include_directories("hclib_${MODULE_NAME}"
