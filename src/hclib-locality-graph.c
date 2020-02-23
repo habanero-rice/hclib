@@ -1141,8 +1141,8 @@ hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,
     int to_visit_index = 0;
     int *to_visit = (int *)malloc(sizeof(int) * n_locales);
     hclib_locale_t *curr = locale;
-    while (!contains(curr->type, locale_types, n_locale_types) &&
-            visiting_index <= n_locales) {
+    while (visiting_index <= n_locales &&
+            !contains(curr->type, locale_types, n_locale_types)) {
         const int id = curr->id;
         int i;
         for (i = 0; i < n_locales; i++) {

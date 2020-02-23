@@ -1,0 +1,16 @@
+{
+    "nworkers": 1,
+    "declarations": [
+        "sysmem",
+        "GPU0"
+    ],
+    "reachability": [
+        ["sysmem", "GPU0"]
+    ],
+    "pop_paths": {
+        "default": ["sysmem", "GPU0"]
+    },
+    "steal_paths": {
+        "default": ["sysmem", "GPU0"]
+    }
+}

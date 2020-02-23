@@ -18,27 +18,30 @@ __global__ void simd_driver_kernel(functor_type functor) {
     functor(tid, width);
 }
 
-template<class functor_type, class await_type>
+template<class functor_type>
 inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
         const int blocks_per_gridy, const int blocks_per_gridz,
         const int threads_per_blockx, const int threads_per_blocky,
         const int threads_per_blockz, const int shared_mem,
         functor_type functor, hclib::locale_t *locale,
-        hclib::future_t<await_type> *future) {
+        std::vector<hclib_future_t *> &futures) {
     HASSERT(locale->type == get_gpu_locale_id());
 
     hclib::promise_t<void> *prom = new hclib::promise_t<void>();
 
     hclib::async_at([locale, functor, blocks_per_gridx, blocks_per_gridy,
             blocks_per_gridz, threads_per_blockx, threads_per_blocky,
-            threads_per_blockz, shared_mem, prom, future] {
+            threads_per_blockz, shared_mem, prom, futures] {
 #ifdef HCLIB_INSTRUMENT
     const unsigned _event_id = hclib_register_event(get_cuda_kernel_event_id(),
             START, -1);
 #endif
 
-        if (future) {
-            future->wait();
+        for (auto i = futures.begin(), e = futures.end(); i != e; i++) {
+            hclib_future_t *f = *i;
+            if (f) {
+                hclib_future_wait(f);
+            }
         }
         CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
@@ -59,6 +62,21 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
     return prom->get_future();
 }
 
+template<class functor_type>
+inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
+        const int blocks_per_gridy, const int blocks_per_gridz,
+        const int threads_per_blockx, const int threads_per_blocky,
+        const int threads_per_blockz, const int shared_mem,
+        functor_type functor, hclib::locale_t *locale,
+        hclib_future_t *fut) {
+    std::vector<hclib_future_t *> futures(1);
+    futures.push_back(fut);
+
+    return forasync_cuda<functor_type>(blocks_per_gridx,
+            blocks_per_gridy, blocks_per_gridz, threads_per_blockx,
+            threads_per_blocky, threads_per_blockz, 0, functor, locale, futures);
+}
+
 template<class functor_type, class await_type>
 inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
         const int blocks_per_gridy, const int blocks_per_gridz,
@@ -68,7 +86,7 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
         hclib::future_t<await_type> *future) {
     return forasync_cuda(blocks_per_gridx, blocks_per_gridy, blocks_per_gridz,
             threads_per_blockx, threads_per_blocky, threads_per_blockz, 0,
-            functor, locale, future);
+            functor, locale, (hclib_future_t *)future);
 }
 
 template<class functor_type, class await_type>
@@ -76,15 +94,24 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_grid,
         const int threads_per_block, functor_type functor,
         hclib::locale_t *locale, hclib::future_t<await_type> *future) {
     return forasync_cuda(blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0,
-            functor, locale, future);
+            functor, locale, (hclib_future_t *)future);
 }
 
 template<class functor_type, class await_type>
 inline hclib::future_t<void> *forasync_cuda(const int blocks_per_grid,
         const int threads_per_block, const int shared_mem, functor_type functor,
         hclib::locale_t *locale, hclib::future_t<await_type> *future) {
-    return forasync_cuda(blocks_per_grid, 1, 1, threads_per_block, 1, 1,
-            shared_mem, functor, locale, future);
+    return forasync_cuda<functor_type>(blocks_per_grid, 1, 1,
+            threads_per_block, 1, 1, shared_mem, functor, locale,
+            (hclib_future_t *)future);
+}
+
+template<class functor_type>
+inline hclib::future_t<void> *forasync_cuda(const int blocks_per_grid,
+        const int threads_per_block, const int shared_mem, functor_type functor,
+        hclib::locale_t *locale, std::vector<hclib_future_t *> &futures) {
+    return forasync_cuda<functor_type>(blocks_per_grid, 1, 1,
+            threads_per_block, 1, 1, shared_mem, functor, locale, futures);
 }
 
 template<class functor_type>
