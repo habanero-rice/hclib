@@ -1138,11 +1138,18 @@ hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,
     const int n_locales = hc_context->graph->n_locales;
 
     int visiting_index = 0;
-    int to_visit_index = 0;
     int *to_visit = (int *)malloc(sizeof(int) * n_locales);
-    hclib_locale_t *curr = locale;
-    while (visiting_index <= n_locales &&
-            !contains(curr->type, locale_types, n_locale_types)) {
+    to_visit[0] = locale - hc_context->graph->locales;
+    assert(to_visit[0] < n_locales);
+    int to_visit_index = 1;
+
+    while(visiting_index < n_locales) {
+        hclib_locale_t *curr = hc_context->graph->locales +
+            to_visit[visiting_index++];
+        if (contains(curr->type, locale_types, n_locale_types)) {
+            return curr;
+        }
+
         const int id = curr->id;
         int i;
         for (i = 0; i < n_locales; i++) {
@@ -1151,12 +1158,9 @@ hclib_locale_t *hclib_get_closest_locale_of_types(hclib_locale_t *locale,
                 to_visit[to_visit_index++] = i;
             }
         }
-
-        curr = hc_context->graph->locales + to_visit[visiting_index++];
     }
 
-    if (visiting_index > n_locales) return NULL; // none of that type found
-    else return curr;
+    return NULL; // none of that type found
 }
 
 hclib_locale_t *hclib_get_closest_locale_of_type(hclib_locale_t *locale,
