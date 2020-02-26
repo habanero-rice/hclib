@@ -190,10 +190,14 @@ hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
     } else if (src_cb == NULL) {
         copy_cb = dst_cb;
     } else {
-        // Not both MUST_USE
-        assert(!(dst_priority == MUST_USE && src_priority == MUST_USE));
-        if (src_priority == MUST_USE) copy_cb = src_cb;
-        else copy_cb = dst_cb;
+        if (dst_cb == src_cb) {
+            copy_cb = dst_cb;
+        } else {
+            // Must not both be MUST_USE
+            assert(!(dst_priority == MUST_USE && src_priority == MUST_USE));
+            if (src_priority == MUST_USE) copy_cb = src_cb;
+            else copy_cb = dst_cb;
+        }
     }
 
     copy_struct *cs = (copy_struct *)malloc(sizeof(copy_struct));
