@@ -94,6 +94,7 @@ static void memset_func(void *ptr, int val, size_t nbytes,
 
     assert(locale->type == gpu_locale_id);
     CHECK_CUDA(cudaMemset(ptr, val, nbytes));
+    CHECK_CUDA(cudaDeviceSynchronize());
 
     CUDA_END_OP(MEMSET);
 }

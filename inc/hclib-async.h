@@ -334,7 +334,6 @@ inline void async_await_at(T&& lambda, std::vector<hclib_future_t *> &&futures,
  *
  * so we disable this code if we're compiling a CUDA file with nvcc.
  */
-#ifndef __CUDACC__
 template <typename T>
 auto async_future_await_at_helper(T&& lambda, hclib_future_t **futures,
         const int nfutures, hclib_locale_t *locale,
@@ -379,6 +378,7 @@ auto async_future(T&& lambda) -> hclib::future_t<decltype(lambda())>* {
     return event->get_future();
 }
 
+#ifndef __CUDACC__
 template <typename T>
 auto async_future_await(T&& lambda, hclib_future_t *future) ->
         hclib::future_t<decltype(lambda())>* {
