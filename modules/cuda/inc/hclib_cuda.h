@@ -74,7 +74,8 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
 
     return forasync_cuda<functor_type>(blocks_per_gridx,
             blocks_per_gridy, blocks_per_gridz, threads_per_blockx,
-            threads_per_blocky, threads_per_blockz, 0, functor, locale, futures);
+            threads_per_blocky, threads_per_blockz, shared_mem, functor, locale,
+            futures);
 }
 
 template<class functor_type, class await_type>
