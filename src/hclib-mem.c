@@ -157,7 +157,16 @@ typedef struct _copy_struct {
     hclib_locale_t *dst_locale;
     void *dst;
     hclib_locale_t *src_locale;
+
+    /*
+     * The source of a copy can be specified as either a raw pointer or a future
+     * that returns a raw pointer. We assume that if it is the latter, this
+     * future must be satisfied when the copy starts (e.g. by placing it in the
+     * list of futures the async copy is dependent on).
+     */
     void *src;
+    hclib_future_t *src_fut;
+
     size_t nbytes;
     hclib_promise_t *promise;
     hclib_module_copy_impl_func_type cb;
@@ -165,7 +174,18 @@ typedef struct _copy_struct {
 
 static void copy_kernel(void *arg) {
     copy_struct *cs = (copy_struct *)arg;
-    (cs->cb)(cs->dst_locale, cs->dst, cs->src_locale, cs->src, cs->nbytes);
+
+    // Only one option can be used
+    assert(cs->src || cs->src_fut);
+    assert(!(cs->src && cs->src_fut));
+
+    if (cs->src) {
+        (cs->cb)(cs->dst_locale, cs->dst, cs->src_locale, cs->src, cs->nbytes);
+    } else {
+        (cs->cb)(cs->dst_locale, cs->dst, cs->src_locale,
+                hclib_future_get(cs->src_fut), cs->nbytes);
+    }
+
     hclib_promise_put(cs->promise, NULL);
     free(cs);
 }
@@ -204,7 +224,14 @@ hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
     cs->dst_locale = dst_locale;
     cs->dst = dst;
     cs->src_locale = src_locale;
-    cs->src = src;
+    if (src == HCLIB_ASYNC_COPY_USE_FUTURE_AS_SRC) {
+        assert(nfutures == 1);
+        cs->src = NULL;
+        cs->src_fut = futures[0];
+    } else {
+        cs->src = src;
+        cs->src_fut = NULL;
+    }
     cs->nbytes = nbytes;
     cs->promise = promise;
     cs->cb = copy_cb;

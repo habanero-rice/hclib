@@ -45,14 +45,25 @@ inline hclib::future_t<void> *forasync_cuda(const int blocks_per_gridx,
         }
         CHECK_CUDA(cudaSetDevice(get_cuda_device_id(locale)));
 
+        cudaStream_t stream = get_stream(locale);
+
         dim3 blocks_per_grid(blocks_per_gridx, blocks_per_gridy,
                 blocks_per_gridz);
         dim3 threads_per_block(threads_per_blockx, threads_per_blocky,
                 threads_per_blockz);
 
-        driver_kernel<<<blocks_per_grid, threads_per_block, shared_mem>>>(functor);
-        CHECK_CUDA(cudaDeviceSynchronize());
-        prom->put();
+        cudaEvent_t event;
+        CHECK_CUDA(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
+
+        driver_kernel<<<blocks_per_grid, threads_per_block, shared_mem, stream>>>(functor);
+        CHECK_CUDA(cudaEventRecord(event, stream));
+
+        pending_cuda_op *op = (pending_cuda_op *)malloc(sizeof(*op));
+        assert(op);
+        op->event = event;
+        op->prom = prom;
+        op->task = NULL;
+        hclib::append_to_pending(op, &pending_cuda, hclib::test_cuda_completion, locale);
 
 #ifdef HCLIB_INSTRUMENT
         hclib_register_event(get_cuda_kernel_event_id(), END, _event_id);

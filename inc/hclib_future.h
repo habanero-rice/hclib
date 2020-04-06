@@ -30,9 +30,7 @@ struct future_t: public hclib_future_t {
         return tmp.val;
     }
 
-    bool test() {
-        return hclib_future_is_satisfied(this);
-    }
+    bool test() { return hclib_future_is_satisfied(this); }
 };
 
 // Specialized for pointers
@@ -45,6 +43,7 @@ struct future_t<T*>: public hclib_future_t {
     T *wait() {
         return static_cast<T*>(hclib_future_wait(this));
     }
+    bool test() { return hclib_future_is_satisfied(this); }
 };
 
 // Specialized for references
@@ -57,6 +56,7 @@ struct future_t<T&>: public hclib_future_t {
     T &wait() {
         return *static_cast<T*>(hclib_future_wait(this));
     }
+    bool test() { return hclib_future_is_satisfied(this); }
 };
 
 // Specialized for void
@@ -64,6 +64,7 @@ template<>
 struct future_t<void>: public hclib_future_t {
     void get() { }
     void wait() { hclib_future_wait(this); }
+    bool test() { return hclib_future_is_satisfied(this); }
 };
 
 #ifndef __CUDACC__

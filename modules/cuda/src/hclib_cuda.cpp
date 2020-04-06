@@ -54,10 +54,11 @@ cudaStream_t hclib::get_stream(hclib_locale_t *locale) {
     assert(locale->type == gpu_locale_id);
 
     gpu_locale_metadata *metadata = (gpu_locale_metadata *)locale->metadata;
+    assert(metadata);
 
     const int stream_index = hc_atomic_inc(&(metadata->stream_iter));
 
-    return metadata->streams[stream_index];
+    return metadata->streams[stream_index % NUM_STREAMS_PER_LOCALE];
 }
 
 int hclib::get_cuda_device_id(hclib_locale_t *locale) {
