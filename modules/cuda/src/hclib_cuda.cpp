@@ -201,7 +201,11 @@ int hclib::get_num_gpu_locales() {
 bool hclib::test_cuda_completion(void *generic_op) {
     pending_cuda_op *op = (pending_cuda_op *)generic_op;
     cudaError_t err = cudaEventQuery(op->event);
-    assert(err == cudaSuccess || err == cudaErrorNotReady);
+    if (err != cudaSuccess && err != cudaErrorNotReady) {
+        fprintf(stderr, "test_cuda_completion: ERROR %s\n",
+                cudaGetErrorString(err));
+        abort();
+    }
     return (err == cudaSuccess);
 }
 
