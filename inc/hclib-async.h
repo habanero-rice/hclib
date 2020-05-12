@@ -379,6 +379,28 @@ auto async_future(T&& lambda) -> hclib::future_t<decltype(lambda())>* {
 }
 
 template <typename T>
+auto async_nb_future(T&& lambda) -> hclib::future_t<decltype(lambda())>* {
+    typedef decltype(lambda()) R;
+
+    hclib::promise_t<R> *event = new hclib::promise_t<R>();
+    /*
+     * TODO creating this closure may be inefficient. While the capture list is
+     * precise, if the user-provided lambda is large then copying it by value
+     * will also take extra time.
+     */
+    auto wrapper = [event, lambda]() {
+        call_and_put_wrapper<T, R>::fn(lambda, event);
+    };
+    typedef decltype(wrapper) U;
+
+    hclib_task_t* task = initialize_task(call_lambda<U>, new U(wrapper));
+    task->non_blocking = 1;
+    spawn(task);
+    return event->get_future();
+}
+
+
+template <typename T>
 auto async_future_await(T&& lambda, hclib_future_t *future) ->
         hclib::future_t<decltype(lambda())>* {
     typedef decltype(lambda()) R;
@@ -403,14 +425,30 @@ auto async_future_await(T&& lambda, hclib_future_t *future) ->
 template <typename T>
 auto async_future_await(T&& lambda, std::vector<hclib_future_t *> &futures) ->
         hclib::future_t<decltype(lambda())>* {
-    return async_future_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(),
+            nullptr, 0);
 }
 
 template <typename T>
 auto async_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) ->
         hclib::future_t<decltype(lambda())>* {
-    return async_future_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(),
+            nullptr, 0);
 }
+
+template <typename T>
+auto async_nb_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) ->
+        hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(),
+            nullptr, 1);
+}
+
+template <typename T>
+auto async_nb_future_await(T&& lambda, hclib_future_t * future) ->
+        hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, &future, 1, nullptr, 1);
+}
+
 
 template <typename T>
 auto async_future_at_helper(T& lambda, hclib_locale_t *locale,
