@@ -437,6 +437,14 @@ auto async_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) ->
 }
 
 template <typename T>
+auto async_nb_future_await(T&& lambda, std::vector<hclib_future_t *> &futures) ->
+        hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, futures.data(), futures.size(),
+            nullptr, 1);
+}
+
+
+template <typename T>
 auto async_nb_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) ->
         hclib::future_t<decltype(lambda())>* {
     return async_future_await_at_helper(lambda, futures.data(), futures.size(),
