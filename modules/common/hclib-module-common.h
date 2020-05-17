@@ -39,11 +39,11 @@ void poll_on_pending(pending_op **addr_of_head,
                      * wait_set and which should be updated.
                      */
                     pending_op *old_head = __sync_val_compare_and_swap(
-                            addr_of_head, op, op->next);
+                            addr_of_head, op, next);
                     if (old_head != op) {
                         // Failed, someone else added a different head
                         assert(old_head->next == op);
-                        old_head->next = op->next;
+                        old_head->next = next;
                         prev = old_head;
                     } else {
                         /*
@@ -52,7 +52,7 @@ void poll_on_pending(pending_op **addr_of_head,
                          * It is the responsibility of future async_when calls
                          * to restart it upon discovering a null head.
                          */
-                        pending_list_non_empty = (op->next != NULL);
+                        pending_list_non_empty = (next != NULL);
                     }
                 } else {
                     /*
@@ -60,7 +60,7 @@ void poll_on_pending(pending_op **addr_of_head,
                      * jump over the current node.
                      */
                     assert(prev->next == op);
-                    prev->next = op->next;
+                    prev->next = next;
                 }
 
 #ifdef HCLIB_INSTRUMENT

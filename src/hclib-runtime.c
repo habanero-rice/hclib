@@ -1128,11 +1128,13 @@ void hclib_yield(hclib_locale_t *locale) {
         ws = CURRENT_WS_INTERNAL;
 
 #ifdef HCLIB_STATS
-    worker_stats[ws->id].count_yield_iterations++;
+        worker_stats[ws->id].count_yield_iterations++;
 #endif
 
+        // Try to pop a task created by this thread from our pop path
         task = locale_pop_task(ws);
         if (!task) {
+            // If the pop above fails, try stealing some tasks on our steal path
             int victim;
             const int nstolen = locale_steal_task(ws, (void **)stolen, &victim);
             if (nstolen) {
@@ -1141,12 +1143,16 @@ void hclib_yield(hclib_locale_t *locale) {
                 worker_stats[ws->id].stolen_tasks += nstolen;
                 worker_stats[ws->id].stolen_tasks_per_thread[victim] += nstolen;
 #endif
+                /*
+                 * If the steal is successful, take one of those tasks to run
+                 * (stolen[0]) and push the rest back in to the work stealing
+                 * system.
+                 */
                 task = stolen[0];
                 for (int i = 1; i < nstolen; i++) {
                     rt_schedule_async(stolen[i], ws);
                 }
             }
-            // task = locale_steal_task(ws);
         }
 
         if (task) {
