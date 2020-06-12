@@ -78,7 +78,7 @@ install(EXPORT hclib
         DESTINATION cmake)
 
 
-target_compile_definitions(hclib PRIVATE COMPILE_DEFINITIONS)
+target_compile_definitions(hclib PRIVATE ${COMPILE_DEFINITIONS})
 
 if (HCLIB_ENABLE_HWLOC)
 target_include_directories(hclib ${HWLOC_HOME}/include)

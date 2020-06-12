@@ -20,7 +20,7 @@ target_include_directories("hclib_${MODULE_NAME}"
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/inc>
     $<INSTALL_INTERFACE:include>)
 
-target_compile_definitions(hclib PRIVATE COMPILE_DEFINITIONS)
+target_compile_definitions("hclib_${MODULE_NAME}" PRIVATE ${COMPILE_DEFINITIONS})
 
 install(TARGETS "hclib_${MODULE_NAME}" EXPORT "hclib_${MODULE_NAME}-targets"
         INCLUDES DESTINATION include
