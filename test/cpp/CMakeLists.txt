@@ -8,5 +8,5 @@ add_executable(async0
 
 find_package(hclib REQUIRED system)
 
-target_link_libraries(async0 hclib::hclib hclib::hclib_system)
+target_link_libraries(async0 hclib::hclib)
 

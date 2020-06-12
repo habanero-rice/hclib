@@ -81,9 +81,10 @@ install(EXPORT hclib
 target_compile_definitions(hclib PRIVATE ${COMPILE_DEFINITIONS})
 
 if (HCLIB_ENABLE_HWLOC)
-target_include_directories(hclib ${HWLOC_HOME}/include)
-target_link_directories(hclib PUBLIC ${HWLOC_HOME}/lib)
-target_link_libraries(hclib PUBLIC hwloc)
+find_path(HWLOC_INCLUDE NAMES hwloc.h PATHS "$ENV{HWLOC_HOME}/include")
+target_include_directories(hclib PUBLIC ${HWLOC_INCLUDE})
+find_library(HWLOC_LIBRARY NAMES hwloc PATHS "$ENV{HWLOC_HOME}/lib" "$ENV{HWLOC_HOME}/lib64")
+target_link_libraries(hclib PUBLIC ${HWLOC_LIBRARY})
 endif(HCLIB_ENABLE_HWLOC)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
