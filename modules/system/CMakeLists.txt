@@ -1,11 +1,19 @@
+cmake_minimum_required(VERSION 3.9)
+
+project (HCLIB_SYSTEM)
+
 SET(MODULE_NAME "system")
 
+list(APPEND CMAKE_PREFIX_PATH "$ENV{HCLIB_ROOT}")
+
+find_package(hclib REQUIRED)
+
 FILE(GLOB SOURCES "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp" "${CMAKE_CURRENT_LIST_DIR}/src/*.c")
-FILE(GLOB HEADERS "${CMAKE_CURRENT_LIST_DIR}/inc/*.h")
+FILE(GLOB HEADERS "${CMAKE_CURRENT_LIST_DIR}/inc/*.h" "${CMAKE_CURRENT_LIST_DIR}/../common/*.h")
 
 ADD_LIBRARY("hclib_${MODULE_NAME}" MODULE "${SOURCES}")
 
-target_link_libraries("hclib_${MODULE_NAME}" PRIVATE hclib)
+target_link_libraries("hclib_${MODULE_NAME}" PRIVATE hclib::hclib)
 
 if(HCLIB_PRIVATIZE_C_STD_11)
   target_compile_features("hclib_${MODULE_NAME}" PRIVATE c_std_11)

@@ -47,7 +47,7 @@ endif()
 
 message("COMPILE_DEFINITIONS: " ${COMPILE_DEFINITIONS})
 
-set(HCLIB_MODULES "system" CACHE STRING "A semicolon separated list of modules to compile")
+#set(HCLIB_MODULES "system" CACHE STRING "A semicolon separated list of modules to compile")
 
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/hclib-install" CACHE PATH "default install path" FORCE )
@@ -60,9 +60,9 @@ configure_file(
 
 add_subdirectory(src)
 
-foreach(_mod ${HCLIB_MODULES})
-    add_subdirectory("modules/${_mod}")
-endforeach()
+#foreach(_mod ${HCLIB_MODULES})
+#    add_subdirectory("modules/${_mod}")
+#endforeach()
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(cmake/hclibConfig.cmake.in
