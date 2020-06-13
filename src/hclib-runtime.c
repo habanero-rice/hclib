@@ -574,12 +574,17 @@ void spawn_handler(hclib_task_t *task, hclib_locale_t *locale,
     }
 
     if (nfutures > 0) {
-        if (nfutures > MAX_NUM_WAITS) {
-            fprintf(stderr, "Number of dependent futures (%d) exceeds limit of "
-                    "%d\n", nfutures, MAX_NUM_WAITS);
-            exit(1);
+        unsigned n_inlined = (nfutures > MAX_NUM_WAITS ? MAX_NUM_WAITS : nfutures);
+        unsigned n_extra = (nfutures > MAX_NUM_WAITS ? nfutures - MAX_NUM_WAITS : 0);
+        memcpy(&(task->waiting_on[0]), futures, n_inlined * sizeof(*futures));
+        if (n_extra > 0) {
+            task->waiting_on_extra = (hclib_future_t **)malloc(
+                    (n_extra + 1) * sizeof(task->waiting_on_extra[0]));
+            assert(task->waiting_on_extra);
+            memcpy(task->waiting_on_extra, futures + MAX_NUM_WAITS,
+                    n_extra * sizeof(task->waiting_on_extra[0]));
+            task->waiting_on_extra[n_extra] = NULL;
         }
-        memcpy(task->waiting_on, futures, nfutures * sizeof(hclib_future_t *));
         task->waiting_on_index = -1;
     }
 

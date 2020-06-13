@@ -33,7 +33,8 @@ typedef struct hclib_task_t {
     generic_frame_ptr _fp;
     void *args;
     struct finish_t *current_finish;
-    hclib_future_t *waiting_on[MAX_NUM_WAITS + 1];
+    hclib_future_t *waiting_on[MAX_NUM_WAITS];
+    hclib_future_t **waiting_on_extra;
     int waiting_on_index;
     hclib_locale_t *locale;
     int non_blocking;
