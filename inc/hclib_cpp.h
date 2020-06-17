@@ -13,6 +13,10 @@ namespace hclib {
 
 typedef hclib_locale_t locale_t;
 
+/**
+ * init and finalize are not intended for external use. 
+ * Only included in the header file for third party integrations by HClib developers.
+ */
 inline void init(const char **module_dependencies,
 		 int n_module_dependencies, const int instrument) {
   hclib_init(module_dependencies, n_module_dependencies, instrument);
@@ -74,6 +78,16 @@ inline hclib::future_t<void*> *async_copy_await(hclib::locale_t *dst_locale,
             nbytes, future ? &future : NULL, future ? 1 : 0);
     return (hclib::future_t<void *> *)actual;
 }
+
+inline hclib::future_t<void*> *async_copy_await_fut_src(
+        hclib::locale_t *dst_locale, void *dst, hclib::locale_t *src_locale,
+        hclib_future_t *src, size_t nbytes) {
+    assert(src);
+    hclib_future_t *actual = hclib_async_copy(dst_locale, dst, src_locale,
+            HCLIB_ASYNC_COPY_USE_FUTURE_AS_SRC, nbytes, &src, 1);
+    return (hclib::future_t<void *> *)actual;
+}
+
 
 inline hclib::future_t<void*> *async_copy_await_all(hclib::locale_t *dst_locale,
         void *dst, hclib::locale_t *src_locale, void *src, size_t nbytes,

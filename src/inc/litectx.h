@@ -14,7 +14,10 @@
 #include "hclib_common.h"
 #include "fcontext.h"
 #include <string.h>
+
+#ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
+#endif
 
 // #define OVERFLOW_PROTECT
 
@@ -61,16 +64,21 @@ static inline void *LITECTX_ALLOC(size_t nbytes) {
         exit(1);
     }
 
+#ifdef HAVE_SYS_MMAN_H
     const int protect_err = mprotect(ptr, OVERFLOW_PADDING_SIZE, PROT_NONE);
     if (protect_err != 0) {
         perror("mprotect");
         exit(1);
     }
+#endif
 
     printf("WARNING: Running in OVERFLOW_PROTECT mode to check for stack "
             "overflows, this will negatively impact performance.\n");
+
+#ifdef HAVE_SYS_MMAN_H
     printf("WARNING: Setting up PROT_NONE region at %p, length = %lu\n", ptr,
             OVERFLOW_PADDING_SIZE);
+#endif
 
     return ptr;
 }
@@ -105,12 +113,14 @@ static __inline__ void LiteCtx_destroy(LiteCtx *ctx) {
 #endif
 
 #ifdef OVERFLOW_PROTECT
+#ifdef HAVE_SYS_MMAN_H
     const int merr = mprotect(ctx, OVERFLOW_PADDING_SIZE,
             PROT_READ | PROT_WRITE);
     if (merr != 0) {
         perror("mprotect");
         exit(1);
     }
+#endif
 #endif
     LITECTX_FREE(ctx);
 }
@@ -139,12 +149,14 @@ static __inline__ void LiteCtx_proxy_destroy(LiteCtx *ctx) {
 #endif
 
 #ifdef OVERFLOW_PROTECT
+#ifdef HAVE_SYS_MMAN_H
     const int merr = mprotect(ctx, OVERFLOW_PADDING_SIZE,
             PROT_READ | PROT_WRITE);
     if (merr != 0) {
         perror("mprotect");
         exit(1);
     }
+#endif
 #endif
 
     LITECTX_FREE(ctx);

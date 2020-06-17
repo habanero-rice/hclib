@@ -4,13 +4,30 @@
 
 #include <signal.h>
 #include <errno.h>
-#include <aio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "hclib.h"
 #include "hclib-instrument.h"
 
+#ifdef HAVE_AIO_H
+#include <aio.h>
+#define USE_INSTRUMENT
+#endif
+
+#ifndef USE_INSTRUMENT
+static unsigned n_event_types = 0;
+
+int register_event_type(char *event_name) {
+    return n_event_types++;
+}
+
+void initialize_instrumentation(const unsigned nthreads) {
+}
+
+void finalize_instrumentation() {
+}
+#else
 #define EVENT_BUFFER_LENGTH 2048
 
 static hclib_event_type_info *event_types = NULL;
@@ -233,3 +250,5 @@ void finalize_instrumentation() {
 // 
 //     return my_event_id;
 // }
+
+#endif /* USE_INSTRUMENT */

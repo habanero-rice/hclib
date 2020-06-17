@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <dlfcn.h>
 #include <stddef.h>
 
 #include <hclib.h>
@@ -55,6 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hclib-locality-graph.h>
 #include <hclib-module.h>
 #include <hclib-instrument.h>
+
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
 
 #ifdef USE_HWLOC
 #include <hwloc.h>
@@ -290,6 +293,7 @@ void hclib_global_init() {
 
 static void load_dependencies(const char **module_dependencies,
         int n_module_dependencies) {
+#ifdef HAVE_DLFCN_H
     int i;
     char *hclib_root = getenv("HCLIB_ROOT");
     if (hclib_root == NULL) {
@@ -306,9 +310,10 @@ static void load_dependencies(const char **module_dependencies,
         void *handle = dlopen(module_path_buf, RTLD_LAZY);
         if (handle == NULL) {
             fprintf(stderr, "WARNING: Failed dynamically loading %s for \"%s\" "
-                    "dependency\n", module_path_buf, module_name);
+                    "dependency: %s\n", module_path_buf, module_name, dlerror());
         }
     }
+#endif
 }
 
 static void hclib_entrypoint(const char **module_dependencies,
@@ -1053,7 +1058,7 @@ void help_finish(finish_t *finish) {
     hclib_worker_state *ws = CURRENT_WS_INTERNAL;
     hclib_task_t *need_to_swap_ctx = NULL;
     while (finish->counter > 1 && need_to_swap_ctx == NULL) {
-        need_to_swap_ctx = find_and_run_task(ws, 0, &(finish->counter), 1,
+        need_to_swap_ctx = find_and_run_task(ws, 1, &(finish->counter), 1,
                 finish);
     }
 
@@ -1123,11 +1128,13 @@ void hclib_yield(hclib_locale_t *locale) {
         ws = CURRENT_WS_INTERNAL;
 
 #ifdef HCLIB_STATS
-    worker_stats[ws->id].count_yield_iterations++;
+        worker_stats[ws->id].count_yield_iterations++;
 #endif
 
+        // Try to pop a task created by this thread from our pop path
         task = locale_pop_task(ws);
         if (!task) {
+            // If the pop above fails, try stealing some tasks on our steal path
             int victim;
             const int nstolen = locale_steal_task(ws, (void **)stolen, &victim);
             if (nstolen) {
@@ -1136,12 +1143,16 @@ void hclib_yield(hclib_locale_t *locale) {
                 worker_stats[ws->id].stolen_tasks += nstolen;
                 worker_stats[ws->id].stolen_tasks_per_thread[victim] += nstolen;
 #endif
+                /*
+                 * If the steal is successful, take one of those tasks to run
+                 * (stolen[0]) and push the rest back in to the work stealing
+                 * system.
+                 */
                 task = stolen[0];
                 for (int i = 1; i < nstolen; i++) {
                     rt_schedule_async(stolen[i], ws);
                 }
             }
-            // task = locale_steal_task(ws);
         }
 
         if (task) {

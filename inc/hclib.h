@@ -60,6 +60,10 @@ typedef void *(*future_fct_t)(void *arg);
 
 size_t hclib_current_worker_backlog();
 
+/**
+ * hclib_init and hclib_finalize are not intended for external use. 
+ * Only included in the header file for third party integrations by HClib developers.
+ */
 void hclib_init(const char **module_dependencies,
                 int n_module_dependencies, const int instrument);
 
@@ -129,6 +133,17 @@ hclib_future_t *hclib_reallocate_at(void *ptr, size_t new_nbytes,
 hclib_future_t *hclib_memset_at(void *ptr, int pattern, size_t nbytes,
         hclib_locale_t *locale);
 void hclib_free_at(void *ptr, hclib_locale_t *locale);
+
+/*
+ * If HCLIB_ASYNC_COPY_USE_FUTURE_AS_SRC is passed to the src parameter of
+ * hclib_async_copy, this function will assume (and assert) that it is also
+ * being passed a single future to wait on using futures/nfutures. It will use
+ * the value returned by a get() on that future as the source argument for this
+ * copy. This can be useful when the operation this copy is waiting on is also
+ * determining the source location for the copy, and allows for a more concise
+ * expression of this pattern.
+ */
+#define HCLIB_ASYNC_COPY_USE_FUTURE_AS_SRC (void *)0x1
 hclib_future_t *hclib_async_copy(hclib_locale_t *dst_locale, void *dst,
         hclib_locale_t *src_locale, void *src, size_t nbytes,
         hclib_future_t **futures, const int nfutures);

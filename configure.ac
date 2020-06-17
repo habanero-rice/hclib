@@ -25,9 +25,11 @@ AC_CANONICAL_HOST
 # Platform check
 AM_CONDITIONAL([OSX], [case $host_os in darwin*) true;; *) false;; esac])
 AM_CONDITIONAL([LINUX], [case $host_os in *linux*) true;; *) false;; esac])
+AM_CONDITIONAL([HCOS], [case $host_os in *hcos*) true;; *) false;; esac])
 AM_CONDITIONAL([X86], [case $host_cpu in i?86) true;; *) false;; esac])
 AM_CONDITIONAL([X86_64], [case $host_cpu in x86_64) true;; *) false;; esac])
 AM_CONDITIONAL([PPC64], [case $host_cpu in powerpc64le) true;; *) false;; esac])
+AM_CONDITIONAL([RISCV64], [case $host_cpu in riscv64) true;; honey64) true;; *) false;; esac])
 AC_MSG_NOTICE([Host detected as $host_os $host_cpu])
 
 CPPFLAGS=$CPPFLAGS_BACKUP
@@ -104,6 +106,9 @@ if test $ac_cv_cxx11_trivial_copy_check = yes; then
 fi
 CXXFLAGS="${_old_CXXFLAGS}"
 ### End C++11 features check
+
+AC_CHECK_HEADERS([sys/mman.h])
+AC_CHECK_HEADERS([aio.h])
 
 # Variable substitutions.
 AC_SUBST([ac_aux_dir])
