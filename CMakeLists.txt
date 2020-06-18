@@ -14,6 +14,7 @@ project (HCLIB)
 set (HCLIB_VERSION_MAJOR 0)
 set (HCLIB_VERSION_MINOR 1)
 
+message("Set creation of shared libs")
 SET_PROPERTY(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
 
 #include (CheckCXXCompilerFlag)
@@ -27,7 +28,7 @@ option(HCLIB_ENABLE_STATS       "whether to turn on HC runtime stats" OFF)
 option(HCLIB_ENABLE_HWLOC       "whether to enable HWLoc"             OFF)
 option(HCLIB_ENABLE_PRODUCTION  "disable assertions and stats"        OFF)
 option(HCLIB_PRIVATIZE_C_STD_11    "whether to publicize c_std_11 compiler features" OFF)
-option(HC_INLINE_FUTURES_ONLY   "disable support for arbitary numbers of futures for tasks" OFF)
+option(HCLIB_INLINE_FUTURES_ONLY   "disable support for arbitary numbers of futures for tasks" OFF)
 
 set(COMPILE_DEFINITIONS "")
 
@@ -55,9 +56,9 @@ else()
 endif()
 
 
-if (HC_INLINE_FUTURES_ONLY)
+if (HCLIB_INLINE_FUTURES_ONLY)
     list(APPEND COMPILE_DEFINITIONS "HCLIB_INLINE_FUTURES_ONLY")
-endif(HC_INLINE_FUTURES_ONLY)
+endif(HCLIB_INLINE_FUTURES_ONLY)
 
 message("COMPILE_DEFINITIONS: " ${COMPILE_DEFINITIONS})
 
