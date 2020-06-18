@@ -469,6 +469,11 @@ static inline void execute_task(hclib_task_t *task) {
     // task->_fp is of type 'void (*generic_frame_ptr)(void*)'
     (task->_fp)(task->args);
     check_out_finish(current_finish);
+#ifndef HCLIB_INLINE_FUTURES_ONLY
+    if (task->waiting_on_extra) {
+        free(task->waiting_on_extra);
+    }
+#endif
     free(task);
 }
 
