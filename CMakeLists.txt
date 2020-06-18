@@ -14,6 +14,7 @@ project (HCLIB)
 set (HCLIB_VERSION_MAJOR 0)
 set (HCLIB_VERSION_MINOR 1)
 
+SET_PROPERTY(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
 
 #include (CheckCXXCompilerFlag)
 #include (CheckCXXSourceCompiles)
@@ -43,6 +44,13 @@ endif(HCLIB_ENABLE_VERBOSE)
 
 if (NOT HCLIB_ENABLE_PRODUCTION)
     list(APPEND COMPILE_DEFINITIONS "HC_ASSERTION_CHECK ")
+    set(CMAKE_BUILD_TYPE "Debug")
+    #string(APPEND CMAKE_C_FLAGS " -g -O0 ")
+    #string(APPEND CMAKE_CXX_FLAGS " -g -O0 ")
+else()
+    set(CMAKE_BUILD_TYPE "Release")
+    #string(APPEND CMAKE_C_FLAGS " -O3 ")
+    #string(APPEND CMAKE_CXX_FLAGS " -O3 ")
 endif()
 
 message("COMPILE_DEFINITIONS: " ${COMPILE_DEFINITIONS})
@@ -53,10 +61,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/hclib-install" CACHE PATH "default install path" FORCE )
 endif()
 
-configure_file(
- ${CMAKE_CURRENT_SOURCE_DIR}/inc/hclib_config.h.in
- ${CMAKE_CURRENT_BINARY_DIR}/inc/hclib_config.h @ONLY
-)
+include(cmake/hclib_config.h.cmake)
 
 add_subdirectory(src)
 
@@ -89,7 +94,9 @@ install(
 
 FILE(GLOB INCL_LIST ${CMAKE_CURRENT_SOURCE_DIR}/inc/*.h)
 install(
-  FILES ${INCL_LIST}
+  FILES
+  ${INCL_LIST}
+  ${CMAKE_CURRENT_SOURCE_DIR}/inc/hclib-mak/hclib.mak
   DESTINATION include
 )
 

@@ -47,11 +47,6 @@ endif(HCLIB_PRIVATIZE_C_STD_11)
 
 target_compile_features(hclib PUBLIC cxx_std_11)
 
-#set(CMAKE_BUILD_TYPE "Release")
-#set(CMAKE_BUILD_TYPE "Debug")
-string(APPEND CMAKE_C_FLAGS " -g -O3 ")
-string(APPEND CMAKE_CXX_FLAGS " -g -O3 ")
-
 set(INCLUDE_DIRS
  ${CMAKE_SOURCE_DIR}/src/inc
  ${CMAKE_SOURCE_DIR}/inc

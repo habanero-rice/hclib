@@ -306,7 +306,7 @@ static int parse_paths(int starting_token_index, int n_paths, char *json,
     return path_index;
 }
 
-inline void init_hclib_deque_t(hclib_deque_t *hcdeq, hclib_locale_t *locale) {
+static inline void init_hclib_deque_t(hclib_deque_t *hcdeq, hclib_locale_t *locale) {
     hcdeq->deque.head = hcdeq->deque.tail = 0;
     hcdeq->locale = locale;
     hcdeq->ws = NULL;
