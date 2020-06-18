@@ -25,16 +25,56 @@ set(HEADERS
 FILE(GLOB INC_LIST inc/*.h)
 list(APPEND HEADERS ${INC_LIST})
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  message("Compiling for Mac OS X (Darwin)")
-  list(APPEND SOURCES
-    fcontext/jump_x86_64_sysv_macho_gas.S
-    fcontext/make_x86_64_sysv_macho_gas.S)
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  message("Compiling for Linux")
-  list(APPEND SOURCES
-    fcontext/jump_x86_64_sysv_elf_gas.S
-    fcontext/make_x86_64_sysv_elf_gas.S)
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
+
+  if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message("Compiling for Mac OS X (Darwin)")
+    list(APPEND SOURCES
+      fcontext/jump_i386_sysv_macho_gas.S
+      fcontext/make_i386_sysv_macho_gas.S)
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message("Compiling for Linux")
+    list(APPEND SOURCES
+      fcontext/jump_i386_sysv_elf_gas.S
+      fcontext/make_i386_sysv_elf_gas.S)
+  else()
+  	message( FATAL_ERROR "Unknown OS")
+  endif()
+
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+
+  if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message("Compiling for Mac OS X (Darwin)")
+    list(APPEND SOURCES
+      fcontext/jump_x86_64_sysv_macho_gas.S
+      fcontext/make_x86_64_sysv_macho_gas.S)
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message("Compiling for Linux")
+    list(APPEND SOURCES
+      fcontext/jump_x86_64_sysv_elf_gas.S
+      fcontext/make_x86_64_sysv_elf_gas.S)
+  else()
+  	message( FATAL_ERROR "Unknown OS")
+  endif()
+
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64le")
+
+  if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message("Compiling for Mac OS X (Darwin)")
+    list(APPEND SOURCES
+      fcontext/jump_ppc64_sysv_macho_gas.S
+      fcontext/make_ppc64_sysv_macho_gas.S)
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message("Compiling for Linux")
+    list(APPEND SOURCES
+      fcontext/jump_ppc64_sysv_elf_gas.S
+      fcontext/make_ppc64_sysv_elf_gas.S)
+  else()
+  	message( FATAL_ERROR "Unknown OS")
+  endif()
+
+else()
+  message(FATAL_ERROR "Unknown architecture")
 endif()
 
 add_library(hclib SHARED ${SOURCES})

@@ -1,5 +1,5 @@
 
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.8)
 project (HCLIB_Cholesky)
 
 list(APPEND CMAKE_PREFIX_PATH "$ENV{HCLIB_ROOT}")

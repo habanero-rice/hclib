@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.8)
 
 # Silence an error about the version option to project
 # this will need to be changed if we ever bump the version to 3.0 and put the
