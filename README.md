@@ -53,7 +53,7 @@ HClib was installed with `INSTALL_PREFIX=/opt/local`:
     source /opt/local/bin/hclib_setup_env.sh
 
 Few HClib cmake options available are:
-HCLIB_ENABLE_HWLOC, HCLIB_ENABLE_PRODUCTION, HCLIB_ENABLE_STATS, HCLIB_ENABLE_VERBOSE, HCLIB_PRIVATIZE_C_STD_11
+HCLIB_ENABLE_HWLOC, HCLIB_ENABLE_PRODUCTION, HCLIB_ENABLE_STATS, HCLIB_ENABLE_VERBOSE, HCLIB_PRIVATIZE_C_STD_11, HC_INLINE_FUTURES_ONLY
 
 For example, to enable production setting:
 

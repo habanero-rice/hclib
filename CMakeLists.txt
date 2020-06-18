@@ -27,6 +27,7 @@ option(HCLIB_ENABLE_STATS       "whether to turn on HC runtime stats" OFF)
 option(HCLIB_ENABLE_HWLOC       "whether to enable HWLoc"             OFF)
 option(HCLIB_ENABLE_PRODUCTION  "disable assertions and stats"        OFF)
 option(HCLIB_PRIVATIZE_C_STD_11    "whether to publicize c_std_11 compiler features" OFF)
+option(HC_INLINE_FUTURES_ONLY   "disable support for arbitary numbers of futures for tasks" OFF)
 
 set(COMPILE_DEFINITIONS "")
 
@@ -52,6 +53,11 @@ else()
     #string(APPEND CMAKE_C_FLAGS " -O3 ")
     #string(APPEND CMAKE_CXX_FLAGS " -O3 ")
 endif()
+
+
+if (HC_INLINE_FUTURES_ONLY)
+    list(APPEND COMPILE_DEFINITIONS "HCLIB_INLINE_FUTURES_ONLY")
+endif(HC_INLINE_FUTURES_ONLY)
 
 message("COMPILE_DEFINITIONS: " ${COMPILE_DEFINITIONS})
 
