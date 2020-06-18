@@ -1,0 +1,14 @@
+{
+    "nworkers": 32,
+    "declarations": [
+        "sysmem"
+    ],
+    "reachability": [
+    ],
+    "pop_paths": {
+        "default": ["sysmem"]
+    },
+    "steal_paths": {
+        "default": ["sysmem"]
+    }
+}

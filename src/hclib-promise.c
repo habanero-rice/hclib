@@ -179,6 +179,18 @@ int register_on_all_promise_dependencies(hclib_task_t *wrapper_task) {
         }
     }
 
+#ifndef HCLIB_INLINE_FUTURES_ONLY
+    if (wrapper_task->waiting_on_extra) {
+        while (wrapper_task->waiting_on_extra[wrapper_task->waiting_on_index - MAX_NUM_WAITS + 1]) {
+            wrapper_task->waiting_on_index++;
+            hclib_future_t *curr = wrapper_task->waiting_on_extra[wrapper_task->waiting_on_index - MAX_NUM_WAITS];
+            if (_register_if_promise_not_ready(wrapper_task, curr)) {
+                return 0;
+            }
+        }
+    }
+#endif
+
     return 1;
 }
 
