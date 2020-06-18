@@ -94,6 +94,20 @@ AS_IF([test "x$with_production" != xno],
 AM_CONDITIONAL(PRODUCTION_SETTINGS, test "x$with_production" != xno)
 ### End PRODUCTION settings
 
+### Disable support for arbitrary numbers of futures predicating a task
+AC_ARG_ENABLE(inline_futures,
+    AS_HELP_STRING([--enable-inline-futures],
+    [disable support for arbitary numbers of futures for tasks (Default is false)]),
+    [with_inline_futures=$enableval],
+    [with_inline_futures=no;])
+
+AS_IF([test "x$with_inline_futures" != xno],
+      [ AC_MSG_NOTICE([Enabled inline futures only]) ],
+      [ AC_MSG_NOTICE([Disabled inline futures only]) ])
+
+AM_CONDITIONAL(HC_INLINE_FUTURES_ONLY, test "x$with_inline_futures" != xno)
+### End runtime statistics
+
 ### C++11 features check
 _old_CXXFLAGS="${CXXFLAGS}"
 CXXFLAGS="${_old_CXXFLAGS} -std=c++11"
