@@ -86,21 +86,21 @@ hclib_future_t *hclib_async_future(future_fct_t fp, void *arg,
 
 #define DEBUG_FORASYNC 0
 
-inline forasync1D_task_t *allocate_forasync1D_task() {
+static inline forasync1D_task_t *allocate_forasync1D_task() {
     forasync1D_task_t *forasync_task = (forasync1D_task_t *)calloc(1,
             sizeof(*forasync_task));
     HASSERT(forasync_task && "malloc failed");
     return forasync_task;
 }
 
-inline forasync2D_task_t *allocate_forasync2D_task() {
+static inline forasync2D_task_t *allocate_forasync2D_task() {
     forasync2D_task_t *forasync_task = (forasync2D_task_t *)calloc(1,
             sizeof(*forasync_task));
     HASSERT(forasync_task && "malloc failed");
     return forasync_task;
 }
 
-inline forasync3D_task_t *allocate_forasync3D_task() {
+static inline forasync3D_task_t *allocate_forasync3D_task() {
     forasync3D_task_t *forasync_task = (forasync3D_task_t *)calloc(1,
             sizeof(*forasync_task));
     HASSERT(forasync_task && "malloc failed");

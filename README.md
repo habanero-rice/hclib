@@ -16,11 +16,11 @@ models such as MPI, UPC++, or OpenSHMEM.
 Installation
 ---------------------------------------------
 
-HClib follows your standard bootstrap, configure, and make installation
-procedure. At its simplest, the manual installation process consists of:
+HClib follows your standard cmake and make installation procedure.
+At its simplest, the manual installation process consists of:
 
-    ./bootstrap.sh
-    ./configure --prefix=<installation-dir>
+    mkdir build; cd build
+    cmake -DCMAKE_INSTALL_PREFIX=<installation-dir> ..
     make install
 
 However, an install.sh script is also provided for your convenience that will
@@ -52,6 +52,13 @@ HClib was installed with `INSTALL_PREFIX=/opt/local`:
 
     source /opt/local/bin/hclib_setup_env.sh
 
+Few HClib cmake options available are:
+HCLIB_ENABLE_HWLOC, HCLIB_ENABLE_PRODUCTION, HCLIB_ENABLE_STATS, HCLIB_ENABLE_VERBOSE, HCLIB_PRIVATIZE_C_STD_11, HCLIB_INLINE_FUTURES_ONLY
+
+For example, to enable production setting:
+
+    ./install.sh -DHCLIB_ENABLE_PRODUCTION=ON
+
 HClib Modules
 ---------------------------------------------
 
@@ -68,7 +75,7 @@ modules, many of the test programs saved in this repo load the `system` module.
 The `system` module adds basic OS-related routines, such as asynchronous memory
 allocation and deallocation. If you would like to run any of these basic tests,
 the instructions below guide you through the process of building and installing
-the 'ssytem' module.
+the 'system' module.
 
 If install.sh is used to create an HClib installation, the `system` module will
 automatically be built and installed. However, if you wish to configure and
@@ -76,6 +83,8 @@ install HClib manually you will also need to build and install the `system`
 module manually. Once you have completed your HClib install, navigate to the
 `hclib/modules/system` directory and run:
 
+    mkdir build; cd build
+    cmake -DCMAKE_INSTALL_PREFIX=<installation-dir> ..
     make install
 
 Ensure that you have `HCLIB_ROOT` set in your environment first.
@@ -120,12 +129,4 @@ auto-formatter. Simply cd to tools/astyle and execute the run.sh script from
 there. This assumes you have astyle installed and it is on your path.
 
 [1] https://sourceforge.net/projects/cppcheck/
-
-Honeycomb simulator
----------------------------------------------
-To install HClib that runs on Honeycomb simulator, simply run:
-    ./install.sh --host=honey64-unknown-hcos
-
-To build and run applications using HClib on the Honeycomb
-simulator refer to ./tools/honeycomb/Makefile
 

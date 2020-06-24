@@ -60,6 +60,15 @@ typedef void *(*future_fct_t)(void *arg);
 
 size_t hclib_current_worker_backlog();
 
+/**
+ * hclib_init and hclib_finalize are not intended for external use. 
+ * Only included in the header file for third party integrations by HClib developers.
+ */
+void hclib_init(const char **module_dependencies,
+                int n_module_dependencies, const int instrument);
+
+void hclib_finalize(const int instrument);
+
 void hclib_launch(async_fct_t fct_ptr, void * arg, const char **deps,
         int ndeps);
 

@@ -1,6 +1,6 @@
 # Post Makefile includes are the main part of a module's build system, allowing
 # it to add flags to the overall project compile and link flags.
-HCLIB_LDLIBS+=-lhclib_system
+#HCLIB_LDLIBS+=-lhclib_system
 
 # ifeq ($(IS_MAC_OS),1)
 # HCLIB_LDLIBS += $(call GET_LINK_FLAG,-force_load) \

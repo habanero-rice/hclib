@@ -2,61 +2,34 @@
 
 set -e
 
-# Bootstrap, Configure, Make and Install
+# Cmake, Make and Install
 
 #
 # Defining some variables
 #
 PROJECT_NAME=hclib
 INSTALL_PREFIX=${INSTALL_PREFIX:=${PWD}/${PROJECT_NAME}-install}
-PREFIX_FLAGS="--prefix=$INSTALL_PREFIX"
 : ${NPROC:=1}
 
-# Don't clobber our custom header template
-export AUTOHEADER="echo autoheader disabled"
-
 #
-# Bootstrap
+# Cmake
 #
-# if install root has been specified, add --prefix option to configure
-echo "[${PROJECT_NAME}] Bootstrap..."
-
-./bootstrap.sh
-
-for i in "$@"
-do
-case $i in
-    --host=*)
-    HOST="${i#*=}"
-    echo "HOST is [${HOST}]"
-    if [ "$HOST" = "honey64-unknown-hcos" ]; then
-        cp tools/honeycomb/config.sub config/
-    fi
-    ;;
-    *)
-          # skip option
-    ;;
-esac
-done
-
-#
-# Configure
-#
-echo "[${PROJECT_NAME}] Configure..."
+echo "[${PROJECT_NAME}] Cmake..."
 
 REPO_ROOT=$PWD
-COMPTREE=$PWD/compileTree
+COMPTREE=$PWD/build
+rm -rf ${COMPTREE}
 mkdir -p ${COMPTREE}
 
 cd ${COMPTREE}
 
-../configure ${PREFIX_FLAGS} $*
+cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} $* ..
 
 #
 # Make
 #
 echo "[${PROJECT_NAME}] Make..."
-make -j${NPROC}
+make VERBOSE=1 -j${NPROC}
 
 #
 # Make install
@@ -66,11 +39,13 @@ echo "[${PROJECT_NAME}] Make install... to ${INSTALL_PREFIX}"
 make -j${NPROC} install
 
 
-if [ "$HOST" != "honey64-unknown-hcos" ]; then
-    echo "[${PROJECT_NAME}] Building system module..."
-    cd ../modules/system
-    HCLIB_ROOT=$INSTALL_PREFIX make install
-fi
+echo "[${PROJECT_NAME}] Building system module..."
+cd ../modules/system
+rm -rf build
+mkdir build; cd build
+cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} $* ..
+make VERBOSE=1
+make install
 
 #
 # Create environment setup script

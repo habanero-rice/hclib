@@ -1316,7 +1316,7 @@ void hclib_user_harness_timer(double dur) {
  * Main entrypoint for runtime initialization, this function must be called by
  * the user program before any HC actions are performed.
  */
-static void hclib_init(const char **module_dependencies,
+void hclib_init(const char **module_dependencies,
         int n_module_dependencies, const int instrument) {
     if (getenv("HCLIB_PROFILE_LAUNCH_BODY")) {
         profile_launch_body = 1;
@@ -1401,7 +1401,7 @@ void hclib_print_runtime_stats(FILE *fp) {
 #endif
 }
 
-static void hclib_finalize(const int instrument) {
+void hclib_finalize(const int instrument) {
     LiteCtx *finalize_ctx = LiteCtx_proxy_create(__func__);
     LiteCtx *finish_ctx = LiteCtx_create(_hclib_finalize_ctx);
 #ifdef HCLIB_STATS
