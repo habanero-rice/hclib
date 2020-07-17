@@ -232,6 +232,19 @@ inline void async_nb_await_at(T&& lambda, std::vector<hclib_future_t *> &&future
 }
 
 template <typename T>
+inline void async_nb_await_at(T&& lambda, std::vector<hclib_future_t *> *futures,
+        hclib_locale_t *locale) {
+    async_await_at_helper(lambda, futures ? futures->data() : nullptr,
+            futures ? futures->size() : 0, locale, 1);
+}
+
+template <typename T>
+inline void async_nb_await(T&& lambda, std::vector<hclib_future_t *> *futures) {
+    async_await_at_helper(lambda, futures ? futures->data() : nullptr,
+            futures ? futures->size() : 0, nullptr, 1);
+}
+
+template <typename T>
 inline void async_await(T&& lambda, hclib_future_t *future) {
 	MARK_OVH(current_ws()->id);
     typedef typename std::remove_reference<T>::type U;
@@ -284,6 +297,12 @@ inline void async_await(T&& lambda, std::vector<hclib_future_t *> &futures) {
 template <typename T>
 inline void async_await(T&& lambda, std::vector<hclib_future_t *> &&futures) {
     async_await_at_helper(lambda, futures.data(), futures.size(), nullptr, 0);
+}
+
+template <typename T>
+inline void async_await(T&& lambda, std::vector<hclib_future_t *> *futures) {
+    async_await_at_helper(lambda, futures ? futures->data() : NULL,
+            futures ? futures->size() : 0, nullptr, 0);
 }
 
 template <typename T>

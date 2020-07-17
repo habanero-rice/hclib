@@ -2,6 +2,8 @@
 
 set -e
 
+export CRAYPE_LINK_TYPE=dynamic
+
 # Cmake, Make and Install
 
 #
