@@ -287,6 +287,12 @@ inline void async_await(T&& lambda, std::vector<hclib_future_t *> &&futures) {
 }
 
 template <typename T>
+inline void async_await(T&& lambda, std::vector<hclib_future_t *> *futures) {
+    async_await_at_helper(lambda, futures ? futures.data() : NULL,
+            futures ? futures.size() : 0, nullptr, 0);
+}
+
+template <typename T>
 inline void async_await_at(T&& lambda, hclib_future_t *future,
         hclib_locale_t *locale) {
 	MARK_OVH(current_ws()->id);
