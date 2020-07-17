@@ -125,7 +125,7 @@ void lambda_wrapper(void *args) {
 template<typename Function, typename T1>
 inline hclib_task_t *initialize_task(Function lambda_caller, T1 *lambda_on_heap) {
     hclib_task_t *t = (hclib_task_t *)calloc(1, sizeof(*t));
-    assert(t);
+    assert(t && lambda_on_heap);
     async_arguments<Function, T1> *args =
         new async_arguments<Function, T1>(lambda_caller, lambda_on_heap);
     t->_fp = lambda_wrapper<Function, T1>;
@@ -437,6 +437,12 @@ auto async_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) ->
 }
 
 template <typename T>
+auto async_nb_future_await(T&& lambda, hclib_future_t * future) ->
+        hclib::future_t<decltype(lambda())>* {
+    return async_future_await_at_helper(lambda, &future, 1, nullptr, 1);
+}
+
+template <typename T>
 auto async_nb_future_await(T&& lambda, std::vector<hclib_future_t *> &futures) ->
         hclib::future_t<decltype(lambda())>* {
     return async_future_await_at_helper(lambda, futures.data(), futures.size(),
@@ -451,11 +457,6 @@ auto async_nb_future_await(T&& lambda, std::vector<hclib_future_t *> &&futures) 
             nullptr, 1);
 }
 
-template <typename T>
-auto async_nb_future_await(T&& lambda, hclib_future_t * future) ->
-        hclib::future_t<decltype(lambda())>* {
-    return async_future_await_at_helper(lambda, &future, 1, nullptr, 1);
-}
 
 
 template <typename T>

@@ -259,6 +259,8 @@ void hclib_get_curr_task_info(void (**fp_out)(void *), void **args_out);
  */
 void hclib_print_runtime_stats(FILE *fp);
 
+void hclib_default_queue_capacity(int* used, int* capacity);
+
 /**
  * @}
  */
