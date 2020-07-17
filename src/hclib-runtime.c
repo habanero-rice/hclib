@@ -477,6 +477,14 @@ static inline void execute_task(hclib_task_t *task) {
     free(task);
 }
 
+void hclib_default_queue_capacity(int* used, int* capacity) {
+    const int wid = hclib_get_current_worker();
+    hclib_locale_t *default_locale = hc_context->graph->locales + 0;
+    hclib_internal_deque_t * deq = &(default_locale->deques[wid].deque);
+    *used = deq->tail - deq->head;
+    *capacity = INIT_DEQUE_CAPACITY;
+}
+
 static inline void rt_schedule_async(hclib_task_t *async_task,
         hclib_worker_state *ws) {
 #ifdef VERBOSE
